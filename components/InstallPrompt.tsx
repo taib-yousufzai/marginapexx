@@ -55,7 +55,7 @@ export default function InstallPrompt() {
     <div
       style={{
         position: 'fixed',
-        bottom: '90px',
+        bottom: '130px', /* above footer (~70px) + account pill (~35px) + gap */
         left: '50%',
         transform: 'translateX(-50%)',
         width: 'calc(100% - 32px)',

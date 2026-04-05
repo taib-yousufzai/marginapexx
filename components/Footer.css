@@ -11,7 +11,7 @@
   right: 0;
   width: 100%;
   background: var(--footer-bg, #FFFFFF);
-  z-index: 5000;
+  z-index: 6000; /* always on top of drawer */
   border-top: 1px solid var(--border-card, #E2E6EA);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -124,30 +124,34 @@ body.dark .footer-tab.active {
 
 .account-drawer {
   position: fixed;
-  bottom: 70px; /* sits just above the nav bar height */
+  bottom: 0;
   left: 0;
   right: 0;
   width: 100%;
-  max-height: 0;
-  overflow: hidden;
+  /* Start fully hidden below viewport */
+  transform: translateY(100%);
   background: var(--drawer-bg, #FFFFFF);
-  z-index: 4900;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border-top: 1px solid var(--border-card, #E2E6EA);
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.08);
+  z-index: 5500; /* above page content, below footer */
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
+  /* Padding so content clears the footer above it */
+  padding-bottom: 115px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 body.dark .account-drawer {
   background: var(--drawer-bg, #1E1E1E);
-  border-top-color: var(--border-card, #333333);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
 }
 
 .account-drawer.open {
-  max-height: 400px;
+  transform: translateY(0);
 }
 
 .drawer-inner {
-  padding: 20px;
+  padding: 20px 20px 16px;
 }
 
 .drawer-close-btn {
