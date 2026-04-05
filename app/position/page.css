@@ -1,0 +1,228 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #F5F7FB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #1A1E2B;
+        }
+
+        .mobile-app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #FFFFFF;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        @media (max-width: 500px) {
+            .mobile-app { 
+                max-width: 100%; 
+                width: 100%;
+                box-shadow: none;
+            }
+        }
+
+        /* Header */
+        .app-header {
+            background: #FFFFFF;
+            padding: 14px 18px;
+            border-bottom: 2px solid #F1F5F9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .header-title {
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: #1A1E2B;
+            letter-spacing: -0.5px;
+        }
+
+        /* Scrollable Main Content */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: #F8FAFF;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding-bottom: 120px; /* Space for dual-layered footer */
+        }
+
+        .pnl-summary {
+            background: #1A1E2B;
+            padding: 24px 18px;
+            color: white;
+            flex-shrink: 0;
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+        }
+
+        .summary-label {
+            font-size: 0.75rem;
+            color: #94A3B8;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .total-pnl {
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        .pnl-pos { color: #4ADE80; }
+        .pnl-neg { color: #FB7185; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            width: 100%;
+        }
+
+        .summary-item .val {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            display: flex;
+            background: #FFFFFF;
+            border-bottom: 1px solid #EEF2F6;
+            margin: 0 0 8px 0;
+            flex-shrink: 0;
+            width: 100%;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: #94A3B8;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: #C62E2E;
+            border-bottom-color: #C62E2E;
+            background: rgba(198, 46, 46, 0.02);
+        }
+
+        /* Positions List */
+        .positions-list {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .pos-card {
+            background: white;
+            border-bottom: 1px solid #F1F5F9;
+            padding: 18px;
+            width: 100%;
+            margin: 0;
+            border-radius: 0;
+            transition: 0.2s;
+        }
+
+        .pos-card:hover { background: #FCFDFF; }
+
+        .pos-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .pos-symbol {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1A1E2B;
+        }
+
+        .pos-product {
+            font-size: 0.65rem;
+            font-weight: 800;
+            background: #F1F5F9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: #64748B;
+        }
+
+        .pos-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            padding: 16px 0;
+            border-top: 1px solid #F8FAFC;
+        }
+
+        .pos-item-label {
+            font-size: 0.65rem;
+            color: #94A3B8;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+        }
+
+        .pos-item-val {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1A1E2B;
+        }
+
+        .pos-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #F8FAFC;
+        }
+
+        .pos-pnl-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #94A3B8;
+        }
+
+        .pos-pnl-val {
+            font-weight: 800;
+            font-size: 1.15rem;
+        }
+
+        ::-webkit-scrollbar { width: 0; height: 0; }
