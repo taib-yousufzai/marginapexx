@@ -2,21 +2,24 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import './Footer.css';
 
 interface FooterProps {
   activeTab: 'home' | 'watchlist' | 'order' | 'position' | 'history';
+  hideDrawer?: boolean;
 }
 
-const Footer: React.FC<FooterProps> = ({ activeTab }) => {
+const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
+  const router = useRouter();
 
   const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
 
   return (
     <div className="footer-section">
       {/* Drawer Handle (Home Style) */}
-      {activeTab !== 'watchlist' && (
+      {activeTab !== 'watchlist' && !hideDrawer && (
         <>
           <div className="drawer-handle" onClick={toggleDrawer}>
             <div className="reverse-semi-circle">
@@ -52,8 +55,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab }) => {
                     </div>
                   </div>
                   <div className="summary-actions">
-                    <button className="summary-action-btn" onClick={() => window.location.href = '/funds?tab=deposit'}><i className="fas fa-plus"></i> Add Funds</button>
-                    <button className="summary-action-btn secondary" onClick={() => window.location.href = '/funds?tab=withdraw'}><i className="fas fa-university"></i> Withdraw</button>
+                    <button className="summary-action-btn" onClick={() => router.push('/funds?tab=deposit')}><i className="fas fa-plus"></i> Add Funds</button>
+                    <button className="summary-action-btn secondary" onClick={() => router.push('/funds?tab=withdraw')}><i className="fas fa-university"></i> Withdraw</button>
                   </div>
                 </div>
               </div>

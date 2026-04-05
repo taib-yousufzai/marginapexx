@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './page.css';
 import Link from 'next/link';
+import Footer from '../../components/Footer';
 
 export default function FundsPage() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -103,10 +104,15 @@ export default function FundsPage() {
         </div>
       </div>
       
+      {/* Footer Navigation Overlay */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
+        <Footer activeTab="home" hideDrawer={true} />
+      </div>
+      
       {/* Dynamic Toast popup replicating global behavior */}
       {toastMsg && (
         <div className="toast-msg" style={{ 
-            opacity: 1, position: 'fixed', bottom: '40px', left: '50%', transform: 'translateX(-50%)', 
+            opacity: 1, position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', 
             background: 'rgba(30,35,45,0.95)', color: '#fff', padding: '14px 24px', borderRadius: '40px', 
             fontSize: '0.9rem', zIndex: 9999, fontWeight: 600, width: 'max-content', maxWidth: '90vw'
         }}>
