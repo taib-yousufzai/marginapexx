@@ -1,0 +1,205 @@
+.back-button {
+  color: var(--text-primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-secondary, #F8FAFF);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #EEF2F8);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+body.dark .back-button {
+  background: #252A38;
+  border-color: #2F3646;
+  color: #E2E8F0;
+}
+
+.margin-settings-content {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-background);
+  min-height: calc(100vh - 76px);
+}
+
+.margin-intro {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgba(44, 142, 90, 0.08); /* slight green tint */
+  padding: 16px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+}
+
+body.dark .margin-intro {
+  background: rgba(44, 142, 90, 0.15);
+}
+
+.margin-intro .info-icon {
+  color: #2C8E5A;
+  font-size: 1.2rem;
+  margin-top: 2px;
+}
+
+.margin-intro p {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.segments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 30px;
+}
+
+.margin-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.dark .margin-card {
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.margin-card:active {
+  transform: scale(0.98);
+}
+
+.margin-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.segment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: var(--bg-surface-secondary);
+  color: var(--text-primary);
+}
+
+.segment-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Playfair Display', serif;
+}
+
+.margin-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.leverage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #E9F6EF; /* default green */
+  color: #006400;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+body.dark .leverage-badge {
+  background: rgba(0, 100, 0, 0.3);
+  color: #4ade80;
+}
+
+.margin-req {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface-secondary);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.req-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.req-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.margin-card-footer {
+  border-top: 1px dashed var(--border-color);
+  padding-top: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Color specific overrides */
+.margin-card.crypto .segment-icon {
+  background: #FFF8E1;
+  color: #FFA000;
+}
+body.dark .margin-card.crypto .segment-icon {
+  background: rgba(255, 160, 0, 0.15);
+}
+
+.margin-card.crypto .leverage-badge {
+  background: #FFF8E1;
+  color: #FFA000;
+}
+body.dark .margin-card.crypto .leverage-badge {
+  background: rgba(255, 160, 0, 0.15);
+  color: #FFC107;
+}
+
+.margin-card.equity-cnc .segment-icon {
+  background: #EBF4FF;
+  color: #3B82F6;
+}
+body.dark .margin-card.equity-cnc .segment-icon {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.margin-card.equity-cnc .leverage-badge,
+.margin-card.options-buy .leverage-badge,
+.margin-card.options-sell .leverage-badge,
+.margin-card.futures .leverage-badge,
+.margin-card.commodity .leverage-badge {
+  background: var(--bg-surface-secondary);
+  color: var(--text-muted);
+}
+body.dark .margin-card.equity-cnc .leverage-badge,
+body.dark .margin-card.options-buy .leverage-badge,
+body.dark .margin-card.options-sell .leverage-badge,
+body.dark .margin-card.futures .leverage-badge,
+body.dark .margin-card.commodity .leverage-badge {
+  background: #252A38;
+  color: #94A3B8;
+}

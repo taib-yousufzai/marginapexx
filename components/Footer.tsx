@@ -27,12 +27,34 @@ const Footer: React.FC<FooterProps> = ({ activeTab }) => {
           
           {/* Expandable Drawer Content (Home Style) */}
           <div className={`pull-drawer ${isDrawerOpen ? 'open' : ''}`} id="pullDrawer">
-            <div className="drawer-content">
-              <div className="drawer-inner">
-                <div className="drawer-placeholder">
-                  <i className="fas fa-chart-pie"></i>
-                  <span style={{fontWeight: 700}}>Account Summary & Utilities</span>
-                  <p style={{fontSize: '0.7rem', color: '#94A3B8'}}>Shortcuts and settings will appear here.</p>
+            <div className="drawer-content" style={{ maxHeight: isDrawerOpen ? '800px' : '0', transition: 'max-height 0.4s ease-out' }}>
+              <div className="drawer-inner" style={{ paddingBottom: '30px' }}>
+                <div className="drawer-account-summary">
+                  <div className="summary-header">
+                    <span className="summary-title"><i className="fas fa-wallet"></i> Account Overview</span>
+                  </div>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <span className="summary-label">Total Balance</span>
+                      <span className="summary-value">$124,500.00</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Available Margin</span>
+                      <span className="summary-value highlight">$82,300.50</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Margin Used</span>
+                      <span className="summary-value">$42,199.50</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Today's P&L</span>
+                      <span className="summary-value positive">+$1,240.20</span>
+                    </div>
+                  </div>
+                  <div className="summary-actions">
+                    <button className="summary-action-btn" onClick={() => window.location.href = '/funds?tab=deposit'}><i className="fas fa-plus"></i> Add Funds</button>
+                    <button className="summary-action-btn secondary" onClick={() => window.location.href = '/funds?tab=withdraw'}><i className="fas fa-university"></i> Withdraw</button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -894,7 +894,7 @@ body.dark .circle-icon {
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 3000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1006,19 +1006,22 @@ body.dark .circle-icon {
 
 .toast-msg {
   position: fixed;
-  bottom: 80px;
+  bottom: 90px;
   left: 50%;
   transform: translateX(-50%);
-  background: #1A1F2Ed9;
-  backdrop-filter: blur(12px);
-  color: white;
-  padding: 8px 18px;
-  border-radius: 50px;
-  font-size: 0.75rem;
-  z-index: 1000;
+  background: rgba(30, 35, 45, 0.95);
+  backdrop-filter: blur(8px);
+  color: #FFFFFF !important;
+  padding: 14px 24px;
+  border-radius: 40px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 99999;
   pointer-events: none;
   text-align: center;
-  max-width: 85vw;
+  width: max-content;
+  max-width: 90vw;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 
 /* MOBILE OVERRIDES AT THE BOTTOM FOR PRIORITY */
@@ -1134,4 +1137,106 @@ body.dark .circle-icon {
   background: linear-gradient(135deg, #14532D, #064E3B) !important;
   -webkit-background-clip: text !important;
   color: transparent !important;
+}
+
+/* ========================================================
+   PRO TERMINAL DESKTOP ARCHITECTURE (>= 1024px)
+   ======================================================== */
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    grid-template-rows: 64px 1fr;
+    grid-template-areas: 
+      "sidebar nav"
+      "sidebar content";
+    box-shadow: none;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .nav-bar-full {
+    grid-area: nav;
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: none;
+  }
+
+  /* Keep Footer inside grid */
+  .footer-section {
+    grid-area: sidebar;
+  }
+
+  .main-scroll-wrapper {
+    grid-area: content;
+    padding: 32px 40px;
+  }
+
+  .screen {
+    padding: 0;
+  }
+  
+  .content-padded {
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+    align-items: start;
+    grid-template-areas: 
+      "whatsapp whatsapp"
+      "margin learning"
+      "options learning"
+      "expiry learning"
+      "markets learning";
+  }
+
+  .whatsapp-community { grid-area: whatsapp; max-width: 100%; box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3); }
+  .margin-settings-row { grid-area: margin; }
+  .option-chain-section { grid-area: options; }
+  .expiry-block { grid-area: expiry; }
+  .market-overview { grid-area: markets; }
+  .learning-section { grid-area: learning; margin-top: 0; }
+  
+  .learning-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .learning-card {
+    padding: 16px 12px;
+  }
+
+  /* Unpack horizontal scrolls into wrapping grids */
+  .scrollable-instruments,
+  .market-row-scroll {
+    overflow-x: visible;
+    white-space: normal;
+  }
+  
+  .instruments-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+
+  .circle-instrument {
+    width: 100%;
+  }
+
+  .market-row-blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .market-rectangle {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toast-msg {
+    bottom: 40px;
+  }
 }

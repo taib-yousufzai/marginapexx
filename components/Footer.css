@@ -90,7 +90,7 @@ body.dark .pull-drawer {
 }
 
 .pull-drawer.open .drawer-content {
-  max-height: 250px;
+  max-height: 600px;
   transition: max-height 0.4s ease-in;
 }
 
@@ -104,18 +104,129 @@ body.dark .drawer-inner {
   border-top: 1px solid var(--border-card, #3A3A3A);
 }
 
-.drawer-placeholder {
-  color: var(--text-muted, #9CA3AF);
-  font-size: 0.85rem;
+/* Account Summary Styles */
+.drawer-account-summary {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.summary-header {
+  border-bottom: 1px solid var(--border-card, #E2E6EA);
+  padding-bottom: 12px;
+  text-align: left;
+}
+
+body.dark .summary-header {
+  border-bottom-color: var(--border-card, #3A3A3A);
+}
+
+.summary-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary, #1A1A1A);
+  display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+body.dark .summary-title {
+  color: var(--text-primary, #F5F5F5);
+}
+
+.summary-title i {
+  color: var(--drawer-handle, #006400);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.drawer-placeholder i {
-  font-size: 1.8rem;
-  color: var(--drawer-handle, #006400);
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  background: var(--card-alt-bg, #F8F9FB);
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-card, #E2E6EA);
+}
+
+body.dark .summary-item {
+  background: var(--card-alt-bg, #2A2A2A);
+  border-color: var(--border-card, #3A3A3A);
+}
+
+.summary-label {
+  font-size: 0.65rem;
+  color: var(--text-muted, #9CA3AF);
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary, #1A1A1A);
+  font-family: 'Playfair Display', serif;
+}
+
+body.dark .summary-value {
+  color: var(--text-primary, #F5F5F5);
+}
+
+.summary-value.highlight {
+  color: #008000;
+}
+
+.summary-value.positive {
+  color: #2E7D32;
+}
+
+body.dark .summary-value.positive {
+  color: #4ADE80;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.summary-action-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #006400 0%, #004d00 100%);
+  color: white;
+}
+
+.summary-action-btn:active {
+  transform: scale(0.96);
+}
+
+.summary-action-btn.secondary {
+  background: var(--icon-bg, #F3F4F6);
+  color: var(--text-primary, #1A1A1A);
+  border: 1px solid var(--border-card, #E2E6EA);
+}
+
+body.dark .summary-action-btn.secondary {
+  background: var(--icon-bg, #2A2A2A);
+  color: var(--text-primary, #F5F5F5);
+  border-color: var(--border-card, #3A3A3A);
 }
 
 .footer-nav {
@@ -169,7 +280,46 @@ body.dark .footer-tab:active { background: var(--icon-bg, #2A2A2A); }
 .footer-tab.active { color: var(--footer-active, #006400); }
 body.dark .footer-tab.active { color: var(--footer-active, #008000); }
 
-@media (max-width: 500px) {
-    .footer-section { max-width: 100%; border-radius: 0; }
-    .footer-nav { padding: 16px 10px !important; }
+@media (max-width: 1023px) {
+  .footer-section { max-width: 500px; border-radius: 0; }
+  .footer-nav { padding: 16px 10px !important; }
+}
+
+@media (min-width: 1024px) {
+  .footer-section {
+    position: static;
+    grid-area: sidebar;
+    width: 80px;
+    max-width: 80px;
+    height: 100vh;
+    border-right: 1px solid var(--border-light);
+    border-top: none;
+    z-index: 100;
+  }
+
+  .footer-nav {
+    flex-direction: column;
+    padding: 32px 0;
+    gap: 40px;
+    height: 100%;
+    border-top: none;
+  }
+
+  .footer-tab {
+    width: 100%;
+    padding: 8px 0;
+  }
+
+  .footer-icon {
+    font-size: 1.4rem;
+  }
+
+  .footer-label {
+    margin-top: 6px;
+  }
+
+  /* Hide the old bottom drawer functionality on desktop */
+  .drawer-handle, .pull-drawer {
+    display: none !important;
+  }
 }
