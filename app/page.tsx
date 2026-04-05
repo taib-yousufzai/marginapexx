@@ -151,7 +151,8 @@ export default function Page() {
         </div>
       </div>
 
-      <div ref={containerRef} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
+      {/* Scrollable Main Content - only this div scrolls */}
+      <div ref={containerRef} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {/* Scrollable Main Content */}
         <div className="main-content">
           <div className="screen">

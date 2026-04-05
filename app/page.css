@@ -127,12 +127,13 @@ body.dark {
   margin: 0 auto;
   background: var(--container-bg);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden; /* NO outer scroll - only inner scroll-wrapper scrolls */
   height: 100dvh;
   position: relative;
   display: flex;
   flex-direction: column;
+  /* Reserve space at bottom for fixed footer so content never hides under it */
+  padding-bottom: 75px;
 }
 
 .app-container::-webkit-scrollbar {
@@ -145,13 +146,21 @@ body.dark {
 }
 
 
-.main-content {
+.main-scroll-wrapper {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  /* Added to prevent horizontal leak */
-  padding-bottom: 80px;
-  /* Space for footer */
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+  display: flex;
+  flex-direction: column;
+}
+
+.main-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.main-content {
+  flex: 1;
   width: 100%;
 }
 
@@ -1123,21 +1132,7 @@ body.dark .circle-icon {
   }
 }
 
-
-/* ----- CONSISTENT DARK GREEN NAVIGATION ICONS ----- */
-.footer-tab .footer-icon,
-.footer-tab .footer-label {
-  color: rgba(20, 83, 45, 0.5) !important;
-  background: none !important;
-  -webkit-background-clip: initial !important;
-}
-
-.footer-tab.active .footer-icon,
-.footer-tab.active .footer-label {
-  background: linear-gradient(135deg, #14532D, #064E3B) !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-}
+/* Footer icon colors are now managed in Footer.css */
 
 /* ========================================================
    PRO TERMINAL DESKTOP ARCHITECTURE (>= 1024px)
@@ -1145,32 +1140,40 @@ body.dark .circle-icon {
 @media (min-width: 1024px) {
   .app-container {
     max-width: 100vw;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 80px 1fr;
-    grid-template-rows: 64px 1fr;
-    grid-template-areas: 
-      "sidebar nav"
-      "sidebar content";
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
     box-shadow: none;
     margin: 0;
     overflow: hidden;
+    padding-bottom: 0; /* no bottom padding on desktop */
+    padding-left: 80px; /* sidebar width - push content right */
   }
 
   .nav-bar-full {
-    grid-area: nav;
     border-bottom: 1px solid var(--border-light);
     box-shadow: none;
   }
 
-  /* Keep Footer inside grid */
+  /* Override fixed positioning for desktop grid sidebar */
   .footer-section {
-    grid-area: sidebar;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: auto;
+    width: 80px;
+    height: 100vh;
+    border-top: none;
+    border-right: 1px solid var(--border-light);
+    padding-bottom: 0;
+    grid-area: unset;
   }
 
   .main-scroll-wrapper {
-    grid-area: content;
     padding: 32px 40px;
+    flex: 1;
+    overflow-y: auto;
   }
 
   .screen {
