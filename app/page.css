@@ -111,7 +111,7 @@ body.dark {
   max-width: 500px;
   margin: 0 auto;
   background: #FFFFFF;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -129,7 +129,7 @@ body.dark {
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100vh;
+  height: 100dvh;
   position: relative;
   display: flex;
   flex-direction: column;
