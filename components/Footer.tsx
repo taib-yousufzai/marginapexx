@@ -13,7 +13,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const router = useRouter();
 
   // Handle Sheet physics
-  const [sheetState, setSheetState] = useState(0);
+  const [step, setStep] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const startY = useRef(0);
@@ -38,13 +38,15 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [sheetState]); // ensure layout captures shifts
+  }, [step]); // ensure layout captures shifts
 
-  // 0: Collapsed - 0px height (handle remains visible at top: -20px over drawing)
+  // 0: Collapsed - 0px height 
   // 1: Open - 10vh tall
+  // 2: Open 2 - 15vh tall
   const snapPoints = [
-    0, 
-    vh * 0.1
+    0,
+    vh * 0.1,
+    vh * 0.15
   ];
 
   const currentHeight = useRef(snapPoints[0]);
@@ -53,7 +55,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
   useEffect(() => {
     if (!panelRef.current) return;
-    
+
     panelRef.current.style.bottom = `${footerHeight}px`;
 
     if (isInitialRender.current) {
@@ -68,9 +70,9 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       panelRef.current.style.transition = 'height 0.5s cubic-bezier(0.2, 0.9, 0.3, 1)';
     }
 
-    panelRef.current.style.height = `${snapPoints[sheetState]}px`;
-    currentHeight.current = snapPoints[sheetState];
-  }, [sheetState, vh, footerHeight]);
+    panelRef.current.style.height = `${snapPoints[step]}px`;
+    currentHeight.current = snapPoints[step];
+  }, [step, vh, footerHeight]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -85,12 +87,12 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     if (!startY.current) return; // For mouse events
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const delta = clientY - startY.current;
-    
+
     // delta is positive when swiping DOWN, pushing Drawer CLOSER to 0 height
     // delta is negative when swiping UP, pushing Drawer to HIGHER height
     const nextH = currentHeight.current - delta;
-    const limitH = snapPoints[1];
-    
+    const limitH = snapPoints[2];
+
     // add small elasticity to max pull
     const finalH = nextH > limitH ? limitH + Math.pow(nextH - limitH, 0.8) : Math.max(0, nextH);
 
@@ -107,12 +109,12 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     const finalH = currentHeight.current - delta;
     const direction = velocity.current;
 
-    let targetState = sheetState;
+    let targetState = step;
 
     if (direction < -0.3) {
-      targetState = Math.min(1, sheetState + 1);
+      targetState = Math.min(2, step + 1);
     } else if (direction > 0.3) {
-      targetState = Math.max(0, sheetState - 1);
+      targetState = Math.max(0, step - 1);
     } else {
       const closest = snapPoints.reduce((prevIdx, currPoint, idx) => {
         return Math.abs(currPoint - finalH) < Math.abs(snapPoints[prevIdx] - finalH) ? idx : prevIdx;
@@ -120,14 +122,20 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       targetState = closest;
     }
 
-    setSheetState(targetState);
+    setStep(targetState);
     panelRef.current.style.transition = 'height 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1)';
     panelRef.current.style.height = `${snapPoints[targetState]}px`;
     currentHeight.current = snapPoints[targetState];
   };
 
   const toggleHandle = () => {
-    setSheetState(sheetState === 0 ? 1 : 0);
+    if (step === 0) {
+      setStep(1);
+    } else if (step === 1) {
+      setStep(2);
+    } else if (step === 2) {
+      setStep(0);
+    }
   };
 
   return (
@@ -152,11 +160,42 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
             onMouseUp={handleTouchEnd}
             onMouseLeave={() => startY.current && handleTouchEnd()}
           >
-            <i className={`fas fa-chevron-up toggle-arrow ${sheetState > 0 ? 'rotated' : ''}`}></i>
+            <i className={`fas fa-chevron-up toggle-arrow ${step === 2 ? 'rotated' : ''}`} style={step === 1 ? { opacity: 0.6 } : {}}></i>
           </div>
 
           <div className="drawer-inner-scroll">
-            {/* Base structure for future content */}
+            <div className="drawer-account-summary">
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <span className="summary-label">Balance</span>
+                  <span className="summary-value">₹10,000</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Free Margin</span>
+                  <span className="summary-value">₹8,000</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Floating P/L</span>
+                  <span className="summary-value positive">₹+500</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Equity</span>
+                  <span className="summary-value highlight">₹10,500</span>
+                </div>
+                {step === 2 && (
+                  <>
+                    <div className="summary-item">
+                      <span className="summary-label">Used Margin</span>
+                      <span className="summary-value">₹2,000</span>
+                    </div>
+                    <div className="summary-item">
+                      <span className="summary-label">Margin Limit</span>
+                      <span className="summary-value">₹10,000</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

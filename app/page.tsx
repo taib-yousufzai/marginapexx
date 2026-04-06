@@ -112,6 +112,13 @@ export default function Page() {
     });
   };
 
+  const handleWhatsAppSupport = () => {
+    setInfoState({
+      title: "📞 24/7 WHATSAPP SUPPORT",
+      content: "Get instant help anytime on WhatsApp.\n\nClick to chat with our support team."
+    });
+  };
+
   const redirectToMarginSettings = () => {
     window.location.href = '/margin-settings';
   };
@@ -261,6 +268,18 @@ export default function Page() {
                       <div className="learning-badge">{item.badge}</div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* WhatsApp Support Button */}
+              <div className="whatsapp-community" onClick={handleWhatsAppSupport} style={{ marginTop: '20px' }}>
+                <div className="whatsapp-inner">
+                  <div className="whatsapp-icon"><i className="fab fa-whatsapp"></i></div>
+                  <div className="whatsapp-content">
+                    <div className="whatsapp-headline">24/7 WHATSAPP SUPPORT</div>
+                    <div className="whatsapp-sub"><i className="fas fa-headset"></i> Get instant help anytime on WhatsApp</div>
+                  </div>
+                  <div className="whatsapp-arrow"><i className="fas fa-chevron-right"></i></div>
                 </div>
               </div>
             </div>
