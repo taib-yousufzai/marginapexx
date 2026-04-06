@@ -24,7 +24,7 @@
       position: relative;
       box-shadow: 0 0 40px rgba(0,0,0,0.05);
       width: 100vw; 
-      padding-bottom: 0; /* Ensuring no gap at bottom */
+      overflow: hidden;
     }
 
 

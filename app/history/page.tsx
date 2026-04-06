@@ -83,13 +83,13 @@ export default function HistoryPage() {
                         <div className="logo-text">Trade History</div>
                     </div>
                     <div className="header-buttons">
-                        <button 
+                        <button
                             className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
                             onClick={() => setCurrentTab('position')}
                         >
                             Position History
                         </button>
-                        <button 
+                        <button
                             className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
                             onClick={() => setCurrentTab('order')}
                         >
@@ -100,9 +100,9 @@ export default function HistoryPage() {
                 <div className="date-filter-row">
                     <div className="filter-group">
                         <i className="fas fa-calendar-alt"></i>
-                        <input 
-                            type="date" 
-                            className="date-input-compact" 
+                        <input
+                            type="date"
+                            className="date-input-compact"
                             value={fromDate}
                             onChange={(e) => setFromDate(e.target.value)}
                         />
@@ -110,9 +110,9 @@ export default function HistoryPage() {
                     <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
                     <div className="filter-group">
                         <i className="fas fa-calendar-alt"></i>
-                        <input 
-                            type="date" 
-                            className="date-input-compact" 
+                        <input
+                            type="date"
+                            className="date-input-compact"
                             value={toDate}
                             onChange={(e) => setToDate(e.target.value)}
                         />

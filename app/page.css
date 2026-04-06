@@ -132,7 +132,6 @@ body.dark {
   position: relative;
   display: flex;
   flex-direction: column;
-  /* Reserve space at bottom for fixed footer so content never hides under it */
   padding-bottom: 75px;
 }
 

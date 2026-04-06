@@ -40,19 +40,37 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [sheetState]); // ensure layout captures shifts
 
-  // 0: Collapsed (drawer top edge meets footer top edge perfectly, minus 3px to keep red line entirely visible above it)
-  // 1: Open (10vh tall)
+  // 0: Collapsed - 0px height (handle remains visible at top: -20px over drawing)
+  // 1: Open - 10vh tall
   const snapPoints = [
-    Math.max(vh - footerHeight - 3, 100),
-    vh - footerHeight - (vh * 0.1)
+    0, 
+    vh * 0.1
   ];
+
+  const currentHeight = useRef(snapPoints[0]);
+
+  const isInitialRender = useRef(true);
 
   useEffect(() => {
     if (!panelRef.current) return;
-    panelRef.current.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1)';
-    panelRef.current.style.transform = `translateY(${snapPoints[sheetState]}px)`;
-    currentTranslateY.current = snapPoints[sheetState];
-  }, [sheetState, vh]);
+    
+    panelRef.current.style.bottom = `${footerHeight}px`;
+
+    if (isInitialRender.current) {
+      panelRef.current.style.transition = 'none';
+      setTimeout(() => {
+        if (panelRef.current) {
+          panelRef.current.style.transition = 'height 0.5s cubic-bezier(0.2, 0.9, 0.3, 1)';
+        }
+      }, 50);
+      isInitialRender.current = false;
+    } else {
+      panelRef.current.style.transition = 'height 0.5s cubic-bezier(0.2, 0.9, 0.3, 1)';
+    }
+
+    panelRef.current.style.height = `${snapPoints[sheetState]}px`;
+    currentHeight.current = snapPoints[sheetState];
+  }, [sheetState, vh, footerHeight]);
 
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -67,21 +85,17 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     if (!startY.current) return; // For mouse events
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const delta = clientY - startY.current;
-
-    const now = Date.now();
-    const timeDiff = now - lastTimestamp.current;
-    if (timeDiff > 0) {
-      velocity.current = (clientY - lastY.current) / timeDiff;
-    }
-    lastY.current = clientY;
-    lastTimestamp.current = now;
-
-    const nextY = currentTranslateY.current + delta;
-    const limitY = snapPoints[1];
-    const finalY = nextY < limitY ? limitY - Math.pow(limitY - nextY, 0.8) : nextY;
+    
+    // delta is positive when swiping DOWN, pushing Drawer CLOSER to 0 height
+    // delta is negative when swiping UP, pushing Drawer to HIGHER height
+    const nextH = currentHeight.current - delta;
+    const limitH = snapPoints[1];
+    
+    // add small elasticity to max pull
+    const finalH = nextH > limitH ? limitH + Math.pow(nextH - limitH, 0.8) : Math.max(0, nextH);
 
     if (panelRef.current) {
-      panelRef.current.style.transform = `translateY(${finalY}px)`;
+      panelRef.current.style.height = `${finalH}px`;
     }
   };
 
@@ -89,7 +103,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     startY.current = 0; // reset
     if (!panelRef.current) return;
 
-    const finalY = lastY.current - startY.current + currentTranslateY.current;
+    const delta = lastY.current - startY.current;
+    const finalH = currentHeight.current - delta;
     const direction = velocity.current;
 
     let targetState = sheetState;
@@ -100,15 +115,15 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       targetState = Math.max(0, sheetState - 1);
     } else {
       const closest = snapPoints.reduce((prevIdx, currPoint, idx) => {
-        return Math.abs(currPoint - finalY) < Math.abs(snapPoints[prevIdx] - finalY) ? idx : prevIdx;
+        return Math.abs(currPoint - finalH) < Math.abs(snapPoints[prevIdx] - finalH) ? idx : prevIdx;
       }, 0);
       targetState = closest;
     }
 
     setSheetState(targetState);
-    panelRef.current.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1)';
-    panelRef.current.style.transform = `translateY(${snapPoints[targetState]}px)`;
-    currentTranslateY.current = snapPoints[targetState];
+    panelRef.current.style.transition = 'height 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1)';
+    panelRef.current.style.height = `${snapPoints[targetState]}px`;
+    currentHeight.current = snapPoints[targetState];
   };
 
   const toggleHandle = () => {

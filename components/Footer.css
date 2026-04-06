@@ -11,9 +11,11 @@
   right: 0;
   width: 100%;
   background: var(--footer-bg, #FFFFFF);
-  z-index: 6000; /* always on top of drawer */
+  z-index: 50; /* Footer z-index at 50 per user spec */
   border-top: 1px solid var(--border-card, #E2E6EA);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  margin: 0 auto;
+  max-width: 500px;
 }
 
 body.dark .footer-section {
@@ -95,26 +97,24 @@ body.dark .footer-tab.active {
 
 .account-drawer-ark {
   position: fixed;
-  top: 0;
+  bottom: 65px; /* Natively align to standard footer top */
   left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: 500px;
   width: 100%;
-  height: 10vh !important;
+  height: 0px; /* Base height explicitly controlled by JS sliding */
   min-height: 0 !important;
-  max-height: 10vh !important;
+  max-height: 50vh !important;
   flex-grow: 0 !important;
-  background: var(--drawer-bg, #FFFFFF);
-  z-index: 5500;
-  border-radius: 0; /* Flat top to seamlessly sit on footer */
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-  will-change: transform;
-  transform: translateY(100%);
+  background: var(--drawer-bg, #FFFFFF); /* Restored solid background! */
+  z-index: 60; /* higher than footer per spec */
+  border-radius: 0;
+  will-change: height;
 }
 
 body.dark .account-drawer-ark {
   background: var(--drawer-bg, #1E1E1E);
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
 }
 
 .ark-drawer-top-line {
@@ -133,31 +133,38 @@ body.dark .ark-drawer-top-line {
 
 .ark-drag-handle-area {
   position: absolute;
-  top: -20px; /* Sits completely flush with the top line */
+  top: -20px;
+  /* Sits completely flush with the top line */
   left: 50%;
   transform: translateX(-50%);
   width: 90px;
   height: 20px;
-  background: #DC2626; /* Solid red background */
-  clip-path: path("M 0 20 C 15 20, 32 0, 45 0 C 58 0, 75 20, 90 20 Z"); /* Perfectly smooth curve merging with the 3px line */
-  filter: drop-shadow(0 -4px 8px rgba(220, 38, 38, 0.3)); /* Preserved red glow outside the path */
+  background: #DC2626;
+  /* Solid red background */
+  clip-path: path("M 0 20 C 15 20, 32 0, 45 0 C 58 0, 75 20, 90 20 Z");
+  /* Perfectly smooth curve merging with the 3px line */
+  filter: drop-shadow(0 -4px 8px rgba(220, 38, 38, 0.3));
+  /* Preserved red glow outside the path */
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 0px; 
+  padding-bottom: 0px;
   cursor: grab;
   touch-action: none;
   z-index: 5;
 }
 
 body.dark .ark-drag-handle-area {
-  background: #DC2626; 
+  background: #DC2626;
 }
 
-.ark-drag-handle-area:active { cursor: grabbing; }
+.ark-drag-handle-area:active {
+  cursor: grabbing;
+}
 
 .toggle-arrow {
-  color: #FFFFFF; /* High contrast white icon */
+  color: #FFFFFF;
+  /* High contrast white icon */
   font-size: 0.8rem;
   transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
@@ -172,7 +179,10 @@ body.dark .ark-drag-handle-area {
   -webkit-overflow-scrolling: touch;
   padding: 16px 20px 24px;
 }
-.drawer-inner-scroll::-webkit-scrollbar { display: none; }
+
+.drawer-inner-scroll::-webkit-scrollbar {
+  display: none;
+}
 
 .ark-extended-stats {
   opacity: 0;
@@ -262,11 +272,21 @@ body.dark .summary-value {
   color: var(--text-primary, #F5F5F5);
 }
 
-.summary-value.positive { color: #22c55e; }
-.summary-value.negative { color: #ef4444; }
-.summary-value.highlight { color: var(--footer-active, #006400); }
+.summary-value.positive {
+  color: #22c55e;
+}
 
-body.dark .summary-value.highlight { color: var(--footer-active, #008000); }
+.summary-value.negative {
+  color: #ef4444;
+}
+
+.summary-value.highlight {
+  color: var(--footer-active, #006400);
+}
+
+body.dark .summary-value.highlight {
+  color: var(--footer-active, #008000);
+}
 
 .summary-actions {
   display: flex;
@@ -292,7 +312,9 @@ body.dark .summary-value.highlight { color: var(--footer-active, #008000); }
   transition: transform 0.15s;
 }
 
-.summary-action-btn:active { transform: scale(0.96); }
+.summary-action-btn:active {
+  transform: scale(0.96);
+}
 
 .summary-action-btn.secondary {
   background: var(--icon-bg, #F3F4F6);

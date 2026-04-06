@@ -859,13 +859,13 @@ export default function WatchlistPage() {
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
                 <div style={{ padding: '0 20px 20px 20px' }}>
                     <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '16px' }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
-                    
+
                     <div id="basketLegsContainer" style={{ maxHeight: '40dvh', overflowY: 'auto', marginBottom: '20px' }}>
                         {/* Legs injected here */}
                     </div>
 
                     <div className="margin-summary" style={{ background: '#FFFFFF', border: '1px solid #EEF2F8', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        
+
                         <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Items</span>
                             <span id="basketTotalItems" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>0</span>
@@ -906,7 +906,7 @@ export default function WatchlistPage() {
             </div>
 
             <div id="toastMessageMobile" className="mobile-toast" style={{ opacity: 0, visibility: 'hidden' }}></div>
-            
+
             {/* View Basket Bottom Bar */}
             <div id="multiSelectBar" style={{ display: 'none', position: 'absolute', bottom: '70px', left: '16px', right: '16px', zIndex: 100 }}>
                 <div className="multi-select-bar" style={{ background: '#FFF', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: '1px solid #E8ECF0' }}>

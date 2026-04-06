@@ -230,7 +230,7 @@ export default function Page() {
                       <div className="market-row-blocks">
                         {row.map((market, i) => {
                           const changePercent = market.change > 0 ? `+${market.change}%` : `${market.change}%`;
-                          const formattedPrice = market.price.toLocaleString(undefined, { minimumFractionDigits: market.price < 100 ? 2 : 0 });
+                          const formattedPrice = market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 });
                           return (
                             <div className="market-rectangle" key={i} onClick={() => showToast(`📊 ${market.name} : ${formattedPrice} (${changePercent})`, 1500)}>
                               <div className="market-rect-header">
