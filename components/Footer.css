@@ -79,6 +79,9 @@ body.dark .footer-tab.active {
   font-weight: 700;
   color: inherit;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ============================

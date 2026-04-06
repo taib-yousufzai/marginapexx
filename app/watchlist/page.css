@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
@@ -25,6 +26,8 @@
     justify-content: space-between;
     margin-bottom: 12px;
     width: 100%;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .logo-area {
@@ -269,9 +272,9 @@
 .custom-checkbox.selected { background: #C62E2E; border-color: #C62E2E; }
 .custom-checkbox.selected i { color: white; font-size: 11px; }
 
-.instrument-info { flex: 2; }
-.instrument-symbol { font-weight: 700; font-size: 1rem; color: #1A1E2B; margin-bottom: 4px; }
-.instrument-name { font-size: 0.7rem; color: #8C94A8; }
+.instrument-info { flex: 2; min-width: 0; overflow: hidden; }
+.instrument-symbol { font-weight: 700; font-size: 1rem; color: #1A1E2B; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.instrument-name { font-size: 0.7rem; color: #8C94A8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .instrument-price-area { text-align: right; min-width: 85px; }
 .price-value { font-weight: 700; font-size: 1rem; color: #1F2937; }
 .change-badge { font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 30px; margin-top: 4px; display: inline-block; }
@@ -330,8 +333,8 @@
 .handle-bar { width: 44px; height: 5px; background: #D1D5DB; border-radius: 5px; }
 
 .sheet-header { padding: 4px 16px 10px; border-bottom: 1px solid #F0F2F8; }
-.sheet-header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.sheet-script-name { font-size: 1rem; font-weight: 800; color: #1A1E2B; margin-bottom: 4px; }
+.sheet-header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sheet-script-name { font-size: 1rem; font-weight: 800; color: #1A1E2B; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .sheet-segment { display: inline-block; font-size: 0.6rem; font-weight: 600; color: #C62E2E; background: #FEF0F0; padding: 3px 10px; border-radius: 20px; }
 .sheet-cmp-area { text-align: right; }
 .sheet-cmp-label { font-size: 0.55rem; font-weight: 500; color: #8C94A8; text-transform: uppercase; }
@@ -370,14 +373,14 @@
 
 /* TRADE SHEET ADVANCED */
 .advanced-trade-sections { padding: 8px 16px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-.trade-toggle-group { display: flex; align-items: center; justify-content: space-between; }
+.trade-toggle-group { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .trade-toggle-lbl { font-size: 0.75rem; font-weight: 600; color: #1A1E2B; text-transform: uppercase; }
-.trade-chips { display: flex; background: #F0F2F8; border-radius: 30px; padding: 3px; border: 1px solid #E8ECF0; }
+.trade-chips { display: flex; background: #F0F2F8; border-radius: 30px; padding: 3px; border: 1px solid #E8ECF0; flex-wrap: wrap; }
 .trade-chip { background: transparent; border: none; padding: 6px 14px; font-size: 0.65rem; font-weight: 700; color: #5B677E; border-radius: 30px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
 .trade-chip.active { background: #FFFFFF; color: #006400; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .type-chips .trade-chip { padding: 6px 10px; }
 
-.trade-inputs-row { display: flex; gap: 12px; }
+.trade-inputs-row { display: flex; gap: 12px; flex-wrap: wrap; }
 .trade-input-box { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .trade-input-box label { font-size: 0.65rem; font-weight: 600; color: #5B677E; display: flex; justify-content: space-between; align-items: baseline; text-transform: uppercase; }
 .lot-hint { font-size: 0.55rem; color: #A0AABF; }
