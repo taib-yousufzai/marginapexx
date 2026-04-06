@@ -68,7 +68,7 @@ export default function Page() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [infoState, setInfoState] = useState<{title: string, content: string} | null>(null);
+  const [infoState, setInfoState] = useState<{ title: string, content: string } | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;

@@ -1,6 +1,5 @@
-
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import './Footer.css';
@@ -11,67 +10,144 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
-  const [isDrawerOpen, setDrawerOpen] = useState(false);
   const router = useRouter();
 
-  const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
+  // Handle Sheet physics
+  const [sheetState, setSheetState] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const startY = useRef(0);
+  const currentTranslateY = useRef(0);
+  const lastY = useRef(0);
+  const lastTimestamp = useRef(0);
+  const velocity = useRef(0);
+  const [vh, setVh] = useState(800);
+  const [footerHeight, setFooterHeight] = useState(65);
+
+  // Safely grab innerHeight after mount to avoid hydration mismatch
+  useEffect(() => {
+    setVh(window.innerHeight);
+    if (footerRef.current) {
+      setFooterHeight(footerRef.current.getBoundingClientRect().height);
+    }
+    const handleResize = () => {
+      setVh(window.innerHeight);
+      if (footerRef.current) {
+        setFooterHeight(footerRef.current.getBoundingClientRect().height);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sheetState]); // ensure layout captures shifts
+
+  // 0: Collapsed (drawer top edge meets footer top edge perfectly, minus 3px to keep red line entirely visible above it)
+  // 1: Open (10vh tall)
+  const snapPoints = [
+    Math.max(vh - footerHeight - 3, 100),
+    vh - footerHeight - (vh * 0.1)
+  ];
+
+  useEffect(() => {
+    if (!panelRef.current) return;
+    panelRef.current.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1)';
+    panelRef.current.style.transform = `translateY(${snapPoints[sheetState]}px)`;
+    currentTranslateY.current = snapPoints[sheetState];
+  }, [sheetState, vh]);
+
+  const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    startY.current = clientY;
+    lastY.current = startY.current;
+    lastTimestamp.current = Date.now();
+
+    if (panelRef.current) panelRef.current.style.transition = 'none';
+  };
+
+  const handleTouchMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!startY.current) return; // For mouse events
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const delta = clientY - startY.current;
+
+    const now = Date.now();
+    const timeDiff = now - lastTimestamp.current;
+    if (timeDiff > 0) {
+      velocity.current = (clientY - lastY.current) / timeDiff;
+    }
+    lastY.current = clientY;
+    lastTimestamp.current = now;
+
+    const nextY = currentTranslateY.current + delta;
+    const limitY = snapPoints[1];
+    const finalY = nextY < limitY ? limitY - Math.pow(limitY - nextY, 0.8) : nextY;
+
+    if (panelRef.current) {
+      panelRef.current.style.transform = `translateY(${finalY}px)`;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    startY.current = 0; // reset
+    if (!panelRef.current) return;
+
+    const finalY = lastY.current - startY.current + currentTranslateY.current;
+    const direction = velocity.current;
+
+    let targetState = sheetState;
+
+    if (direction < -0.3) {
+      targetState = Math.min(1, sheetState + 1);
+    } else if (direction > 0.3) {
+      targetState = Math.max(0, sheetState - 1);
+    } else {
+      const closest = snapPoints.reduce((prevIdx, currPoint, idx) => {
+        return Math.abs(currPoint - finalY) < Math.abs(snapPoints[prevIdx] - finalY) ? idx : prevIdx;
+      }, 0);
+      targetState = closest;
+    }
+
+    setSheetState(targetState);
+    panelRef.current.style.transition = 'transform 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.1)';
+    panelRef.current.style.transform = `translateY(${snapPoints[targetState]}px)`;
+    currentTranslateY.current = snapPoints[targetState];
+  };
+
+  const toggleHandle = () => {
+    setSheetState(sheetState === 0 ? 1 : 0);
+  };
 
   return (
     <>
-      {/* Account Drawer - expanded above footer, separate from footer-section */}
+      {/* Dim Overlay removed to allow background interaction */}
+
+      {/* Account Drawer - expanded above footer */}
       {!hideDrawer && activeTab !== 'watchlist' && (
-        <div className={`account-drawer ${isDrawerOpen ? 'open' : ''}`}>
-          <div className="drawer-inner">
-            <div className="drawer-account-summary">
-              <div className="summary-header">
-                <span className="summary-title"><i className="fas fa-wallet"></i> Account Overview</span>
-                <button className="drawer-close-btn" onClick={() => setDrawerOpen(false)}>
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
-              <div className="summary-grid">
-                <div className="summary-item">
-                  <span className="summary-label">Total Balance</span>
-                  <span className="summary-value">$124,500.00</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Available Margin</span>
-                  <span className="summary-value highlight">$82,300.50</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Margin Used</span>
-                  <span className="summary-value">$42,199.50</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Today's P&L</span>
-                  <span className="summary-value positive">+$1,240.20</span>
-                </div>
-              </div>
-              <div className="summary-actions">
-                <button className="summary-action-btn" onClick={() => { setDrawerOpen(false); router.push('/funds?tab=deposit'); }}>
-                  <i className="fas fa-plus"></i> Add Funds
-                </button>
-                <button className="summary-action-btn secondary" onClick={() => { setDrawerOpen(false); router.push('/funds?tab=withdraw'); }}>
-                  <i className="fas fa-university"></i> Withdraw
-                </button>
-              </div>
-            </div>
+        <div className="account-drawer-ark" ref={panelRef}>
+          {/* Thin Top Line */}
+          <div className="ark-drawer-top-line"></div>
+
+          {/* Drag Handle Notch (protrudes up) */}
+          <div
+            className="ark-drag-handle-area"
+            onClick={toggleHandle}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleTouchStart}
+            onMouseMove={(e) => startY.current && handleTouchMove(e)}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={() => startY.current && handleTouchEnd()}
+          >
+            <i className={`fas fa-chevron-up toggle-arrow ${sheetState > 0 ? 'rotated' : ''}`}></i>
+          </div>
+
+          <div className="drawer-inner-scroll">
+            {/* Base structure for future content */}
           </div>
         </div>
       )}
 
       {/* Fixed Bottom Navigation Bar */}
-      <div className="footer-section">
-        {/* Drawer Toggle - centered above the nav bar as a tab */}
-        {!hideDrawer && activeTab !== 'watchlist' && (
-          <div className="drawer-toggle-tab" onClick={toggleDrawer}>
-            <div className="drawer-toggle-pill">
-              <i className={`fas fa-chevron-${isDrawerOpen ? 'down' : 'up'}`}></i>
-              <span>Account</span>
-            </div>
-          </div>
-        )}
-
+      <div className="footer-section" ref={footerRef}>
         {/* Navigation Tabs - always visible, always clickable */}
         <div className="footer-nav">
           <Link href="/" className={`footer-tab ${activeTab === 'home' ? 'active' : ''}`}>

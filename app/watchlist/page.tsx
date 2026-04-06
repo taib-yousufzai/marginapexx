@@ -634,8 +634,8 @@ export default function WatchlistPage() {
 
     return (
         <div className="mobile-app">
-            <div className="app-header">
-                <div className="header-top">
+            <div className="app-header" style={{ width: '100%' }}>
+                <div className="header-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <div className="logo-area">
                         <div className="logo-text">Watchlist</div>
                     </div>

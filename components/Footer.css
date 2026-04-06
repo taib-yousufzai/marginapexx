@@ -82,96 +82,103 @@ body.dark .footer-tab.active {
 }
 
 /* ============================
-   ACCOUNT DRAWER TOGGLE TAB
-   Sits above footer, centered
+   ARK-STYLE ACCOUNT DRAWER
    ============================ */
-
-.drawer-toggle-tab {
-  display: flex;
-  justify-content: center;
-  padding: 0 0 4px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+@media (min-width: 769px) {
+  .account-drawer-ark {
+    display: none !important;
+  }
 }
 
-.drawer-toggle-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, #006400 0%, #004d00 100%);
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 5px 16px;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 12px rgba(0, 100, 0, 0.3);
-  font-family: 'Inter', sans-serif;
-  transition: transform 0.2s;
-}
-
-.drawer-toggle-pill:active {
-  transform: scale(0.96);
-}
-
-.drawer-toggle-pill i {
-  font-size: 0.65rem;
-}
-
-/* ============================
-   ACCOUNT DRAWER (slides up)
-   Separate from footer-section
-   ============================ */
-
-.account-drawer {
+.account-drawer-ark {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
-  right: 0;
   width: 100%;
-  /* Start fully hidden below viewport */
-  transform: translateY(100%);
+  height: 10vh !important;
+  min-height: 0 !important;
+  max-height: 10vh !important;
+  flex-grow: 0 !important;
   background: var(--drawer-bg, #FFFFFF);
-  z-index: 5500; /* above page content, below footer */
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 24px 24px 0 0;
+  z-index: 5500;
+  border-radius: 0; /* Flat top to seamlessly sit on footer */
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.12);
-  /* Padding so content clears the footer above it */
-  padding-bottom: 115px;
-  max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+  transform: translateY(100%);
 }
 
-body.dark .account-drawer {
+body.dark .account-drawer-ark {
   background: var(--drawer-bg, #1E1E1E);
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
 }
 
-.account-drawer.open {
-  transform: translateY(0);
+.ark-drawer-top-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #DC2626;
+  z-index: 1;
 }
 
-.drawer-inner {
-  padding: 20px 20px 16px;
+body.dark .ark-drawer-top-line {
+  background: #DC2626;
 }
 
-.drawer-close-btn {
-  background: var(--icon-bg, #F3F4F6);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
+.ark-drag-handle-area {
+  position: absolute;
+  top: -20px; /* Sits completely flush with the top line */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 20px;
+  background: #DC2626; /* Solid red background */
+  clip-path: path("M 0 20 C 15 20, 32 0, 45 0 C 58 0, 75 20, 90 20 Z"); /* Perfectly smooth curve merging with the 3px line */
+  filter: drop-shadow(0 -4px 8px rgba(220, 38, 38, 0.3)); /* Preserved red glow outside the path */
   display: flex;
-  align-items: center;
   justify-content: center;
-  color: var(--text-secondary, #6B7280);
-  font-size: 0.85rem;
-  -webkit-tap-highlight-color: transparent;
+  align-items: center;
+  padding-bottom: 0px; 
+  cursor: grab;
+  touch-action: none;
+  z-index: 5;
 }
 
-body.dark .drawer-close-btn {
-  background: var(--icon-bg, #2A2A2A);
-  color: var(--text-secondary, #B0B0B0);
+body.dark .ark-drag-handle-area {
+  background: #DC2626; 
+}
+
+.ark-drag-handle-area:active { cursor: grabbing; }
+
+.toggle-arrow {
+  color: #FFFFFF; /* High contrast white icon */
+  font-size: 0.8rem;
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+.toggle-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.drawer-inner-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px 24px;
+}
+.drawer-inner-scroll::-webkit-scrollbar { display: none; }
+
+.ark-extended-stats {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  overflow: hidden;
+}
+
+.ark-extended-stats.visible {
+  opacity: 1;
 }
 
 /* ============================
