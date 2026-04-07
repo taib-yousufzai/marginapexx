@@ -5,6 +5,12 @@ import './page.css';
 
 export default function WatchlistPage() {
     useEffect(() => {
+        const saved = localStorage.getItem('marginApexTheme');
+        if (saved === 'dark') document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
+    }, []);
+
+    useEffect(() => {
         const script = document.createElement('script');
         script.innerHTML = `
 (function() {
@@ -374,24 +380,24 @@ export default function WatchlistPage() {
         basketLegs.forEach((leg, i) => {
             const isBuy = leg.type === 'BUY';
             html += \`
-            <div style="background:#FFF; border:1px solid #EEF2F8; border-radius:12px; padding:12px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div style="flex:1">
-                    <div style="font-size:0.8rem; font-weight:700; color:#1A1E2B; margin-bottom:6px;">\${leg.name}</div>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="display:flex; background:#EEF2F8; border-radius:6px; overflow:hidden;">
-                            <div class="bs-toggle \${isBuy ? 'active buy' : ''}" data-i="\${i}" data-val="BUY" style="padding:4px 10px; font-size:0.6rem; font-weight:700; cursor:pointer; \${isBuy ? 'background:#2C8E5A;color:white;' : 'color:#5B677E;'}">B</div>
-                            <div class="bs-toggle \${!isBuy ? 'active sell' : ''}" data-i="\${i}" data-val="SELL" style="padding:4px 10px; font-size:0.6rem; font-weight:700; cursor:pointer; \${!isBuy ? 'background:#C62E2E;color:white;' : 'color:#5B677E;'}">S</div>
+            <div class="basket-leg-card">
+                <div style="flex:1; min-width:0;">
+                    <div class="basket-leg-name">\${leg.name}</div>
+                    <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+                        <div class="bs-toggle-group">
+                            <div class="bs-toggle \${isBuy ? 'bs-buy-active' : 'bs-inactive'}" data-i="\${i}" data-val="BUY">B</div>
+                            <div class="bs-toggle \${!isBuy ? 'bs-sell-active' : 'bs-inactive'}" data-i="\${i}" data-val="SELL">S</div>
                         </div>
-                        <div style="display:flex; border:1px solid #EEF2F8; border-radius:6px; overflow:hidden;">
-                            <div class="bq-minus" data-i="\${i}" style="padding:4px 8px; background:#F8FAFF; cursor:pointer; color:#5B677E; font-size:0.6rem;"><i class="fas fa-minus"></i></div>
-                            <div style="padding:4px 8px; font-size:0.7rem; font-weight:700; color:#1A1E2B; min-width:30px; text-align:center;">\${leg.qty}</div>
-                            <div class="bq-plus" data-i="\${i}" style="padding:4px 8px; background:#F8FAFF; cursor:pointer; color:#5B677E; font-size:0.6rem;"><i class="fas fa-plus"></i></div>
+                        <div class="bq-control">
+                            <div class="bq-minus" data-i="\${i}"><i class="fas fa-minus"></i></div>
+                            <div class="bq-val">\${leg.qty}</div>
+                            <div class="bq-plus" data-i="\${i}"><i class="fas fa-plus"></i></div>
                         </div>
                     </div>
                 </div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.8rem; font-weight:700; color:#1A1E2B; margin-bottom:8px;">₹\${(leg.price * leg.qty).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
-                    <div class="b-remove" data-i="\${i}" style="color:#C62E2E; cursor:pointer; padding:4px;"><i class="fas fa-trash-alt"></i></div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div class="basket-leg-price">₹\${(leg.price * leg.qty).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                    <div class="b-remove" data-i="\${i}"><i class="fas fa-trash-alt"></i></div>
                 </div>
             </div>
             \`;
@@ -474,7 +480,7 @@ export default function WatchlistPage() {
             
             if (selectionMode) {
                 // Basket Mode View: Oval Buy/Sell buttons on the right
-                html += '<div class="swipe-container" data-idx="' + idx + '"><div class="instrument-card" data-card-idx="' + idx + '"><div class="instrument-info" style="flex:1;"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area" style="text-align:right; margin-right:12px;"><div class="price-value" style="font-size:0.85rem;">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div><div class="basket-inline-actions" style="display:flex; gap:6px; flex-shrink:0;"><button class="inline-bs-btn" style="background:#E9F6EF; color:#006400; border:1px solid #2C8E5A; border-radius:30px; padding:4px 14px; font-weight:700; font-size:0.7rem; cursor:pointer;" data-idx="' + idx + '" data-type="BUY">BUY</button><button class="inline-bs-btn" style="background:#FEF0F0; color:#C62E2E; border:1px solid #C62E2E; border-radius:30px; padding:4px 14px; font-weight:700; font-size:0.7rem; cursor:pointer;" data-idx="' + idx + '" data-type="SELL">SELL</button></div></div></div>';
+                html += '<div class="swipe-container" data-idx="' + idx + '"><div class="instrument-card" data-card-idx="' + idx + '"><div class="instrument-info" style="flex:1;"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area" style="text-align:right; margin-right:12px;"><div class="price-value" style="font-size:0.85rem;">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div><div class="basket-inline-actions"><button class="inline-bs-btn buy-btn" data-idx="' + idx + '" data-type="BUY">BUY</button><button class="inline-bs-btn sell-btn" data-idx="' + idx + '" data-type="SELL">SELL</button></div></div></div>';
             } else {
                 // Normal View
                 html += '<div class="swipe-container" data-idx="' + idx + '"><div class="delete-background"><i class="fas fa-trash-alt"></i> Delete</div><div class="instrument-card" data-card-idx="' + idx + '" data-name="' + escapeHtml(item.name) + '" data-symbol="' + escapeHtml(item.symbol) + '" data-price="' + item.price + '" data-change="' + item.change + '" data-segment="' + escapeHtml(item.segment || 'Trading') + '" data-contract="' + escapeHtml(item.contractDate || '28 Mar 2025') + '" data-open="' + (item.open || item.price * 0.995) + '" data-high="' + (item.high || item.price * 1.005) + '" data-low="' + (item.low || item.price * 0.992) + '" data-close="' + (item.close || item.price) + '"><div class="instrument-info"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area"><div class="price-value">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div></div></div>';
@@ -634,12 +640,12 @@ export default function WatchlistPage() {
 
     return (
         <div className="mobile-app">
-            <div className="app-header" style={{ width: '100%' }}>
-                <div className="header-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div className="app-header">
+                <div className="header-top">
                     <div className="logo-area">
                         <div className="logo-text">Watchlist</div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                         <div className="folder-btn" id="openFolderMobileBtn">
                             <i className="fas fa-folder"></i>
                             <span>Library</span>

@@ -1,9 +1,25 @@
 'use client';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './page.css';
 
 export default function ProfilePage() {
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('marginApexTheme');
+        const dark = saved === 'dark';
+        setIsDark(dark);
+        if (dark) document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
+    }, []);
+
+    const toggleDark = () => {
+        const newDark = !isDark;
+        setIsDark(newDark);
+        document.body.classList.toggle('dark', newDark);
+        localStorage.setItem('marginApexTheme', newDark ? 'dark' : 'light');
+    };
     return (
         <div className="mobile-app">
             <div className="app-header">
@@ -60,10 +76,12 @@ export default function ProfilePage() {
                 <div className="menu-group">
                     <div className="menu-group-title">App Preferences</div>
                     <div className="menu-list">
-                        <div className="menu-item">
+                        <div className="menu-item" onClick={toggleDark} style={{cursor:'pointer'}}>
                             <div className="m-icon" style={{background: '#FAF5FF', color: '#9333EA'}}><i className="fas fa-moon"></i></div>
                             <div className="m-text">Dark Mode</div>
-                            <div className="toggle-switch"><div className="toggle-thumb"></div></div>
+                            <div className={`toggle-switch ${isDark ? 'active' : ''}`} onClick={toggleDark}>
+                                <div className="toggle-thumb"></div>
+                            </div>
                         </div>
                         <div className="menu-item">
                             <div className="m-icon" style={{background: '#FFFBEB', color: '#D97706'}}><i className="fas fa-bell"></i></div>

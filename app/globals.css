@@ -9,14 +9,32 @@ html, body {
   min-height: 100dvh;
   margin: 0;
   padding: 0;
+  width: 100%;
 }
 
 body {
   font-family: 'Inter', sans-serif;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   background: var(--bg-body, #F0F2F5);
+  min-height: 100dvh;
+}
+
+@media (max-width: 500px) {
+  body {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .app-container,
+  .mobile-app,
+  .history-root {
+    max-width: 100% !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
 }
 
 /* JADE RED + WHITE + BLACK + SILVER + GOLD THEME */

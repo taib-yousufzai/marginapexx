@@ -5,15 +5,7 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 0;
-  background: #F0F2F5;
-}
+/* Body base styles are in globals.css — do not override here */
 
 /* JADE RED + WHITE + BLACK + SILVER + GOLD THEME */
 :root {
@@ -125,14 +117,15 @@ body.dark {
   max-width: 500px;
   width: 100%;
   margin: 0 auto;
-  background: var(--container-bg);
+  background: var(--bg-body, #F0F2F5);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-  overflow: hidden; /* NO outer scroll - only inner scroll-wrapper scrolls */
+  overflow: hidden;
   height: 100dvh;
+  min-height: 100dvh;
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-bottom: 75px;
+  padding-bottom: 0;
 }
 
 .app-container::-webkit-scrollbar {
@@ -149,21 +142,26 @@ body.dark {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
+  background: var(--container-bg, #FFFFFF);
+  overflow-anchor: none;
+  scroll-behavior: auto;
 }
 
 .main-scroll-wrapper::-webkit-scrollbar {
   display: none;
 }
 
-.main-content {
-  flex: 1;
+.app-container .main-content {
   width: 100%;
+  padding-bottom: 160px;
+  background: var(--container-bg, #FFFFFF);
+  min-height: 100%;
 }
 
-.main-content::-webkit-scrollbar {
+.app-container .main-content::-webkit-scrollbar {
   display: none;
 }
 
@@ -239,9 +237,9 @@ body.dark {
 /* MARGIN APEX MODERN TEXT LOGO */
 .nav-app-name {
   font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.3px;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: -0.5px;
   background: linear-gradient(135deg, #0A0A0F 0%, #1A1A24 100%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -253,6 +251,22 @@ body.dark {
   font-style: normal;
   display: flex;
   align-items: center;
+}
+
+body.dark .nav-app-name {
+  background: linear-gradient(135deg, #FFFFFF 0%, #E0E0E0 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+body.dark .nav-app-name span {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #00AA00;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
 }
 
 .content-padded {
@@ -739,10 +753,7 @@ body.dark .circle-icon {
 }
 
 /* ===== FOOTER DRAWER (ORIGINAL) ===== */
-.footer-section {
-  position: relative;
-  background: var(--footer-bg);
-}
+/* .footer-section positioning is handled exclusively in Footer.css (position: fixed) */
 
 .drawer-handle {
   display: flex;
@@ -1049,9 +1060,8 @@ body.dark .circle-icon {
     /* Removed redundant gap */
   }
 
-  .main-content {
-    padding-bottom: 70px !important;
-    /* Single space for footer icon protection */
+  .app-container .main-content {
+    padding-bottom: 160px !important;
     width: 100% !important;
   }
 
@@ -1069,9 +1079,8 @@ body.dark .circle-icon {
   }
 
   .nav-app-name {
-    font-size: 0.7rem !important;
-    /* Very small on mobile to avoid overflow */
-    letter-spacing: -0.2px !important;
+    font-size: 1.1rem !important;
+    letter-spacing: -0.3px !important;
     flex-shrink: 0;
   }
 

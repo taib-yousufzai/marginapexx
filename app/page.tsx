@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import Footer from '@/components/Footer';
 import './page.css';
 
@@ -63,6 +64,21 @@ const expiryIndexes = [
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const [scrollKey, setScrollKey] = useState(() => Date.now());
+
+  useEffect(() => {
+    setScrollKey(Date.now());
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    // Keep resetting until stable
+    const interval = setInterval(() => {
+      if (el.scrollTop !== 0) el.scrollTop = 0;
+      else clearInterval(interval);
+    }, 16);
+    setTimeout(() => clearInterval(interval), 500);
+  }, [pathname]);
   const [activeCategory, setActiveCategory] = useState<'equity' | 'commodity'>('equity');
   const [fundsBalance, setFundsBalance] = useState(8142.60);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -73,11 +89,29 @@ export default function Page() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
     if (savedTheme) {
-      // eslint-disable-next-line
       setTheme(savedTheme);
       document.body.classList.toggle('dark', savedTheme === 'dark');
     }
+
+    const resetScroll = () => {
+      if (containerRef.current) containerRef.current.scrollTop = 0;
+    };
+
+    resetScroll();
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resetScroll);
+    });
+
+    window.addEventListener('popstate', resetScroll);
+    return () => {
+      window.removeEventListener('popstate', resetScroll);
+    };
   }, []);
+
+  // Reset scroll every time we navigate back to home
+  useEffect(() => {
+    if (containerRef.current) containerRef.current.scrollTop = 0;
+  }, [pathname]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -147,8 +181,6 @@ export default function Page() {
       <div className="nav-bar-full">
         <div className="nav-group">
           <div className="nav-icon-btn" onClick={handleNavNotification}><i className="fas fa-bell"></i></div>
-        </div>
-        <div className="nav-group">
           <div className="nav-app-name">MARGIN<span style={{ color: '#006400' }}> APEX</span></div>
         </div>
         <div className="nav-group">
@@ -159,7 +191,7 @@ export default function Page() {
       </div>
 
       {/* Scrollable Main Content - only this div scrolls */}
-      <div ref={containerRef} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      <div ref={containerRef} key={scrollKey} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} onScroll={() => {}}>
         {/* Scrollable Main Content */}
         <div className="main-content">
           <div className="screen">
@@ -229,7 +261,6 @@ export default function Page() {
               <div className="market-overview">
                 <div className="overview-header">
                   <h4 style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}><i className="fas fa-chart-line"></i> Live Market Overview</h4>
-                  <i className="fas fa-sync-alt" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}> Live</i>
                 </div>
                 <div className="markets-two-rows">
                   {[marketRow1, marketRow2].map((row, rowIdx) => (

@@ -7,6 +7,12 @@ export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const saved = localStorage.getItem('marginApexTheme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    else document.body.classList.remove('dark');
+  }, []);
+
+  useEffect(() => {
     // Inject scripts
     const script = document.createElement('script');
     script.innerHTML = `
@@ -201,6 +207,13 @@ export default function Page() {
       if (tab.getAttribute('data-tab') === tabId) tab.classList.add('active');
       else tab.classList.remove('active');
     });
+    const orderTabs = document.querySelector('.order-tabs');
+    if (orderTabs) {
+      const indicator = orderTabs.querySelector('.order-tab-indicator');
+      if (indicator) {
+        indicator.style.left = tabId === 'closed' ? 'calc(50% + 2px)' : '4px';
+      }
+    }
     renderOrders();
   }
   
@@ -266,7 +279,7 @@ export default function Page() {
     <div className="app-container">
       <div
         ref={containerRef}
-        style={{ flex: 1, overflowY: 'auto' }}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
         dangerouslySetInnerHTML={{
           __html: `
 <div class="order-header">
@@ -290,8 +303,9 @@ export default function Page() {
 
 <div class="order-tabs-wrapper">
   <div class="order-tabs">
-    <div class="tab active" data-tab="open">OPEN <span id="open-count" style="margin-left: 4px; background:#F0F4F9; padding:1px 6px; border-radius:30px; font-size:9px;">0</span></div>
-    <div class="tab" data-tab="closed">CLOSED <span id="closed-count" style="margin-left: 4px; background:#F0F4F9; padding:1px 6px; border-radius:30px; font-size:9px;">0</span></div>
+    <div class="order-tab-indicator"></div>
+    <div class="tab active" data-tab="open">OPEN <span id="open-count" class="tab-count">0</span></div>
+    <div class="tab" data-tab="closed">CLOSED <span id="closed-count" class="tab-count">0</span></div>
   </div>
 </div>
 

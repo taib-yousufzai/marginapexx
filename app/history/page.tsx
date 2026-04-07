@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Footer from '@/components/Footer';
 import './page.css';
 
@@ -7,6 +7,12 @@ export default function HistoryPage() {
     const [currentTab, setCurrentTab] = useState('position');
     const [fromDate, setFromDate] = useState('2026-03-23');
     const [toDate, setToDate] = useState('2026-03-30');
+
+    useEffect(() => {
+        const saved = localStorage.getItem('marginApexTheme');
+        if (saved === 'dark') document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
+    }, []);
 
     const samplePositions = [
         { id: 1, scriptName: "NIFTY FUT", scriptSymbol: "NIFTY_FUT", type: "BUY", qty: 75, entryPrice: 22456.80, exitPrice: 22650.25, pnl: 14508.75, entryDate: "2026-03-28", exitDate: "2026-03-28", orderType: "Market", brokerage: 20 },
@@ -76,7 +82,7 @@ export default function HistoryPage() {
     const summary = calculateSummary();
 
     return (
-        <div className="mobile-app history-root">
+        <div className="history-root">
             <div className="app-header">
                 <div className="header-top">
                     <div className="logo-area">
@@ -132,8 +138,7 @@ export default function HistoryPage() {
                             <p>No history found</p>
                         </div>
                     ) : (
-                        filteredData.map((item) => {
-                            const isPositive = item.pnl >= 0;
+                        filteredData.map((item) => {                            const isPositive = item.pnl >= 0;
                             const pnlPercent = item.entryPrice ? ((item.pnl / (item.entryPrice * item.qty)) * 100).toFixed(2) : "0.00";
 
                             return (
@@ -180,6 +185,7 @@ export default function HistoryPage() {
                     )}
                 </div>
 
+                {/* Summary sticky at bottom of scroll - no gap */}
                 <div className="history-footer">
                     <div className="footer-row">
                         <span className="footer-label"><i className="fas fa-arrow-up"></i> Gross Profit</span>

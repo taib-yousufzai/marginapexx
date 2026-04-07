@@ -5,14 +5,6 @@
       box-sizing: border-box;
     }
 
-    body {
-      background: #F5F7FB;
-      font-family: 'Inter', sans-serif;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-
     /* Container already styled in globals.css as .order-app */
     .order-app {
       max-width: 500px;
@@ -30,8 +22,8 @@
 
     .order-header {
       padding: 14px 20px 10px 20px;
-      background: #FFFFFF;
-      border-bottom: 1px solid #EEF2F8;
+      background: var(--container-bg, #FFFFFF);
+      border-bottom: 1px solid var(--border-light, #EEF2F8);
       flex-shrink: 0;
     }
 
@@ -141,45 +133,77 @@
 
     .order-tabs {
       display: flex;
-      background: #F1F5F9;
-      border-radius: 12px;
+      background: #EAECF0;
+      border-radius: 14px;
       padding: 4px;
       width: 100%;
+      gap: 4px;
+      position: relative;
+    }
+
+    .order-tab-indicator {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      width: calc(50% - 6px);
+      background: #C62E2E;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(198,46,46,0.4);
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      left: 4px;
+      z-index: 0;
     }
 
     .tab {
       flex: 1;
       text-align: center;
       padding: 10px 0;
-      font-weight: 500;
+      font-weight: 700;
       font-size: 13px;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s;
-      color: #6B7280;
+      color: #94A3B8;
+      position: relative;
+      z-index: 1;
+      transition: color 0.3s ease;
+      background: transparent;
     }
 
     .tab.active {
-      background: #FFFFFF;
-      color: #B22234;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      font-weight: 600;
+      color: #FFFFFF;
+      background: transparent;
+    }
+
+    .tab-count {
+      margin-left: 4px;
+      background: rgba(0,0,0,0.15);
+      color: #5B677E;
+      padding: 1px 7px;
+      border-radius: 30px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .tab.active .tab-count {
+      background: rgba(255,255,255,0.25);
+      color: #FFFFFF;
     }
 
     .orders-container {
-      padding: 0 20px 20px 20px; /* Consistent 20px padding */
+      padding: 0 20px 70px 20px;
       flex: 1;
       overflow-y: auto;
       min-height: 0;
+      height: 0;
     }
 
     /* Ultra compact professional card */
     .order-card {
-      background: #FFFFFF;
+      background: var(--card-bg, #FFFFFF);
       border-radius: 18px;
       padding: 14px 18px;
       margin-bottom: 12px;
-      border: 1px solid #EDF2F7;
+      border: 1px solid var(--border-card, #EDF2F7);
       transition: all 0.15s;
       box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
@@ -406,79 +430,12 @@
       transform: translateX(-50%) scale(1);
     }
 
-    /* PREMIUM DRAWER HANDLE */
-    .footer-section {
+    /* PREMIUM DRAWER HANDLE - kept for reference only, actual footer is in Footer.css */
+    .footer-section-local {
       position: relative;
       background: #FFFFFF;
       width: 100%;
     }
-    .drawer-handle {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      background: transparent;
-      padding: 0;
-      cursor: pointer;
-      position: relative;
-      z-index: 15;
-    }
-    .reverse-semi-circle {
-      width: 75px;
-      height: 32px;
-      background: linear-gradient(135deg, #006400 0%, #004d00 100%);
-      border-radius: 40px 40px 0 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2);
-      margin-bottom: -1px;
-      border: 1.5px solid rgba(255, 255, 255, 0.1);
-      border-bottom: none;
-      animation: handlePulse 2.5s infinite;
-    }
-    @keyframes handlePulse {
-      0% { transform: scale(1); box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2); }
-      50% { transform: scale(1.05); box-shadow: 0 -6px 20px rgba(0, 100, 0, 0.35); }
-      100% { transform: scale(1); box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2); }
-    }
-    .handle-bar {
-      width: 25px;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.5);
-      border-radius: 10px;
-      margin-bottom: 2px;
-    }
-    .reverse-semi-circle i {
-      color: white;
-      font-size: 0.65rem;
-    }
-    .reverse-semi-circle:active { transform: scale(0.9); }
-
-    .footer-nav {
-      padding: 12px 20px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #FFFFFF;
-      border-top: 1px solid #EEF2F8;
-      position: relative;
-      z-index: 5;
-    }
-    .footer-tab {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      flex: 1;
-    }
-    .footer-icon { font-size: 1.2rem; color: #9CA3AF; }
-    .footer-label { font-size: 0.55rem; font-weight: 600; color: #9CA3AF; }
-    .footer-tab.active .footer-icon, .footer-tab.active .footer-label { color: #006400; }
 
     ::-webkit-scrollbar {
       width: 3px;
@@ -494,16 +451,29 @@
       border-radius: 10px;
     }
 
-/* ----- CONSISTENT DARK GREEN NAVIGATION ICONS ----- */
-.footer-tab .footer-icon, 
-.footer-tab .footer-label {
-  color: rgba(20, 83, 45, 0.5) !important;
-  background: none !important;
-  -webkit-background-clip: initial !important;
-}
-.footer-tab.active .footer-icon, 
-.footer-tab.active .footer-label {
-  background: linear-gradient(135deg, #14532D, #064E3B) !important;
-  -webkit-background-clip: text !important;
-  color: transparent !important;
-}
+/* ----- FOOTER ICON COLORS MANAGED IN Footer.css ----- */
+
+/* ===== DARK MODE ===== */
+body.dark .order-header { background: var(--container-bg, #1E1E1E); border-bottom-color: var(--border-light, #333); }
+body.dark .logo { background: linear-gradient(135deg, #F5F5F5, #D0D0D0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+body.dark .header-sub { color: var(--text-muted, #888); }
+body.dark .search-box { background: var(--card-alt-bg, #2A2A2A); border-color: var(--border-card, #3A3A3A); }
+body.dark .search-box:focus-within { background: var(--card-bg, #252525); }
+body.dark .search-box input { color: var(--text-primary, #F5F5F5); }
+body.dark .order-tabs { background: var(--card-alt-bg, #2A2A2A); }
+body.dark .tab { color: var(--text-muted, #888); }
+body.dark .tab.active { background: var(--card-bg, #252525); }
+body.dark .order-card { background: var(--card-bg, #252525); border-color: var(--border-card, #3A3A3A); box-shadow: none; }
+body.dark .pair { color: var(--text-primary, #F5F5F5); }
+body.dark .info-value-sm { color: var(--text-primary, #F5F5F5); }
+body.dark .order-type-badge-sm { background: var(--card-alt-bg, #2A2A2A); color: var(--text-secondary, #B0B0B0); }
+body.dark .position-badge.sell { background: var(--card-alt-bg, #2A2A2A); color: var(--text-secondary, #B0B0B0); }
+body.dark .status-row { border-top-color: var(--border-card, #3A3A3A); }
+body.dark .cancel-btn { border-color: var(--border-card, #3A3A3A); color: var(--text-muted, #888); }
+body.dark .empty-state { background: var(--card-alt-bg, #2A2A2A); border-color: var(--border-card, #3A3A3A); color: var(--text-muted, #888); }
+body.dark .rejection-reason { background: #2A2010; border-left-color: #F59E0B; }
+
+/* ===== DARK MODE TABS ===== */
+body.dark .order-tabs { background: #2A2A2A; }
+body.dark .tab { color: #888; }
+body.dark .tab.active { color: #FFFFFF; background: transparent; }

@@ -8,6 +8,12 @@ export default function Page() {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const saved = localStorage.getItem('marginApexTheme');
+        if (saved === 'dark') document.body.classList.add('dark');
+        else document.body.classList.remove('dark');
+    }, []);
+
+    useEffect(() => {
         const script = document.createElement('script');
         script.innerHTML = `
         var positions = [
@@ -53,6 +59,15 @@ export default function Page() {
             document.querySelectorAll('.tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.tab === activeTab);
             });
+            const tabsEl = document.querySelector('.tabs-container');
+            if (tabsEl) {
+                if (activeTab === 'CLOSED') tabsEl.classList.add('tab-closed');
+                else tabsEl.classList.remove('tab-closed');
+                const indicator = tabsEl.querySelector('.tab-indicator');
+                if (indicator) {
+                    indicator.style.left = activeTab === 'CLOSED' ? 'calc(50% + 2px)' : '4px';
+                }
+            }
 
             if (filtered.length === 0) {
                 container.innerHTML = '<div style="text-align:center; padding:40px; color:#94A3B8;">No positions found</div>';
@@ -99,9 +114,21 @@ export default function Page() {
             container.innerHTML = html;
         }
 
-        window.switchTab = function(t) { activeTab = t; renderPositions(); };
+        window.switchTab = function(t) { 
+            activeTab = t; 
+            const tabsContainer = document.querySelector('.tabs-container');
+            if (tabsContainer) {
+                if (t === 'CLOSED') tabsContainer.classList.add('tab-closed');
+                else tabsContainer.classList.remove('tab-closed');
+                const indicator = tabsContainer.querySelector('.tab-indicator');
+                if (indicator) {
+                    indicator.style.left = t === 'CLOSED' ? 'calc(50% + 2px)' : '4px';
+                }
+            }
+            renderPositions(); 
+        };
 
-        setTimeout(renderPositions, 100);
+        setTimeout(renderPositions, 0);
     `;
         document.body.appendChild(script);
         return () => { if (document.body.contains(script)) document.body.removeChild(script); };
@@ -111,32 +138,33 @@ export default function Page() {
         <div className="app-container">
             <div
                 ref={containerRef}
-                style={{ flex: 1, overflowY: 'auto' }}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
                 dangerouslySetInnerHTML={{
                     __html: `
-    <div class="app-header">
+    <div class="pos-app-header">
         <div class="header-title">Positions</div>
-        <div style="font-size:0.7rem; font-weight:700; color:#8C94A8;">MTM P&L</div>
+        <div class="header-mtm">MTM P&amp;L</div>
     </div>
 
-    <div class="main-content">
-        <div class="pnl-summary">
-            <div class="summary-label">TOTAL P&L (MTM)</div>
+    <div class="pos-main-content">
+            <div class="pnl-summary">
+            <div class="pnl-top-label">TOTAL P&L (MTM)</div>
             <div id="totalPnL" class="total-pnl">₹---</div>
             
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-label">REALIZED</div>
-                    <div id="realizedPnL" class="val">₹---</div>
+            <div class="pnl-grid">
+                <div class="pnl-item">
+                    <div class="pnl-item-label">REALIZED</div>
+                    <div id="realizedPnL" class="pnl-item-val">₹---</div>
                 </div>
-                <div class="summary-item" style="text-align:right;">
-                    <div class="summary-label">UNREALIZED</div>
-                    <div id="unrealizedPnL" class="val">₹---</div>
+                <div class="pnl-item">
+                    <div class="pnl-item-label">UNREALIZED</div>
+                    <div id="unrealizedPnL" class="pnl-item-val">₹---</div>
                 </div>
             </div>
         </div>
 
         <div class="tabs-container">
+            <div class="tab-indicator"></div>
             <div class="tab" data-tab="OPEN" onclick="switchTab('OPEN')">OPEN (3)</div>
             <div class="tab" data-tab="CLOSED" onclick="switchTab('CLOSED')">CLOSED (1)</div>
         </div>
