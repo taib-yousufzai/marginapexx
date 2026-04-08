@@ -1,180 +1,337 @@
-
 'use client';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Footer from '@/components/Footer';
 import './page.css';
 
-export default function Page() {
-    const containerRef = useRef<HTMLDivElement>(null);
+type Position = {
+  id: number;
+  symbol: string;
+  side: 'LONG' | 'SHORT';
+  avgPrice: number;
+  qty: number;
+  pnl: number;
+  pnlPercent: number;
+  ltp: number;
+  orderType: string;
+};
 
-    useEffect(() => {
-        const saved = localStorage.getItem('marginApexTheme');
-        if (saved === 'dark') document.body.classList.add('dark');
-        else document.body.classList.remove('dark');
-    }, []);
+type DetailedPosition = {
+  id: number;
+  symbol: string;
+  side: 'LONG' | 'SHORT';
+  qty: number;
+  entryPrice: number;
+  exitPrice: number | null;
+  currentPrice: number;
+  pnl: number;
+  pnlPercent: number;
+  status: 'OPEN' | 'CLOSED';
+  date: string;
+  entryTime?: string;
+  exitTime?: string;
+};
 
-    useEffect(() => {
-        const script = document.createElement('script');
-        script.innerHTML = `
-        var positions = [
-            { symbol: "NIFTY28MARFUT", name: "NIFTY FUT", type: "BUY", qty: 50, avg: 22450.00, ltp: 22458.80, product: "MIS", status: "OPEN" },
-            { symbol: "BANKNIFTY28MARFUT", name: "BANKNIFTY FUT", type: "SELL", qty: 15, avg: 48210.00, ltp: 48190.50, product: "NRML", status: "OPEN" },
-            { symbol: "RELIANCE28MARFUT", name: "RELIANCE FUT", type: "BUY", qty: 100, avg: 2845.00, ltp: 2856.40, product: "CNC", status: "OPEN" },
-            { symbol: "TCS", name: "TCS EQ", type: "BUY", qty: 25, avg: 3980.00, ltp: 3982.50, product: "MIS", status: "CLOSED", pnl: 62.50 }
-        ];
+type ClosedPosition = {
+  symbol: string;
+  side: 'LONG' | 'SHORT';
+  avgPrice: number;
+  qty: number;
+  pnl: number;
+  pnlPercent: number;
+  ltp: number;
+  orderType: string;
+  status: string;
+};
 
-        var activeTab = 'OPEN';
+export default function PositionPage() {
+  const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
+  const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-        function formatPrice(p) {
-            return "₹" + (typeof p === 'number' ? p.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : p);
-        }
+  const [openPositions, setOpenPositions] = useState<Position[]>([
+    { id: 1, symbol: 'BTC/USD', side: 'LONG', avgPrice: 61800.0, qty: 0.025, pnl: 36.25, pnlPercent: 2.34, ltp: 63250.0, orderType: 'SLM' },
+    { id: 2, symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3150.5, qty: 0.5, pnl: 35.25, pnlPercent: 2.24, ltp: 3080.0, orderType: 'GTT' },
+    { id: 3, symbol: 'SOL/USD', side: 'LONG', avgPrice: 142.8, qty: 2.25, pnl: 12.83, pnlPercent: 3.99, ltp: 148.5, orderType: 'SLM' },
+    { id: 4, symbol: 'DOGE/USD', side: 'LONG', avgPrice: 0.1245, qty: 1500, pnl: 10.05, pnlPercent: 5.38, ltp: 0.1312, orderType: 'GTT' },
+  ]);
 
-        function calculatePnL(pos) {
-            if (pos.status === 'CLOSED') return pos.pnl || 0;
-            var diff = pos.type === 'BUY' ? (pos.ltp - pos.avg) : (pos.avg - pos.ltp);
-            return diff * pos.qty;
-        }
+  const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>([
+    { symbol: 'BTC/USD', side: 'LONG', avgPrice: 60500.0, qty: 0.02, pnl: 55.0, pnlPercent: 4.55, ltp: 63250.0, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3220.5, qty: 0.3, pnl: 42.15, pnlPercent: 4.36, ltp: 3080.0, orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'SOL/USD', side: 'LONG', avgPrice: 138.5, qty: 1.5, pnl: 15.0, pnlPercent: 7.22, ltp: 148.5, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'AVAX/USD', side: 'LONG', avgPrice: 27.8, qty: 8.0, pnl: 13.6, pnlPercent: 6.12, ltp: 29.5, orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85, qty: 12.0, pnl: 7.2, pnlPercent: 4.33, ltp: 13.25, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'NEAR/USD', side: 'LONG', avgPrice: 3.42, qty: 25.0, pnl: 10.75, pnlPercent: 12.57, ltp: 3.85, orderType: 'GTT', status: 'COMPLETED' },
+  ]);
 
-        function renderPositions() {
-            var container = document.getElementById('positionsList');
-            if(!container) return;
-            var filtered = positions.filter(p => p.status === activeTab);
-            var totalPnL = 0, realized = 0, unrealized = 0;
+  const [detailedPositions, setDetailedPositions] = useState<DetailedPosition[]>([
+    { id: 1, symbol: 'BTC/USD', side: 'LONG', qty: 0.015, entryPrice: 61200.0, exitPrice: 63250.0, currentPrice: 63250.0, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM' },
+    { id: 2, symbol: 'BTC/USD', side: 'LONG', qty: 0.01, entryPrice: 61800.0, exitPrice: null, currentPrice: 63250.0, pnl: 14.5, pnlPercent: 2.35, status: 'OPEN', date: 'Mar 31', entryTime: '11:30 AM' },
+    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3, entryPrice: 3220.5, exitPrice: 3080.0, currentPrice: 3080.0, pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM' },
+    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2, entryPrice: 3150.5, exitPrice: null, currentPrice: 3080.0, pnl: 14.1, pnlPercent: 2.24, status: 'OPEN', date: 'Mar 31', entryTime: '10:15 AM' },
+    { id: 5, symbol: 'SOL/USD', side: 'LONG', qty: 1.5, entryPrice: 138.5, exitPrice: 148.5, currentPrice: 148.5, pnl: 15.0, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM' },
+    { id: 6, symbol: 'SOL/USD', side: 'LONG', qty: 0.75, entryPrice: 142.8, exitPrice: null, currentPrice: 148.5, pnl: 4.28, pnlPercent: 4.0, status: 'OPEN', date: 'Mar 30', entryTime: '09:45 AM' },
+  ]);
 
-            positions.forEach(p => {
-                var pnl = calculatePnL(p);
-                totalPnL += pnl;
-                if (p.status === 'CLOSED') realized += pnl;
-                else unrealized += pnl;
-            });
+  useEffect(() => {
+    const saved = localStorage.getItem('marginApexTheme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    else document.body.classList.remove('dark');
+  }, []);
 
-            var totalEl = document.getElementById('totalPnL');
-            if(totalEl) {
-                totalEl.innerText = formatPrice(totalPnL);
-                totalEl.className = totalPnL >= 0 ? 'total-pnl pnl-pos' : 'total-pnl pnl-neg';
-            }
-            if(document.getElementById('realizedPnL')) document.getElementById('realizedPnL').innerText = formatPrice(realized);
-            if(document.getElementById('unrealizedPnL')) document.getElementById('unrealizedPnL').innerText = formatPrice(unrealized);
+  // Live price simulation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOpenPositions(prev =>
+        prev.map(pos => {
+          const change = (Math.random() - 0.5) * (pos.symbol === 'BTC/USD' ? 200 : pos.symbol === 'ETH/USD' ? 30 : 5);
+          const newLtp = Math.max(0.01, pos.ltp + change);
+          const newPnl = pos.side === 'LONG' ? (newLtp - pos.avgPrice) * pos.qty : (pos.avgPrice - newLtp) * pos.qty;
+          return { ...pos, ltp: newLtp, pnl: newPnl, pnlPercent: (newPnl / (pos.avgPrice * pos.qty)) * 100 };
+        })
+      );
+      setDetailedPositions(prev =>
+        prev.map(pos => {
+          if (pos.status !== 'OPEN') return pos;
+          const change = (Math.random() - 0.5) * (pos.symbol === 'BTC/USD' ? 200 : pos.symbol === 'ETH/USD' ? 30 : 5);
+          const newCurrent = Math.max(0.01, pos.currentPrice + change);
+          const newPnl = pos.side === 'LONG' ? (newCurrent - pos.entryPrice) * pos.qty : (pos.entryPrice - newCurrent) * pos.qty;
+          return { ...pos, currentPrice: newCurrent, pnl: newPnl, pnlPercent: (newPnl / (pos.entryPrice * pos.qty)) * 100 };
+        })
+      );
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-            document.querySelectorAll('.tab').forEach(t => {
-                t.classList.toggle('active', t.dataset.tab === activeTab);
-            });
-            const tabsEl = document.querySelector('.tabs-container');
-            if (tabsEl) {
-                if (activeTab === 'CLOSED') tabsEl.classList.add('tab-closed');
-                else tabsEl.classList.remove('tab-closed');
-                const indicator = tabsEl.querySelector('.tab-indicator');
-                if (indicator) {
-                    indicator.style.left = activeTab === 'CLOSED' ? 'calc(50% + 2px)' : '4px';
-                }
-            }
+  const showToast = (msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  };
 
-            if (filtered.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:40px; color:#94A3B8;">No positions found</div>';
-                return;
-            }
+  const exitAllPositions = () => {
+    const hasOpen = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
+    if (!hasOpen) { showToast('No open positions to exit'); return; }
 
-            var html = '';
-            filtered.forEach((p, idx) => {
-                var pnl = calculatePnL(p);
-                var pnlClass = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
-                
-                html += \`<div class="pos-card">
-                    <div class="pos-card-header">
-                        <div>
-                            <span class="pos-symbol">\${p.name}</span>
-                            <span style="font-size:0.7rem; margin-left:8px; color:#94A3B8;">\${p.symbol}</span>
-                        </div>
-                        <span class="pos-product">\${p.product}</span>
-                    </div>
-                    <div class="pos-grid">
-                        <div class="pos-item">
-                            <div class="pos-item-label">QTY / TYPE</div>
-                            <div class="pos-item-val" style="color:\${p.type==='BUY'?'#2C8E5A':'#DC2626'}">\${p.qty} | \${p.type}</div>
-                        </div>
-                        <div class="pos-item" style="text-align:right;">
-                            <div class="pos-item-label">AVG PRICE</div>
-                            <div class="pos-item-val">\${formatPrice(p.avg)}</div>
-                        </div>
-                        <div class="pos-item">
-                            <div class="pos-item-label">LTP</div>
-                            <div class="pos-item-val">\${formatPrice(p.ltp)}</div>
-                        </div>
-                        <div class="pos-item" style="text-align:right;">
-                            <div class="pos-item-label">NET VAL</div>
-                            <div class="pos-item-val">\${formatPrice(p.ltp * p.qty)}</div>
-                        </div>
-                    </div>
-                    <div class="pos-card-footer">
-                        <div class="pos-pnl-label">P&L</div>
-                        <div class="pos-pnl-val \${pnlClass}">\${pnl >= 0 ? '+' : ''}\${formatPrice(pnl)}</div>
-                    </div>
-                </div>\`;
-            });
-            container.innerHTML = html;
-        }
+    const total = openPositions.length + detailedPositions.filter(p => p.status === 'OPEN').length;
+    const now = new Date();
+    const exitTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-        window.switchTab = function(t) { 
-            activeTab = t; 
-            const tabsContainer = document.querySelector('.tabs-container');
-            if (tabsContainer) {
-                if (t === 'CLOSED') tabsContainer.classList.add('tab-closed');
-                else tabsContainer.classList.remove('tab-closed');
-                const indicator = tabsContainer.querySelector('.tab-indicator');
-                if (indicator) {
-                    indicator.style.left = t === 'CLOSED' ? 'calc(50% + 2px)' : '4px';
-                }
-            }
-            renderPositions(); 
-        };
-
-        setTimeout(renderPositions, 0);
-    `;
-        document.body.appendChild(script);
-        return () => { if (document.body.contains(script)) document.body.removeChild(script); };
-    }, []);
-
-    return (
-        <div className="app-container">
-            <div
-                ref={containerRef}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}
-                dangerouslySetInnerHTML={{
-                    __html: `
-    <div class="pos-app-header">
-        <div class="header-title">Positions</div>
-        <div class="header-mtm">MTM P&amp;L</div>
-    </div>
-
-    <div class="pos-main-content">
-            <div class="pnl-summary">
-            <div class="pnl-top-label">TOTAL P&L (MTM)</div>
-            <div id="totalPnL" class="total-pnl">₹---</div>
-            
-            <div class="pnl-grid">
-                <div class="pnl-item">
-                    <div class="pnl-item-label">REALIZED</div>
-                    <div id="realizedPnL" class="pnl-item-val">₹---</div>
-                </div>
-                <div class="pnl-item">
-                    <div class="pnl-item-label">UNREALIZED</div>
-                    <div id="unrealizedPnL" class="pnl-item-val">₹---</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tabs-container">
-            <div class="tab-indicator"></div>
-            <div class="tab" data-tab="OPEN" onclick="switchTab('OPEN')">OPEN (3)</div>
-            <div class="tab" data-tab="CLOSED" onclick="switchTab('CLOSED')">CLOSED (1)</div>
-        </div>
-
-        <div id="positionsList" class="positions-list"></div>
-    </div>
-` }}
-            />
-            {/* MODULAR FOOTER COMPONENT */}
-            <Footer activeTab="position" />
-        </div>
+    setClosedPositions(prev => [
+      ...openPositions.map(pos => ({
+        symbol: pos.symbol, side: pos.side, avgPrice: pos.avgPrice,
+        qty: pos.qty, pnl: pos.pnl, pnlPercent: pos.pnlPercent,
+        ltp: pos.ltp, orderType: pos.orderType, status: 'COMPLETED',
+      })),
+      ...prev,
+    ]);
+    setOpenPositions([]);
+    setDetailedPositions(prev =>
+      prev.map(p => p.status === 'OPEN' ? { ...p, status: 'CLOSED' as const, exitPrice: p.currentPrice, exitTime: exitTimeStr } : p)
     );
+    showToast(`Exited ${total} position${total > 1 ? 's' : ''} successfully`);
+  };
+
+  const realized = closedPositions.reduce((s, p) => s + p.pnl, 0);
+  const unrealized = openPositions.reduce((s, p) => s + p.pnl, 0);
+  const totalPnl = realized + unrealized;
+
+  const fmtUSD = (v: number) => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtPrice = (v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+
+  const hasOpenPositions = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
+
+  return (
+    <div className="pos-root">
+      {/* App Shell */}
+      <div className="pos-shell">
+        {/* Header */}
+        <div className="pos-header">
+          <div className="pos-header-left">
+            <div className="pos-brand">
+              <i className="fas fa-chart-line pos-brand-icon" />
+              MARGIN APEX
+            </div>
+            <div className="pos-brand-sub">Position Management • Real-time P&amp;L</div>
+          </div>
+          <button
+            className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
+            onClick={exitAllPositions}
+          >
+            <i className="fas fa-sign-out-alt" />
+            <span>Exit All</span>
+          </button>
+        </div>
+
+        {/* Main Tabs */}
+        <div className="pos-main-tabs">
+          <div
+            className={`pos-main-tab${currentMain === 'cumulative' ? ' active' : ''}`}
+            onClick={() => { setCurrentMain('cumulative'); setCurrentSub('open'); }}
+          >
+            Cumulative P&amp;L
+          </div>
+          <div
+            className={`pos-main-tab${currentMain === 'detailed' ? ' active' : ''}`}
+            onClick={() => setCurrentMain('detailed')}
+          >
+            Detailed P&amp;L
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="pos-content">
+          {/* P&L Summary Card — always visible */}
+          <div className="pos-pnl-card">
+            <div className="pos-pnl-card-title">Today's P&amp;L</div>
+            <div className="pos-pnl-card-body">
+              <div className="pos-pnl-col left">
+                <div className="pos-pnl-label">Realized</div>
+                <div className={`pos-pnl-val${realized >= 0 ? ' green' : ' red'}`}>{fmtUSD(realized)}</div>
+              </div>
+              <div className="pos-pnl-col center">
+                <div className={`pos-pnl-total${totalPnl >= 0 ? ' green' : ' red'}`}>{fmtUSD(totalPnl)}</div>
+              </div>
+              <div className="pos-pnl-col right">
+                <div className="pos-pnl-label">Unrealized</div>
+                <div className={`pos-pnl-val${unrealized >= 0 ? ' green' : ' red'}`}>{fmtUSD(unrealized)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cumulative View */}
+          {currentMain === 'cumulative' && (
+            <>
+              {/* Sub Tabs */}
+              <div className="pos-sub-tabs">
+                <div
+                  className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
+                  onClick={() => setCurrentSub('open')}
+                >
+                  Open Positions
+                </div>
+                <div
+                  className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
+                  onClick={() => setCurrentSub('closed')}
+                >
+                  Closed Positions
+                </div>
+              </div>
+
+              {/* Position Cards */}
+              {currentSub === 'open' ? (
+                openPositions.length === 0 ? (
+                  <div className="pos-empty">
+                    <i className="fas fa-chart-simple" />
+                    <p>No open positions</p>
+                  </div>
+                ) : (
+                  openPositions.map(pos => (
+                    <div key={pos.id} className="pos-card">
+                      <div className="pos-card-left">
+                        <div className="pos-card-symbol">{pos.symbol}</div>
+                        <div className="pos-card-details">
+                          <span>Avg Price: <strong>{fmtPrice(pos.avgPrice)}</strong></span>
+                          <span>Qty: <strong>{pos.qty.toLocaleString('en-US', { maximumFractionDigits: 4 })}</strong></span>
+                        </div>
+                      </div>
+                      <div className="pos-card-right">
+                        <span className={`pos-badge${pos.side === 'LONG' ? ' long' : ' short'}`}>
+                          {pos.side} • {pos.orderType}
+                        </span>
+                        <div className={`pos-card-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
+                          P&amp;L: {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)} ({pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%)
+                        </div>
+                        <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.ltp)}</strong></div>
+                      </div>
+                    </div>
+                  ))
+                )
+              ) : (
+                closedPositions.length === 0 ? (
+                  <div className="pos-empty">
+                    <i className="fas fa-history" />
+                    <p>No closed positions</p>
+                  </div>
+                ) : (
+                  closedPositions.map((pos, i) => (
+                    <div key={i} className="pos-card">
+                      <div className="pos-card-left">
+                        <div className="pos-card-symbol">{pos.symbol}</div>
+                        <div className="pos-card-details">
+                          <span>Avg Price: <strong>{fmtPrice(pos.avgPrice)}</strong></span>
+                          <span>Qty: <strong>{pos.qty.toLocaleString('en-US', { maximumFractionDigits: 4 })}</strong></span>
+                        </div>
+                      </div>
+                      <div className="pos-card-right">
+                        <span className={`pos-badge${pos.side === 'LONG' ? ' long' : ' short'}`}>
+                          {pos.side} • {pos.orderType}
+                        </span>
+                        <div className={`pos-card-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
+                          P&amp;L: {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)} ({pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%)
+                        </div>
+                        <div className="pos-card-ltp">Exit: <strong>{fmtPrice(pos.ltp)}</strong></div>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </>
+          )}
+
+          {/* Detailed View */}
+          {currentMain === 'detailed' && (
+            <>
+              <div className="pos-section-label">Today's Positions</div>
+              {detailedPositions.filter(p => p.date === 'Mar 31').length === 0 ? (
+                <div className="pos-empty">
+                  <i className="fas fa-chart-line" />
+                  <p>No positions today</p>
+                </div>
+              ) : (
+                detailedPositions
+                  .filter(p => p.date === 'Mar 31')
+                  .map(pos => (
+                    <div key={pos.id} className="pos-detail-card">
+                      <div className="pos-detail-left">
+                        <div className="pos-detail-symbol">
+                          {pos.symbol} <span className="pos-detail-side">{pos.side}</span>
+                        </div>
+                        <div className="pos-detail-meta">
+                          <span>Qty: <strong>{pos.qty.toFixed(4)}</strong></span>
+                          <span>Entry: <strong>{fmtPrice(pos.entryPrice)}</strong></span>
+                          {pos.status === 'OPEN'
+                            ? <span>Current: <strong>{fmtPrice(pos.currentPrice)}</strong></span>
+                            : <span>Exit: <strong>{fmtPrice(pos.exitPrice!)}</strong></span>
+                          }
+                          <span>Time: <strong>{pos.status === 'OPEN' ? pos.entryTime : pos.exitTime}</strong></span>
+                        </div>
+                      </div>
+                      <div className="pos-detail-right">
+                        <div className={`pos-detail-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
+                          {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
+                        </div>
+                        <div className="pos-detail-pct">{pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%</div>
+                        <span className={`pos-status-badge${pos.status === 'OPEN' ? ' active' : ' closed'}`}>
+                          {pos.status === 'OPEN' ? 'Active' : 'Closed'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </>
+          )}
+        </div>
+
+        <Footer activeTab="position" />
+      </div>
+
+      {/* Toast */}
+      <div className={`pos-toast${toast ? ' show' : ''}`}>
+        <i className="fas fa-circle-info" />
+        <span>{toast}</span>
+      </div>
+    </div>
+  );
 }
