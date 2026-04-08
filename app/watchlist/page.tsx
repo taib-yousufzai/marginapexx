@@ -95,39 +95,85 @@ export default function WatchlistPage() {
         return { bid: price - spread, ask: price + spread };
     }
 
-    function openTradeSheet(script) {
+    function openTradeSheet(script, action = 'both') {
         currentTradeScript = script;
         const isCrypto = script.name.includes("BTC") || script.name.includes("ETH") || script.name.includes("SOL");
         const priceVal = typeof script.price === 'number' ? script.price : parseFloat(script.price);
+        
+        // Header
         document.getElementById('sheetScriptName').innerText = script.name;
         document.getElementById('sheetSegment').innerText = script.segment || "Trading Segment";
         document.getElementById('sheetCmpValue').innerText = formatPrice(priceVal, isCrypto);
-        document.getElementById('sheetContractDate').innerText = script.contractDate || "28 Mar 2025";
+        
         const isPositive = script.change.includes('+');
         const chEl = document.getElementById('sheetChange');
         chEl.innerText = script.change;
-        chEl.className = 'sheet-change ' + (isPositive ? 'positive' : 'negative');
+        chEl.className = 'ts-change-badge ' + (isPositive ? 'positive' : 'negative');
+        
+        // Bid / Ask
         const { bid, ask } = generateBidAsk(priceVal);
         document.getElementById('sheetBid').innerText = formatPrice(bid, isCrypto);
         document.getElementById('sheetAsk').innerText = formatPrice(ask, isCrypto);
         
-        // Setup initial default values
-        const qtyInput = document.getElementById('tradeQtyInput');
-        const priceInput = document.getElementById('tradePriceInput');
-        
-        // Deduce fake lot size
+        // Lot size
         const lotSize = script.segment?.includes('Options') || script.segment?.includes('Futures') ? (script.name.includes('NIFTY') ? 25 : 15) : 1;
         script.lotSize = lotSize;
-        if(qtyInput) qtyInput.value = lotSize;
-        if(priceInput) priceInput.value = priceVal.toFixed(2);
         
+        // Info cards
+        const icLotSize = document.getElementById('icLotSize');
+        const icMaxLots = document.getElementById('icMaxLots');
+        const icOrderLots = document.getElementById('icOrderLots');
+        const icTotalQty = document.getElementById('icTotalQty');
+        if (icLotSize) icLotSize.innerText = lotSize;
+        if (icMaxLots) icMaxLots.innerText = '500';
+        if (icOrderLots) icOrderLots.innerText = '1';
+        if (icTotalQty) icTotalQty.innerText = lotSize;
+        
+        // Qty stepper
+        const qtyInput = document.getElementById('tradeQtyInput');
+        const qtyDisplay = document.getElementById('tradeQtyDisplay');
+        if (qtyInput) qtyInput.value = lotSize;
+        if (qtyDisplay) qtyDisplay.innerText = lotSize;
+        
+        // Lot hint
         const lotHint = document.getElementById('sheetLotHint');
-        if(lotHint) lotHint.innerText = '(Lot: ' + lotSize + ')';
+        if (lotHint) lotHint.innerText = '1 Lot \u00d7 ' + lotSize + ' = ' + lotSize + ' Qty';
+        
+        // Price input
+        const priceInput = document.getElementById('tradePriceInput');
+        if (priceInput) priceInput.value = priceVal.toFixed(2);
+        
+        // Reset order type pills to MARKET
+        const orderPills = document.querySelectorAll('#orderTypeContainer .ts-pill');
+        orderPills.forEach(p => p.classList.remove('active'));
+        const marketPill = document.querySelector('#orderTypeContainer .ts-pill[data-type="market"]');
+        if (marketPill) marketPill.classList.add('active');
+        
+        // Hide price / trigger cards (market mode)
+        const priceCard = document.getElementById('priceInputCard');
+        const triggerCard = document.getElementById('triggerCard');
+        if (priceCard) priceCard.style.display = 'none';
+        if (triggerCard) triggerCard.style.display = 'none';
         
         updateMarginAndSummary();
 
         tradeSheet.classList.add('open');
         tradeSheetOverlay.classList.add('active');
+        
+        // Show sticky footer
+        const footer = document.getElementById('tsStickyFooter');
+        if (footer) setTimeout(() => footer.classList.add('visible'), 50);
+
+        // Manage button visibility based on action
+        const buyBtn = document.getElementById('sheetBuyBtn');
+        const sellBtn = document.getElementById('sheetSellBtn');
+        
+        if (buyBtn && sellBtn) {
+            buyBtn.style.display = (action === 'buy' || action === 'both') ? '' : 'none';
+            sellBtn.style.display = (action === 'sell' || action === 'both') ? '' : 'none';
+            buyBtn.style.width = action === 'buy' ? '100%' : 'calc(50% - 6px)';
+            sellBtn.style.width = action === 'sell' ? '100%' : 'calc(50% - 6px)';
+        }
     }
 
     function openDetailSheet(script) {
@@ -171,6 +217,9 @@ export default function WatchlistPage() {
         tradeSheet.style.height = '';
         tradeSheetOverlay.classList.remove('active');
         currentTradeScript = null;
+        // Hide sticky footer
+        const footer = document.getElementById('tsStickyFooter');
+        if (footer) footer.classList.remove('visible');
     }
 
     function executeTrade(type) {
@@ -184,12 +233,64 @@ export default function WatchlistPage() {
     document.getElementById('sheetBuyBtn').addEventListener('click', () => executeTrade('buy'));
     document.getElementById('sheetSellBtn').addEventListener('click', () => executeTrade('sell'));
     tradeSheetOverlay.addEventListener('click', closeTradeSheet);
+    
+    // Back button
+    const sheetBackBtn = document.getElementById('sheetBackBtn');
+    if (sheetBackBtn) sheetBackBtn.addEventListener('click', closeTradeSheet);
+
+    // New qty stepper
+    const tsQtyMinus = document.getElementById('tsQtyMinus');
+    const tsQtyPlus = document.getElementById('tsQtyPlus');
+    function updateQtyDisplay() {
+        if (!currentTradeScript) return;
+        const qtyInput = document.getElementById('tradeQtyInput');
+        const qtyDisplay = document.getElementById('tradeQtyDisplay');
+        const lotHint = document.getElementById('sheetLotHint');
+        const icOrderLots = document.getElementById('icOrderLots');
+        const icTotalQty = document.getElementById('icTotalQty');
+        if (!qtyInput || !qtyDisplay) return;
+        const qty = parseInt(qtyInput.value) || 1;
+        const lotSize = currentTradeScript.lotSize || 1;
+        const lots = Math.round(qty / lotSize);
+        qtyDisplay.innerText = qty;
+        if (lotHint) lotHint.innerText = lots + ' Lot\u00d7 \u00d7 ' + lotSize + ' = ' + qty + ' Qty';
+        if (icOrderLots) icOrderLots.innerText = lots;
+        if (icTotalQty) icTotalQty.innerText = qty;
+        updateMarginAndSummary();
+    }
+    if (tsQtyMinus) tsQtyMinus.addEventListener('click', () => {
+        const input = document.getElementById('tradeQtyInput');
+        if (input) {
+            const step = currentTradeScript?.lotSize || 1;
+            input.value = Math.max(step, parseInt(input.value || step) - step);
+            updateQtyDisplay();
+        }
+    });
+    if (tsQtyPlus) tsQtyPlus.addEventListener('click', () => {
+        const input = document.getElementById('tradeQtyInput');
+        if (input) {
+            const step = currentTradeScript?.lotSize || 1;
+            input.value = parseInt(input.value || 0) + step;
+            updateQtyDisplay();
+        }
+    });
+
+    // Qty/Lot toggle
+    const qtyLotToggle = document.getElementById('qtyLotToggle');
+    if (qtyLotToggle) {
+        qtyLotToggle.addEventListener('click', (e) => {
+            const btn = e.target.closest('.ts-toggle-opt');
+            if (!btn) return;
+            qtyLotToggle.querySelectorAll('.ts-toggle-opt').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    }
 
     const detailBuyBtn = document.getElementById('detailBuyBtn');
-    if(detailBuyBtn) detailBuyBtn.addEventListener('click', () => { closeDetailSheet(); openTradeSheet(currentTradeScript); });
+    if(detailBuyBtn) detailBuyBtn.addEventListener('click', () => { closeDetailSheet(); openTradeSheet(currentTradeScript, 'buy'); });
     
     const detailSellBtn = document.getElementById('detailSellBtn');
-    if(detailSellBtn) detailSellBtn.addEventListener('click', () => { closeDetailSheet(); openTradeSheet(currentTradeScript); });
+    if(detailSellBtn) detailSellBtn.addEventListener('click', () => { closeDetailSheet(); openTradeSheet(currentTradeScript, 'sell'); });
     
     if(detailSheetOverlay) detailSheetOverlay.addEventListener('click', closeDetailSheet);
 
@@ -229,85 +330,57 @@ export default function WatchlistPage() {
     }
 
     document.addEventListener('click', (e) => {
-        // Order Type Toggle
-        const orderBtn = e.target.closest('#orderTypeContainer .trade-chip');
-        if (orderBtn) {
-            const container = document.getElementById('orderTypeContainer');
-            container.querySelectorAll('.trade-chip').forEach(c => c.classList.remove('active'));
-            orderBtn.classList.add('active');
-            
-            const tradePriceInput = document.getElementById('tradePriceInput');
-            const tradeTriggerInput = document.getElementById('tradeTriggerInput');
-            if(!tradePriceInput || !tradeTriggerInput) return;
-            const type = orderBtn.getAttribute('data-type');
-            
-            if (type === 'market') {
-                tradePriceInput.disabled = true; tradePriceInput.classList.add('disabled');
-                tradeTriggerInput.disabled = true; tradeTriggerInput.classList.add('disabled');
-            } else if (type === 'limit') {
-                tradePriceInput.disabled = false; tradePriceInput.classList.remove('disabled');
-                tradeTriggerInput.disabled = true; tradeTriggerInput.classList.add('disabled');
-            } else if (type === 'sl') {
-                tradePriceInput.disabled = false; tradePriceInput.classList.remove('disabled');
-                tradeTriggerInput.disabled = false; tradeTriggerInput.classList.remove('disabled');
-            } else if (type === 'slm') {
-                tradePriceInput.disabled = true; tradePriceInput.classList.add('disabled');
-                tradeTriggerInput.disabled = false; tradeTriggerInput.classList.remove('disabled');
-            }
+        // Order Type Pills (new ts-pill style)
+        const orderPill = e.target.closest('#orderTypeContainer .ts-pill');
+        if (orderPill) {
+            document.querySelectorAll('#orderTypeContainer .ts-pill').forEach(p => p.classList.remove('active'));
+            orderPill.classList.add('active');
+            const type = orderPill.getAttribute('data-type');
+            const priceCard = document.getElementById('priceInputCard');
+            const triggerCard = document.getElementById('triggerCard');
+            if (priceCard) priceCard.style.display = (type === 'limit' || type === 'gtt') ? 'block' : 'none';
+            if (triggerCard) triggerCard.style.display = (type === 'slm') ? 'block' : 'none';
             updateMarginAndSummary();
         }
 
-        // Product Type Toggle
-        const productBtn = e.target.closest('#productTypeContainer .product-chip');
-        if (productBtn) {
-            const container = document.getElementById('productTypeContainer');
-            container.querySelectorAll('.product-chip').forEach(c => c.classList.remove('active'));
-            productBtn.classList.add('active');
+        // Product Type Pills (new ts-pill style)
+        const productPill = e.target.closest('#productTypeContainer .ts-pill');
+        if (productPill) {
+            document.querySelectorAll('#productTypeContainer .ts-pill').forEach(p => p.classList.remove('active'));
+            productPill.classList.add('active');
             updateMarginAndSummary();
         }
 
-        // Qty Increment/Decrement
+        // Legacy qty btn support (minus/plus)
         if (e.target.closest('.qty-btn-plus')) {
             const input = document.getElementById('tradeQtyInput');
-            if (input) { input.value = parseInt(input.value || 0) + (currentTradeScript?.lotSize || 1); updateMarginAndSummary(); }
+            if (input) { input.value = parseInt(input.value || 0) + (currentTradeScript?.lotSize || 1); updateQtyDisplay(); }
         }
         if (e.target.closest('.qty-btn-minus')) {
             const input = document.getElementById('tradeQtyInput');
             if (input) { 
                 const newVal = parseInt(input.value || 0) - (currentTradeScript?.lotSize || 1);
                 input.value = Math.max((currentTradeScript?.lotSize || 1), newVal); 
-                updateMarginAndSummary(); 
+                updateQtyDisplay(); 
             }
-        }
-    });
-
-    document.addEventListener('input', (e) => {
-        if (e.target.id === 'tradePriceInput' || e.target.id === 'tradeQtyInput') {
-            updateMarginAndSummary();
         }
     });
 
     function updateMarginAndSummary() {
         if (!currentTradeScript) return;
         const qtyInput = document.getElementById('tradeQtyInput');
-        const priceInput = document.getElementById('tradePriceInput');
-        if (!qtyInput || !priceInput) return;
+        if (!qtyInput) return;
         
         let qty = parseInt(qtyInput.value) || 0;
-        let price = parseFloat(priceInput.value) || 0;
-        if (priceInput.disabled) {
-            price = currentTradeScript.price || 0;
-        }
-
-        const isIntraday = document.querySelector('#productTypeContainer .product-chip.active')?.dataset.type === 'mis';
-        // Arbitrary margin calculation: MIS is 5x leverage, NRML is 1x (or option margin)
+        const price = currentTradeScript.price || 0;
+        const isIntraday = document.querySelector('#productTypeContainer .ts-pill.active')?.dataset.type === 'mis';
         let marginReq = price * qty;
         if (isIntraday && !currentTradeScript.segment?.includes('Options')) {
-            marginReq = marginReq * 0.2; // 5x leverage
+            marginReq = marginReq * 0.2;
         }
 
         const marginEl = document.getElementById('calculatedMargin');
-        if (marginEl) marginEl.innerText = '₹ ' + marginReq.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (marginEl) marginEl.innerText = '\u20b9 ' + marginReq.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
@@ -692,100 +765,165 @@ export default function WatchlistPage() {
                 </div>
             </div>
 
-            {/* Trade Sheet */}
+            {/* Trade Sheet – Full-Screen Premium Order Panel */}
             <div id="tradeSheetOverlay" className="trade-sheet-overlay"></div>
-            <div id="tradeSheet" className="trade-sheet modern-trade-sheet">
+            <div id="tradeSheet" className="trade-sheet">
+                {/* Drag handle */}
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
-                <div className="sheet-content-scroll">
-                    <div className="sheet-header">
-                        <div className="sheet-header-row" style={{ alignItems: 'flex-start' }}>
-                            <div>
-                                <div className="sheet-script-name" id="sheetScriptName">NIFTY FUT</div>
-                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
-                                    <span className="sheet-segment" id="sheetSegment">NSE - Futures</span>
-                                    <span className="sheet-contract-value" id="sheetContractDate" style={{ background: '#F0F2F8', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '600', color: '#5B677E' }}>28 Mar 2025</span>
-                                </div>
-                            </div>
-                            <div className="sheet-cmp-area" style={{ textAlign: 'right' }}>
-                                <div className="sheet-cmp-value" id="sheetCmpValue" style={{ fontSize: '1.4rem' }}>₹22,456.80</div>
-                                <div className="sheet-change" id="sheetChange" style={{ fontSize: '0.75rem', marginTop: '2px' }}>+0.45%</div>
-                            </div>
-                        </div>
+
+                {/* ── HEADER: back · name+badge · price+change ── */}
+                <div className="ts-header">
+                    <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close">
+                        <i className="fas fa-chevron-down"></i>
+                    </button>
+                    <div className="ts-name-block">
+                        <div className="ts-instr-name" id="sheetScriptName">NIFTY FUT</div>
+                        <span className="ts-segment-badge" id="sheetSegment">NSE · Futures</span>
                     </div>
-
-                    <div className="sheet-bidask-minimalist" style={{ display: 'flex', padding: '12px 20px', gap: '20px', background: '#F8FAFF', borderBottom: '1px solid #EEF2F8' }}>
-                        <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: '#8C94A8', fontSize: '0.65rem', fontWeight: '600' }}>BID</span><span id="sheetBid" style={{ color: '#2C8E5A', fontWeight: '700', fontSize: '0.85rem' }}>₹22,434.20</span></div>
-                        <div style={{ width: '1px', background: '#DCE3EC' }}></div>
-                        <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span style={{ color: '#8C94A8', fontSize: '0.65rem', fontWeight: '600' }}>ASK</span><span id="sheetAsk" style={{ color: '#C62E2E', fontWeight: '700', fontSize: '0.85rem' }}>₹22,479.40</span></div>
-                    </div>
-
-                    <div className="advanced-trade-sections" style={{ padding: '20px 16px' }}>
-
-                        <div className="trade-toggle-group" style={{ marginBottom: '16px' }}>
-                            <div className="trade-toggle-lbl">Product Type</div>
-                            <div className="trade-chips product-chips" id="productTypeContainer" style={{ background: '#F8FAFF', border: '1px solid #EEF2F8' }}>
-                                <button className="trade-chip product-chip active" data-type="nrml" style={{ padding: '8px 16px', fontSize: '0.7rem' }}>Carryforward (NRML)</button>
-                                <button className="trade-chip product-chip" data-type="mis" style={{ padding: '8px 16px', fontSize: '0.7rem' }}>Intraday (MIS)</button>
-                            </div>
-                        </div>
-
-                        <div className="trade-toggle-group" style={{ marginBottom: '16px' }}>
-                            <div className="trade-toggle-lbl">Order Type</div>
-                            <div className="trade-chips type-chips" id="orderTypeContainer">
-                                <button className="trade-chip" data-type="market">Market</button>
-                                <button className="trade-chip active" data-type="limit">Limit</button>
-                                <button className="trade-chip" data-type="sl">SL</button>
-                                <button className="trade-chip" data-type="slm">SL-M</button>
-                            </div>
-                        </div>
-
-                        <div className="trade-inputs-row">
-                            <div className="trade-input-box modern-input-box">
-                                <label>Quantity <span className="lot-hint" id="sheetLotHint">(Lot: 15)</span></label>
-                                <div className="qty-control modern-qty">
-                                    <button className="qty-btn qty-btn-minus"><i className="fas fa-minus"></i></button>
-                                    <input type="number" id="tradeQtyInput" defaultValue="15" className="qty-input" />
-                                    <button className="qty-btn qty-btn-plus"><i className="fas fa-plus"></i></button>
-                                </div>
-                            </div>
-                            <div className="trade-input-box modern-input-box">
-                                <label>Price (₹)</label>
-                                <input type="number" id="tradePriceInput" placeholder="Enter Price" defaultValue="22434.20" className="price-input" />
-                            </div>
-                        </div>
-
-                        <div className="trade-inputs-row" style={{ marginTop: '16px' }}>
-                            <div className="trade-input-box modern-input-box">
-                                <label>Trigger Price (SL)</label>
-                                <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input disabled" disabled />
-                            </div>
-                            <div className="trade-input-box modern-input-box">
-                                <label>Smart GTT / Target <span className="badge-pro">PRO</span></label>
-                                <input type="text" placeholder="Set Target % or ₹" className="price-input" />
-                            </div>
-                        </div>
-
-                        <div className="margin-summary" style={{ marginTop: '24px', background: '#FDFEFF', border: '1px solid #EEF2F8', padding: '16px', borderRadius: '16px' }}>
-                            <div className="margin-row" style={{ marginBottom: '12px' }}>
-                                <span className="m-label" style={{ fontSize: '0.75rem', fontWeight: '500', color: '#8C94A8' }}>Margin Required</span>
-                                <span className="m-val calculated-margin" id="calculatedMargin" style={{ fontSize: '1rem', fontWeight: '800', color: '#1A1E2B' }}>₹ 0.00</span>
-                            </div>
-                            <div className="margin-row" style={{ borderTop: '1px dashed #EEF2F8', paddingTop: '12px', marginTop: '4px' }}>
-                                <span className="m-label" style={{ fontSize: '0.75rem', color: '#8C94A8' }}>Available Balance</span>
-                                <span className="m-val balance" style={{ background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px', color: '#006400', fontSize: '0.75rem', fontWeight: '700' }}>₹ 4,50,000.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="sheet-actions sticky" style={{ background: '#FFFFFF', padding: '16px', gap: '12px', boxShadow: '0 -10px 30px rgba(0,0,0,0.05)', borderRadius: '20px 20px 0 0' }}>
-                        <button className="sheet-btn-buy" id="sheetBuyBtn" style={{ background: '#16A34A', color: 'white', borderRadius: '16px', border: 'none', padding: '18px 0', fontSize: '1.1rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(22,163,74,0.25)' }}>
-                            BUY
-                        </button>
-                        <button className="sheet-btn-sell" id="sheetSellBtn" style={{ background: '#DC2626', color: 'white', borderRadius: '16px', border: 'none', padding: '18px 0', fontSize: '1.1rem', fontWeight: '800', boxShadow: '0 8px 16px rgba(220,38,38,0.25)' }}>
-                            SELL
-                        </button>
+                    <div className="ts-price-block">
+                        <div className="ts-price-value" id="sheetCmpValue">₹22,456.80</div>
+                        <span className="ts-change-badge negative" id="sheetChange">+0.45%</span>
                     </div>
                 </div>
+
+                {/* ── BID / ASK ROW ── */}
+                <div className="ts-bidask-row">
+                    <div className="ts-ba-cell">
+                        <span className="ts-ba-label">BID</span>
+                        <span className="ts-ba-val bid-val" id="sheetBid">₹22,434.20</span>
+                    </div>
+                    <div className="ts-ba-divider"></div>
+                    <div className="ts-ba-cell">
+                        <span className="ts-ba-label">ASK</span>
+                        <span className="ts-ba-val ask-val" id="sheetAsk">₹22,479.40</span>
+                    </div>
+                </div>
+
+                {/* ── SCROLLABLE BODY ── */}
+                <div className="sheet-content-scroll">
+                    <div className="ts-body">
+
+                        {/* QTY / LOT TOGGLE SWITCH */}
+                        <div className="ts-section-card">
+                            <div className="ts-qty-lot-row">
+                                <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
+                                <div className="ts-toggle-switch" id="qtyLotToggle">
+                                    <button className="ts-toggle-opt active" data-unit="qty">QTY</button>
+                                    <button className="ts-toggle-opt" data-unit="lot">LOT</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* INFO CARDS ROW */}
+                        <div className="ts-info-cards-wrap">
+                            <div className="ts-info-cards">
+                                <div className="ts-info-card">
+                                    <div className="ts-ic-label">Lot Size</div>
+                                    <div className="ts-ic-val" id="icLotSize">25</div>
+                                </div>
+                                <div className="ts-info-card">
+                                    <div className="ts-ic-label">Max Lots</div>
+                                    <div className="ts-ic-val" id="icMaxLots">500</div>
+                                </div>
+                                <div className="ts-info-card">
+                                    <div className="ts-ic-label">Order Lots</div>
+                                    <div className="ts-ic-val" id="icOrderLots">1</div>
+                                </div>
+                                <div className="ts-info-card">
+                                    <div className="ts-ic-label">Total Qty</div>
+                                    <div className="ts-ic-val" id="icTotalQty">25</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* QUANTITY STEPPER */}
+                        <div className="ts-qty-container">
+                            <div className="ts-section-label">Quantity</div>
+                            <div className="ts-qty-stepper">
+                                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease">
+                                    <i className="fas fa-minus"></i>
+                                </button>
+                                <div className="ts-qty-val" id="tradeQtyDisplay">25</div>
+                                {/* hidden input keeps the numeric value */}
+                                <input type="hidden" id="tradeQtyInput" defaultValue="25" />
+                                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase">
+                                    <i className="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div className="ts-qty-hint" id="sheetLotHint">1 Lot × 25 = 25 Qty</div>
+                        </div>
+
+                        {/* ORDER TYPE PILLS */}
+                        <div className="ts-section-card">
+                            <div className="ts-section-label">Order Type</div>
+                            <div className="ts-pill-group" id="orderTypeContainer">
+                                <button className="ts-pill active" data-type="market">MARKET</button>
+                                <button className="ts-pill" data-type="limit">LIMIT</button>
+                                <button className="ts-pill" data-type="slm">SL-M</button>
+                                <button className="ts-pill" data-type="gtt">GTT</button>
+                            </div>
+                        </div>
+
+                        {/* PRICE INPUT (shown only for LIMIT / SL-M / GTT) */}
+                        <div className="ts-section-card" id="priceInputCard" style={{ display: 'none' }}>
+                            <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                                type="number"
+                                id="tradePriceInput"
+                                placeholder="0.00"
+                                className="price-input"
+                                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                            />
+                        </div>
+
+                        {/* TRIGGER PRICE (shown for SL-M) */}
+                        <div className="ts-section-card" id="triggerCard" style={{ display: 'none' }}>
+                            <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                                type="number"
+                                id="tradeTriggerInput"
+                                placeholder="0.00"
+                                className="price-input"
+                                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                            />
+                        </div>
+
+                        {/* PRODUCT TYPE PILLS */}
+                        <div className="ts-section-card">
+                            <div className="ts-section-label">Product Type</div>
+                            <div className="ts-pill-group" id="productTypeContainer">
+                                <button className="ts-pill active" data-type="mis">INTRADAY</button>
+                                <button className="ts-pill" data-type="nrml">CARRY</button>
+                            </div>
+                        </div>
+
+                        {/* MARGIN SECTION */}
+                        <div className="ts-margin-card">
+                            <div className="ts-margin-row">
+                                <span className="ts-ml">Available</span>
+                                <span className="ts-mv avail">₹ 4,50,000.00</span>
+                            </div>
+                            <div className="ts-margin-row">
+                                <span className="ts-ml">Required Margin</span>
+                                <span className="ts-mv required" id="calculatedMargin">₹ 0.00</span>
+                            </div>
+                            <div className="ts-margin-row">
+                                <span className="ts-ml">Carry Charges</span>
+                                <span className="ts-mv carry">₹ 0.00</span>
+                            </div>
+                        </div>
+
+                        {/* Bottom spacer so content doesn't hide behind sticky footer */}
+                        <div style={{ height: '8px' }}></div>
+
+                    </div>
+                </div>
+            </div>
+
+            {/* Sticky Buy / Sell Footer – shown when trade sheet is open */}
+            <div className="ts-sticky-footer" id="tsStickyFooter">
+                <button className="ts-btn ts-btn-buy" id="sheetBuyBtn">BUY</button>
+                <button className="ts-btn ts-btn-sell" id="sheetSellBtn">SELL</button>
             </div>
 
             {/* Detail Sheet */}
@@ -807,12 +945,12 @@ export default function WatchlistPage() {
 
                     <div style={{ height: '1px', background: '#F0F2F8', margin: '0 -20px 16px', width: 'calc(100% + 40px)' }}></div>
 
-                    <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <div id="detailBidAskCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                             <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>BID</div>
                             <div id="detailBid" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>₹215.38</div>
                         </div>
-                        <div style={{ width: '1px', background: '#E2E8F0', height: '30px' }}></div>
+                        <div id="detailBidAskDivider" style={{ width: '1px', background: '#E2E8F0', height: '30px' }}></div>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                             <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>ASK</div>
                             <div id="detailAsk" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#DC2626' }}>₹215.82</div>
@@ -821,7 +959,7 @@ export default function WatchlistPage() {
 
                     <div style={{ marginBottom: '20px' }}>
                         <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#5B677E', marginBottom: '10px' }}>PRICE SUMMARY</div>
-                        <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                        <div id="detailOhlcCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>OPEN</div>
                                 <div id="detailOpen" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#16A34A' }}>₹216.50</div>
@@ -841,7 +979,7 @@ export default function WatchlistPage() {
                         </div>
                     </div>
 
-                    <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <div id="detailContractCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <i className="far fa-calendar-alt"></i> CONTRACT DATE
                         </div>
@@ -849,10 +987,10 @@ export default function WatchlistPage() {
                     </div>
 
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <button id="detailBuyBtn" style={{ flex: 1, background: '#22A366', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                        <button id="detailBuyBtn" style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                             <i className="fas fa-arrow-up"></i> BUY
                         </button>
-                        <button id="detailSellBtn" style={{ flex: 1, background: '#C62E2E', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                        <button id="detailSellBtn" style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
                             <i className="fas fa-arrow-down"></i> SELL
                         </button>
                     </div>

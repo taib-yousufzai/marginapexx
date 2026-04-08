@@ -22,7 +22,7 @@ export default function Page() {
     ];
 
     var watchlistItems = [], selectedIndices = new Set(), selectionMode = false;
-    var currentScript = null, currentTradeType = null, currentIsLotMode = false, currentOrderType = "market", currentProductType = "intraday", currentQuantity = 1;
+    var currentScript = null, currentTradeType = null, selectedAction = null, currentIsLotMode = false, currentOrderType = "market", currentProductType = "intraday", currentQuantity = 1;
     var BROKERAGE_FLAT = 5;
 
     
@@ -135,7 +135,8 @@ export default function Page() {
     }
 
     function openOrderFullpage(type) {
-        currentTradeType = type; 
+        currentTradeType = type;
+        selectedAction = type;
         currentQuantity = 1; 
         currentIsLotMode = false; 
         currentOrderType = "market";
@@ -160,6 +161,17 @@ export default function Page() {
         document.getElementById('gttContainer').style.display = 'none';
         document.querySelectorAll('[data-product-type]').forEach(btn => btn.classList.remove('active'));
         document.querySelector('[data-product-type="intraday"]').classList.add('active');
+        var buyBtn = document.getElementById('confirmBuyBtn');
+        var sellBtn = document.getElementById('confirmSellBtn');
+        if (selectedAction === 'buy') {
+            buyBtn.style.display = 'flex';
+            buyBtn.style.width = '100%';
+            sellBtn.style.display = 'none';
+        } else {
+            sellBtn.style.display = 'flex';
+            sellBtn.style.width = '100%';
+            buyBtn.style.display = 'none';
+        }
         closeTradeSheet(); 
         orderFullpage.classList.add('open'); 
         orderFullpageOverlay.classList.add('active');
@@ -427,7 +439,7 @@ export default function Page() {
     ];
 
     let watchlistItems = [], selectedIndices = new Set(), selectionMode = false;
-    let currentScript = null, currentTradeType = null, currentIsLotMode = false, currentOrderType = "market", currentProductType = "intraday", currentQuantity = 1;
+    let currentScript = null, currentTradeType = null, selectedAction = null, currentIsLotMode = false, currentOrderType = "market", currentProductType = "intraday", currentQuantity = 1;
     const BROKERAGE_FLAT = 5;
 
     // DOM Elements
@@ -532,7 +544,8 @@ export default function Page() {
     }
 
     function openOrderFullpage(type) {
-        currentTradeType = type; 
+        currentTradeType = type;
+        selectedAction = type;
         currentQuantity = 1; 
         currentIsLotMode = false; 
         currentOrderType = "market";
@@ -557,6 +570,17 @@ export default function Page() {
         document.getElementById('gttContainer').style.display = 'none';
         document.querySelectorAll('[data-product-type]').forEach(btn => btn.classList.remove('active'));
         document.querySelector('[data-product-type="intraday"]').classList.add('active');
+        const buyBtn = document.getElementById('confirmBuyBtn');
+        const sellBtn = document.getElementById('confirmSellBtn');
+        if (selectedAction === 'buy') {
+            buyBtn.style.display = 'flex';
+            buyBtn.style.width = '100%';
+            sellBtn.style.display = 'none';
+        } else {
+            sellBtn.style.display = 'flex';
+            sellBtn.style.width = '100%';
+            buyBtn.style.display = 'none';
+        }
         closeTradeSheet(); 
         orderFullpage.classList.add('open'); 
         orderFullpageOverlay.classList.add('active');

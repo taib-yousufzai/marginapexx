@@ -135,7 +135,7 @@
 .ord-tabs {
   display: flex;
   background: #EAECF0;
-  border-radius: 999px;
+  border-radius: 999px; /* Pill shaped */
   padding: 4px;
   gap: 4px;
   position: relative;
@@ -147,7 +147,7 @@
   padding: 10px 0;
   font-weight: 700;
   font-size: 13px;
-  border-radius: 999px;
+  border-radius: 999px; /* Pill shaped */
   cursor: pointer;
   color: #94A3B8;
   transition: all 0.25s ease;
@@ -187,7 +187,7 @@
   padding: 0 20px 80px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* ── Order Card ─────────────────────────────── */
@@ -195,7 +195,7 @@
   background: #FFFFFF;
   border: 1px solid #EDF2F7;
   border-radius: 18px;
-  padding: 14px 18px;
+  padding: 11px 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   transition: box-shadow 0.18s, border-color 0.18s;
 }
@@ -214,7 +214,7 @@
 
 /* Row 1: Symbol + Badge */
 .ord-row-top {
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .ord-symbol {
@@ -242,7 +242,7 @@
 /* Row 2: PRICE */
 .ord-row-price {
   align-items: baseline;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .ord-label {
@@ -263,7 +263,7 @@
 
 /* Row 3: QTY / TYPE / TIME inline */
 .ord-row-info {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   align-items: flex-end;
   gap: 8px;
 }
@@ -276,6 +276,22 @@
 
 .ord-info-block.center { align-items: center; flex: 1; }
 .ord-info-block.right  { align-items: flex-end; }
+
+.ord-info-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.ord-info-inline.center {
+  justify-content: center;
+  flex: 1;
+}
+
+.ord-info-inline.right {
+  justify-content: flex-end;
+}
 
 .ord-val {
   font-size: 13px;
@@ -311,8 +327,8 @@
 
 /* Rejection reason */
 .ord-rejection {
-  margin-top: 8px;
-  padding: 5px 10px;
+  margin-top: 6px;
+  padding: 4px 10px;
   background: #FFFBEB;
   border-left: 2px solid #F59E0B;
   border-radius: 8px;
@@ -328,8 +344,8 @@
 
 /* Row 5: Status + Cancel */
 .ord-row-status {
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 7px;
+  padding-top: 8px;
   border-top: 1px solid #F0F4F9;
 }
 
@@ -452,3 +468,7 @@ body.dark .ord-cancel-btn     { border-color: #3A3A3A; color: #777; }
 body.dark .ord-cancel-btn:hover { background: #3A1A1A; border-color: #7A2A2A; color: #C62E2E; }
 body.dark .ord-rejection      { background: #2A2010; border-left-color: #F59E0B; }
 body.dark .ord-empty          { background: #252525; border-color: #333; color: #555; }
+
+.apex-text {
+  color: #006400;
+}

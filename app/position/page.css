@@ -425,3 +425,10 @@ body.dark .pos-detail-meta { color: #888; }
 body.dark .pos-detail-meta strong { color: #D0D0D0; }
 body.dark .pos-section-label { color: #B0B0B0; border-bottom-color: #333; }
 body.dark .pos-empty { background: #252525; color: #666; }
+body.dark .pos-badge { background: #2A2A2A; color: #E5E7EB; }
+body.dark .pos-badge.long { background: #2A2A2A; color: #F87171; }
+body.dark .pos-badge.short { background: #2A2A2A; color: #D1D5DB; }
+
+.apex-text {
+  color: #006400;
+}

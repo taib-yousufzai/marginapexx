@@ -151,9 +151,8 @@ export default function PositionPage() {
 
   const hasOpenPositions = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
 
-  // Detailed: which list to show based on sub-tab
-  const detailedTargetStatus = currentSub === 'open' ? 'OPEN' : 'CLOSED';
-  const detailedDisplayed    = filteredDetailed.filter(p => p.status === detailedTargetStatus);
+  // Detailed: showing all items
+  const detailedDisplayed    = filteredDetailed;
 
   return (
     <div className="pos-root">
@@ -164,7 +163,7 @@ export default function PositionPage() {
           <div className="pos-header-left">
             <div className="pos-brand">
               <i className="fas fa-chart-line pos-brand-icon" />
-              MARGIN APEX
+              <span>MARGIN<span className="apex-text">APEX</span></span>
             </div>
             <div className="pos-brand-sub">Position Management • Real-time P&amp;L</div>
           </div>
@@ -215,21 +214,23 @@ export default function PositionPage() {
             </div>
           </div>
 
-          {/* ── Shared Sub-Tabs (visible in BOTH views) ── */}
-          <div className="pos-sub-tabs">
-            <div
-              className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
-              onClick={() => setCurrentSub('open')}
-            >
-              Open Positions
+          {/* ── Cumulative Sub-Tabs ── */}
+          {currentMain === 'cumulative' && (
+            <div className="pos-sub-tabs">
+              <div
+                className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
+                onClick={() => setCurrentSub('open')}
+              >
+                Open Positions
+              </div>
+              <div
+                className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
+                onClick={() => setCurrentSub('closed')}
+              >
+                Closed Positions
+              </div>
             </div>
-            <div
-              className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
-              onClick={() => setCurrentSub('closed')}
-            >
-              Closed Positions
-            </div>
-          </div>
+          )}
 
           {/* ── Cumulative View ── */}
           {currentMain === 'cumulative' && (
@@ -292,8 +293,8 @@ export default function PositionPage() {
           {currentMain === 'detailed' && (
             detailedDisplayed.length === 0 ? (
               <div className="pos-empty">
-                <i className={currentSub === 'open' ? 'fas fa-chart-line' : 'fas fa-history'} />
-                <p>{currentSub === 'open' ? 'No open trades' : 'No closed trades'}</p>
+                <i className="fas fa-list" />
+                <p>No trades available</p>
               </div>
             ) : detailedDisplayed.map(pos => (
               <div key={pos.id} className="pos-detail-card">
