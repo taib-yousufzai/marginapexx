@@ -148,6 +148,8 @@ body.dark {
   background: var(--container-bg, #FFFFFF);
   overflow-anchor: none;
   scroll-behavior: auto;
+  min-height: 0;
+  padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
 .main-scroll-wrapper::-webkit-scrollbar {
@@ -156,9 +158,11 @@ body.dark {
 
 .app-container .main-content {
   width: 100%;
-  padding-bottom: 160px;
+  padding-bottom: 0;
+  padding-top: 0;
   background: var(--container-bg, #FFFFFF);
-  min-height: 100%;
+  box-sizing: border-box;
+  flex: 1;
 }
 
 .app-container .main-content::-webkit-scrollbar {
@@ -166,40 +170,52 @@ body.dark {
 }
 
 .screen {
-  padding: 0 0 20px 0;
+  padding: 0;
 }
 
 /* ===== TOP NAVIGATION BAR - SINGLE ROW ===== */
 .nav-bar-full {
   background: var(--nav-bg);
-  padding: 12px 20px;
+  padding: 8px 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   box-shadow: var(--nav-shadow);
   border-bottom: 1px solid var(--nav-border);
   width: 100%;
-  position: relative;
+  position: sticky;
+  top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .nav-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
+  padding: 0;
+}
+
+.nav-group:first-child {
+  padding-left: 2px;
+}
+
+.nav-group:last-child {
+  padding-right: 2px;
 }
 
 .nav-icon-btn {
   background: var(--icon-bg);
-  width: 40px;
-  height: 40px;
-  border-radius: 30px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .nav-icon-btn:active {
@@ -210,13 +226,15 @@ body.dark {
 /* Narrower Funds button */
 .nav-funds {
   background: var(--wallet-bg);
-  padding: 6px 14px;
+  padding: 0 14px;
+  height: 38px;
   border-radius: 40px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
   box-shadow: var(--shadow-md);
+  flex-shrink: 0;
 }
 
 .nav-funds:active {
@@ -225,12 +243,12 @@ body.dark {
 
 .nav-funds i {
   color: #E0C879;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .nav-funds span {
   color: var(--wallet-text);
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
@@ -238,8 +256,8 @@ body.dark {
 .nav-app-name {
   font-family: 'Inter', sans-serif;
   font-weight: 800;
-  font-size: 26px;
-  letter-spacing: -0.5px;
+  font-size: 20px;
+  letter-spacing: -0.3px;
   background: linear-gradient(135deg, #0A0A0F 0%, #1A1A24 100%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -281,6 +299,10 @@ body.dark .nav-app-name span {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 8px 24px rgba(15, 80, 50, 0.5);
+}
+
+.whatsapp-community:last-child {
+  margin-bottom: 0;
 }
 
 .whatsapp-community:active {
@@ -415,34 +437,56 @@ body.dark .nav-app-name span {
   color: var(--text-muted);
 }
 
-.category-buttons {
-  display: flex;
-  gap: 12px;
+.category-toggle-wrapper {
+  display: inline-flex;
+  position: relative;
+  background: var(--chip-bg);
+  border-radius: 20px;
+  padding: 4px;
   margin-bottom: 16px;
+  border: 1px solid var(--border-card);
+}
+
+.category-toggle-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: #006400;
+  border-radius: 16px;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1;
+}
+
+body.dark .category-toggle-slider {
+  background: #008000;
+}
+
+.category-toggle-slider.slide-right {
+  transform: translateX(100%);
 }
 
 .cat-btn {
+  position: relative;
+  z-index: 2;
   flex: 1;
-  /* Match order page tabs behavior */
-  background: var(--chip-bg);
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: 16px;
   text-align: center;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: var(--text-primary);
   cursor: pointer;
-  border: 1px solid var(--border-card);
-  min-width: 0;
+  border: none;
+  background: transparent;
+  width: 95px;
+  transition: color 0.3s ease;
 }
 
 .cat-btn.active {
-  background: var(--active-cat-bg);
   color: var(--active-cat-text);
-}
-
-.cat-btn:active {
-  transform: scale(0.97);
+  background: transparent;
 }
 
 .scrollable-instruments {
@@ -1040,7 +1084,7 @@ body.dark .circle-icon {
   text-align: center;
   width: max-content;
   max-width: 90vw;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 /* MOBILE OVERRIDES AT THE BOTTOM FOR PRIORITY */
@@ -1061,8 +1105,10 @@ body.dark .circle-icon {
   }
 
   .app-container .main-content {
-    padding-bottom: 160px !important;
+    padding-bottom: 0 !important;
+    padding-top: 0 !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .nav-bar-full {
@@ -1079,28 +1125,29 @@ body.dark .circle-icon {
   }
 
   .nav-app-name {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
     letter-spacing: -0.3px !important;
     flex-shrink: 0;
   }
 
   .nav-icon-btn {
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.8rem !important;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 1.15rem !important;
+    border-radius: 50% !important;
   }
 
   .nav-funds {
-    padding: 4px 6px !important;
-    gap: 3px !important;
+    padding: 7px 12px !important;
+    gap: 6px !important;
   }
 
   .nav-funds span {
-    font-size: 0.55rem !important;
+    font-size: 0.8rem !important;
   }
 
   .nav-funds i {
-    font-size: 0.7rem !important;
+    font-size: 1rem !important;
   }
 
   .content-padded {
@@ -1154,8 +1201,10 @@ body.dark .circle-icon {
     box-shadow: none;
     margin: 0;
     overflow: hidden;
-    padding-bottom: 0; /* no bottom padding on desktop */
-    padding-left: 80px; /* sidebar width - push content right */
+    padding-bottom: 0;
+    /* no bottom padding on desktop */
+    padding-left: 80px;
+    /* sidebar width - push content right */
   }
 
   .nav-bar-full {
@@ -1187,14 +1236,14 @@ body.dark .circle-icon {
   .screen {
     padding: 0;
   }
-  
+
   .content-padded {
     padding: 0;
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 32px;
     align-items: start;
-    grid-template-areas: 
+    grid-template-areas:
       "whatsapp whatsapp"
       "margin learning"
       "options learning"
@@ -1202,17 +1251,38 @@ body.dark .circle-icon {
       "markets learning";
   }
 
-  .whatsapp-community { grid-area: whatsapp; max-width: 100%; box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3); }
-  .margin-settings-row { grid-area: margin; }
-  .option-chain-section { grid-area: options; }
-  .expiry-block { grid-area: expiry; }
-  .market-overview { grid-area: markets; }
-  .learning-section { grid-area: learning; margin-top: 0; }
-  
+  .whatsapp-community {
+    grid-area: whatsapp;
+    max-width: 100%;
+    box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3);
+  }
+
+  .margin-settings-row {
+    grid-area: margin;
+  }
+
+  .option-chain-section {
+    grid-area: options;
+  }
+
+  .expiry-block {
+    grid-area: expiry;
+  }
+
+  .market-overview {
+    grid-area: markets;
+  }
+
+  .learning-section {
+    grid-area: learning;
+    margin-top: 0;
+  }
+
   .learning-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
+
   .learning-card {
     padding: 16px 12px;
   }
@@ -1223,7 +1293,7 @@ body.dark .circle-icon {
     overflow-x: visible;
     white-space: normal;
   }
-  
+
   .instruments-row {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -1241,7 +1311,7 @@ body.dark .circle-icon {
     gap: 16px;
     width: 100%;
   }
-  
+
   .market-rectangle {
     width: 100%;
     min-width: 0;

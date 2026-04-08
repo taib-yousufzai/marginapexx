@@ -179,10 +179,8 @@ export default function Page() {
     <div className="app-container">
       {/* Top Navigation Bar */}
       <div className="nav-bar-full">
-        <div className="nav-group">
-          <div className="nav-icon-btn" onClick={handleNavNotification}><i className="fas fa-bell"></i></div>
-          <div className="nav-app-name">MARGIN<span style={{ color: '#006400' }}> APEX</span></div>
-        </div>
+        <div className="nav-icon-btn" onClick={handleNavNotification}><i className="fas fa-bell"></i></div>
+        <div className="nav-app-name">MARGIN<span style={{ color: '#006400' }}> APEX</span></div>
         <div className="nav-group">
           <div className="nav-icon-btn" onClick={toggleTheme}><i className={theme === 'dark' ? "fas fa-sun" : "fas fa-moon"}></i></div>
           <div className="nav-funds" onClick={handleNavFunds}><i className="fas fa-coins"></i><span>Funds</span></div>
@@ -223,7 +221,8 @@ export default function Page() {
                   <div className="section-title"><i className="fas fa-link"></i> OPTION CHAIN</div>
                   <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>Swipe →</span>
                 </div>
-                <div className="category-buttons">
+                <div className="category-toggle-wrapper">
+                  <div className={`category-toggle-slider ${activeCategory === 'commodity' ? 'slide-right' : ''}`}></div>
                   <div className={`cat-btn ${activeCategory === 'equity' ? 'active' : ''}`} onClick={() => { setActiveCategory('equity'); showToast('📊 EQUITY option chain loaded', 1000); }}>EQUITY</div>
                   <div className={`cat-btn ${activeCategory === 'commodity' ? 'active' : ''}`} onClick={() => { setActiveCategory('commodity'); showToast('🏆 COMMODITY option chain loaded', 1000); }}>COMMODITY</div>
                 </div>

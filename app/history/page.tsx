@@ -188,12 +188,10 @@ export default function HistoryPage() {
                 {/* Summary sticky at bottom of scroll - no gap */}
                 <div className="history-footer">
                     <div className="footer-row">
-                        <span className="footer-label"><i className="fas fa-arrow-up"></i> Gross Profit</span>
-                        <span className="footer-value">{formatPrice(summary.gp)}</span>
-                    </div>
-                    <div className="footer-row">
-                        <span className="footer-label"><i className="fas fa-arrow-down"></i> Gross Loss</span>
-                        <span className="footer-value">{formatPrice(summary.gl)}</span>
+                        <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>
+                        <span className={`footer-value ${summary.gp - summary.gl >= 0 ? 'net-profit' : 'net-loss'}`}>
+                            {formatPrice(summary.gp - summary.gl)}
+                        </span>
                     </div>
                     <div className="footer-row">
                         <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
