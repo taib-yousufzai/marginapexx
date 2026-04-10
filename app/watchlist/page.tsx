@@ -96,6 +96,7 @@ export default function WatchlistPage() {
     }
 
     function openTradeSheet(script, action = 'both') {
+        if (!script) return;
         currentTradeScript = script;
         const isCrypto = script.name.includes("BTC") || script.name.includes("ETH") || script.name.includes("SOL");
         const priceVal = typeof script.price === 'number' ? script.price : parseFloat(script.price);
@@ -443,6 +444,14 @@ export default function WatchlistPage() {
             showToast('Basket Executed Successfully: ' + basketLegs.length + ' Orders', false);
             closeBasketSheet();
             exitSelectionMode();
+        });
+    }
+
+    if(document.getElementById('basketClearBtn')) {
+        document.getElementById('basketClearBtn').addEventListener('click', () => {
+            closeBasketSheet();
+            exitSelectionMode();
+            showToast('Basket cleared');
         });
     }
 
@@ -1043,25 +1052,25 @@ export default function WatchlistPage() {
 
             {/* Basket Sheet */}
             <div id="basketSheetOverlay" className="trade-sheet-overlay"></div>
-            <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px', background: '#F8FAFF' }}>
+            <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
                 <div style={{ padding: '0 20px 20px 20px' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '16px' }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
+                    <div className="basket-sheet-title" style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '16px' }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
 
                     <div id="basketLegsContainer" style={{ maxHeight: '40dvh', overflowY: 'auto', marginBottom: '20px' }}>
                         {/* Legs injected here */}
                     </div>
 
-                    <div className="margin-summary" style={{ background: '#FFFFFF', border: '1px solid #EEF2F8', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div className="basket-margin-summary" style={{ border: '1px solid #EEF2F8', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
                         <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Items</span>
-                            <span id="basketTotalItems" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>0</span>
+                            <span id="basketTotalItems" className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>0</span>
                         </div>
 
                         <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Value</span>
-                            <span id="basketTotalValue" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>₹0.00</span>
+                            <span id="basketTotalValue" className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>₹0.00</span>
                         </div>
 
                         <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1070,15 +1079,20 @@ export default function WatchlistPage() {
                         </div>
 
                         <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#1A1E2B' }}>Available Balance</span>
+                            <span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span>
                             <span id="basketAvailBalance" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>₹4,50,000.00</span>
                         </div>
 
                     </div>
 
-                    <button id="basketExecuteBtn" style={{ width: '100%', background: '#2C8E5A', color: 'white', border: 'none', padding: '16px 0', borderRadius: '30px', fontSize: '1.1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', boxShadow: '0 8px 15px rgba(44,142,90,0.3)' }}>
-                        <i className="fas fa-bolt"></i> EXECUTE BASKET
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+                        <button id="basketExecuteBtn" style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0 }}>
+                            <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '1rem' }}></i> Execute Basket
+                        </button>
+                        <button id="basketClearBtn" onClick={() => { if(typeof closeBasketSheet === 'function') closeBasketSheet(); }} style={{ flex: 1, background: '#EFEFEF', color: '#6B7280', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                            <i className="fas fa-trash-alt" style={{ opacity: 0.5 }}></i> Clear
+                        </button>
+                    </div>
                 </div>
             </div>
 

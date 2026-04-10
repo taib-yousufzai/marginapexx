@@ -629,7 +629,11 @@ body.dark .circle-icon {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
+}
+
+.overview-header h4 {
+  padding-left: 4px;
 }
 
 .markets-two-rows {
@@ -1320,4 +1324,14 @@ body.dark .circle-icon {
   .toast-msg {
     bottom: 40px;
   }
+}
+
+/* ── Dark mode: Live Market Overview ── */
+body.dark .market-overview {
+  background: var(--card-bg);
+  border-color: var(--border-light);
+}
+
+body.dark .overview-header h4 {
+  color: var(--text-primary);
 }

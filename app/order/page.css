@@ -5,20 +5,28 @@
 
 /* Root */
 .ord-root {
-  min-height: 100dvh;
+  height: 100dvh;
   width: 100%;
   background: #F5F7FB;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+/* Lock html/body scroll when on orders page */
+html:has(.ord-root),
+body:has(.ord-root) {
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* Shell */
 .ord-shell {
   width: 100%;
   max-width: 500px;
-  min-height: 100dvh;
+  height: 100dvh;
   background: #FFFFFF;
   display: flex;
   flex-direction: column;
@@ -452,9 +460,9 @@ body.dark .ord-search-input   { color: #F5F5F5; }
 body.dark .ord-search-input::placeholder { color: #555; }
 body.dark .ord-tabs           { background: #2A2A2A; }
 body.dark .ord-tab            { color: #666; }
-body.dark .ord-tab.active     { background: #333; color: #C62E2E; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+body.dark .ord-tab.active     { background: #333; color: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
 body.dark .ord-tab-badge      { background: rgba(255,255,255,0.08); color: #666; }
-body.dark .ord-tab.active .ord-tab-badge { background: rgba(198,46,46,0.2); color: #C62E2E; }
+body.dark .ord-tab.active .ord-tab-badge { background: rgba(255,255,255,0.15); color: #FFFFFF; }
 body.dark .ord-card           { background: #252525; border-color: #333; box-shadow: none; }
 body.dark .ord-card:hover     { border-color: #444; }
 body.dark .ord-symbol         { color: #F5F5F5; }

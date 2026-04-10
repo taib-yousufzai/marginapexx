@@ -259,7 +259,7 @@ export default function Page() {
               {/* Market Overview */}
               <div className="market-overview">
                 <div className="overview-header">
-                  <h4 style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}><i className="fas fa-chart-line"></i> Live Market Overview</h4>
+                  <h4>Live Market Overview</h4>
                 </div>
                 <div className="markets-two-rows">
                   {[marketRow1, marketRow2].map((row, rowIdx) => (

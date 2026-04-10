@@ -42,6 +42,10 @@ type ClosedPosition = {
   ltp: number;
   orderType: string;
   status: string;
+  entryTime?: string;
+  exitTime?: string;
+  exitPrice?: number;
+  exitReason?: 'TP' | 'SL' | 'Manual';
 };
 
 export default function PositionPage() {
@@ -66,12 +70,12 @@ export default function PositionPage() {
   ]);
 
   const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>([
-    { symbol: 'BTC/USD', side: 'LONG', avgPrice: 60500.00, qty: 0.02, pnl: 55.00, pnlPercent: 4.55, ltp: 63250.00, orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3220.50, qty: 0.3, pnl: 42.15, pnlPercent: 4.36, ltp: 3080.00, orderType: 'GTT', status: 'COMPLETED' },
-    { symbol: 'SOL/USD', side: 'LONG', avgPrice: 138.50, qty: 1.5, pnl: 15.00, pnlPercent: 7.22, ltp: 148.50, orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'AVAX/USD', side: 'LONG', avgPrice: 27.80, qty: 8.0, pnl: 13.60, pnlPercent: 6.12, ltp: 29.50, orderType: 'GTT', status: 'COMPLETED' },
-    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85, qty: 12.0, pnl: 7.20, pnlPercent: 4.33, ltp: 13.25, orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'NEAR/USD', side: 'LONG', avgPrice: 3.42, qty: 25.0, pnl: 10.75, pnlPercent: 12.57, ltp: 3.85, orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'BTC/USD', side: 'LONG', avgPrice: 60500.00, qty: 0.02, pnl: 55.00, pnlPercent: 4.55, ltp: 63250.00, orderType: 'SLM', status: 'COMPLETED', entryTime: '09:15 AM', exitTime: '11:50 AM', exitPrice: 63250.00, exitReason: 'TP' },
+    { symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3220.50, qty: 0.3, pnl: 42.15, pnlPercent: 4.36, ltp: 3080.00, orderType: 'GTT', status: 'COMPLETED', entryTime: '10:00 AM', exitTime: '01:30 PM', exitPrice: 3080.00, exitReason: 'Manual' },
+    { symbol: 'SOL/USD', side: 'LONG', avgPrice: 138.50, qty: 1.5, pnl: 15.00, pnlPercent: 7.22, ltp: 148.50, orderType: 'SLM', status: 'COMPLETED', entryTime: '11:20 AM', exitTime: '02:45 PM', exitPrice: 148.50, exitReason: 'TP' },
+    { symbol: 'AVAX/USD', side: 'LONG', avgPrice: 27.80, qty: 8.0, pnl: 13.60, pnlPercent: 6.12, ltp: 29.50, orderType: 'GTT', status: 'COMPLETED', entryTime: '09:45 AM', exitTime: '12:10 PM', exitPrice: 29.50, exitReason: 'SL' },
+    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85, qty: 12.0, pnl: 7.20, pnlPercent: 4.33, ltp: 13.25, orderType: 'SLM', status: 'COMPLETED', entryTime: '02:00 PM', exitTime: '03:15 PM', exitPrice: 13.25, exitReason: 'Manual' },
+    { symbol: 'NEAR/USD', side: 'LONG', avgPrice: 3.42, qty: 25.0, pnl: 10.75, pnlPercent: 12.57, ltp: 3.85, orderType: 'GTT', status: 'COMPLETED', entryTime: '10:30 AM', exitTime: '01:05 PM', exitPrice: 3.85, exitReason: 'TP' },
   ]);
 
   const [detailedPositions, setDetailedPositions] = useState<DetailedPosition[]>([
@@ -198,7 +202,6 @@ export default function PositionPage() {
         <div className="pos-header">
           <div className="pos-header-left">
             <div className="pos-brand">
-              <i className="fas fa-chart-line pos-brand-icon" />
               <span>MARGIN<span className="apex-text">APEX</span></span>
             </div>
             <div className="pos-brand-sub">Position Management • Real-time P&amp;L</div>
@@ -229,9 +232,8 @@ export default function PositionPage() {
           </div>
         </div>
 
-        {/* ── Scrollable Content ── */}
-        <div className="pos-content">
-
+        {/* ── Sticky Sub-Header (P&L + Sub-Tabs) ── */}
+        <div className="pos-sticky-subheader">
           {/* P&L Summary Card — always visible */}
           <div className="pos-pnl-card">
             <div className="pos-pnl-card-title">Today's P&amp;L</div>
@@ -267,6 +269,10 @@ export default function PositionPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Scrollable Content ── */}
+        <div className="pos-content">
 
           {/* ── Cumulative View ── */}
           {currentMain === 'cumulative' && (
@@ -406,52 +412,185 @@ export default function PositionPage() {
 
           return (
             <div className="pos-sheet-content">
-              {/* HEADER SECTION */}
-              <div className="ps-header-row">
-                <div className="ps-header-left">
-                  <div className="ps-symbol">{posSymbol}</div>
-                  <div className="ps-segment">INDEX-OPT | MIS</div>
-                </div>
-                <div className="ps-header-right">
-                  <div className={`ps-price ${isGreen ? 'ps-green' : 'ps-red'}`}>{fmtPrice(posLtp)}</div>
-                  <div className={`ps-change ${isGreen ? 'ps-green' : 'ps-red'}`}>
-                    {isGreen ? '+' : '-'}{changeVal} ({isGreen ? '+' : ''}{posPnlPercent.toFixed(2)}%)
+
+              {'status' in selectedPos && (selectedPos.status === 'COMPLETED' || selectedPos.status === 'CLOSED') ? (
+                /* ── CLOSED POSITION DETAIL SHEET ── */
+                (() => {
+                  // Normalize both ClosedPosition and DetailedPosition into one shape
+                  const isDetailed = 'entryPrice' in selectedPos;
+                  const cp = {
+                    symbol: selectedPos.symbol,
+                    side: selectedPos.side,
+                    pnl: selectedPos.pnl,
+                    pnlPercent: selectedPos.pnlPercent,
+                    qty: selectedPos.qty,
+                    avgPrice: isDetailed ? (selectedPos as any).entryPrice : (selectedPos as any).avgPrice,
+                    exitPrice: isDetailed ? (selectedPos as any).exitPrice : ((selectedPos as any).exitPrice ?? (selectedPos as any).ltp),
+                    ltp: isDetailed ? (selectedPos as any).currentPrice : (selectedPos as any).ltp,
+                    orderType: isDetailed ? '—' : (selectedPos as any).orderType,
+                    entryTime: (selectedPos as any).entryTime,
+                    exitTime: (selectedPos as any).exitTime,
+                    exitReason: (selectedPos as any).exitReason as 'TP' | 'SL' | 'Manual' | undefined,
+                  };
+                  const fees = parseFloat((Math.abs(cp.pnl) * 0.002).toFixed(2));
+                  const netPnl = parseFloat((cp.pnl - fees).toFixed(2));
+                  const netGreen = netPnl >= 0;
+                  const exit = cp.exitPrice ?? cp.ltp;
+
+                  // Duration
+                  const toMins = (t?: string) => {
+                    if (!t) return 0;
+                    const [time, mer] = t.split(' ');
+                    let [h, m] = time.split(':').map(Number);
+                    if (mer === 'PM' && h !== 12) h += 12;
+                    if (mer === 'AM' && h === 12) h = 0;
+                    return h * 60 + m;
+                  };
+                  const diffMins = Math.abs(toMins(cp.exitTime) - toMins(cp.entryTime));
+                  const duration = diffMins >= 60 ? `${Math.floor(diffMins/60)}h ${diffMins%60}m` : `${diffMins}m`;
+                  const exitLabel = cp.exitReason === 'TP' ? 'Exited via Take Profit' : cp.exitReason === 'SL' ? 'Exited via Stop Loss' : 'Exited Manually';
+                  const exitColor = cp.exitReason === 'TP' ? '#059669' : cp.exitReason === 'SL' ? '#B22234' : '#6B7280';
+
+                  return (
+                    <>
+                      {/* Header: symbol + exit price */}
+                      <div className="ps-header-row">
+                        <div className="ps-header-left">
+                          <div className="ps-symbol">{cp.symbol}</div>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
+                            <span className={`pos-badge${cp.side === 'LONG' ? ' long' : ' short'}`}>{cp.side}</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8' }}>{cp.orderType}</span>
+                            <span style={{ fontSize: '0.65rem', fontWeight: '600', color: exitColor }}>· {cp.exitReason === 'TP' ? 'Take Profit' : cp.exitReason === 'SL' ? 'Stop Loss' : 'Manual'}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '2px' }}>Exit Price</div>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#1A1E2B' }}>{fmtPrice(exit)}</div>
+                          <div className={isGreen ? 'ps-green' : 'ps-red'} style={{ fontSize: '0.7rem', fontWeight: '700' }}>
+                            {isGreen ? '+' : ''}{cp.pnlPercent.toFixed(2)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ height: '1px', background: '#F0F2F8', margin: '0 -4px' }} />
+
+                      {/* BID / ASK card */}
+                      <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '14px 16px', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>AVG PRICE</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{fmtPrice(cp.avgPrice)}</div>
+                        </div>
+                        <div style={{ width: '1px', background: '#E2E8F0', height: '28px' }} />
+                        <div style={{ flex: 1, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>EXIT PRICE</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: '#DC2626' }}>{fmtPrice(exit)}</div>
+                        </div>
+                      </div>
+
+                      {/* TRADE SUMMARY */}
+                      <div>
+                        <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#5B677E', marginBottom: '10px' }}>TRADE SUMMARY</div>
+                        <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between' }}>
+                          {[
+                            { label: 'QUANTITY', val: cp.qty.toLocaleString('en-US', { maximumFractionDigits: 4 }), color: '#1A1E2B' },
+                            { label: 'DURATION', val: duration, color: '#1A1E2B' },
+                            { label: 'NET P&L',  val: `${netGreen ? '+' : '-'}$${Math.abs(netPnl).toFixed(2)}`, color: netGreen ? '#059669' : '#B22234' },
+                            { label: 'FEES',     val: `$${fees.toFixed(2)}`, color: '#6B7280' },
+                          ].map(({ label, val, color }) => (
+                            <div key={label} style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>{label}</div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: '700', color }}>{val}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Entry / Exit time card */}
+                      <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <i className="far fa-clock" /> ENTRY → EXIT
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#1A1E2B' }}>
+                          {cp.entryTime ?? '—'} → {cp.exitTime ?? '—'}
+                        </div>
+                      </div>
+
+                      {/* Realised P&L row */}
+                      <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '4px' }}>REALISED P&amp;L</div>
+                          <div className={isGreen ? 'ps-green' : 'ps-red'} style={{ fontSize: '1.2rem', fontWeight: '800' }}>
+                            {isGreen ? '+' : '-'}${Math.abs(cp.pnl).toFixed(2)}
+                          </div>
+                        </div>
+                        <div className={isGreen ? 'ps-green' : 'ps-red'} style={{ fontSize: '1rem', fontWeight: '700' }}>
+                          {isGreen ? '+' : ''}{cp.pnlPercent.toFixed(2)}%
+                        </div>
+                      </div>
+
+                      {/* BUY / SELL buttons */}
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button onClick={() => openTradeSheet('buy')} style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                          <i className="fas fa-arrow-up"></i> BUY
+                        </button>
+                        <button onClick={() => openTradeSheet('sell')} style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                          <i className="fas fa-arrow-down"></i> SELL
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()
+              ) : (
+                /* ── OPEN POSITION DETAIL SHEET ── */
+                <>
+                  {/* HEADER SECTION */}
+                  <div className="ps-header-row">
+                    <div className="ps-header-left">
+                      <div className="ps-symbol">{posSymbol}</div>
+                      <div className="ps-segment">INDEX-OPT | MIS</div>
+                    </div>
+                    <div className="ps-header-right">
+                      <div className={`ps-price ${isGreen ? 'ps-green' : 'ps-red'}`}>{fmtPrice(posLtp)}</div>
+                      <div className={`ps-change ${isGreen ? 'ps-green' : 'ps-red'}`}>
+                        {isGreen ? '+' : '-'}{changeVal} ({isGreen ? '+' : ''}{posPnlPercent.toFixed(2)}%)
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* BID / ASK ROW */}
-              <div className="ps-bidask-row">
-                <span>Bid: <span className="ps-red-text">{bidVal}</span></span>
-                <span>Ask: <span className="ps-red-text">{askVal}</span></span>
-              </div>
-
-              {/* OHLC ROW */}
-              <div className="ps-ohlc-row">
-                <span>O: {fmtPrice(posLtp * 0.98)}</span>
-                <span>H: {fmtPrice(posLtp * 1.02)}</span>
-                <span>L: {fmtPrice(posLtp * 0.95)}</span>
-                <span>C: {fmtPrice(posLtp * 0.99)}</span>
-              </div>
-
-              {/* CURRENT P&L SECTION */}
-              <div className="ps-pnl-section">
-                <div className="ps-pnl-left">
-                  <div className="ps-pnl-label">Current P&amp;L</div>
-                  <div className={`ps-pnl-value ${isGreen ? 'ps-green' : 'ps-red'}`}>
-                    {isGreen ? '+' : '-'}${Math.abs(posPnl).toFixed(2)}
+                  {/* BID / ASK ROW */}
+                  <div className="ps-bidask-row">
+                    <span>Bid: <span className="ps-red-text">{bidVal}</span></span>
+                    <span>Ask: <span className="ps-red-text">{askVal}</span></span>
                   </div>
-                </div>
-                <div className="ps-pnl-right">
-                  <button className="ps-btn-exit" onClick={closeSheet}>Exit All</button>
-                </div>
-              </div>
 
-              {/* BOTTOM ACTION BUTTONS */}
-              <div className="ps-action-row">
-                <button className="ps-btn-add" onClick={() => openTradeSheet('buy')}>Add More</button>
-                <button className="ps-btn-partial" onClick={() => openTradeSheet('sell')}>Partial Exit</button>
-              </div>
+                  {/* OHLC ROW */}
+                  <div className="ps-ohlc-row">
+                    <span>O: {fmtPrice(posLtp * 0.98)}</span>
+                    <span>H: {fmtPrice(posLtp * 1.02)}</span>
+                    <span>L: {fmtPrice(posLtp * 0.95)}</span>
+                    <span>C: {fmtPrice(posLtp * 0.99)}</span>
+                  </div>
+
+                  {/* CURRENT P&L SECTION */}
+                  <div className="ps-pnl-section" style={{ padding: '12px 0' }}>
+                    <div className="ps-pnl-left">
+                      <div className="ps-pnl-label">Current P&amp;L</div>
+                      <div className={`ps-pnl-value ${isGreen ? 'ps-green' : 'ps-red'}`}>
+                        {isGreen ? '+' : '-'}${Math.abs(posPnl).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="ps-pnl-right">
+                      <button className="ps-btn-exit" onClick={closeSheet}>Exit All</button>
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ACTION BUTTONS */}
+                  <div className="ps-action-row" style={{ marginTop: 'auto', paddingBottom: '8px' }}>
+                    <button className="ps-btn-add" onClick={() => openTradeSheet('buy')}>Add More</button>
+                    <button className="ps-btn-partial" onClick={() => openTradeSheet('sell')}>Partial Exit</button>
+                  </div>
+                </>
+              )}
             </div>
           );
         })()}

@@ -83,7 +83,6 @@ export default function OrderPage() {
         <div className="ord-header">
           <div className="ord-header-left">
             <div className="ord-brand">
-              <i className="fas fa-chart-line ord-brand-icon" />
               <span>MARGIN<span className="apex-text">APEX</span></span>
             </div>
             <div className="ord-brand-sub">Order Management • Real-time Status</div>
