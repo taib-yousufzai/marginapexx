@@ -460,6 +460,7 @@ body.dark .ord-card:hover     { border-color: #444; }
 body.dark .ord-symbol         { color: #F5F5F5; }
 body.dark .ord-label          { color: #555; }
 body.dark .ord-val            { color: #D0D0D0; }
+body.dark .ord-badge.long     { background: #2A2A2A; color: #F87171; }
 body.dark .ord-badge.short    { background: #2A2A2A; color: #B0B0B0; }
 body.dark .ord-type-pill      { background: #2A2A2A; color: #999; }
 body.dark .ord-date-val       { color: #555; }

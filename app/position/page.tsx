@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Footer from '@/components/Footer';
+import '../watchlist/page.css';
 import './page.css';
 
 type Position = {
@@ -47,31 +48,39 @@ export default function PositionPage() {
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
   const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
   const [toast, setToast] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [selectedPos, setSelectedPos] = useState<Position | DetailedPosition | ClosedPosition | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState<'buy' | 'sell' | null>(null);
+  const [tradeQty, setTradeQty] = useState(1);
+
   const [openPositions, setOpenPositions] = useState<Position[]>([
-    { id: 1, symbol: 'BTC/USD', side: 'LONG',  avgPrice: 61800.00, qty: 0.025, pnl: 36.25, pnlPercent: 2.34,  ltp: 63250.00, orderType: 'SLM' },
-    { id: 2, symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3150.50,  qty: 0.5,   pnl: 35.25, pnlPercent: 2.24,  ltp: 3080.00,  orderType: 'GTT' },
-    { id: 3, symbol: 'SOL/USD', side: 'LONG',  avgPrice: 142.80,   qty: 2.25,  pnl: 12.83, pnlPercent: 3.99,  ltp: 148.50,   orderType: 'SLM' },
-    { id: 4, symbol: 'DOGE/USD',side: 'LONG',  avgPrice: 0.1245,   qty: 1500,  pnl: 10.05, pnlPercent: 5.38,  ltp: 0.1312,   orderType: 'GTT' },
+    { id: 1, symbol: 'BTC/USD', side: 'LONG', avgPrice: 61800.00, qty: 0.025, pnl: 36.25, pnlPercent: 2.34, ltp: 63250.00, orderType: 'SLM' },
+    { id: 2, symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3150.50, qty: 0.5, pnl: 35.25, pnlPercent: 2.24, ltp: 3080.00, orderType: 'GTT' },
+    { id: 3, symbol: 'SOL/USD', side: 'LONG', avgPrice: 142.80, qty: 2.25, pnl: 12.83, pnlPercent: 3.99, ltp: 148.50, orderType: 'SLM' },
+    { id: 4, symbol: 'DOGE/USD', side: 'LONG', avgPrice: 0.1245, qty: 1500, pnl: 10.05, pnlPercent: 5.38, ltp: 0.1312, orderType: 'GTT' },
   ]);
 
   const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>([
-    { symbol: 'BTC/USD',  side: 'LONG',  avgPrice: 60500.00, qty: 0.02, pnl: 55.00,  pnlPercent: 4.55,  ltp: 63250.00, orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'ETH/USD',  side: 'SHORT', avgPrice: 3220.50,  qty: 0.3,  pnl: 42.15,  pnlPercent: 4.36,  ltp: 3080.00,  orderType: 'GTT', status: 'COMPLETED' },
-    { symbol: 'SOL/USD',  side: 'LONG',  avgPrice: 138.50,   qty: 1.5,  pnl: 15.00,  pnlPercent: 7.22,  ltp: 148.50,   orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'AVAX/USD', side: 'LONG',  avgPrice: 27.80,    qty: 8.0,  pnl: 13.60,  pnlPercent: 6.12,  ltp: 29.50,    orderType: 'GTT', status: 'COMPLETED' },
-    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85,    qty: 12.0, pnl: 7.20,   pnlPercent: 4.33,  ltp: 13.25,    orderType: 'SLM', status: 'COMPLETED' },
-    { symbol: 'NEAR/USD', side: 'LONG',  avgPrice: 3.42,     qty: 25.0, pnl: 10.75,  pnlPercent: 12.57, ltp: 3.85,     orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'BTC/USD', side: 'LONG', avgPrice: 60500.00, qty: 0.02, pnl: 55.00, pnlPercent: 4.55, ltp: 63250.00, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3220.50, qty: 0.3, pnl: 42.15, pnlPercent: 4.36, ltp: 3080.00, orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'SOL/USD', side: 'LONG', avgPrice: 138.50, qty: 1.5, pnl: 15.00, pnlPercent: 7.22, ltp: 148.50, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'AVAX/USD', side: 'LONG', avgPrice: 27.80, qty: 8.0, pnl: 13.60, pnlPercent: 6.12, ltp: 29.50, orderType: 'GTT', status: 'COMPLETED' },
+    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85, qty: 12.0, pnl: 7.20, pnlPercent: 4.33, ltp: 13.25, orderType: 'SLM', status: 'COMPLETED' },
+    { symbol: 'NEAR/USD', side: 'LONG', avgPrice: 3.42, qty: 25.0, pnl: 10.75, pnlPercent: 12.57, ltp: 3.85, orderType: 'GTT', status: 'COMPLETED' },
   ]);
 
   const [detailedPositions, setDetailedPositions] = useState<DetailedPosition[]>([
-    { id: 1, symbol: 'BTC/USD', side: 'LONG',  qty: 0.015, entryPrice: 61200.00, exitPrice: 63250.00, currentPrice: 63250.00, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM' },
-    { id: 2, symbol: 'BTC/USD', side: 'LONG',  qty: 0.01,  entryPrice: 61800.00, exitPrice: null,     currentPrice: 63250.00, pnl: 14.50, pnlPercent: 2.35, status: 'OPEN',   date: 'Mar 31', entryTime: '11:30 AM' },
-    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3,   entryPrice: 3220.50,  exitPrice: 3080.00,  currentPrice: 3080.00,  pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM' },
-    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2,   entryPrice: 3150.50,  exitPrice: null,     currentPrice: 3080.00,  pnl: 14.10, pnlPercent: 2.24, status: 'OPEN',   date: 'Mar 31', entryTime: '10:15 AM' },
-    { id: 5, symbol: 'SOL/USD', side: 'LONG',  qty: 1.5,   entryPrice: 138.50,   exitPrice: 148.50,   currentPrice: 148.50,   pnl: 15.00, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM' },
-    { id: 6, symbol: 'SOL/USD', side: 'LONG',  qty: 0.75,  entryPrice: 142.80,   exitPrice: null,     currentPrice: 148.50,   pnl: 4.28,  pnlPercent: 4.00, status: 'OPEN',   date: 'Mar 30', entryTime: '09:45 AM' },
+    { id: 1, symbol: 'BTC/USD', side: 'LONG', qty: 0.015, entryPrice: 61200.00, exitPrice: 63250.00, currentPrice: 63250.00, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM' },
+    { id: 2, symbol: 'BTC/USD', side: 'LONG', qty: 0.01, entryPrice: 61800.00, exitPrice: null, currentPrice: 63250.00, pnl: 14.50, pnlPercent: 2.35, status: 'OPEN', date: 'Mar 31', entryTime: '11:30 AM' },
+    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3, entryPrice: 3220.50, exitPrice: 3080.00, currentPrice: 3080.00, pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM' },
+    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2, entryPrice: 3150.50, exitPrice: null, currentPrice: 3080.00, pnl: 14.10, pnlPercent: 2.24, status: 'OPEN', date: 'Mar 31', entryTime: '10:15 AM' },
+    { id: 5, symbol: 'SOL/USD', side: 'LONG', qty: 1.5, entryPrice: 138.50, exitPrice: 148.50, currentPrice: 148.50, pnl: 15.00, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM' },
+    { id: 6, symbol: 'SOL/USD', side: 'LONG', qty: 0.75, entryPrice: 142.80, exitPrice: null, currentPrice: 148.50, pnl: 4.28, pnlPercent: 4.00, status: 'OPEN', date: 'Mar 30', entryTime: '09:45 AM' },
   ]);
 
   useEffect(() => {
@@ -137,22 +146,49 @@ export default function PositionPage() {
     showToast(`Exited ${total} position${total > 1 ? 's' : ''} successfully`);
   };
 
-  const filteredOpen     = openPositions;
-  const filteredClosed   = closedPositions;
+  const filteredOpen = openPositions;
+  const filteredClosed = closedPositions;
   const filteredDetailed = detailedPositions;
 
-  // Totals (always based on full data, not filtered)
-  const realized   = closedPositions.reduce((s, p) => s + p.pnl, 0);
-  const unrealized = openPositions.reduce((s, p) => s + p.pnl, 0);
-  const totalPnl   = realized + unrealized;
+  const handleRowClick = (pos: Position | DetailedPosition | ClosedPosition) => {
+    setSelectedPos(pos);
+    setIsSheetOpen(true);
+  };
 
-  const fmtUSD   = (v: number) => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const closeSheet = () => {
+    setIsSheetOpen(false);
+    setTimeout(() => setSelectedPos(null), 350);
+  };
+
+  const openTradeSheet = (action: 'buy' | 'sell') => {
+    setSelectedAction(action);
+    setTradeQty(selectedPos ? selectedPos.qty : 1);
+    setIsSheetOpen(false); // Close position detail
+    setTimeout(() => setIsTradeSheetOpen(true), 300); // Open trade sheet after detail closes
+  };
+
+  const closeTradeSheet = () => {
+    setIsTradeSheetOpen(false);
+    setTimeout(() => { setSelectedAction(null); }, 350);
+  };
+
+  const executeTrade = () => {
+    showToast(`${selectedAction?.toUpperCase()} order placed successfully.`);
+    closeTradeSheet();
+  };
+
+  // Totals (always based on full data, not filtered)
+  const realized = closedPositions.reduce((s, p) => s + p.pnl, 0);
+  const unrealized = openPositions.reduce((s, p) => s + p.pnl, 0);
+  const totalPnl = realized + unrealized;
+
+  const fmtUSD = (v: number) => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtPrice = (v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
 
   const hasOpenPositions = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
 
   // Detailed: showing all items
-  const detailedDisplayed    = filteredDetailed;
+  const detailedDisplayed = filteredDetailed;
 
   return (
     <div className="pos-root">
@@ -169,7 +205,7 @@ export default function PositionPage() {
           </div>
           <button
             className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
-            onClick={exitAllPositions}
+            onClick={() => { if (hasOpenPositions && !showExitConfirm) setShowExitConfirm(true); }}
           >
             <i className="fas fa-sign-out-alt" />
             <span>Exit All</span>
@@ -241,7 +277,7 @@ export default function PositionPage() {
                   <p>No open positions</p>
                 </div>
               ) : filteredOpen.map(pos => (
-                <div key={pos.id} className="pos-card">
+                <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)} style={{ cursor: 'pointer' }}>
                   <div className="pos-card-left">
                     <div className="pos-card-symbol">{pos.symbol}</div>
                     <div className="pos-card-details">
@@ -267,7 +303,7 @@ export default function PositionPage() {
                   <p>No closed positions</p>
                 </div>
               ) : filteredClosed.map((pos, i) => (
-                <div key={i} className="pos-card">
+                <div key={i} className="pos-card" onClick={() => handleRowClick(pos)} style={{ cursor: 'pointer' }}>
                   <div className="pos-card-left">
                     <div className="pos-card-symbol">{pos.symbol}</div>
                     <div className="pos-card-details">
@@ -297,7 +333,7 @@ export default function PositionPage() {
                 <p>No trades available</p>
               </div>
             ) : detailedDisplayed.map(pos => (
-              <div key={pos.id} className="pos-detail-card">
+              <div key={pos.id} className="pos-detail-card" onClick={() => handleRowClick(pos)} style={{ cursor: 'pointer' }}>
                 <div className="pos-detail-left">
                   <div className="pos-detail-symbol">
                     {pos.symbol} <span className="pos-detail-side">{pos.side}</span>
@@ -336,6 +372,282 @@ export default function PositionPage() {
         <i className="fas fa-circle-info" />
         <span>{toast}</span>
       </div>
+
+      {/* ── Bottom Sheet Overlay ── */}
+      <div className={`pos-sheet-overlay${isSheetOpen ? ' open' : ''}`} onClick={closeSheet} />
+
+      {/* ── Bottom Sheet ── */}
+      <div className={`pos-sheet${isSheetOpen ? ' open' : ''}`}>
+        <div className="pos-sheet-handle">
+          <div className="pos-sheet-handle-bar" />
+        </div>
+
+        {selectedPos && (() => {
+          let posLtp = 0;
+          let posPnl = 0;
+          let posPnlPercent = 0;
+          let posSide = selectedPos.side;
+          let posSymbol = selectedPos.symbol;
+
+          if ('ltp' in selectedPos) {
+            posLtp = selectedPos.ltp;
+            posPnl = selectedPos.pnl;
+            posPnlPercent = selectedPos.pnlPercent;
+          } else {
+            posLtp = selectedPos.currentPrice;
+            posPnl = selectedPos.pnl;
+            posPnlPercent = selectedPos.pnlPercent;
+          }
+
+          const bidVal = (posLtp * 0.999).toFixed(2);
+          const askVal = (posLtp * 1.001).toFixed(2);
+          const changeVal = (posLtp * (Math.abs(posPnlPercent) / 100)).toFixed(2);
+          const isGreen = posPnl >= 0;
+
+          return (
+            <div className="pos-sheet-content">
+              {/* HEADER SECTION */}
+              <div className="ps-header-row">
+                <div className="ps-header-left">
+                  <div className="ps-symbol">{posSymbol}</div>
+                  <div className="ps-segment">INDEX-OPT | MIS</div>
+                </div>
+                <div className="ps-header-right">
+                  <div className={`ps-price ${isGreen ? 'ps-green' : 'ps-red'}`}>{fmtPrice(posLtp)}</div>
+                  <div className={`ps-change ${isGreen ? 'ps-green' : 'ps-red'}`}>
+                    {isGreen ? '+' : '-'}{changeVal} ({isGreen ? '+' : ''}{posPnlPercent.toFixed(2)}%)
+                  </div>
+                </div>
+              </div>
+
+              {/* BID / ASK ROW */}
+              <div className="ps-bidask-row">
+                <span>Bid: <span className="ps-red-text">{bidVal}</span></span>
+                <span>Ask: <span className="ps-red-text">{askVal}</span></span>
+              </div>
+
+              {/* OHLC ROW */}
+              <div className="ps-ohlc-row">
+                <span>O: {fmtPrice(posLtp * 0.98)}</span>
+                <span>H: {fmtPrice(posLtp * 1.02)}</span>
+                <span>L: {fmtPrice(posLtp * 0.95)}</span>
+                <span>C: {fmtPrice(posLtp * 0.99)}</span>
+              </div>
+
+              {/* CURRENT P&L SECTION */}
+              <div className="ps-pnl-section">
+                <div className="ps-pnl-left">
+                  <div className="ps-pnl-label">Current P&amp;L</div>
+                  <div className={`ps-pnl-value ${isGreen ? 'ps-green' : 'ps-red'}`}>
+                    {isGreen ? '+' : '-'}${Math.abs(posPnl).toFixed(2)}
+                  </div>
+                </div>
+                <div className="ps-pnl-right">
+                  <button className="ps-btn-exit" onClick={closeSheet}>Exit All</button>
+                </div>
+              </div>
+
+              {/* BOTTOM ACTION BUTTONS */}
+              <div className="ps-action-row">
+                <button className="ps-btn-add" onClick={() => openTradeSheet('buy')}>Add More</button>
+                <button className="ps-btn-partial" onClick={() => openTradeSheet('sell')}>Partial Exit</button>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* ── Trade Sheet Overlay ── */}
+      <div className={`trade-sheet-overlay${isTradeSheetOpen ? ' active' : ''}`} onClick={closeTradeSheet}></div>
+
+      {/* ── Trade Sheet ── */}
+      <div className={`trade-sheet${isTradeSheetOpen ? ' open' : ''}`} style={isTradeSheetOpen ? { top: 0, height: '100vh', borderRadius: 0, position: 'fixed', left: 0, width: '100%', overflowY: 'auto', zIndex: 9999 } : {}}>
+        <div className="sheet-handle"><div className="handle-bar"></div></div>
+
+        {selectedPos && (() => {
+          let posLtp = 0;
+          let posPnlPercent = 0;
+          let posSymbol = selectedPos.symbol;
+          if ('ltp' in selectedPos) {
+            posLtp = selectedPos.ltp;
+            posPnlPercent = selectedPos.pnlPercent;
+          } else {
+            posLtp = selectedPos.currentPrice;
+            posPnlPercent = selectedPos.pnlPercent;
+          }
+          const isGreen = posPnlPercent >= 0;
+
+          return (
+            <>
+              {/* ── HEADER ── */}
+              <div className="ts-header">
+                <button className="ts-back-btn" onClick={closeTradeSheet}>
+                  <i className="fas fa-chevron-down"></i>
+                </button>
+                <div className="ts-name-block">
+                  <div className="ts-instr-name">{posSymbol}</div>
+                  <span className="ts-segment-badge">INDEX-OPT | MIS</span>
+                </div>
+                <div className="ts-price-block">
+                  <div className="ts-price-value">{fmtPrice(posLtp)}</div>
+                  <span className={`ts-change-badge ${isGreen ? 'positive' : 'negative'}`}>
+                    {isGreen ? '+' : ''}{posPnlPercent.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* ── BID / ASK ROW ── */}
+              <div className="ts-bidask-row">
+                <div className="ts-ba-cell">
+                  <span className="ts-ba-label">BID</span>
+                  <span className="ts-ba-val bid-val">{fmtPrice(posLtp * 0.999)}</span>
+                </div>
+                <div className="ts-ba-divider"></div>
+                <div className="ts-ba-cell">
+                  <span className="ts-ba-label">ASK</span>
+                  <span className="ts-ba-val ask-val">{fmtPrice(posLtp * 1.001)}</span>
+                </div>
+              </div>
+
+              {/* ── SCROLLABLE BODY ── */}
+              <div className="sheet-content-scroll" style={{ paddingBottom: '100px' }}>
+                <div className="ts-body">
+                  {/* QTY / LOT TOGGLE SWITCH */}
+                  <div className="ts-section-card">
+                    <div className="ts-qty-lot-row">
+                      <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
+                      <div className="ts-toggle-switch">
+                        <button className="ts-toggle-opt active">QTY</button>
+                        <button className="ts-toggle-opt">LOT</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* INFO CARDS ROW */}
+                  <div className="ts-info-cards-wrap">
+                    <div className="ts-info-cards">
+                      <div className="ts-info-card">
+                        <div className="ts-ic-label">Lot Size</div>
+                        <div className="ts-ic-val">1</div>
+                      </div>
+                      <div className="ts-info-card">
+                        <div className="ts-ic-label">Max Lots</div>
+                        <div className="ts-ic-val">500</div>
+                      </div>
+                      <div className="ts-info-card">
+                        <div className="ts-ic-label">Order Lots</div>
+                        <div className="ts-ic-val">{Math.max(1, tradeQty)}</div>
+                      </div>
+                      <div className="ts-info-card">
+                        <div className="ts-ic-label">Total Qty</div>
+                        <div className="ts-ic-val">{tradeQty}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QUANTITY STEPPER */}
+                  <div className="ts-qty-container">
+                    <div className="ts-section-label">Quantity</div>
+                    <div className="ts-qty-stepper">
+                      <button className="ts-qty-btn" onClick={() => setTradeQty(Math.max(1, tradeQty - 1))}>
+                        <i className="fas fa-minus"></i>
+                      </button>
+                      <div className="ts-qty-val">{tradeQty}</div>
+                      <button className="ts-qty-btn" onClick={() => setTradeQty(tradeQty + 1)}>
+                        <i className="fas fa-plus"></i>
+                      </button>
+                    </div>
+                    <div className="ts-qty-hint">1 Lot × 1 = {tradeQty} Qty</div>
+                  </div>
+
+                  {/* ORDER TYPE PILLS */}
+                  <div className="ts-section-card">
+                    <div className="ts-section-label">Order Type</div>
+                    <div className="ts-pill-group">
+                      <button className="ts-pill active">MARKET</button>
+                      <button className="ts-pill">LIMIT</button>
+                      <button className="ts-pill">SL-M</button>
+                      <button className="ts-pill">GTT</button>
+                    </div>
+                  </div>
+
+                  {/* PRODUCT TYPE PILLS */}
+                  <div className="ts-section-card">
+                    <div className="ts-section-label">Product Type</div>
+                    <div className="ts-pill-group">
+                      <button className="ts-pill active">INTRADAY</button>
+                      <button className="ts-pill">CARRY</button>
+                    </div>
+                  </div>
+
+                  {/* MARGIN SECTION */}
+                  <div className="ts-margin-card">
+                    <div className="ts-margin-row">
+                      <span className="ts-ml">Available</span>
+                      <span className="ts-mv avail">₹ 4,50,000.00</span>
+                    </div>
+                    <div className="ts-margin-row">
+                      <span className="ts-ml">Required Margin</span>
+                      <span className="ts-mv required">₹ {(posLtp * tradeQty).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── STICKY BUY / SELL FOOTER ── */}
+              <div className={`ts-sticky-footer ${isTradeSheetOpen ? 'visible' : ''}`}>
+                {selectedAction === 'buy' && (
+                  <button className="ts-btn ts-btn-buy" style={{ width: '100%' }} onClick={executeTrade}>BUY</button>
+                )}
+                {selectedAction === 'sell' && (
+                  <button className="ts-btn ts-btn-sell" style={{ width: '100%' }} onClick={executeTrade}>SELL</button>
+                )}
+              </div>
+            </>
+          );
+        })()}
+      </div>
+      {/* ── Exit All Confirmation Modal ── */}
+      {showExitConfirm && (
+        <div
+          className="confirm-backdrop"
+          onClick={() => setShowExitConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm exit all positions"
+        >
+          <div
+            className="confirm-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="confirm-icon">
+              <i className="fas fa-exclamation-triangle" />
+            </div>
+            <div className="confirm-title">Exit All Positions?</div>
+            <div className="confirm-message">
+              Are you sure you want to exit all positions? This action cannot be undone.
+            </div>
+            <div className="confirm-actions">
+              <button
+                className="confirm-btn confirm-btn-cancel"
+                onClick={() => setShowExitConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-btn confirm-btn-exit"
+                onClick={() => {
+                  exitAllPositions();
+                  setShowExitConfirm(false);
+                }}
+              >
+                <i className="fas fa-sign-out-alt" />
+                Yes, Exit All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

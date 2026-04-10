@@ -6,7 +6,7 @@
     max-width: 500px;
     margin: 0 auto;
     position: relative;
-    background: #F8FAFF;
+    background: #F5F7FB;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
@@ -148,7 +148,7 @@
 .history-root .main-content {
     flex: 1;
     overflow-y: auto;
-    background: #F8FAFF;
+    background: #F5F7FB;
     min-height: 0;
     /* bottom padding = summary height (~160px) + footer nav (65px) */
     padding: 12px 16px 160px 16px;

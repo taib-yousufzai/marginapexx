@@ -456,14 +456,21 @@ export default function WatchlistPage() {
             <div class="basket-leg-card">
                 <div style="flex:1; min-width:0;">
                     <div class="basket-leg-name">\${leg.name}</div>
-                    <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
+                    <div class="ts-qty-lot-row" style="margin-top:8px; margin-bottom:6px;">
+                        <span class="ts-section-label" style="margin-bottom:0;">Order Unit</span>
+                        <div class="ts-toggle-switch">
+                            <button class="ts-toggle-opt \${(leg.mode||'lot')==='qty'?'active':''}" data-i="\${i}" data-mode="qty">QTY</button>
+                            <button class="ts-toggle-opt \${(leg.mode||'lot')==='lot'?'active':''}" data-i="\${i}" data-mode="lot">LOT</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
                         <div class="bs-toggle-group">
                             <div class="bs-toggle \${isBuy ? 'bs-buy-active' : 'bs-inactive'}" data-i="\${i}" data-val="BUY">B</div>
                             <div class="bs-toggle \${!isBuy ? 'bs-sell-active' : 'bs-inactive'}" data-i="\${i}" data-val="SELL">S</div>
                         </div>
                         <div class="bq-control">
                             <div class="bq-minus" data-i="\${i}"><i class="fas fa-minus"></i></div>
-                            <div class="bq-val">\${leg.qty}</div>
+                            <div class="bq-val">\${(leg.mode||'lot')==='lot' ? Math.round(leg.qty / (leg.lotSize||1)) : leg.qty}</div>
                             <div class="bq-plus" data-i="\${i}"><i class="fas fa-plus"></i></div>
                         </div>
                     </div>
@@ -485,17 +492,53 @@ export default function WatchlistPage() {
                 renderBasketLegs();
             });
         });
+        
+        container.querySelectorAll('.ts-toggle-opt').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (!e.currentTarget.hasAttribute('data-i')) return;
+                const i = parseInt(e.currentTarget.getAttribute('data-i'));
+                const newMode = e.currentTarget.getAttribute('data-mode');
+                if ((basketLegs[i].mode || 'lot') === newMode) return;
+                
+                basketLegs[i].mode = newMode;
+                if (newMode === 'lot') {
+                    const lots = Math.max(1, Math.round(basketLegs[i].qty / (basketLegs[i].lotSize || 1)));
+                    basketLegs[i].qty = lots * (basketLegs[i].lotSize || 1);
+                }
+                
+                // Instant UI active state switch
+                const toggleContainer = e.currentTarget.closest('.ts-toggle-switch');
+                if (toggleContainer) {
+                    toggleContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                }
+                
+                // Dynamically update the bq-val
+                const legCard = e.currentTarget.closest('.basket-leg-card');
+                if (legCard) {
+                    const bqVal = legCard.querySelector('.bq-val');
+                    if (bqVal) bqVal.innerText = newMode === 'lot' ? Math.round(basketLegs[i].qty / (basketLegs[i].lotSize || 1)) : basketLegs[i].qty;
+                    const priceEl = legCard.querySelector('.basket-leg-price');
+                    if (priceEl) priceEl.innerText = '₹' + (basketLegs[i].price * basketLegs[i].qty).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+                }
+                
+                updateBasketMargin();
+            });
+        });
+
         container.querySelectorAll('.bq-minus').forEach(el => {
             el.addEventListener('click', (e) => {
                 const i = parseInt(e.currentTarget.getAttribute('data-i'));
-                basketLegs[i].qty = Math.max(basketLegs[i].lotSize, basketLegs[i].qty - basketLegs[i].lotSize);
+                const step = (basketLegs[i].mode || 'lot') === 'lot' ? basketLegs[i].lotSize : 1;
+                basketLegs[i].qty = Math.max(step, basketLegs[i].qty - step);
                 renderBasketLegs();
             });
         });
         container.querySelectorAll('.bq-plus').forEach(el => {
             el.addEventListener('click', (e) => {
                 const i = parseInt(e.currentTarget.getAttribute('data-i'));
-                basketLegs[i].qty += basketLegs[i].lotSize;
+                const stepP = (basketLegs[i].mode || 'lot') === 'lot' ? basketLegs[i].lotSize : 1;
+                basketLegs[i].qty += stepP;
                 renderBasketLegs();
             });
         });
@@ -607,6 +650,7 @@ export default function WatchlistPage() {
                         qty: lot,
                         lotSize: lot,
                         type: type,
+                        mode: 'lot',
                         option: item.segment.includes('Options')
                     });
                     
@@ -1065,7 +1109,6 @@ export default function WatchlistPage() {
                     </div>
                 </div>
             </div>
-
             <Footer activeTab="watchlist" />
         </div>
     );
