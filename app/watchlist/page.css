@@ -788,8 +788,7 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 120px;
-    /* room for sticky footer */
+    padding-bottom: 80px;
 }
 
 .sheet-content-scroll::-webkit-scrollbar {
@@ -1242,7 +1241,7 @@
    LEGACY CLASSES (kept for detail-sheet & basket-sheet)
    ============================================= */
 .sheet-header {
-    padding: 4px 16px 10px;
+    padding: 4px 16px 4px;
     border-bottom: 1px solid #F0F2F8;
 }
 
@@ -1255,10 +1254,10 @@
 }
 
 .sheet-script-name {
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 800;
     color: #1A1E2B;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1287,7 +1286,7 @@
 }
 
 .sheet-cmp-value {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: #1A1E2B;
     line-height: 1.2;
@@ -1314,8 +1313,8 @@
 
 .sheet-bidask {
     background: #F8FAFF;
-    margin: 10px 16px;
-    padding: 8px 12px;
+    margin: 6px 16px;
+    padding: 5px 12px;
     border-radius: 20px;
     display: flex;
     align-items: center;
@@ -1329,16 +1328,16 @@
 }
 
 .sheet-bidask-label {
-    font-size: 0.6rem;
+    font-size: 0.54rem;
     font-weight: 500;
     color: #8C94A8;
     text-transform: uppercase;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .sheet-bid-value,
 .sheet-ask-value {
-    font-size: 0.9rem;
+    font-size: 0.81rem;
     font-weight: 700;
 }
 
@@ -1359,9 +1358,9 @@
 .ohlc-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 4px;
     background: #F8FAFF;
-    padding: 8px;
+    padding: 5px 8px;
     border-radius: 16px;
 }
 
@@ -1370,15 +1369,15 @@
 }
 
 .ohlc-label {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     font-weight: 500;
     color: #8C94A8;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .ohlc-value {
-    font-size: 0.85rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #1A1E2B;
 }

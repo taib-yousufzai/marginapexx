@@ -981,71 +981,78 @@ export default function WatchlistPage() {
 
             {/* Detail Sheet */}
             <div id="detailSheetOverlay" className="trade-sheet-overlay"></div>
-            <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
+            <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' }}>
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
-                <div style={{ padding: '24px 20px 20px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                        <div>
-                            <div id="detailScriptName" style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '8px' }}>BANKNIFTY 48500 CE</div>
-                            <span id="detailSegment" style={{ fontSize: '0.65rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '4px 10px', borderRadius: '20px' }}>NSE - Options</span>
+                <div style={{ padding: '0' }}>
+                    <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#E5E7EB', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
+                                <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: '#4B5563' }}></i>
+                            </button>
+                            <div>
+                                <div id="detailScriptName" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.15' }}>BANKNIFTY 48500 CE</div>
+                                <span id="detailSegment" style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>NSE - Options</span>
+                            </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '2px' }}>CMP</div>
-                            <div id="detailCmpValue" style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '6px' }}>₹215.60</div>
-                            <span id="detailChange" className="sheet-change" style={{ fontSize: '0.7rem', fontWeight: '700', padding: '2px 8px' }}>-0.4%</span>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: '0.47rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
+                            <div id="detailCmpValue" style={{ fontSize: '0.935rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.1' }}>₹215.60</div>
+                            <span id="detailChange" className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1' }}>-0.4%</span>
                         </div>
                     </div>
 
-                    <div style={{ height: '1px', background: '#F0F2F8', margin: '0 -20px 16px', width: 'calc(100% + 40px)' }}></div>
+                    <div style={{ height: '1px', background: '#F0F2F8', margin: '0 0 8px', width: '100%' }}></div>
 
-                    <div id="detailBidAskCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ padding: '0 12px 10px 12px' }}>
+                    <div id="detailBidAskCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>BID</div>
-                            <div id="detailBid" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#059669' }}>₹215.38</div>
+                            <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>BID</div>
+                            <div id="detailBid" style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>₹215.38</div>
                         </div>
-                        <div id="detailBidAskDivider" style={{ width: '1px', background: '#E2E8F0', height: '30px' }}></div>
+                        <div id="detailBidAskDivider" style={{ width: '1px', background: '#E2E8F0', height: '24px' }}></div>
                         <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>ASK</div>
-                            <div id="detailAsk" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#DC2626' }}>₹215.82</div>
+                            <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>ASK</div>
+                            <div id="detailAsk" style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>₹215.82</div>
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '20px' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#5B677E', marginBottom: '10px' }}>PRICE SUMMARY</div>
-                        <div id="detailOhlcCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ marginBottom: '8px' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: '700', color: '#5B677E', marginBottom: '6px' }}>PRICE SUMMARY</div>
+                        <div id="detailOhlcCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>OPEN</div>
-                                <div id="detailOpen" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#059669' }}>₹216.50</div>
+                                <div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>OPEN</div>
+                                <div id="detailOpen" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>₹216.50</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>HIGH</div>
-                                <div id="detailHigh" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#059669' }}>₹218.00</div>
+                                <div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>HIGH</div>
+                                <div id="detailHigh" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>₹218.00</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>LOW</div>
-                                <div id="detailLow" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#DC2626' }}>₹214.00</div>
+                                <div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>LOW</div>
+                                <div id="detailLow" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>₹214.00</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>CLOSE</div>
-                                <div id="detailClose" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1A1E2B' }}>₹215.60</div>
+                                <div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>CLOSE</div>
+                                <div id="detailClose" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B' }}>₹215.60</div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="detailContractCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div id="detailContractCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <i className="far fa-calendar-alt"></i> CONTRACT DATE
                         </div>
-                        <div id="detailContractDate" style={{ fontSize: '0.8rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '4px 12px', borderRadius: '20px' }}>28 Mar 2025</div>
+                        <div id="detailContractDate" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>28 Mar 2025</div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <button id="detailBuyBtn" style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button id="detailBuyBtn" style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
                             <i className="fas fa-arrow-up"></i> BUY
                         </button>
-                        <button id="detailSellBtn" style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '14px 0', borderRadius: '30px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                        <button id="detailSellBtn" style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
                             <i className="fas fa-arrow-down"></i> SELL
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>

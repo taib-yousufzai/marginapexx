@@ -239,13 +239,15 @@ body:has(.ord-root) {
   border-radius: 30px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-width: 62px;
 }
 
 .ord-badge i { font-size: 8px; }
 
-.ord-badge.long  { background: #FEF2F2; color: #B91C1C; }
-.ord-badge.short { background: #F3F4F6; color: #374151; }
+.ord-badge.long  { background: #ECFDF5; color: #059669; }
+.ord-badge.short { background: #FEF2F2; color: #B22234; }
 
 /* Row 2: PRICE */
 .ord-row-price {
@@ -468,8 +470,8 @@ body.dark .ord-card:hover     { border-color: #444; }
 body.dark .ord-symbol         { color: #F5F5F5; }
 body.dark .ord-label          { color: #555; }
 body.dark .ord-val            { color: #D0D0D0; }
-body.dark .ord-badge.long     { background: #2A2A2A; color: #F87171; }
-body.dark .ord-badge.short    { background: #2A2A2A; color: #B0B0B0; }
+body.dark .ord-badge.long     { background: #052e16; color: #059669; }
+body.dark .ord-badge.short    { background: #3B1A1A; color: #F87171; }
 body.dark .ord-type-pill      { background: #2A2A2A; color: #999; }
 body.dark .ord-date-val       { color: #555; }
 body.dark .ord-row-status     { border-top-color: #333; }
