@@ -877,7 +877,7 @@
 
 .ts-change-badge.positive {
     background: #DCFCE7;
-    color: #16A34A;
+    color: #059669;
 }
 
 .ts-change-badge.negative {
@@ -917,7 +917,7 @@
 .ts-ba-val.bid-val {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #16A34A;
+    color: #059669;
 }
 
 .ts-ba-val.ask-val {
@@ -1424,7 +1424,7 @@
 }
 
 .sheet-btn-buy {
-    background: linear-gradient(135deg, #16A34A, #14532D);
+    background: linear-gradient(135deg, #059669, #14532D);
     color: white;
     box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
 }
@@ -1705,7 +1705,7 @@
 
 .modern-input-box .price-input:focus {
     background: #FFFFFF;
-    border-color: #16A34A;
+    border-color: #059669;
     box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
 }
 
@@ -1719,7 +1719,7 @@
 
 .modern-qty:focus-within {
     background: #FFFFFF;
-    border-color: #16A34A;
+    border-color: #059669;
     box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
 }
 
@@ -2006,7 +2006,7 @@ body.dark .handle-bar {
 }
 
 .buy-btn {
-    background: #16A34A;
+    background: #059669;
     color: #FFFFFF;
     box-shadow: none;
 }
@@ -2070,7 +2070,7 @@ body.dark .handle-bar {
 }
 
 .bs-buy-active {
-    background: #16A34A;
+    background: #059669;
     color: #FFFFFF;
     box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
     transform: scale(1.05);

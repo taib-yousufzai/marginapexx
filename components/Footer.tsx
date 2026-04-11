@@ -9,6 +9,7 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
+  console.log('Footer CSS Loaded');
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const handleAreaRef = useRef<HTMLDivElement>(null);
@@ -163,7 +164,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       )}
 
       <div className="footer-section">
-        <div className="footer-nav">
+        <div className="footer-nav" data-active={activeTab}>
           <Link href="/" scroll={false} className={`footer-tab ${activeTab === 'home' ? 'active' : ''}`}>
             <i className="fas fa-home footer-icon"></i>
             <span className="footer-label">Home</span>

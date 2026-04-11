@@ -10,16 +10,34 @@
   left: 0;
   right: 0;
   width: 100%;
-  background: var(--footer-bg, #FFFFFF);
+  background: var(--footer-bg, #FFFFFF) !important;
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   margin: 0 auto;
   max-width: 500px;
   isolation: isolate;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+  border-top: 1px solid var(--border-light, #E8ECF0) !important;
 }
 
 body.dark .footer-section {
   background: var(--footer-bg, #1E1E1E);
+}
+
+/* Gradient fade below footer (between footer bottom and screen edge) */
+.footer-section::after {
+  content: '';
+  position: absolute;
+  bottom: -24px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.85), transparent);
+  pointer-events: none;
+}
+
+body.dark .footer-section::after {
+  background: linear-gradient(to bottom, rgba(30,30,30,0.85), transparent);
 }
 
 /* Navigation tabs row */
@@ -31,6 +49,26 @@ body.dark .footer-section {
   padding: 10px 8px;
   background: transparent;
   width: 100%;
+  position: relative;
+}
+
+/* Single bottom-to-top gradient overlay inside the nav row.
+   Sits above the nav background, below tab content.
+   Always present — no per-tab toggling, no flicker. */
+.footer-nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(to top, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.10) 50%, rgba(0,0,0,0.02) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.dark .footer-nav::after {
+  background: linear-gradient(to top, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.00) 100%);
 }
 
 .footer-tab {
@@ -46,6 +84,8 @@ body.dark .footer-section {
   color: var(--text-muted, #9CA3AF);
   transition: color 0.2s, background 0.2s;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 body.dark .footer-tab {
@@ -63,10 +103,38 @@ body.dark .footer-tab:active {
 
 .footer-tab.active {
   color: var(--footer-active, #006400);
+  background: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
 }
 
 body.dark .footer-tab.active {
   color: #C62E2E;
+}
+
+/* Single persistent gradient overlay — moved to footer-nav::after above. */
+
+/* Full-width bottom gradient for Home, Order, History active tabs.
+   Applied on the nav container via data-active — not on the tab button.
+   Watchlist and Position are NOT listed here — their ::after overlay is untouched. */
+.footer-nav[data-active="home"]::before,
+.footer-nav[data-active="order"]::before,
+.footer-nav[data-active="history"]::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(to top, rgba(0,0,0,0.18), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.dark .footer-nav[data-active="home"]::before,
+body.dark .footer-nav[data-active="order"]::before,
+body.dark .footer-nav[data-active="history"]::before {
+  background: linear-gradient(to top, rgba(255,255,255,0.10), transparent);
 }
 
 .footer-icon {

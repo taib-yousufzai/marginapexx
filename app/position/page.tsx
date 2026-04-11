@@ -30,6 +30,8 @@ type DetailedPosition = {
   date: string;
   entryTime?: string;
   exitTime?: string;
+  intradayMargin?: number;
+  carryMargin?: number;
 };
 
 type ClosedPosition = {
@@ -79,12 +81,12 @@ export default function PositionPage() {
   ]);
 
   const [detailedPositions, setDetailedPositions] = useState<DetailedPosition[]>([
-    { id: 1, symbol: 'BTC/USD', side: 'LONG', qty: 0.015, entryPrice: 61200.00, exitPrice: 63250.00, currentPrice: 63250.00, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM' },
-    { id: 2, symbol: 'BTC/USD', side: 'LONG', qty: 0.01, entryPrice: 61800.00, exitPrice: null, currentPrice: 63250.00, pnl: 14.50, pnlPercent: 2.35, status: 'OPEN', date: 'Mar 31', entryTime: '11:30 AM' },
-    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3, entryPrice: 3220.50, exitPrice: 3080.00, currentPrice: 3080.00, pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM' },
-    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2, entryPrice: 3150.50, exitPrice: null, currentPrice: 3080.00, pnl: 14.10, pnlPercent: 2.24, status: 'OPEN', date: 'Mar 31', entryTime: '10:15 AM' },
-    { id: 5, symbol: 'SOL/USD', side: 'LONG', qty: 1.5, entryPrice: 138.50, exitPrice: 148.50, currentPrice: 148.50, pnl: 15.00, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM' },
-    { id: 6, symbol: 'SOL/USD', side: 'LONG', qty: 0.75, entryPrice: 142.80, exitPrice: null, currentPrice: 148.50, pnl: 4.28, pnlPercent: 4.00, status: 'OPEN', date: 'Mar 30', entryTime: '09:45 AM' },
+    { id: 1, symbol: 'BTC/USD', side: 'LONG', qty: 0.015, entryPrice: 61200.00, exitPrice: 63250.00, currentPrice: 63250.00, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM', intradayMargin: 918.00, carryMargin: 1530.00 },
+    { id: 2, symbol: 'BTC/USD', side: 'LONG', qty: 0.01, entryPrice: 61800.00, exitPrice: null, currentPrice: 63250.00, pnl: 14.50, pnlPercent: 2.35, status: 'OPEN', date: 'Mar 31', entryTime: '11:30 AM', intradayMargin: 618.00, carryMargin: 1030.00 },
+    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3, entryPrice: 3220.50, exitPrice: 3080.00, currentPrice: 3080.00, pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM', intradayMargin: 193.23, carryMargin: 322.05 },
+    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2, entryPrice: 3150.50, exitPrice: null, currentPrice: 3080.00, pnl: 14.10, pnlPercent: 2.24, status: 'OPEN', date: 'Mar 31', entryTime: '10:15 AM', intradayMargin: 126.02, carryMargin: 210.03 },
+    { id: 5, symbol: 'SOL/USD', side: 'LONG', qty: 1.5, entryPrice: 138.50, exitPrice: 148.50, currentPrice: 148.50, pnl: 15.00, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM', intradayMargin: 41.55, carryMargin: 69.25 },
+    { id: 6, symbol: 'SOL/USD', side: 'LONG', qty: 0.75, entryPrice: 142.80, exitPrice: null, currentPrice: 148.50, pnl: 4.28, pnlPercent: 4.00, status: 'OPEN', date: 'Mar 30', entryTime: '09:45 AM', intradayMargin: 21.42, carryMargin: 35.70 },
   ]);
 
   useEffect(() => {
@@ -340,30 +342,49 @@ export default function PositionPage() {
               </div>
             ) : detailedDisplayed.map(pos => (
               <div key={pos.id} className="pos-detail-card" onClick={() => handleRowClick(pos)} style={{ cursor: 'pointer' }}>
-                <div className="pos-detail-left">
+
+                {/* Group 1: Header — Symbol | P&L | Status */}
+                <div className="pos-detail-header-row">
                   <div className="pos-detail-symbol">
                     {pos.symbol} <span className="pos-detail-side">{pos.side}</span>
                   </div>
-                  <div className="pos-detail-meta">
-                    <span>Qty: <strong>{pos.qty.toFixed(4)}</strong></span>
-                    <span>Entry: <strong>{fmtPrice(pos.entryPrice)}</strong></span>
-                    {pos.status === 'OPEN'
-                      ? <span>Current: <strong>{fmtPrice(pos.currentPrice)}</strong></span>
-                      : <span>Exit: <strong>{fmtPrice(pos.exitPrice!)}</strong></span>
-                    }
-                    <span>Time: <strong>{pos.status === 'OPEN' ? pos.entryTime : pos.exitTime}</strong></span>
-                    <span>Date: <strong>{pos.date}</strong></span>
+                  <div className="pos-detail-right">
+                    <div className={`pos-detail-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
+                      {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
+                    </div>
+                    <div className="pos-detail-pct">{pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%</div>
+                    <span className={`pos-status-badge${pos.status === 'OPEN' ? ' active' : ' closed'}`}>
+                      {pos.status === 'OPEN' ? 'Active' : 'Closed'}
+                    </span>
                   </div>
                 </div>
-                <div className="pos-detail-right">
-                  <div className={`pos-detail-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
-                    {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
-                  </div>
-                  <div className="pos-detail-pct">{pos.pnlPercent > 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%</div>
-                  <span className={`pos-status-badge${pos.status === 'OPEN' ? ' active' : ' closed'}`}>
-                    {pos.status === 'OPEN' ? 'Active' : 'Closed'}
+
+                {/* Group 2: Qty | Entry | Exit/Current */}
+                <div className="pos-detail-meta">
+                  <span>Qty: <strong>{pos.qty.toFixed(4)}</strong></span>
+                  <span>Entry: <strong>{fmtPrice(pos.entryPrice)}</strong></span>
+                  {pos.status === 'OPEN'
+                    ? <span>Current: <strong>{fmtPrice(pos.currentPrice)}</strong></span>
+                    : <span>Exit: <strong>{fmtPrice(pos.exitPrice!)}</strong></span>
+                  }
+                </div>
+
+                {/* Group 3: Time | Date */}
+                <div className="pos-detail-meta">
+                  <span>Time: <strong>{pos.status === 'OPEN' ? pos.entryTime : pos.exitTime}</strong></span>
+                  <span>Date: <strong>{pos.date}</strong></span>
+                </div>
+
+                {/* Group 4: Margin rows */}
+                <div className="pos-detail-margin-row">
+                  <span className="pos-detail-margin-label">
+                    Intraday Margin: <strong className="pos-detail-margin-val">${(pos.intradayMargin ?? 0).toFixed(2)}</strong>
+                  </span>
+                  <span className="pos-detail-margin-label">
+                    Carry Margin: <strong className="pos-detail-margin-val">${(pos.carryMargin ?? 0).toFixed(2)}</strong>
                   </span>
                 </div>
+
               </div>
             ))
           )}
@@ -478,7 +499,7 @@ export default function PositionPage() {
                       <div style={{ background: '#F8FAFF', borderRadius: '16px', padding: '14px 16px', display: 'flex', alignItems: 'center' }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                           <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>AVG PRICE</div>
-                          <div style={{ fontSize: '1rem', fontWeight: '700', color: '#16A34A' }}>{fmtPrice(cp.avgPrice)}</div>
+                          <div style={{ fontSize: '1rem', fontWeight: '700', color: '#059669' }}>{fmtPrice(cp.avgPrice)}</div>
                         </div>
                         <div style={{ width: '1px', background: '#E2E8F0', height: '28px' }} />
                         <div style={{ flex: 1, textAlign: 'center' }}>

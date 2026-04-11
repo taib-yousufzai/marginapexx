@@ -43,7 +43,10 @@ export default function OrderPage() {
   const [toast,        setToast]        = useState<string|null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
+    setIsMounted(true);
     const saved = localStorage.getItem('marginApexTheme');
     if (saved === 'dark') document.body.classList.add('dark');
     else document.body.classList.remove('dark');
@@ -67,8 +70,14 @@ export default function OrderPage() {
 
   const fmtPrice = (v:number) => '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:5});
   const fmtQty   = (v:number) => v.toLocaleString('en-US',{maximumFractionDigits:4});
-  const fmtTime  = (ts:number) => new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
-  const fmtDate  = (ts:number) => new Date(ts).toLocaleDateString([],{month:'short',day:'numeric'});
+  const fmtTime  = (ts:number) => {
+    if (!isMounted) return '';
+    return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true});
+  };
+  const fmtDate  = (ts:number) => {
+    if (!isMounted) return '';
+    return new Date(ts).toLocaleDateString([],{month:'short',day:'numeric'});
+  };
 
   const source   = tab==='open' ? openOrders : closedOrders;
   const filtered = source

@@ -983,7 +983,7 @@ export default function WatchlistPage() {
             <div id="detailSheetOverlay" className="trade-sheet-overlay"></div>
             <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
-                <div style={{ padding: '0 20px 20px 20px' }}>
+                <div style={{ padding: '24px 20px 20px 20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                         <div>
                             <div id="detailScriptName" style={{ fontSize: '1.2rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '8px' }}>BANKNIFTY 48500 CE</div>
@@ -1001,7 +1001,7 @@ export default function WatchlistPage() {
                     <div id="detailBidAskCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                         <div style={{ flex: 1, textAlign: 'center' }}>
                             <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>BID</div>
-                            <div id="detailBid" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#16A34A' }}>₹215.38</div>
+                            <div id="detailBid" style={{ fontSize: '1.05rem', fontWeight: '700', color: '#059669' }}>₹215.38</div>
                         </div>
                         <div id="detailBidAskDivider" style={{ width: '1px', background: '#E2E8F0', height: '30px' }}></div>
                         <div style={{ flex: 1, textAlign: 'center' }}>
@@ -1012,22 +1012,22 @@ export default function WatchlistPage() {
 
                     <div style={{ marginBottom: '20px' }}>
                         <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#5B677E', marginBottom: '10px' }}>PRICE SUMMARY</div>
-                        <div id="detailOhlcCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
+                        <div id="detailOhlcCard" style={{ background: '#F8FAFF', borderRadius: '16px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between' }}>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>OPEN</div>
-                                <div id="detailOpen" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#16A34A' }}>₹216.50</div>
+                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>OPEN</div>
+                                <div id="detailOpen" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#059669' }}>₹216.50</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>HIGH</div>
-                                <div id="detailHigh" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#16A34A' }}>₹218.00</div>
+                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>HIGH</div>
+                                <div id="detailHigh" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#059669' }}>₹218.00</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>LOW</div>
-                                <div id="detailLow" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#DC2626' }}>₹214.00</div>
+                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>LOW</div>
+                                <div id="detailLow" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#DC2626' }}>₹214.00</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>CLOSE</div>
-                                <div id="detailClose" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>₹215.60</div>
+                                <div style={{ fontSize: '0.6rem', fontWeight: '600', color: '#8C94A8', marginBottom: '6px' }}>CLOSE</div>
+                                <div id="detailClose" style={{ fontSize: '0.82rem', fontWeight: '700', color: '#1A1E2B' }}>₹215.60</div>
                             </div>
                         </div>
                     </div>
@@ -1054,7 +1054,7 @@ export default function WatchlistPage() {
             <div id="basketSheetOverlay" className="trade-sheet-overlay"></div>
             <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
                 <div className="sheet-handle"><div className="handle-bar"></div></div>
-                <div style={{ padding: '0 20px 20px 20px' }}>
+                <div style={{ padding: '24px 20px 20px 20px' }}>
                     <div className="basket-sheet-title" style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '16px' }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
 
                     <div id="basketLegsContainer" style={{ maxHeight: '40dvh', overflowY: 'auto', marginBottom: '20px' }}>

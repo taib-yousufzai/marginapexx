@@ -343,13 +343,13 @@ body:has(.pos-root) {
 }
 
 .pos-badge.long {
-  background: #FEF2F2;
-  color: #B91C1C;
+  background: #ECFDF5;
+  color: #059669;
 }
 
 .pos-badge.short {
-  background: #F3F4F6;
-  color: #374151;
+  background: #FEF2F2;
+  color: #B22234;
 }
 
 .pos-card-pnl {
@@ -392,9 +392,42 @@ body:has(.pos-root) {
   border-radius: 12px;
   padding: 11px 13px;
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Header row: symbol left, P&L right */
+.pos-detail-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+/* ── Margin row ── */
+.pos-detail-margin-row {
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid #EEF2F8;
+  gap: 4px;
 }
+
+.pos-detail-margin-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #718096;
+}
+
+.pos-detail-margin-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2D3748;
+}
+
+body.dark .pos-detail-margin-label { color: #888; }
+body.dark .pos-detail-margin-val { color: #D0D0D0; }
+body.dark .pos-detail-margin-row { border-top-color: #333; }
 
 .pos-detail-left {
   flex: 1;
@@ -429,6 +462,35 @@ body:has(.pos-root) {
   color: #1F2937;
   font-weight: 600;
 }
+
+/* ── Margin rows ── */
+.pos-detail-margins {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.pos-detail-margin-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pos-detail-margin-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: #718096;
+}
+
+.pos-detail-margin-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2D3748;
+}
+
+body.dark .pos-detail-margin-label { color: #888; }
+body.dark .pos-detail-margin-val { color: #D0D0D0; }
 
 .pos-detail-right {
   text-align: right;
@@ -674,13 +736,13 @@ body.dark .pos-badge {
 }
 
 body.dark .pos-badge.long {
-  background: #2A2A2A;
-  color: #F87171;
+  background: #052e16;
+  color: #059669;
 }
 
 body.dark .pos-badge.short {
-  background: #2A2A2A;
-  color: #D1D5DB;
+  background: #3B1A1A;
+  color: #F87171;
 }
 
 /* ── Bottom Sheet (Position Details) ───────────── */
@@ -776,7 +838,7 @@ body.dark .pos-badge.short {
 }
 
 .ps-green {
-  color: #16A34A;
+  color: #059669;
 }
 
 .ps-red {

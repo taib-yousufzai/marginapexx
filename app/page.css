@@ -906,53 +906,6 @@ body.dark .circle-icon {
   color: var(--drawer-handle);
 }
 
-.footer-nav {
-  padding: 12px 20px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--footer-bg);
-  position: relative;
-  z-index: 5;
-  border-top: 1px solid var(--border-card);
-}
-
-.footer-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: 0.2s;
-  padding: 4px 8px;
-  border-radius: 30px;
-  flex: 1;
-}
-
-.footer-tab:active {
-  transform: scale(0.95);
-  background: var(--icon-bg);
-}
-
-.footer-icon {
-  font-size: 1.2rem;
-  color: var(--text-muted);
-}
-
-.footer-label {
-  font-size: 0.55rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.footer-tab.active .footer-icon {
-  color: var(--footer-active);
-}
-
-.footer-tab.active .footer-label {
-  color: var(--footer-active);
-}
-
 /* ===== HALF PAGE EXPIRY DRAWER (BOTTOM SHEET) ===== */
 .expiry-half-drawer-overlay {
   position: fixed;
