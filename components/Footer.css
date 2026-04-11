@@ -68,7 +68,7 @@ body.dark .footer-section::after {
 }
 
 body.dark .footer-nav::after {
-  background: linear-gradient(to top, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.00) 100%);
+  display: none;
 }
 
 .footer-tab {
@@ -134,7 +134,7 @@ body.dark .footer-tab.active {
 body.dark .footer-nav[data-active="home"]::before,
 body.dark .footer-nav[data-active="order"]::before,
 body.dark .footer-nav[data-active="history"]::before {
-  background: linear-gradient(to top, rgba(255,255,255,0.10), transparent);
+  display: none;
 }
 
 .footer-icon {
