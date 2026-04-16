@@ -1,14 +1,26 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSession } from '@/lib/auth';
 import './page.css';
 import Link from 'next/link';
 import Footer from '../../components/Footer';
 
 export default function FundsPage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState<string>('500');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!getSession()) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
 
   // Parse "?tab=withdraw" flag
   useEffect(() => {
@@ -33,6 +45,8 @@ export default function FundsPage() {
     }
     setTimeout(() => setToastMsg(null), 2500);
   };
+
+  if (isChecking) return null;
 
   return (
     <div className="app-container">

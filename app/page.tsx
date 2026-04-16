@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import { getSession } from '@/lib/auth';
 import './page.css';
 
 // --- DATA CONSTANTS ---
@@ -65,7 +66,17 @@ const expiryIndexes = [
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const [scrollKey, setScrollKey] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!getSession()) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
 
   useEffect(() => {
     setScrollKey(Date.now());
@@ -112,6 +123,8 @@ export default function Page() {
   useEffect(() => {
     if (containerRef.current) containerRef.current.scrollTop = 0;
   }, [pathname]);
+
+  if (isChecking) return null;
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';

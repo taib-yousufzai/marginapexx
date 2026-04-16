@@ -1,10 +1,24 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getSession, signOut } from '@/lib/auth';
 import './page.css';
 
 export default function ProfilePage() {
+    const router = useRouter();
+    const [isChecking, setIsChecking] = useState(true);
     const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        getSession().then((session) => {
+            if (!session) {
+                router.replace('/login');
+            } else {
+                setIsChecking(false);
+            }
+        });
+    }, [router]);
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
@@ -13,6 +27,8 @@ export default function ProfilePage() {
         if (dark) document.body.classList.add('dark');
         else document.body.classList.remove('dark');
     }, []);
+
+    if (isChecking) return null;
 
     const toggleDark = () => {
         const newDark = !isDark;
@@ -91,7 +107,7 @@ export default function ProfilePage() {
                     </div>
                 </div>
                 
-                <button className="logout-btn"><i className="fas fa-power-off"></i> Logout</button>
+                <button className="logout-btn" onClick={() => signOut()}><i className="fas fa-power-off"></i> Logout</button>
             </div>
             
             {/* Keeping it clean without the bottom nav since it's a dedicated subpage */}

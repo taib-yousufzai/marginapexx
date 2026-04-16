@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import { getSession } from '@/lib/auth';
 import '../watchlist/page.css';
 import './page.css';
 
@@ -51,6 +53,8 @@ type ClosedPosition = {
 };
 
 export default function PositionPage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
   const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
   const [toast, setToast] = useState<string | null>(null);
@@ -90,6 +94,14 @@ export default function PositionPage() {
   ]);
 
   useEffect(() => {
+    if (!getSession()) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');
     if (saved === 'dark') document.body.classList.add('dark');
     else document.body.classList.remove('dark');
@@ -118,6 +130,8 @@ export default function PositionPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  if (isChecking) return null;
 
   const showToast = (msg: string) => {
     setToast(msg);

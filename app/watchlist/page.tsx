@@ -1,9 +1,22 @@
 'use client';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import { getSession } from '@/lib/auth';
 import './page.css';
 
 export default function WatchlistPage() {
+    const router = useRouter();
+    const [isChecking, setIsChecking] = useState(true);
+
+    useEffect(() => {
+        if (!getSession()) {
+            router.replace('/login');
+        } else {
+            setIsChecking(false);
+        }
+    }, [router]);
+
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
         if (saved === 'dark') document.body.classList.add('dark');
@@ -763,6 +776,8 @@ export default function WatchlistPage() {
         document.body.appendChild(script);
         return () => { if (document.body.contains(script)) document.body.removeChild(script); };
     }, []);
+
+    if (isChecking) return null;
 
     return (
         <div className="mobile-app">

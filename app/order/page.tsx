@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import { getSession } from '@/lib/auth';
 import './page.css';
 
 type Order = {
@@ -36,6 +38,8 @@ const SEED_CLOSED: Order[] = [
 ];
 
 export default function OrderPage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const [tab,          setTab]          = useState<'open'|'closed'>('open');
   const [search,       setSearch]       = useState('');
   const [openOrders,   setOpenOrders]   = useState<Order[]>(SEED_OPEN);
@@ -46,11 +50,21 @@ export default function OrderPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    if (!getSession()) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
     setIsMounted(true);
     const saved = localStorage.getItem('marginApexTheme');
     if (saved === 'dark') document.body.classList.add('dark');
     else document.body.classList.remove('dark');
   }, []);
+
+  if (isChecking) return null;
 
   const showToast = (msg: string) => {
     setToast(msg);

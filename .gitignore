@@ -18,7 +18,7 @@
 /out/
 
 .vscode
-
+.kiro
 
 # production
 /build

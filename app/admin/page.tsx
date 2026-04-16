@@ -1,5 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSession, getRole } from '@/lib/auth';
 import './page.css';
 
 // ─── Login Page ───────────────────────────────────────────────────────────────
@@ -87,6 +89,8 @@ const navItems = [
 ];
 
 export default function AdminPage() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authReady, setAuthReady]   = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -96,6 +100,21 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>(DEMO_USERS[0]);
 
   // Route guard — sessionStorage so login resets on every new tab/browser open
+  useEffect(() => {
+    getSession().then((session) => {
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+      const role = getRole(session.user);
+      if (role !== 'admin') {
+        router.replace('/');
+        return;
+      }
+      setIsChecking(false);
+    });
+  }, [router]);
+
   useEffect(() => {
     const loggedIn = sessionStorage.getItem('adminLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
@@ -107,6 +126,7 @@ export default function AdminPage() {
   }, []);
 
   // Don't render anything until auth state is resolved
+  if (isChecking) return null;
   if (!authReady) return <div style={{ background: '#0d1117', minHeight: '100vh' }} />;
 
   const handleLogin = () => {

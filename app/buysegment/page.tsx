@@ -1,12 +1,25 @@
 
 'use client';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { getSession } from '@/lib/auth';
 import './page.css';
 
 export default function Page() {
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!getSession()) {
+      router.replace('/login');
+    } else {
+      setIsChecking(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (isChecking) return;
     // Inject scripts
     const script = document.createElement('script');
     script.innerHTML = `
@@ -318,7 +331,9 @@ export default function Page() {
         document.body.removeChild(script);
       }
     };
-  }, []);
+  }, [isChecking]);
+
+  if (isChecking) return null;
 
   return (
     <div 
