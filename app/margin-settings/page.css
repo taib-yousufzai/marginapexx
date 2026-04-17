@@ -203,3 +203,30 @@ body.dark .margin-card.commodity .leverage-badge {
   background: #252A38;
   color: #94A3B8;
 }
+
+/* ── Tablet (501px+) ── */
+@media (min-width: 501px) {
+  .margin-settings-content {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .segments-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Desktop (1024px+) ── */
+@media (min-width: 1024px) {
+  .margin-settings-content {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  .segments-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

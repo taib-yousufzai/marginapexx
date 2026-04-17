@@ -52,7 +52,7 @@ export default function FundsPage() {
   if (isChecking) return null;
 
   return (
-    <div className="app-container">
+    <div className="app-container funds-shell">
       {/* Top Navbar */}
       <div className="nav-bar-full">
         <Link href="/" className="nav-icon-btn"><i className="fas fa-arrow-left"></i></Link>

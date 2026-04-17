@@ -186,6 +186,11 @@ export default function LoginPage() {
             )}
           </div>
 
+          {/* Forgot password link (Requirement 1.1, 1.2, 1.3, 1.4) */}
+          <p className="login-signup-link" style={{ marginTop: '-8px' }}>
+            <a href="/forgot-password">Forgot password?</a>
+          </p>
+
           {/* Form-level error (Requirement 3.3) */}
           {formError && (
             <div className="login-form-error" role="alert">
@@ -230,6 +235,11 @@ export default function LoginPage() {
             {' '}Try Demo Account
           </button>
         </form>
+
+        <p className="login-signup-link">
+          Don&apos;t have an account?{' '}
+          <a href="/register">Sign up</a>
+        </p>
       </div>
     </div>
   );

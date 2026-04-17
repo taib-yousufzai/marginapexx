@@ -37,6 +37,13 @@ body {
   }
 }
 
+/* =============================================
+   CANONICAL BREAKPOINTS — do not add others
+   Mobile:  default (no query) / max-width: 500px
+   Tablet:  min-width: 501px  (and max-width: 1023px where needed)
+   Desktop: min-width: 1024px
+   ============================================= */
+
 /* JADE RED + WHITE + BLACK + SILVER + GOLD THEME */
 :root {
   --bg-body: #F0F2F5;
@@ -82,6 +89,19 @@ body {
   --expiry-drawer-bg: #FFFFFF;
   --expiry-drawer-overlay: rgba(0,0,0,0.5);
   --footer-nav-height: 65px;
+  --sidebar-width: 0px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --footer-nav-height: 0px;
+    --sidebar-width: 80px;
+  }
+
+  body {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
 }
 
 /* DARK THEME */

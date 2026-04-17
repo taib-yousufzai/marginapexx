@@ -626,7 +626,7 @@ export default function WatchlistPage() {
                 html += '<div class="swipe-container" data-idx="' + idx + '"><div class="instrument-card" data-card-idx="' + idx + '"><div class="instrument-info" style="flex:1;"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area" style="text-align:right; margin-right:12px;"><div class="price-value" style="font-size:0.85rem;">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div><div class="basket-inline-actions"><button class="inline-bs-btn buy-btn" data-idx="' + idx + '" data-type="BUY">BUY</button><button class="inline-bs-btn sell-btn" data-idx="' + idx + '" data-type="SELL">SELL</button></div></div></div>';
             } else {
                 // Normal View
-                html += '<div class="swipe-container" data-idx="' + idx + '"><div class="delete-background"><i class="fas fa-trash-alt"></i> Delete</div><div class="instrument-card" data-card-idx="' + idx + '" data-name="' + escapeHtml(item.name) + '" data-symbol="' + escapeHtml(item.symbol) + '" data-price="' + item.price + '" data-change="' + item.change + '" data-segment="' + escapeHtml(item.segment || 'Trading') + '" data-contract="' + escapeHtml(item.contractDate || '28 Mar 2025') + '" data-open="' + (item.open || item.price * 0.995) + '" data-high="' + (item.high || item.price * 1.005) + '" data-low="' + (item.low || item.price * 0.992) + '" data-close="' + (item.close || item.price) + '"><div class="instrument-info"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area"><div class="price-value">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div></div></div>';
+                html += '<div class="swipe-container" data-idx="' + idx + '"><div class="delete-background"><i class="fas fa-trash-alt"></i> Delete</div><div class="instrument-card" data-card-idx="' + idx + '" data-name="' + escapeHtml(item.name) + '" data-symbol="' + escapeHtml(item.symbol) + '" data-price="' + item.price + '" data-change="' + item.change + '" data-segment="' + escapeHtml(item.segment || 'Trading') + '" data-contract="' + escapeHtml(item.contractDate || '28 Mar 2025') + '" data-open="' + (item.open || item.price * 0.995) + '" data-high="' + (item.high || item.price * 1.005) + '" data-low="' + (item.low || item.price * 0.992) + '" data-close="' + (item.close || item.price) + '"><div class="instrument-info"><div class="instrument-symbol">' + escapeHtml(item.name) + '</div><div class="instrument-name">' + escapeHtml(item.symbol) + '</div></div><div class="instrument-price-area"><div class="price-value">' + priceVal + '</div><div class="change-badge ' + changeClass + '">' + item.change + '</div></div><button class="instrument-delete-btn" data-delete-idx="' + idx + '" aria-label="Delete ' + escapeHtml(item.name) + '"><i class="fas fa-trash"></i></button></div></div>';
             }
         });
         html += '</div>';
@@ -649,12 +649,24 @@ export default function WatchlistPage() {
             const idx = parseInt(card.getAttribute('data-card-idx'));
             if (!selectionMode) {
                 card.addEventListener('click', (e) => {
+                    if (e.target.closest('.instrument-delete-btn')) return;
                     openDetailSheet({ name: card.dataset.name, symbol: card.dataset.symbol, price: parseFloat(card.dataset.price), change: card.dataset.change, segment: card.dataset.segment, contractDate: card.dataset.contract, open: parseFloat(card.dataset.open), high: parseFloat(card.dataset.high), low: parseFloat(card.dataset.low), close: parseFloat(card.dataset.close) });
                 });
                 card.addEventListener('touchstart', () => { longPressTimer = setTimeout(() => { if (watchlistItems.length > 0) { enterSelectionMode(); } }, 500); }, { passive: true });
                 card.addEventListener('touchend', () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } });
                 card.addEventListener('touchmove', () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } });
             }
+        });
+
+        document.querySelectorAll('.instrument-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const deleteIdx = parseInt(btn.getAttribute('data-delete-idx'));
+                const removed = watchlistItems[deleteIdx];
+                watchlistItems.splice(deleteIdx, 1);
+                renderWatchlist();
+                showToast('Removed ' + removed.name);
+            });
         });
 
         if (selectionMode) {

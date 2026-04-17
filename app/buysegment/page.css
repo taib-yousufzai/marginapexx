@@ -1,6 +1,9 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background: #F5F7FB; color: #1A1E2B; height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: #F5F7FB; color: #1A1E2B; height: 100vh; }
+        @media (max-width: 500px) {
+            body:has(.mobile-app) { overflow: hidden; }
+        }
         .mobile-app { display: flex; flex-direction: column; height: 100vh; width: 100%; max-width: 500px; margin: 0 auto; background: #FFFFFF; box-shadow: 0 0 20px rgba(0,0,0,0.05); position: relative; overflow: hidden; }
         @media (max-width: 500px) {
             body {
@@ -222,3 +225,46 @@
         .btn-confirm-sell { background: #C62E2E; color: white; }
     
 
+
+    /* ── Tablet (501px+) ── */
+        @media (min-width: 501px) {
+            .mobile-app {
+                max-width: 900px;
+                height: auto;
+                min-height: 100dvh;
+                overflow: visible;
+            }
+            .watchlist-card-list {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .folder-drawer {
+                position: relative;
+                transform: none;
+                width: 280px;
+                height: auto;
+                box-shadow: none;
+                border-left: 1px solid var(--border-light);
+            }
+            .drawer-overlay { display: none; }
+            .trade-sheet,
+            .order-fullpage {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+        }
+
+        /* ── Desktop (1024px+) ── */
+        @media (min-width: 1024px) {
+            .mobile-app {
+                max-width: 100%;
+                width: 100%;
+                height: auto;
+                min-height: 100dvh;
+                margin: 0;
+                padding-left: var(--sidebar-width);
+            }
+            .watchlist-card-list {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }

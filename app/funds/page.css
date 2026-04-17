@@ -246,3 +246,52 @@ body.dark .balance-card {
 .submit-funds-btn:active {
   transform: scale(0.98);
 }
+
+/* ========================================================
+   TABLET LAYOUT (501px – 1023px)
+   ======================================================== */
+@media (min-width: 501px) {
+  .funds-shell {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  .quick-amounts {
+    /* Keep 4-column grid, increase button padding */
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .quick-btn {
+    padding: 14px 0;
+  }
+}
+
+/* ========================================================
+   DESKTOP LAYOUT (>= 1024px)
+   ======================================================== */
+@media (min-width: 1024px) {
+  .funds-shell {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  /* Balance card and payment form side-by-side in 2-column grid */
+  .funds-shell .content-padded {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    padding-top: 32px;
+  }
+
+  .funds-shell .balance-card {
+    margin-bottom: 0;
+  }
+
+  .funds-shell .funds-tabs {
+    margin-top: 20px;
+  }
+}

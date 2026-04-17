@@ -154,9 +154,26 @@ body.dark .footer-nav[data-active="history"]::before {
 }
 
 /* ============================
+   TABLET EXPANSION (501px+)
+   ============================ */
+@media (min-width: 501px) {
+  .footer-section {
+    max-width: 100%;
+  }
+
+  .footer-icon {
+    font-size: 1.45rem;
+  }
+
+  .footer-label {
+    font-size: 0.65rem;
+  }
+}
+
+/* ============================
    ARK-STYLE ACCOUNT DRAWER
    ============================ */
-@media (min-width: 769px) {
+@media (min-width: 501px) {
   .account-drawer-ark {
     display: none !important;
   }

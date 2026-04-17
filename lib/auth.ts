@@ -13,14 +13,33 @@ export type SignInResult =
   | { session?: never; user?: never; error: string };
 
 /**
+ * Discriminated union returned by requestPasswordReset and updatePassword.
+ * On success: { success: true }
+ * On failure: { error }
+ */
+export type PasswordResetResult =
+  | { success: true }
+  | { error: string };
+
+/**
+ * All valid application roles.
+ * Stored in user.user_metadata.role.
+ */
+export type AppRole = 'super_admin' | 'admin' | 'broker' | 'user';
+
+/**
  * Returns the role of the given Supabase user.
- * Returns 'admin' only when user.user_metadata.role strictly equals 'admin'.
+ * Uses strict equality checks for each of the four known role strings.
  * Returns 'user' for all other inputs (null user, missing field, any other value).
  *
- * Validates: Requirements 5.1, 5.2, 5.4
+ * Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
  */
-export function getRole(user: User | null): 'admin' | 'user' {
-  return user?.user_metadata?.role === 'admin' ? 'admin' : 'user';
+export function getRole(user: User | null): AppRole {
+  const role = user?.user_metadata?.role;
+  if (role === 'super_admin') return 'super_admin';
+  if (role === 'admin') return 'admin';
+  if (role === 'broker') return 'broker';
+  return 'user';
 }
 
 // ─── Auth functions ───────────────────────────────────────────────────────────
@@ -57,6 +76,55 @@ export async function signOut(): Promise<void> {
     console.error('signOut error:', error);
   }
   window.location.href = '/login';
+}
+
+/**
+ * Requests a password reset email for the given address via Supabase Auth.
+ *
+ * On success returns { success: true }.
+ * On any error returns { error: "Something went wrong. Please try again." } —
+ * the raw Supabase error is never surfaced to callers.
+ *
+ * Validates: Requirements 5.1, 5.3, 5.5
+ */
+export async function requestPasswordReset(email: string): Promise<PasswordResetResult> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      return { error: 'Something went wrong. Please try again.' };
+    }
+
+    return { success: true };
+  } catch {
+    return { error: 'Something went wrong. Please try again.' };
+  }
+}
+
+/**
+ * Updates the current user's password via Supabase Auth.
+ * Requires an active PASSWORD_RECOVERY session.
+ *
+ * On success returns { success: true }.
+ * On any error returns { error: "Failed to update password. Please try again or request a new reset link." } —
+ * the raw Supabase error is never surfaced to callers.
+ *
+ * Validates: Requirements 5.2, 5.4, 5.6
+ */
+export async function updatePassword(newPassword: string): Promise<PasswordResetResult> {
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      return { error: 'Failed to update password. Please try again or request a new reset link.' };
+    }
+
+    return { success: true };
+  } catch {
+    return { error: 'Failed to update password. Please try again or request a new reset link.' };
+  }
 }
 
 // ─── Session helpers ──────────────────────────────────────────────────────────

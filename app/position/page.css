@@ -14,11 +14,13 @@
   overflow: hidden;
 }
 
-/* Lock html/body scroll when on positions page */
-html:has(.pos-root),
-body:has(.pos-root) {
-  height: 100dvh;
-  overflow: hidden;
+/* Lock html/body scroll when on positions page — mobile only */
+@media (max-width: 500px) {
+  html:has(.pos-root),
+  body:has(.pos-root) {
+    height: 100dvh;
+    overflow: hidden;
+  }
 }
 
 /* Mobile shell card */
@@ -599,6 +601,79 @@ body.dark .pos-detail-margin-val { color: #D0D0D0; }
 .pos-content::-webkit-scrollbar-thumb {
   background: #CBD5E1;
   border-radius: 10px;
+}
+
+/* ── Tablet (501px – 1023px) ─────────────────── */
+@media (min-width: 501px) {
+  .pos-root {
+    align-items: stretch;
+  }
+
+  .pos-shell {
+    max-width: 900px;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .pos-pnl-card-body {
+    justify-content: space-between;
+  }
+
+  .pos-pnl-col.left,
+  .pos-pnl-col.center,
+  .pos-pnl-col.right {
+    flex: 1;
+  }
+
+  .pos-sheet {
+    position: absolute;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .pos-sheet.open {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ── Desktop (≥1024px) ───────────────────────── */
+@media (min-width: 1024px) {
+  .pos-root {
+    align-items: stretch;
+  }
+
+  .pos-shell {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    margin: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  .pos-pnl-card-body {
+    justify-content: space-between;
+    gap: 32px;
+  }
+
+  .pos-pnl-col.left,
+  .pos-pnl-col.center,
+  .pos-pnl-col.right {
+    flex: 1;
+  }
+
+  .pos-sheet {
+    position: absolute;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .pos-sheet.open {
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* ── Dark Mode ────────────────────────────────── */

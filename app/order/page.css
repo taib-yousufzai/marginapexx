@@ -15,11 +15,13 @@
   overflow: hidden;
 }
 
-/* Lock html/body scroll when on orders page */
-html:has(.ord-root),
-body:has(.ord-root) {
-  height: 100dvh;
-  overflow: hidden;
+/* Lock html/body scroll when on orders page — mobile only */
+@media (max-width: 500px) {
+  html:has(.ord-root),
+  body:has(.ord-root) {
+    height: 100dvh;
+    overflow: hidden;
+  }
 }
 
 /* Shell */
@@ -482,4 +484,48 @@ body.dark .ord-empty          { background: #252525; border-color: #333; color: 
 
 .apex-text {
   color: #006400;
+}
+
+/* ── Responsive: Tablet (501px+) ─────────────── */
+@media (min-width: 501px) {
+  .ord-root {
+    align-items: stretch;
+  }
+
+  .ord-shell {
+    max-width: 900px;
+    overflow: visible;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .ord-confirm-sheet {
+    position: absolute;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+/* ── Responsive: Desktop (1024px+) ───────────── */
+@media (min-width: 1024px) {
+  .ord-root {
+    align-items: stretch;
+  }
+
+  .ord-shell {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    margin: 0;
+    padding-left: var(--sidebar-width);
+  }
+
+  .ord-confirm-sheet {
+    position: absolute;
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }

@@ -2349,3 +2349,115 @@ body.dark #basketClearBtn {
     background: #2A2A2A !important;
     color: #888 !important;
 }
+
+/* Delete button: hidden on mobile, shown on tablet/desktop via media query */
+.instrument-delete-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: #FEF0F0;
+    color: #C62E2E;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.15s, transform 0.15s;
+    margin-left: 8px;
+}
+
+.instrument-delete-btn:hover {
+    background: #C62E2E;
+    color: #FFFFFF;
+}
+
+.instrument-delete-btn:active {
+    transform: scale(0.9);
+}
+
+body.dark .instrument-delete-btn {
+    background: #3A1A1A;
+    color: #F87171;
+}
+
+body.dark .instrument-delete-btn:hover {
+    background: #C62E2E;
+    color: #FFFFFF;
+}
+
+/* =============================================
+   RESPONSIVE — TABLET (≥501px)
+   ============================================= */
+@media (min-width: 501px) {
+    /* Shell: expand and allow natural scroll */
+    .mobile-app {
+        max-width: 900px;
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+
+    /* Instrument grid: 2-column layout */
+    .watchlist-card-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    /* Folder drawer: persistent sidebar (no longer a slide-in overlay) */
+    .folder-drawer {
+        position: relative;
+        transform: none;
+        width: 280px;
+        height: auto;
+        box-shadow: none;
+        border-left: 1px solid var(--border-light, #E8ECF0);
+    }
+
+    /* Hide the toggle button and overlay — drawer is always visible */
+    .folder-btn,
+    .drawer-overlay {
+        display: none !important;
+    }
+
+    /* Flex row: folder sidebar + main content side by side */
+    .watchlist-layout {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 0;
+    }
+
+    /* Trade sheet: constrained and centred */
+    .trade-sheet {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    /* Delete button: visible on tablet/desktop */
+    .instrument-delete-btn {
+        display: flex;
+    }
+}
+
+/* =============================================
+   RESPONSIVE — DESKTOP (≥1024px)
+   ============================================= */
+@media (min-width: 1024px) {
+    /* Shell: full desktop width with sidebar offset */
+    .mobile-app {
+        max-width: 100%;
+        width: 100%;
+        height: auto;
+        min-height: 100dvh;
+        margin: 0;
+        padding-left: var(--sidebar-width, 80px);
+    }
+
+    /* Instrument grid: 3-column layout */
+    .watchlist-card-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

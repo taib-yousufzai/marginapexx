@@ -422,3 +422,49 @@ body.dark .history-root .footer-value {
 body.dark .history-root .price-value {
     color: #F5F5F5 !important;
 }
+
+
+/* ===== TABLET (501px+) ===== */
+@media (min-width: 501px) {
+    .history-root {
+        max-width: 900px;
+        margin: 0 auto;
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+
+    .history-root .history-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .history-root .history-footer {
+        position: sticky;
+        bottom: 0;
+        max-width: 900px;
+        left: auto;
+        transform: none;
+    }
+}
+
+/* ===== DESKTOP (1024px+) ===== */
+@media (min-width: 1024px) {
+    .history-root {
+        max-width: 100%;
+        width: 100%;
+        height: auto;
+        min-height: 100dvh;
+        margin: 0;
+        padding-left: var(--sidebar-width);
+    }
+
+    .history-root .history-list {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .history-root .history-footer {
+        max-width: 1280px;
+    }
+}
