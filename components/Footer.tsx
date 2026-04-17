@@ -9,7 +9,6 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
-  console.log('Footer CSS Loaded');
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const handleAreaRef = useRef<HTMLDivElement>(null);

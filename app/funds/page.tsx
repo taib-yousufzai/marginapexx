@@ -9,17 +9,21 @@ import Footer from '../../components/Footer';
 export default function FundsPage() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState<string>('500');
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getSession()) {
-      router.replace('/login');
-    } else {
-      setIsChecking(false);
-    }
+    let cancelled = false;
+    getSession().then((session) => {
+      if (cancelled) return;
+      if (!session) {
+        router.replace('/login');
+      } else {
+        setIsChecking(false);
+      }
+    });
+    return () => { cancelled = true; };
   }, [router]);
 
   // Parse "?tab=withdraw" flag
@@ -32,7 +36,6 @@ export default function FundsPage() {
 
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
     if (savedTheme) {
-      setTheme(savedTheme);
       document.body.className = savedTheme;
     }
   }, []);

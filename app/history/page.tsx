@@ -13,11 +13,16 @@ export default function HistoryPage() {
     const [toDate, setToDate] = useState('2026-03-30');
 
     useEffect(() => {
-        if (!getSession()) {
-            router.replace('/login');
-        } else {
-            setIsChecking(false);
-        }
+        let cancelled = false;
+        getSession().then((session) => {
+            if (cancelled) return;
+            if (!session) {
+                router.replace('/login');
+            } else {
+                setIsChecking(false);
+            }
+        });
+        return () => { cancelled = true; };
     }, [router]);
 
     useEffect(() => {

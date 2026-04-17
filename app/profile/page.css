@@ -6,9 +6,21 @@
     max-width: 500px;
     margin: 0 auto;
     background: #F8FAFF;
-    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    box-shadow: 0 0 40px rgba(0,0,0,0.08);
     position: relative;
     overflow: hidden;
+}
+
+/* Desktop: fill the sides so the page doesn't look blank */
+@media (min-width: 501px) {
+    body {
+        background: #E8ECF2;
+        min-height: 100vh;
+    }
+
+    body.dark {
+        background: #0A0A0F;
+    }
 }
 
 .mobile-app .app-header {
