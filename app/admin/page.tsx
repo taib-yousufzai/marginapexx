@@ -1,77 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSession, getRole } from '@/lib/auth';
+import { getSession, getRole, signOut } from '@/lib/auth';
 import './page.css';
-
-// ─── Login Page ───────────────────────────────────────────────────────────────
-function LoginPage({ onLogin }: { onLogin: () => void }) {
-  const [userId, setUserId]     = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [error, setError]       = useState('');
-
-  const handleLogin = () => {
-    if (!userId.trim() || !password.trim()) {
-      setError('Please enter User ID and Password.');
-      return;
-    }
-    // Prototype: password = username (case-sensitive)
-    // TODO: Replace with real API call — e.g. POST /api/admin/login
-    const id = userId.trim();
-    const allUsers = DEMO_USERS.map(u => u.id);
-    if (!allUsers.includes(id) || password !== id) {
-      setError('Invalid User ID or Password.');
-      return;
-    }
-    onLogin();
-  };
-
-  return (
-    <div className="login-root">
-      <div className="login-card">
-        <h1 className="login-heading">
-          Start Your <span className="login-heading-accent">Trading Journey</span>
-        </h1>
-
-        <div className="login-field">
-          <label className="login-label">User Id</label>
-          <input
-            className="login-input"
-            type="text"
-            placeholder="Temp001 or you@example.com"
-            value={userId}
-            onChange={e => { setUserId(e.target.value); setError(''); }}
-          />
-        </div>
-
-        <div className="login-field">
-          <label className="login-label">Password:</label>
-          <div className="login-input-wrap">
-            <input
-              className="login-input"
-              type={showPass ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={password}
-              onChange={e => { setPassword(e.target.value); setError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            />
-            <button className="login-eye" onClick={() => setShowPass(v => !v)} tabIndex={-1}>
-              {showPass
-                ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              }
-            </button>
-          </div>
-        </div>
-
-        {error && <div className="login-error">{error}</div>}
-
-        <button className="login-btn" onClick={handleLogin}>Login</button>
-      </div>
-    </div>
-  );
-}
 
 const navItems = [
   { key: 'telegram', label: 'TELEGRAM' },
@@ -91,15 +22,13 @@ const navItems = [
 export default function AdminPage() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authReady, setAuthReady]   = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [activePage, setActivePage] = useState('marketwatch');
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>(DEMO_USERS[0]);
 
-  // Route guard — sessionStorage so login resets on every new tab/browser open
+  // Route guard — Supabase session + admin role check
   useEffect(() => {
     getSession().then((session) => {
       if (!session) {
@@ -116,31 +45,16 @@ export default function AdminPage() {
   }, [router]);
 
   useEffect(() => {
-    const loggedIn = sessionStorage.getItem('adminLoggedIn') === 'true';
-    setIsLoggedIn(loggedIn);
-    if (loggedIn) {
-      const savedPage = sessionStorage.getItem('adminActivePage');
-      if (savedPage) setActivePage(savedPage);
-    }
-    setAuthReady(true);
+    const savedPage = sessionStorage.getItem('adminActivePage');
+    if (savedPage) setActivePage(savedPage);
   }, []);
 
-  // Don't render anything until auth state is resolved
   if (isChecking) return null;
-  if (!authReady) return <div style={{ background: '#0d1117', minHeight: '100vh' }} />;
 
-  const handleLogin = () => {
-    sessionStorage.setItem('adminLoggedIn', 'true');
-    setIsLoggedIn(true);
-  };
-
-  // Logout — clear session and redirect to login
+  // Logout — call Supabase signOut which redirects to /login
   const handleLogout = () => {
-    sessionStorage.removeItem('adminLoggedIn');
     sessionStorage.removeItem('adminActivePage');
-    setIsLoggedIn(false);
-    setDrawerOpen(false);
-    setActivePage('marketwatch');
+    signOut();
   };
 
   const handleNav = (key: string) => {
@@ -149,9 +63,6 @@ export default function AdminPage() {
     sessionStorage.setItem('adminActivePage', key);
     setDrawerOpen(false);
   };
-
-  // Show login page if not authenticated
-  if (!isLoggedIn) return <LoginPage onLogin={handleLogin} />;
 
   const handleUserCreated = (id: string, role: string) => {
     setCreatingUser(false);
@@ -206,27 +117,30 @@ export default function AdminPage() {
         onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
       />
 
-      {/* Top Bar */}
-      <div className="adm-topbar">
-        <button className="adm-hamburger" onClick={() => setDrawerOpen(true)}>
-          <span /><span /><span />
-        </button>
-        {(activePage === 'settings' || activePage === 'dashboard' || activePage === 'orders' || activePage === 'position' || activePage === 'update') && (
-          <button className="adm-hamburger-right" onClick={() => setUserPanelOpen(true)}>
+      {/* Main area: topbar + content */}
+      <div className="adm-main-area">
+        {/* Top Bar */}
+        <div className="adm-topbar">
+          <button className="adm-hamburger" onClick={() => setDrawerOpen(true)}>
             <span /><span /><span />
           </button>
-        )}
-      </div>
+          {(activePage === 'settings' || activePage === 'dashboard' || activePage === 'orders' || activePage === 'position' || activePage === 'update') && (
+            <button className="adm-hamburger-right" onClick={() => setUserPanelOpen(true)}>
+              <span /><span /><span />
+            </button>
+          )}
+        </div>
 
-      {/* Page Content */}
-      <div className="adm-content">
-        <PageContent
-          activePage={activePage}
-          selectedUser={selectedUser}
-          onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
-          onNavigate={(page) => { setActivePage(page); }}
-        />
-      </div>
+        {/* Page Content */}
+        <div className="adm-content">
+          <PageContent
+            activePage={activePage}
+            selectedUser={selectedUser}
+            onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
+            onNavigate={(page) => { setActivePage(page); }}
+          />
+        </div>
+      </div>{/* end adm-main-area */}
     </div>
   );
 }

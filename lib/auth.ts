@@ -63,12 +63,19 @@ export async function signOut(): Promise<void> {
 
 /**
  * Returns the current Supabase session, or null if the user is not authenticated.
- * Safe to call only inside useEffect or event handlers (never during SSR).
+ * Uses getUser() to ensure fresh user metadata (including role) is always current.
  *
  * Validates: Requirements 3.2
  */
 export async function getSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session ?? null;
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) return null;
+
+  // Refresh user data from server to get latest user_metadata (e.g. role)
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return null;
+
+  // Merge fresh user into session
+  return { ...sessionData.session, user: userData.user };
 }
 

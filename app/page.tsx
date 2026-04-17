@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
-import { getSession } from '@/lib/auth';
+import { getSession, getRole } from '@/lib/auth';
 import './page.css';
 
 // --- DATA CONSTANTS ---
@@ -76,9 +76,14 @@ export default function Page() {
       if (cancelled) return;
       if (!session) {
         router.replace('/login');
-      } else {
-        setIsChecking(false);
+        return;
       }
+      // Redirect admin users away from the regular user dashboard
+      if (getRole(session.user) === 'admin') {
+        router.replace('/admin');
+        return;
+      }
+      setIsChecking(false);
     });
     return () => { cancelled = true; };
   }, [router]);

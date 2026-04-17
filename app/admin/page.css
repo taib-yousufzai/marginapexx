@@ -4,13 +4,62 @@
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  max-width: 500px;
-  margin: 0 auto;
   background: #0d1117;
   color: #e6edf3;
   font-family: 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
+}
+
+/* Desktop: sidebar layout */
+@media (min-width: 768px) {
+  .adm-root {
+    flex-direction: row;
+  }
+
+  /* Sidebar always visible on desktop */
+  .adm-drawer {
+    position: relative !important;
+    transform: translateX(0) !important;
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid #21262d;
+    height: 100vh;
+    z-index: 1;
+  }
+
+  .adm-drawer-close { display: none; }
+  .adm-overlay { display: none !important; }
+
+  /* Hide topbar completely on desktop */
+  .adm-topbar { display: none !important; }
+
+  /* Main area takes remaining space */
+  .adm-main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .adm-content {
+    padding: 28px 32px;
+  }
+
+  /* Grid layouts on desktop */
+  .adm-db-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .adm-script-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adm-ord-stats {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 /* ===== TOP BAR ===== */

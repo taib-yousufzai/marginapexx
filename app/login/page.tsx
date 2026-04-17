@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, getSession } from '@/lib/auth';
+import { signIn, getSession, getRole } from '@/lib/auth';
 import './page.css';
 
 export default function LoginPage() {
@@ -22,11 +22,12 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Redirect to / if already authenticated (Requirement 5.2)
+  // Redirect based on role if already authenticated
   useEffect(() => {
     getSession().then((session) => {
       if (session) {
-        router.replace('/');
+        const role = getRole(session.user);
+        router.replace(role === 'admin' ? '/admin' : '/');
       }
     });
   }, [router]);
@@ -53,8 +54,8 @@ export default function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    setUsername('demo@marginapex.com');
-    setPassword('demo1234');
+    setUsername('demo@gmail.com');
+    setPassword('demo123');
     setUsernameError('');
     setPasswordError('');
     setFormError('');
@@ -62,10 +63,11 @@ export default function LoginPage() {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const result = await signIn('demo@marginapex.com', 'demo1234');
+    const result = await signIn('demo@gmail.com', 'demo123');
 
     if (!result.error) {
-      router.push('/');
+      const role = getRole(result.user);
+      router.push(role === 'admin' ? '/admin' : '/');
     } else {
       setFormError('Demo account unavailable. Please try again later.');
       setIsLoading(false);
@@ -96,7 +98,8 @@ export default function LoginPage() {
     const result = await signIn(username, password);
 
     if (!result.error) {
-      router.push('/');
+      const role = getRole(result.user);
+      router.push(role === 'admin' ? '/admin' : '/');
     } else {
       setFormError('Invalid credentials. Please try again.');
       setIsLoading(false);

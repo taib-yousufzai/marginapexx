@@ -3,21 +3,39 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
+import { supabase } from '@/lib/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
 import './page.css';
 
 export default function ProfilePage() {
     const router = useRouter();
     const [isChecking, setIsChecking] = useState(true);
     const [isDark, setIsDark] = useState(false);
+    const [session, setSession] = useState<Session | null>(null);
+    const [balance, setBalance] = useState<number | null>(null);
 
     useEffect(() => {
-        getSession().then((session) => {
-            if (!session) {
+        let cancelled = false;
+        getSession().then(async (s) => {
+            if (cancelled) return;
+            if (!s) {
                 router.replace('/login');
-            } else {
-                setIsChecking(false);
+                return;
+            }
+            setSession(s);
+            setIsChecking(false);
+
+            // Fetch balance from profiles table
+            const { data } = await supabase
+                .from('profiles')
+                .select('balance')
+                .eq('id', s.user.id)
+                .single();
+            if (!cancelled) {
+                setBalance(data?.balance ?? 0);
             }
         });
+        return () => { cancelled = true; };
     }, [router]);
 
     useEffect(() => {
@@ -30,12 +48,30 @@ export default function ProfilePage() {
 
     if (isChecking) return null;
 
+    // Derive display name from email
+    const email = session?.user?.email ?? '';
+    const displayName = email
+        ? email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'User';
+    const avatarLetter = displayName.charAt(0).toUpperCase();
+
+    // Generate a short client ID from the user UUID
+    const clientId = session?.user?.id
+        ? session.user.id.replace(/-/g, '').slice(0, 6).toUpperCase()
+        : 'N/A';
+
+    // Format balance as Indian currency
+    const formattedBalance = balance !== null
+        ? '₹' + balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : '—';
+
     const toggleDark = () => {
         const newDark = !isDark;
         setIsDark(newDark);
         document.body.classList.toggle('dark', newDark);
         localStorage.setItem('marginApexTheme', newDark ? 'dark' : 'light');
     };
+
     return (
         <div className="mobile-app">
             <div className="app-header">
@@ -51,23 +87,29 @@ export default function ProfilePage() {
 
             <div className="main-content">
                 <div className="profile-hero">
-                    <div className="avatar">D</div>
+                    <div className="avatar">{avatarLetter}</div>
                     <div className="profile-info">
-                        <h2>Daksh Sharma</h2>
-                        <span className="user-id">Client ID: DA12345</span>
+                        <h2>{displayName}</h2>
+                        <span className="user-email">{email}</span>
+                        <span className="user-id">Client ID: {clientId}</span>
                     </div>
                     <div className="edit-btn"><i className="fas fa-pen"></i></div>
                 </div>
 
                 <div className="funds-card">
                     <div className="funds-label">Available Margin</div>
-                    <div className="funds-amount">₹4,50,000.00</div>
+                    <div className="funds-amount">
+                        {balance === null ? (
+                            <span style={{ opacity: 0.5, fontSize: '1.4rem' }}>Loading…</span>
+                        ) : formattedBalance}
+                    </div>
                     <div className="funds-actions">
                         <button className="fund-btn add-btn"><i className="fas fa-plus"></i> Add Funds</button>
                         <button className="fund-btn wd-btn"><i className="fas fa-arrow-down"></i> Withdraw</button>
                     </div>
                 </div>
 
+                <div className="menu-groups-grid">
                 <div className="menu-group">
                     <div className="menu-group-title">Account & Details</div>
                     <div className="menu-list">
@@ -95,7 +137,7 @@ export default function ProfilePage() {
                         <div className="menu-item" onClick={toggleDark} style={{cursor:'pointer'}}>
                             <div className="m-icon" style={{background: '#FAF5FF', color: '#9333EA'}}><i className="fas fa-moon"></i></div>
                             <div className="m-text">Dark Mode</div>
-                            <div className={`toggle-switch ${isDark ? 'active' : ''}`} onClick={toggleDark}>
+                            <div className={`toggle-switch ${isDark ? 'active' : ''}`}>
                                 <div className="toggle-thumb"></div>
                             </div>
                         </div>
@@ -106,11 +148,12 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
-                
-                <button className="logout-btn" onClick={() => signOut()}><i className="fas fa-power-off"></i> Logout</button>
+                </div>
+
+                <button className="logout-btn" onClick={() => signOut()}>
+                    <i className="fas fa-power-off"></i> Logout
+                </button>
             </div>
-            
-            {/* Keeping it clean without the bottom nav since it's a dedicated subpage */}
         </div>
     );
 }
