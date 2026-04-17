@@ -66,7 +66,7 @@ export default function LoginPage() {
     const result = await signIn('demo@gmail.com', 'demo123');
 
     if (!result.error) {
-      const role = getRole(result.user);
+      const role = getRole(result.user ?? null);
       router.push(role === 'admin' ? '/admin' : '/');
     } else {
       setFormError('Demo account unavailable. Please try again later.');
@@ -98,7 +98,7 @@ export default function LoginPage() {
     const result = await signIn(username, password);
 
     if (!result.error) {
-      const role = getRole(result.user);
+      const role = getRole(result.user ?? null);
       router.push(role === 'admin' ? '/admin' : '/');
     } else {
       setFormError('Invalid credentials. Please try again.');
