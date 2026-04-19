@@ -4,26 +4,57 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { getSession, getRole } from '@/lib/auth';
+import KiteConnectButton from '@/components/KiteConnectButton';
+import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import './page.css';
 
-// --- DATA CONSTANTS ---
-const marketRow1 = [
-  { name: "NIFTY 50", price: 79842.35, change: 0.62, type: "positive", icon: "fas fa-chart-line" },
-  { name: "SENSEX", price: 264512.80, change: 0.48, type: "positive", icon: "fas fa-chart-simple" },
-  { name: "BANK NIFTY", price: 51234.65, change: 0.35, type: "positive", icon: "fas fa-building" },
-  { name: "USD/INR", price: 83.42, change: -0.18, type: "negative", icon: "fas fa-dollar-sign" },
-  { name: "EUR/USD", price: 1.0875, change: 0.12, type: "positive", icon: "fas fa-euro-sign" },
-  { name: "GBP/USD", price: 1.2640, change: -0.08, type: "negative", icon: "fas fa-pound-sign" }
+// --- Kite instrument keys for the market overview ---
+// Format: EXCHANGE:TRADINGSYMBOL
+const KITE_INSTRUMENTS_ROW1 = [
+  'NSE:NIFTY 50',
+  'BSE:SENSEX',
+  'NSE:NIFTY BANK',
+  'NSE:USDINR',
+];
+const KITE_INSTRUMENTS_ROW2 = [
+  'MCX:CRUDEOIL',
+  'MCX:GOLD',
+  'MCX:SILVER',
+  'MCX:NATURALGAS',
 ];
 
-const marketRow2 = [
-  { name: "USD/JPY", price: 151.42, change: -0.25, type: "negative", icon: "fas fa-chart-line" },
-  { name: "BTC/USD", price: 71892.40, change: 2.85, type: "positive", icon: "fab fa-bitcoin" },
-  { name: "ETH/USD", price: 3820.15, change: 1.92, type: "positive", icon: "fab fa-ethereum" },
-  { name: "XAU/USD", price: 2478.30, change: 0.95, type: "positive", icon: "fas fa-coins" },
-  { name: "XAG/USD", price: 28.90, change: 1.12, type: "positive", icon: "fas fa-gem" },
-  { name: "CRUDEOIL", price: 82.40, change: -0.45, type: "negative", icon: "fas fa-oil-can" }
+// --- Fallback static data (shown when Kite is not connected) ---
+const marketRow1Static = [
+  { name: "NIFTY 50",   price: 79842.35,  change: 0.62,  type: "positive", icon: "fas fa-chart-line" },
+  { name: "SENSEX",     price: 264512.80, change: 0.48,  type: "positive", icon: "fas fa-chart-simple" },
+  { name: "BANK NIFTY", price: 51234.65,  change: 0.35,  type: "positive", icon: "fas fa-building" },
+  { name: "USD/INR",    price: 83.42,     change: -0.18, type: "negative", icon: "fas fa-dollar-sign" },
+  { name: "EUR/USD",    price: 1.0875,    change: 0.12,  type: "positive", icon: "fas fa-euro-sign" },
+  { name: "GBP/USD",    price: 1.2640,    change: -0.08, type: "negative", icon: "fas fa-pound-sign" },
 ];
+
+const marketRow2Static = [
+  { name: "USD/JPY",   price: 151.42,   change: -0.25, type: "negative", icon: "fas fa-chart-line" },
+  { name: "BTC/USD",   price: 71892.40, change: 2.85,  type: "positive", icon: "fab fa-bitcoin" },
+  { name: "ETH/USD",   price: 3820.15,  change: 1.92,  type: "positive", icon: "fab fa-ethereum" },
+  { name: "XAU/USD",   price: 2478.30,  change: 0.95,  type: "positive", icon: "fas fa-coins" },
+  { name: "XAG/USD",   price: 28.90,    change: 1.12,  type: "positive", icon: "fas fa-gem" },
+  { name: "CRUDEOIL",  price: 82.40,    change: -0.45, type: "negative", icon: "fas fa-oil-can" },
+];
+
+// Maps Kite instrument key → display config
+const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
+  'NSE:NIFTY 50':    { name: 'NIFTY 50',    icon: 'fas fa-chart-line' },
+  'BSE:SENSEX':      { name: 'SENSEX',       icon: 'fas fa-chart-simple' },
+  'NSE:NIFTY BANK':  { name: 'BANK NIFTY',  icon: 'fas fa-building' },
+  'NSE:USDINR':      { name: 'USD/INR',      icon: 'fas fa-dollar-sign' },
+  'MCX:CRUDEOIL':    { name: 'CRUDE OIL',   icon: 'fas fa-oil-can' },
+  'MCX:GOLD':        { name: 'GOLD',         icon: 'fas fa-coins' },
+  'MCX:SILVER':      { name: 'SILVER',       icon: 'fas fa-gem' },
+  'MCX:NATURALGAS':  { name: 'NAT GAS',      icon: 'fas fa-fire' },
+};
+
+type MarketItem = { name: string; price: number; change: number; type: string; icon: string };
 
 const learningData = [
   { id: 1, name: "Try Algo", icon: "fas fa-chart-line", iconClass: "algo", badge: "Free", action: "algo" },
@@ -106,6 +137,31 @@ export default function Page() {
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [infoState, setInfoState] = useState<{ title: string, content: string } | null>(null);
+
+  // Live prices from Kite — only active after Kite OAuth login
+  const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
+  const { quotes, connected: kiteConnected } = useKiteQuotes(allKiteInstruments, 5000);
+
+  // Build market rows — use live data if connected, else static fallback
+  const buildRow = (instruments: string[], staticFallback: MarketItem[]): MarketItem[] => {
+    if (!kiteConnected || Object.keys(quotes).length === 0) return staticFallback;
+    return instruments.map((key, i) => {
+      const q = quotes[key];
+      const display = KITE_DISPLAY_MAP[key] ?? { name: key, icon: 'fas fa-chart-line' };
+      if (!q) return staticFallback[i] ?? { name: display.name, price: 0, change: 0, type: 'positive', icon: display.icon };
+      return {
+        name: display.name,
+        price: q.lastPrice,
+        change: q.changePercent,
+        type: q.changePercent >= 0 ? 'positive' : 'negative',
+        icon: display.icon,
+      };
+    });
+  };
+
+  const marketRow1 = buildRow(KITE_INSTRUMENTS_ROW1, marketRow1Static);
+  const marketRow2 = buildRow(KITE_INSTRUMENTS_ROW2, marketRow2Static);
+
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
@@ -205,6 +261,7 @@ export default function Page() {
         <div className="nav-icon-btn" onClick={handleNavNotification}><i className="fas fa-bell"></i></div>
         <div className="nav-app-name">MARGIN<span style={{ color: '#006400' }}>APEX</span></div>
         <div className="nav-group">
+          <KiteConnectButton />
           <div className="nav-icon-btn" onClick={toggleTheme}><i className={theme === 'dark' ? "fas fa-sun" : "fas fa-moon"}></i></div>
           <div className="nav-funds" onClick={handleNavFunds}><i className="fas fa-coins"></i><span>Funds</span></div>
           <div className="nav-icon-btn" onClick={handleNavSettings}><i className="fas fa-user-cog"></i></div>
@@ -283,6 +340,22 @@ export default function Page() {
               <div className="market-overview">
                 <div className="overview-header">
                   <h4>Live Market Overview</h4>
+                  {kiteConnected && (
+                    <span style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      color: '#059669',
+                      background: 'rgba(5,150,105,0.1)',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
+                      LIVE
+                    </span>
+                  )}
                 </div>
                 <div className="markets-two-rows">
                   {[marketRow1, marketRow2].map((row, rowIdx) => (
