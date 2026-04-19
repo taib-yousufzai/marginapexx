@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, getRole, signOut } from '@/lib/auth';
+import KiteConnectButton from '@/components/KiteConnectButton';
 import './page.css';
 
 const navItems = [
@@ -124,6 +125,7 @@ export default function AdminPage() {
           <button className="adm-hamburger" onClick={() => setDrawerOpen(true)}>
             <span /><span /><span />
           </button>
+          <KiteConnectButton />
           {(activePage === 'settings' || activePage === 'dashboard' || activePage === 'orders' || activePage === 'position' || activePage === 'update') && (
             <button className="adm-hamburger-right" onClick={() => setUserPanelOpen(true)}>
               <span /><span /><span />

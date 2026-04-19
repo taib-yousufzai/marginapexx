@@ -46,6 +46,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const requestToken = searchParams.get('request_token');
   const status = searchParams.get('status');
 
+  // Kite may send action=login&type=login alongside status=success — that's fine
   if (!requestToken || status !== 'success') {
     return NextResponse.redirect(new URL('/login?kite_error=cancelled', request.url));
   }
