@@ -26,6 +26,8 @@
     border-right: 1px solid #21262d;
     height: 100vh;
     z-index: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .adm-drawer-close { display: none; }
@@ -164,6 +166,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  flex: 1; /* push Kite button to bottom */
 }
 .adm-nav::-webkit-scrollbar { display: none; }
 

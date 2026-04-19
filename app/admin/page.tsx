@@ -107,6 +107,10 @@ export default function AdminPage() {
             </div>
           ))}
         </nav>
+        {/* Kite connect — pinned to bottom of sidebar */}
+        <div style={{ padding: '16px', borderTop: '1px solid #21262d', marginTop: 'auto' }}>
+          <KiteConnectButton />
+        </div>
       </div>
 
       {/* User Panel */}
