@@ -25,7 +25,8 @@ export interface AdminContext {
 function createAdminClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) throw new Error('Server configuration error');
+  if (!url) throw new Error('Missing env: NEXT_PUBLIC_SUPABASE_URL');
+  if (!serviceKey) throw new Error('Missing env: SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -66,23 +67,26 @@ export async function requireAdmin(
   }
 
   // Step 2: Create admin client
-  // Validates: Requirement 2.7
-  const adminClient = createAdminClient();
+  let adminClient: SupabaseClient;
+  try {
+    adminClient = createAdminClient();
+  } catch (e) {
+    console.error('[requireAdmin] createAdminClient failed:', e);
+    return Response.json({ error: 'Server configuration error' }, { status: 500 });
+  }
 
   // Step 3: Validate session via admin client
-  // Validates: Requirements 2.3, 2.4
   const { data: userData, error: userError } = await adminClient.auth.getUser(token);
   if (userError || !userData?.user) {
+    console.error('[requireAdmin] getUser failed:', userError?.message);
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // Step 4: Determine caller role and assert admin or super_admin
-  // Validates: Requirements 2.5, 2.6
   const role = getRole(userData.user);
   if (role !== 'admin' && role !== 'super_admin') {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // Step 5: Return context
   return { adminClient, callerUser: userData.user };
 }

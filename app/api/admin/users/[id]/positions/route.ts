@@ -1,0 +1,151 @@
+/**
+ * GET /api/admin/users/[id]/positions
+ *
+ * Returns positions for a given user, with optional tab filtering, symbol search,
+ * and pagination.
+ *
+ * Validates: Requirements 7.1–7.6, 12.1–12.6
+ */
+
+import { requireAdmin } from '../../../_auth';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type PositionItem = {
+  id: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  status: 'open' | 'active' | 'closed';
+  pnl: number;
+  qty_open: number;
+  qty_total: number;
+  avg_price: number;
+  entry_price: number;
+  ltp: number | null;
+  exit_price: number | null;
+  duration_seconds: number;
+  brokerage: number;
+  sl: number | null;
+  tp: number | null;
+  entry_time: string;
+  exit_time: string | null;
+  settlement: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> | { id: string } },
+): Promise<Response> {
+  try {
+    // Step 1: Authenticate and authorize the caller
+    // Validates: Requirements 12.1–12.6
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof Response) return authResult;
+    const { adminClient } = authResult;
+
+    // Step 2: Resolve params
+    const resolvedParams = await Promise.resolve(params);
+    const id = resolvedParams.id;
+
+    // Step 3: Parse query params
+    // Validates: Requirements 7.3–7.6
+    const url = new URL(request.url);
+    const tab = url.searchParams.get('tab') ?? null;
+    const search = url.searchParams.get('search') ?? null;
+    const rowsParam = url.searchParams.get('rows') ?? null;
+    const pageParam = url.searchParams.get('page') ?? null;
+    const rows = rowsParam ? parseInt(rowsParam, 10) : 100;
+    const page = pageParam ? parseInt(pageParam, 10) : 0;
+
+    // Step 4: Build query — filter by user_id, select all PositionItem fields
+    // Validates: Requirement 7.2
+    let query = adminClient
+      .from('positions')
+      .select(
+        'id, symbol, side, status, pnl, qty_open, qty_total, avg_price, entry_price, ltp, exit_price, duration_seconds, brokerage, sl, tp, entry_time, exit_time, settlement',
+      )
+      .eq('user_id', id);
+
+    // Step 5: Apply tab filter
+    // Validates: Requirements 7.3, 7.4, 7.5
+    if (tab === 'open') {
+      query = query.eq('status', 'open');
+    } else if (tab === 'active') {
+      query = query.eq('status', 'active');
+    } else if (tab === 'closed') {
+      query = query.eq('status', 'closed');
+    }
+    // default (no tab) → no status filter
+
+    // Step 6: Apply symbol search filter
+    if (search) {
+      query = query.ilike('symbol', `%${search}%`);
+    }
+
+    // Step 7: Apply pagination
+    // Validates: Requirement 7.6
+    const from = page * rows;
+    const to = from + rows - 1;
+    query = query.range(from, to);
+
+    const { data, error } = await query;
+
+    if (error) {
+      return Response.json({ error: 'Internal server error' }, { status: 500 });
+    }
+
+    // Step 8: Return PositionItem[]
+    // Validates: Requirement 7.1
+    const positions: PositionItem[] = (data ?? []).map(
+      (row: {
+        id: string;
+        symbol: string;
+        side: string;
+        status: string;
+        pnl: number;
+        qty_open: number;
+        qty_total: number;
+        avg_price: number;
+        entry_price: number;
+        ltp: number | null;
+        exit_price: number | null;
+        duration_seconds: number;
+        brokerage: number;
+        sl: number | null;
+        tp: number | null;
+        entry_time: string;
+        exit_time: string | null;
+        settlement: string | null;
+      }) => ({
+        id: row.id,
+        symbol: row.symbol,
+        side: row.side as 'BUY' | 'SELL',
+        status: row.status as 'open' | 'active' | 'closed',
+        pnl: row.pnl,
+        qty_open: row.qty_open,
+        qty_total: row.qty_total,
+        avg_price: row.avg_price,
+        entry_price: row.entry_price,
+        ltp: row.ltp,
+        exit_price: row.exit_price,
+        duration_seconds: row.duration_seconds,
+        brokerage: row.brokerage,
+        sl: row.sl,
+        tp: row.tp,
+        entry_time: row.entry_time,
+        exit_time: row.exit_time,
+        settlement: row.settlement,
+      }),
+    );
+
+    return Response.json(positions, { status: 200 });
+  } catch {
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

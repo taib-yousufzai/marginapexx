@@ -162,7 +162,7 @@ export default function AdminPage() {
   const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [activePage, setActivePage] = useState('marketwatch');
-  const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>(DEMO_USERS[0]);
+  const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>({ id: '', role: '' });
 
   // Route guard — Supabase session + admin role check
   useEffect(() => {
@@ -333,50 +333,37 @@ function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
   );
 }
 
-// ─── Default stocks ───────────────────────────────────────────────────────────
-const DEFAULT_SCRIPTS = [
-  { symbol: 'ETHUSD',    lotSize: 35 },
-  { symbol: 'XRPUSD',   lotSize: 60000 },
-  { symbol: 'LTCUSD',   lotSize: 1400 },
-  { symbol: 'SOLUSD',   lotSize: 900 },
-  { symbol: 'BNBUSD',   lotSize: 200 },
-  { symbol: 'ADAUSD',   lotSize: 15000 },
-  { symbol: 'DOTUSD',   lotSize: 2500 },
-  { symbol: 'MATICUSD', lotSize: 20000 },
-  { symbol: 'LINKUSD',  lotSize: 1200 },
-  { symbol: 'AVAXUSD',  lotSize: 500 },
-  { symbol: 'ATOMUSD',  lotSize: 800 },
-  { symbol: 'UNIUSD',   lotSize: 1800 },
-  { symbol: 'AAVEUSD',  lotSize: 60 },
-  { symbol: 'FILUSD',   lotSize: 700 },
-  { symbol: 'TRXUSD',   lotSize: 80000 },
-  // Equity / Forex
-  { symbol: 'NIFTY',    lotSize: 50 },
-  { symbol: 'BANKNIFTY',lotSize: 25 },
-  { symbol: 'SENSEX',   lotSize: 15 },
-  { symbol: 'FINNIFTY', lotSize: 40 },
-  { symbol: 'MIDCPNIFTY',lotSize: 75 },
-  { symbol: 'EURUSD',   lotSize: 100000 },
-  { symbol: 'GBPUSD',   lotSize: 100000 },
-  { symbol: 'USDJPY',   lotSize: 100000 },
-  { symbol: 'AUDUSD',   lotSize: 100000 },
-  { symbol: 'USDCAD',   lotSize: 100000 },
-  // Commodities
-  { symbol: 'XAUUSD',   lotSize: 100 },
-  { symbol: 'XAGUSD',   lotSize: 5000 },
-  { symbol: 'CRUDEOIL', lotSize: 100 },
-  { symbol: 'NATURALGAS',lotSize: 10000 },
-  { symbol: 'BTCUSD',   lotSize: 1 },
-];
-
-type Script = { symbol: string; lotSize: number };
+// ─── Script settings (loaded from DB) ────────────────────────────────────────
+type Script = { id: string; symbol: string; lotSize: number };
 
 function SettingsPage() {
-  const [scripts, setScripts] = useState<Script[]>(DEFAULT_SCRIPTS);
+  // Validates: Requirements 5.9–5.10, 13.4, 14.1–14.10
+  const [scripts, setScripts] = useState<Script[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [formSymbol, setFormSymbol] = useState('');
   const [formLot, setFormLot] = useState('');
+  const [toast, setToast] = useState<ToastState>(null);
+
+  // Fetch scripts from DB on mount
+  const fetchScripts = () => {
+    apiCall('/api/admin/settings/scripts', { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        const rows = data as { id: string; symbol: string; lot_size: number }[];
+        setScripts(rows.map(r => ({ id: r.id, symbol: r.symbol, lotSize: r.lot_size })));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  };
+
+  useEffect(() => {
+    fetchScripts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openAdd = () => {
     setEditIdx(null);
@@ -394,17 +381,51 @@ function SettingsPage() {
 
   const handleSave = () => {
     if (!formSymbol.trim() || !formLot.trim()) return;
-    const entry: Script = { symbol: formSymbol.trim().toUpperCase(), lotSize: Number(formLot) };
+    const symbol = formSymbol.trim().toUpperCase();
+    const lot_size = Number(formLot);
     if (editIdx !== null) {
-      setScripts(prev => prev.map((s, i) => i === editIdx ? entry : s));
+      // Edit: PATCH existing entry
+      const id = scripts[editIdx].id;
+      apiCall(`/api/admin/settings/scripts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ symbol, lot_size }),
+      }).then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        fetchScripts();
+      }).catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
     } else {
-      setScripts(prev => [...prev, entry]);
+      // Add: POST new entry
+      apiCall('/api/admin/settings/scripts', {
+        method: 'POST',
+        body: JSON.stringify({ symbol, lot_size }),
+      }).then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        fetchScripts();
+      }).catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
     }
     setShowModal(false);
   };
 
   const handleDelete = (i: number) => {
-    setScripts(prev => prev.filter((_, j) => j !== i));
+    const id = scripts[i].id;
+    apiCall(`/api/admin/settings/scripts/${id}`, { method: 'DELETE' })
+      .then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        fetchScripts();
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
   };
 
   const handleClose = () => {
@@ -414,6 +435,7 @@ function SettingsPage() {
 
   return (
     <div className="adm-page">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* breadcrumb-style tab */}
       <div className="adm-settings-tab">Script Lot Settings</div>
 
@@ -499,93 +521,68 @@ function SettingsPage() {
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 
-// Static per-user data — only the 5 original sections
-const USER_DATA: Record<string, Record<string, string>> = {
-  QEE875: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '17,800', 'TOTAL DEPOSITS': '27,800', 'TOTAL WITHDRAWALS': '10,000', 'AVG DEPOSIT': '2,138.462', 'AVG WITHDRAWAL': '10,000',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-17800.04', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  BMC986: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '8,500', 'TOTAL DEPOSITS': '12,000', 'TOTAL WITHDRAWALS': '3,500', 'AVG DEPOSIT': '1,500.000', 'AVG WITHDRAWAL': '3,500',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-8500.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  SJE055: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '5,200', 'TOTAL DEPOSITS': '8,000', 'TOTAL WITHDRAWALS': '2,800', 'AVG DEPOSIT': '1,600.000', 'AVG WITHDRAWAL': '2,800',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-5200.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  KWF295: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '22,400', 'TOTAL DEPOSITS': '35,000', 'TOTAL WITHDRAWALS': '12,600', 'AVG DEPOSIT': '3,500.000', 'AVG WITHDRAWAL': '12,600',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-22400.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  JBI977: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '17,800', 'TOTAL DEPOSITS': '27,800', 'TOTAL WITHDRAWALS': '10,000', 'AVG DEPOSIT': '2,138.462', 'AVG WITHDRAWAL': '10,000',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-17800.04', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  CXF406: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '4,100', 'TOTAL DEPOSITS': '6,500', 'TOTAL WITHDRAWALS': '2,400', 'AVG DEPOSIT': '1,300.000', 'AVG WITHDRAWAL': '2,400',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-4100.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  SDR001: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '1,24,500', 'TOTAL DEPOSITS': '2,10,000', 'TOTAL WITHDRAWALS': '85,500', 'AVG DEPOSIT': '15,000.000', 'AVG WITHDRAWAL': '85,500',
-    'REGISTERED': '8', 'ADDED FUNDS': '8', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-15600.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '8',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
-  SIH008: {
-    'LEDGER BALANCE': '0', 'MARK-TO-MARKET': '0',
-    'NET': '9,300', 'TOTAL DEPOSITS': '14,000', 'TOTAL WITHDRAWALS': '4,700', 'AVG DEPOSIT': '2,000.000', 'AVG WITHDRAWAL': '4,700',
-    'REGISTERED': '1', 'ADDED FUNDS': '1', 'CONVERSION': '100.00%',
-    'AVG PROFIT': '—', 'AVG LOSS': '-9300.00', 'PROFITABLE CLIENTS': '—', 'LOSS-MAKING CLIENTS': '1',
-    'BUY POSITION': '—', 'SELL POSITION': '—', 'RATIO': '0%',
-  },
+type DashboardMetrics = {
+  ledger_balance: number; mark_to_market: number;
+  net: number; total_deposits: number; total_withdrawals: number;
+  avg_deposit: number; avg_withdrawal: number;
+  avg_profit: number; avg_loss: number;
+  profitable_clients: number; loss_making_clients: number;
+  buy_position_count: number; sell_position_count: number;
+  registered: number; added_funds: number; conversion: string;
 };
 
-function DashBoardSection({ title, fields, userId }: {
+function metricsToStore(m: DashboardMetrics | null): Record<string, string> {
+  if (!m) return {};
+  const ratio = m.buy_position_count + m.sell_position_count > 0
+    ? `${Math.round((m.buy_position_count / (m.buy_position_count + m.sell_position_count)) * 100)}%`
+    : '0%';
+  return {
+    'LEDGER BALANCE':      String(m.ledger_balance),
+    'MARK-TO-MARKET':      String(m.mark_to_market),
+    'NET':                 String(m.net),
+    'TOTAL DEPOSITS':      String(m.total_deposits),
+    'TOTAL WITHDRAWALS':   String(m.total_withdrawals),
+    'AVG DEPOSIT':         String(m.avg_deposit),
+    'AVG WITHDRAWAL':      String(m.avg_withdrawal),
+    'REGISTERED':          String(m.registered),
+    'ADDED FUNDS':         String(m.added_funds),
+    'CONVERSION':          m.conversion,
+    'AVG PROFIT':          m.avg_profit !== 0 ? String(m.avg_profit) : '—',
+    'AVG LOSS':            m.avg_loss !== 0 ? String(m.avg_loss) : '—',
+    'PROFITABLE CLIENTS':  m.profitable_clients !== 0 ? String(m.profitable_clients) : '—',
+    'LOSS-MAKING CLIENTS': m.loss_making_clients !== 0 ? String(m.loss_making_clients) : '—',
+    'BUY POSITION':        m.buy_position_count !== 0 ? String(m.buy_position_count) : '—',
+    'SELL POSITION':       m.sell_position_count !== 0 ? String(m.sell_position_count) : '—',
+    'RATIO':               ratio,
+  };
+}
+
+function DashBoardSection({ title, fields, metrics }: {
   title: string;
   fields: { label: string }[];
-  userId: string;
+  metrics: Record<string, string>;
 }) {
-  const [fetched, setFetched] = useState(false);
-  const userStore = USER_DATA[userId] ?? {};
+  const hasData = Object.keys(metrics).length > 0;
 
   return (
     <div className="adm-db-section">
       <div className="adm-db-section-header">
         <span className="adm-db-section-title">{title}</span>
-        <button className="adm-btn-primary adm-db-fetch-btn" onClick={() => setFetched(true)}>
+        <button className="adm-btn-primary adm-db-fetch-btn" onClick={() => {}}>
           Fetch
         </button>
       </div>
       <div className="adm-db-grid">
         {fields.map((f, i) => {
-          const raw = fetched ? (userStore[f.label] ?? '—') : '—';
+          const raw = hasData ? (metrics[f.label] ?? '—') : '—';
           const num = raw.replace(/,/g, '');
           const isNeg = num.startsWith('-') && raw !== '—';
           const isPos = !isNeg && raw !== '—' && raw !== '0' && !num.startsWith('—');
           // deposits/totals shown in green, withdrawals in red
           const greenLabels = ['TOTAL DEPOSITS','NET','ADDED FUNDS','AVG DEPOSIT','REGISTERED','CONVERSION','BUY POSITION','AVG PROFIT','PROFITABLE CLIENTS'];
           const redLabels   = ['TOTAL WITHDRAWALS','AVG WITHDRAWAL','AVG LOSS','LOSS-MAKING CLIENTS','SELL POSITION'];
-          const forceGreen  = fetched && raw !== '—' && raw !== '0' && greenLabels.includes(f.label);
-          const forceRed    = fetched && (isNeg || (raw !== '—' && redLabels.includes(f.label)));
+          const forceGreen  = hasData && raw !== '—' && raw !== '0' && greenLabels.includes(f.label);
+          const forceRed    = hasData && (isNeg || (raw !== '—' && redLabels.includes(f.label)));
           return (
             <div className="adm-db-cell" key={i}>
               <div className="adm-db-cell-label">{f.label}</div>
@@ -601,11 +598,34 @@ function DashBoardSection({ title, fields, userId }: {
 function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
+  const [metrics, setMetrics]   = useState<DashboardMetrics | null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [toast, setToast]       = useState<ToastState>(null);
 
   const uid = selectedUser.id;
 
+  useEffect(() => {
+    if (!uid) return;
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to', dateTo);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    apiCall(`/api/admin/users/${uid}/dashboard${query}`, { method: 'GET' }).then(({ ok, status, data }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      setMetrics(data as DashboardMetrics);
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    }).finally(() => setLoading(false));
+  }, [uid, dateFrom, dateTo]);
+
+  const metricsStore = metricsToStore(metrics);
+
   return (
     <div className="adm-db-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* User + date filter */}
       <div className="adm-db-top-card">
         <div className="adm-db-username">{selectedUser.id}
@@ -621,12 +641,12 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
         </div>
       </div>
 
-      <DashBoardSection key={uid+'bal'} userId={uid} title="BALANCE INFO" fields={[
+      <DashBoardSection key={uid+'bal'} metrics={metricsStore} title="BALANCE INFO" fields={[
         { label: 'LEDGER BALANCE' },
         { label: 'MARK-TO-MARKET' },
       ]} />
 
-      <DashBoardSection key={uid+'dep'} userId={uid} title="DEPOSITS & WITHDRAWALS" fields={[
+      <DashBoardSection key={uid+'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" fields={[
         { label: 'NET' },
         { label: 'TOTAL DEPOSITS' },
         { label: 'TOTAL WITHDRAWALS' },
@@ -634,20 +654,20 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
         { label: 'AVG WITHDRAWAL' },
       ]} />
 
-      <DashBoardSection key={uid+'reg'} userId={uid} title="CLIENT REGISTRATION" fields={[
+      <DashBoardSection key={uid+'reg'} metrics={metricsStore} title="CLIENT REGISTRATION" fields={[
         { label: 'REGISTERED' },
         { label: 'ADDED FUNDS' },
         { label: 'CONVERSION' },
       ]} />
 
-      <DashBoardSection key={uid+'pnl'} userId={uid} title="CLIENT PROFIT & LOSS" fields={[
+      <DashBoardSection key={uid+'pnl'} metrics={metricsStore} title="CLIENT PROFIT & LOSS" fields={[
         { label: 'AVG PROFIT' },
         { label: 'AVG LOSS' },
         { label: 'PROFITABLE CLIENTS' },
         { label: 'LOSS-MAKING CLIENTS' },
       ]} />
 
-      <DashBoardSection key={uid+'pos'} userId={uid} title="POSITION DETAILS" fields={[
+      <DashBoardSection key={uid+'pos'} metrics={metricsStore} title="POSITION DETAILS" fields={[
         { label: 'BUY POSITION' },
         { label: 'SELL POSITION' },
         { label: 'RATIO' },
@@ -672,12 +692,31 @@ const TAB_INSTRUMENTS: Record<string, string[]> = {
   'FOREX':     ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP','EURJPY','GBPJPY','AUDJPY','CADJPY','CHFJPY','EURCHF','EURAUD'],
 };
 
+type WatchlistItem = { id: string; symbol: string; tab: string };
+
 function MarketWatchPage() {
   const tabs = ['INDEX-FUT','INDEX-OPT','STOCK-FUT','STOCK-OPT','NSE-EQ','MCX-FUT','MCX-OPT','COMEX','CRYPTO','FOREX'];
   const [activeTab, setActiveTab] = useState('INDEX-FUT');
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [watchlists, setWatchlists] = useState<Record<string, string[]>>({});
+  const [toast, setToast] = useState<ToastState>(null);
+
+  // Fetch watchlist for the active tab from the database
+  // Validates: Requirements 4.8, 13.3
+  useEffect(() => {
+    apiCall(`/api/admin/watchlist?tab=${encodeURIComponent(activeTab)}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        const items = data as WatchlistItem[];
+        setWatchlists(prev => ({ ...prev, [activeTab]: items.map(item => item.symbol) }));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  }, [activeTab]);
 
   const instruments = watchlists[activeTab] ?? [];
   const allForTab = TAB_INSTRUMENTS[activeTab] ?? [];
@@ -688,19 +727,60 @@ function MarketWatchPage() {
 
   const showDropdown = focused && search.trim().length > 0;
 
+  // Add instrument: POST to API then update local state on success
+  // Validates: Requirements 4.9, 14.1–14.10
   const addInstrument = (sym: string) => {
-    setWatchlists(prev => ({
-      ...prev,
-      [activeTab]: [...(prev[activeTab] ?? []).filter(x => x !== sym), sym],
-    }));
     setSearch('');
     setFocused(false);
+    apiCall('/api/admin/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({ tab: activeTab, symbol: sym }),
+    }).then(({ ok, status }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      setWatchlists(prev => ({
+        ...prev,
+        [activeTab]: [...(prev[activeTab] ?? []).filter(x => x !== sym), sym],
+      }));
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    });
   };
 
-  const handleClear = () => setWatchlists(prev => ({ ...prev, [activeTab]: [] }));
+  // Clear all symbols for the active tab: DELETE (tab only) then clear local state
+  // Validates: Requirements 4.9, 14.1–14.10
+  const handleClear = () => {
+    apiCall(`/api/admin/watchlist?tab=${encodeURIComponent(activeTab)}`, { method: 'DELETE' })
+      .then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setWatchlists(prev => ({ ...prev, [activeTab]: [] }));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  };
+
+  // Remove individual symbol: DELETE with symbol then update local state
+  // Validates: Requirements 4.9, 14.1–14.10
+  const removeInstrument = (sym: string, idx: number) => {
+    apiCall(`/api/admin/watchlist?tab=${encodeURIComponent(activeTab)}&symbol=${encodeURIComponent(sym)}`, { method: 'DELETE' })
+      .then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setWatchlists(prev => ({ ...prev, [activeTab]: prev[activeTab].filter((_, j) => j !== idx) }));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  };
 
   return (
     <div className="adm-mw-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* Horizontal scrollable tabs */}
       <div className="adm-mw-tabs">
         {tabs.map(tab => (
@@ -766,9 +846,7 @@ function MarketWatchPage() {
           instruments.map((sym, i) => (
             <div className="adm-mw-row" key={i}>
               <span className="adm-mw-sym">{sym}</span>
-              <button className="adm-mw-remove" onClick={() =>
-                setWatchlists(prev => ({ ...prev, [activeTab]: prev[activeTab].filter((_, j) => j !== i) }))
-              }>✕</button>
+              <button className="adm-mw-remove" onClick={() => removeInstrument(sym, i)}>✕</button>
             </div>
           ))
         )}
@@ -886,16 +964,12 @@ function TelegramPage() {
 }
 
 // ─── User Panel ───────────────────────────────────────────────────────────────
-const DEMO_USERS = [
-  { id: 'QEE875', role: 'USER' },
-  { id: 'BMC986', role: 'USER' },
-  { id: 'SJE055', role: 'USER' },
-  { id: 'KWF295', role: 'USER' },
-  { id: 'JBI977', role: 'USER' },
-  { id: 'CXF406', role: 'USER' },
-  { id: 'SDR001', role: 'SUB_BROKER' },
-  { id: 'SIH008', role: 'USER' },
-];
+type UserListItem = {
+  id: string; email: string; full_name: string | null; phone: string | null;
+  role: string; parent_id: string | null; segments: string[] | null;
+  active: boolean; read_only: boolean; demo_user: boolean;
+  balance: number; created_at: string; scheduled_delete_at: string | null;
+};
 
 const PAGE_SIZE = 8;
 
@@ -949,7 +1023,6 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
     });
     if (ok) {
       const d = data as { id: string; role?: string };
-      DEMO_USERS.push({ id: d.id, role: d.role ?? role.toUpperCase().replace(' ', '_') });
       onCreated(d.id, d.role ?? role.toUpperCase().replace(' ', '_'));
     } else {
       setToast({ message: (data as { error: string }).error, type: 'error' });
@@ -1133,9 +1206,33 @@ function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: 
   selectedUser: { id: string; role: string };
   onSelectUser: (u: { id: string; role: string }) => void;
 }) {
+  const router = useRouter();
   const [search, setSearch]   = useState('');
-  const [users, setUsers]     = useState(DEMO_USERS);
+  const [users, setUsers]     = useState<UserListItem[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [page, setPage]       = useState(1);
+  const [toast, setToast]     = useState<ToastState>(null);
+
+  useEffect(() => {
+    setUsersLoading(true);
+    apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
+      if (ok) {
+        const items = (data as UserListItem[]).map(u => ({
+          ...u,
+          role: u.role.toUpperCase(),
+        }));
+        setUsers(items);
+      } else if (status === 401) {
+        signOut();
+        router.replace('/login');
+      } else if (status === 403) {
+        setToast({ message: 'Access Denied', type: 'error' });
+      } else {
+        setToast({ message: 'Server Error', type: 'error' });
+      }
+      setUsersLoading(false);
+    });
+  }, [router]);
 
   const filtered = users.filter(u => u.id.toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -1195,6 +1292,7 @@ function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: 
           </div>
         </div>
       </div>
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </>
   );
 }
@@ -1211,71 +1309,41 @@ type Order = {
   time: string;
 };
 
-const USER_ORDERS: Record<string, { executed: Order[]; limit: Order[]; rejected: Order[] }> = {
-  QEE875: {
-    executed: [
-      { symbol: 'ETHUSD', side: 'BUY', status: 'EXECUTED', qty: 2, price: 2100.50, orderType: 'MARKET', info: 'Entry', time: '07/04/2026, 10:15:00' },
-      { symbol: 'BTCUSD', side: 'SELL', status: 'EXECUTED', qty: 1, price: 71200.00, orderType: 'MARKET', info: 'Exit', time: '06/04/2026, 14:30:00' },
-    ],
-    limit: [
-      { symbol: 'XRPUSD', side: 'BUY', status: 'CANCELLED', qty: 500, price: 0.52, orderType: 'LIMIT', info: 'System Order: EOD Auto-Cancellation', time: '05/04/2026, 21:37:12' },
-    ],
-    rejected: [
-      { symbol: 'SOLUSD', side: 'SELL', status: 'REJECTED', qty: 10, price: 145.00, orderType: 'LIMIT', info: 'Insufficient Margin', time: '04/04/2026, 09:00:00' },
-    ],
-  },
-  JBI977: {
-    executed: [
-      { symbol: 'ETHUSD', side: 'BUY', status: 'EXECUTED', qty: 4, price: 2080.97, orderType: 'MARKET', info: 'Entry', time: '07/04/2026, 21:07:00' },
-      { symbol: 'CRUDEOIL26APR10500PE', side: 'SELL', status: 'EXECUTED', qty: 5, price: 994.33, orderType: 'MARKET', info: 'System Order: Marginal Shortfall (NRML Conversion Failed)', time: '02/04/2026, 23:25:59' },
-      { symbol: 'CRUDEOIL26APR10500PE', side: 'SELL', status: 'EXECUTED', qty: 5, price: 994.33, orderType: 'MARKET', info: 'Entry', time: '02/04/2026, 22:10:00' },
-      { symbol: 'NIFTY26APR24000CE', side: 'BUY', status: 'EXECUTED', qty: 50, price: 120.50, orderType: 'MARKET', info: 'Entry', time: '01/04/2026, 10:05:00' },
-      { symbol: 'BANKNIFTY26APR52000PE', side: 'SELL', status: 'EXECUTED', qty: 25, price: 85.00, orderType: 'MARKET', info: 'Exit', time: '01/04/2026, 15:20:00' },
-    ],
-    limit: [
-      { symbol: 'SILVERMIC26APRFUT', side: 'SELL', status: 'CANCELLED', qty: 1, price: 263800.00, orderType: 'LIMIT', info: 'System Order: EOD Auto-Cancellation', time: '01/04/2026, 21:37:12' },
-      { symbol: 'SILVER26APR238000CE', side: 'BUY', status: 'CANCELLED', qty: 30, price: 10983.50, orderType: 'LIMIT', info: 'Entry', time: '31/03/2026, 17:28:55' },
-      { symbol: 'BTCUSD', side: 'SELL', status: 'CANCELLED', qty: 1, price: 70000.00, orderType: 'LIMIT', info: 'System Order: EOD Auto-Cancellation', time: '30/03/2026, 21:37:12' },
-    ],
-    rejected: [
-      { symbol: 'SILVERMIC26APRFUT', side: 'SELL', status: 'REJECTED', qty: 1, price: 263800.00, orderType: 'LIMIT', info: 'System Order: EOD Auto-Cancellation', time: '01/04/2026, 21:37:12' },
-      { symbol: 'SILVER26APR238000CE', side: 'BUY', status: 'REJECTED', qty: 30, price: 10983.50, orderType: 'LIMIT', info: 'Entry', time: '31/03/2026, 17:28:55' },
-      { symbol: 'BTCUSD', side: 'SELL', status: 'REJECTED', qty: 1, price: 70000.00, orderType: 'LIMIT', info: 'Insufficient Margin', time: '30/03/2026, 21:37:12' },
-    ],
-  },
-  SDR001: {
-    executed: [
-      { symbol: 'GOLD26APRFUT', side: 'BUY', status: 'EXECUTED', qty: 1, price: 92500.00, orderType: 'MARKET', info: 'Entry', time: '07/04/2026, 09:30:00' },
-      { symbol: 'CRUDEOIL26APRFUT', side: 'SELL', status: 'EXECUTED', qty: 100, price: 6850.00, orderType: 'MARKET', info: 'Exit', time: '06/04/2026, 15:00:00' },
-      { symbol: 'NIFTY26APR23500CE', side: 'BUY', status: 'EXECUTED', qty: 50, price: 210.00, orderType: 'MARKET', info: 'Entry', time: '05/04/2026, 10:10:00' },
-    ],
-    limit: [
-      { symbol: 'GOLDMINI26APRFUT', side: 'BUY', status: 'CANCELLED', qty: 1, price: 9250.00, orderType: 'LIMIT', info: 'System Order: EOD Auto-Cancellation', time: '04/04/2026, 21:37:12' },
-      { symbol: 'SILVERMINI26APRFUT', side: 'SELL', status: 'CANCELLED', qty: 5, price: 26500.00, orderType: 'LIMIT', info: 'Entry', time: '03/04/2026, 17:00:00' },
-    ],
-    rejected: [
-      { symbol: 'BTCUSD', side: 'BUY', status: 'REJECTED', qty: 2, price: 72000.00, orderType: 'LIMIT', info: 'Insufficient Margin', time: '02/04/2026, 11:00:00' },
-    ],
-  },
-};
-
-// fallback for users without specific data
-const DEFAULT_ORDERS = {
-  executed: [
-    { symbol: 'ETHUSD', side: 'BUY' as const, status: 'EXECUTED' as const, qty: 1, price: 2050.00, orderType: 'MARKET' as const, info: 'Entry', time: '07/04/2026, 10:00:00' },
-  ],
-  limit: [],
-  rejected: [],
-};
-
 function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+  // Validates: Requirements 6.9, 13.5, 14.1–14.10
   const [tab, setTab] = useState<'executed' | 'limit' | 'rejected'>('executed');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [toast, setToast] = useState<ToastState>(null);
 
   const uid = selectedUser.id;
-  const userOrders = USER_ORDERS[uid] ?? DEFAULT_ORDERS;
-  const allOrders = userOrders[tab];
+
+  useEffect(() => {
+    if (!uid) return;
+    apiCall(`/api/admin/users/${uid}/orders?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        const items = data as { id: string; symbol: string; side: 'BUY' | 'SELL'; status: 'EXECUTED' | 'CANCELLED' | 'REJECTED'; qty: number; price: number; order_type: 'MARKET' | 'LIMIT'; info: string; time: string }[];
+        setOrders(items.map(r => ({
+          symbol: r.symbol,
+          side: r.side,
+          status: r.status,
+          qty: r.qty,
+          price: r.price,
+          orderType: r.order_type,
+          info: r.info,
+          time: r.time,
+        })));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  }, [uid, tab]);
+
+  const allOrders = orders;
 
   const filtered = allOrders.filter(o =>
     o.symbol.toLowerCase().includes(search.toLowerCase()) ||
@@ -1288,6 +1356,7 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
 
   return (
     <div className="adm-ord-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* Stat cards */}
       <div className="adm-ord-stats">
         <div className="adm-ord-stat">
@@ -1386,7 +1455,16 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
 }
 
 // ─── Position Page ────────────────────────────────────────────────────────────
+type PositionItem = {
+  id: string; symbol: string; side: 'BUY' | 'SELL'; pnl: number;
+  qty_open: number; qty_total: number; avg_price: number; entry_price: number;
+  ltp: number | null; exit_price: number | null; duration_seconds: number;
+  brokerage: number; sl: number | null; tp: number | null;
+  entry_time: string; exit_time: string | null; settlement: string | null;
+};
+
 type Position = {
+  id: string;
   symbol: string;
   side: 'BUY' | 'SELL';
   pnl: number;
@@ -1403,60 +1481,73 @@ type Position = {
   settlement?: string;
 };
 
-const USER_POSITIONS: Record<string, {
-  open: Position[];
-  active: Position[];
-  closed: Position[];
-}> = {
-  JBI977: {
-    open: [
-      { symbol: 'ETHUSD', side: 'BUY', pnl: 1176.23, qty: '4/4', avgPrice: 2080.97, entry: 2080.97, ltp: 2375.03, duration: '160h 0m 22s', brokerage: 1.25, slTp: '– / –', entryTime: '07/04/2026, 21:07:00' },
-    ],
-    active: [
-      { symbol: 'ETHUSD', side: 'BUY', pnl: 1175.83, qty: '4/4', avgPrice: 2080.97, entry: 2080.97, ltp: 2374.93, duration: '160h 0m 40s', brokerage: 1.25, slTp: '– / –', entryTime: '07/04/2026, 21:07:00' },
-    ],
-    closed: [
-      { symbol: 'CRUDEOIL26APR10500...', side: 'BUY', pnl: -159.89, qty: '0/5', avgPrice: 1025.40, entry: 1025.40, exit: 994.33, duration: '3h 41m 10s', brokerage: 4.55, slTp: '– / –', entryTime: '02/04/2026, 19:44:49', exitTime: '02/04/2026, 23:25:59', settlement: '– –' },
-    ],
-  },
-  QEE875: {
-    open: [
-      { symbol: 'BTCUSD', side: 'BUY', pnl: 320.50, qty: '1/1', avgPrice: 71200.00, entry: 71200.00, ltp: 71520.50, duration: '24h 10m 5s', brokerage: 2.50, slTp: '– / –', entryTime: '06/04/2026, 14:30:00' },
-    ],
-    active: [
-      { symbol: 'BTCUSD', side: 'BUY', pnl: 318.20, qty: '1/1', avgPrice: 71200.00, entry: 71200.00, ltp: 71518.20, duration: '24h 10m 20s', brokerage: 2.50, slTp: '– / –', entryTime: '06/04/2026, 14:30:00' },
-    ],
-    closed: [
-      { symbol: 'ETHUSD', side: 'SELL', pnl: -45.30, qty: '0/2', avgPrice: 2100.50, entry: 2100.50, exit: 2078.00, duration: '5h 20m 0s', brokerage: 1.00, slTp: '– / –', entryTime: '05/04/2026, 10:00:00', exitTime: '05/04/2026, 15:20:00', settlement: '– –' },
-    ],
-  },
-  SDR001: {
-    open: [
-      { symbol: 'GOLD26APRFUT', side: 'BUY', pnl: 2400.00, qty: '1/1', avgPrice: 92500.00, entry: 92500.00, ltp: 94900.00, duration: '48h 5m 0s', brokerage: 5.00, slTp: '– / –', entryTime: '05/04/2026, 09:30:00' },
-      { symbol: 'NIFTY26APR23500CE', side: 'BUY', pnl: 525.00, qty: '50/50', avgPrice: 210.00, entry: 210.00, ltp: 220.50, duration: '48h 0m 0s', brokerage: 3.00, slTp: '– / –', entryTime: '05/04/2026, 10:10:00' },
-    ],
-    active: [
-      { symbol: 'GOLD26APRFUT', side: 'BUY', pnl: 2380.00, qty: '1/1', avgPrice: 92500.00, entry: 92500.00, ltp: 94880.00, duration: '48h 5m 20s', brokerage: 5.00, slTp: '– / –', entryTime: '05/04/2026, 09:30:00' },
-    ],
-    closed: [
-      { symbol: 'CRUDEOIL26APRFUT', side: 'SELL', pnl: -350.00, qty: '0/100', avgPrice: 6850.00, entry: 6850.00, exit: 6815.00, duration: '6h 30m 0s', brokerage: 8.00, slTp: '– / –', entryTime: '06/04/2026, 09:00:00', exitTime: '06/04/2026, 15:30:00', settlement: '– –' },
-    ],
-  },
-};
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h}h ${m}m ${s}s`;
+}
 
-const DEFAULT_POSITIONS = { open: [], active: [], closed: [] };
+function positionItemToPosition(item: PositionItem): Position {
+  return {
+    id: item.id,
+    symbol: item.symbol,
+    side: item.side,
+    pnl: item.pnl,
+    qty: `${item.qty_open}/${item.qty_total}`,
+    avgPrice: item.avg_price,
+    entry: item.entry_price,
+    ltp: item.ltp ?? undefined,
+    exit: item.exit_price ?? undefined,
+    duration: formatDuration(item.duration_seconds),
+    brokerage: item.brokerage,
+    slTp: `${item.sl ?? '–'} / ${item.tp ?? '–'}`,
+    entryTime: item.entry_time,
+    exitTime: item.exit_time ?? undefined,
+    settlement: item.settlement ?? undefined,
+  };
+}
+
+// Validates: Requirements 7.7–7.11, 13.6, 14.1–14.10
 
 function PositionPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+  // Validates: Requirements 7.7–7.11, 13.6, 14.1–14.10
   const [tab, setTab] = useState<'open' | 'active' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
   const [page, setPage] = useState(1);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [toast, setToast] = useState<ToastState>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editPos, setEditPos] = useState<Position | null>(null);
+  const [editSl, setEditSl] = useState('');
+  const [editTp, setEditTp] = useState('');
+  const [editQtyOpen, setEditQtyOpen] = useState('');
 
   const uid = selectedUser.id;
-  const userPos = USER_POSITIONS[uid] ?? DEFAULT_POSITIONS;
-  const positions = userPos[tab];
 
-  const openPnl = [...(userPos.open), ...(userPos.active)].reduce((s, p) => s + p.pnl, 0);
+  const fetchPositions = () => {
+    if (!uid) return;
+    apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        const items = data as PositionItem[];
+        setPositions(items.map(positionItemToPosition));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  };
+
+  useEffect(() => {
+    fetchPositions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uid, tab]);
+
+  const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
 
   const filtered = positions.filter(p =>
     p.symbol.toLowerCase().includes(search.toLowerCase()) ||
@@ -1468,8 +1559,101 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
 
   const switchTab = (t: 'open' | 'active' | 'closed') => { setTab(t); setSearch(''); setPage(1); };
 
+  const handleSqoff = (posId: string) => {
+    apiCall(`/api/admin/positions/${posId}/sqoff`, { method: 'POST' })
+      .then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setToast({ message: 'Square off successful', type: 'success' });
+        fetchPositions();
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  };
+
+  const openEdit = (p: Position) => {
+    setEditPos(p);
+    setEditSl(p.slTp.split(' / ')[0] === '–' ? '' : p.slTp.split(' / ')[0]);
+    setEditTp(p.slTp.split(' / ')[1] === '–' ? '' : p.slTp.split(' / ')[1]);
+    setEditQtyOpen(p.qty.split('/')[0]);
+  };
+
+  const handleEdit = () => {
+    if (!editPos?.id) return;
+    const body: Record<string, unknown> = {};
+    if (editSl !== '') body.sl = Number(editSl);
+    if (editTp !== '') body.tp = Number(editTp);
+    if (editQtyOpen !== '') body.qty_open = Number(editQtyOpen);
+    apiCall(`/api/admin/positions/${editPos.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }).then(({ ok, status }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      setEditPos(null);
+      fetchPositions();
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    });
+  };
+
+  const handleDelete = () => {
+    if (!confirmDeleteId) return;
+    setDeleteLoading(true);
+    apiCall(`/api/admin/positions/${confirmDeleteId}`, { method: 'DELETE' })
+      .then(({ ok, status }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setConfirmDeleteId(null);
+        fetchPositions();
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      })
+      .finally(() => setDeleteLoading(false));
+  };
+
   return (
     <div className="adm-pos-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+      {confirmDeleteId && (
+        <ConfirmDialog
+          message="Delete this position? This cannot be undone."
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDeleteId(null)}
+          loading={deleteLoading}
+        />
+      )}
+      {editPos && (
+        <div className="adm-modal-overlay" onClick={() => setEditPos(null)}>
+          <div className="adm-modal" onClick={e => e.stopPropagation()}>
+            <div className="adm-modal-header">
+              <span className="adm-modal-title">Edit Position — {editPos.symbol}</span>
+              <button className="adm-modal-close" onClick={() => setEditPos(null)}>✕</button>
+            </div>
+            <div className="adm-sheet-field">
+              <label className="adm-sheet-label">SL</label>
+              <input className="adm-sheet-input" type="number" value={editSl} onChange={e => setEditSl(e.target.value)} placeholder="–" />
+            </div>
+            <div className="adm-sheet-field">
+              <label className="adm-sheet-label">TP</label>
+              <input className="adm-sheet-input" type="number" value={editTp} onChange={e => setEditTp(e.target.value)} placeholder="–" />
+            </div>
+            <div className="adm-sheet-field">
+              <label className="adm-sheet-label">Qty Open</label>
+              <input className="adm-sheet-input" type="number" value={editQtyOpen} onChange={e => setEditQtyOpen(e.target.value)} />
+            </div>
+            <div className="adm-modal-actions">
+              <button className="adm-sheet-cancel" onClick={() => setEditPos(null)}>Cancel</button>
+              <button className="adm-btn-primary" onClick={handleEdit}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Stat cards */}
       <div className="adm-pos-stat-card">
         <div className="adm-pos-stat-label">USER</div>
@@ -1576,9 +1760,9 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
                   <span className="adm-ord-dv" style={{ gridColumn: '2 / -1' }}>{p.exitTime}</span>
                 </div>
                 <div className="adm-pos-card-actions">
-                  <button className="adm-pos-act-edit">Edit</button>
+                  <button className="adm-pos-act-edit" onClick={() => openEdit(p)}>Edit</button>
                   <button className="adm-pos-act-reopen">Reopen</button>
-                  <button className="adm-pos-act-delete">Delete</button>
+                  <button className="adm-pos-act-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
                 </div>
               </>)}
               {tab !== 'closed' && (
@@ -1589,14 +1773,14 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
               )}
               {/* Open Position: full-width Sqoff only */}
               {tab === 'open' && (
-                <button className="adm-pos-act-sqoff-full">Sqoff</button>
+                <button className="adm-pos-act-sqoff-full" onClick={() => handleSqoff(p.id)}>Sqoff</button>
               )}
               {/* Active Trades: Sqoff + Edit + Delete */}
               {tab === 'active' && (
                 <div className="adm-pos-card-actions">
-                  <button className="adm-pos-act-sqoff">Sqoff</button>
-                  <button className="adm-pos-act-edit">Edit</button>
-                  <button className="adm-pos-act-delete">Delete</button>
+                  <button className="adm-pos-act-sqoff" onClick={() => handleSqoff(p.id)}>Sqoff</button>
+                  <button className="adm-pos-act-edit" onClick={() => openEdit(p)}>Edit</button>
+                  <button className="adm-pos-act-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
                 </div>
               )}
             </div>
@@ -1643,25 +1827,9 @@ const defaultSeg = (): SegSettings => ({
   exitBuffer: '0.0017', tradeAllowed: true,
 });
 
-const USER_UPDATE_DATA: Record<string, {
-  email: string; fullName: string; phone: string; role: string; parent: string;
-  activation: boolean; readOnly: boolean; demoUser: boolean; intradaySqOff: boolean;
-  autoSqoff: string; sqoffMethod: string;
-  segments: string[];
-}> = {
-  JBI977: { email: 'gauravdhu65@gmail.com', fullName: 'GAURAVDHU', phone: '9876543210', role: 'User', parent: 'SDR001', activation: true, readOnly: false, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ALL_SEGMENTS },
-  QEE875: { email: 'qee875@example.com', fullName: 'QEE User', phone: '9000000001', role: 'User', parent: 'SDR001', activation: true, readOnly: false, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ALL_SEGMENTS },
-  BMC986: { email: 'bmc986@example.com', fullName: 'BMC User', phone: '9000000002', role: 'User', parent: 'SDR001', activation: true, readOnly: false, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ALL_SEGMENTS },
-  SJE055: { email: 'sje055@example.com', fullName: 'SJE User', phone: '9000000003', role: 'User', parent: 'SDR001', activation: false, readOnly: false, demoUser: true, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ['INDEX-FUT','NSE-EQ','CRYPTO'] },
-  KWF295: { email: 'kwf295@example.com', fullName: 'KWF User', phone: '9000000004', role: 'User', parent: 'SDR001', activation: true, readOnly: false, demoUser: false, intradaySqOff: true, autoSqoff: '80', sqoffMethod: 'Debit', segments: ALL_SEGMENTS },
-  CXF406: { email: 'cxf406@example.com', fullName: 'CXF User', phone: '9000000005', role: 'User', parent: 'SDR001', activation: true, readOnly: true, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ['COMEX','FOREX','CRYPTO'] },
-  SDR001: { email: 'sdr001@example.com', fullName: 'SDR Broker', phone: '9000000006', role: 'Sub Broker', parent: '', activation: true, readOnly: false, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ALL_SEGMENTS },
-  SIH008: { email: 'sih008@example.com', fullName: 'SIH User', phone: '9000000007', role: 'User', parent: 'SDR001', activation: true, readOnly: false, demoUser: false, intradaySqOff: false, autoSqoff: '90', sqoffMethod: 'Credit', segments: ALL_SEGMENTS },
-};
-
-function SegmentBlock({ name }: { name: string }) {
-  const [s, setS] = useState<SegSettings>(defaultSeg());
-  const upd = (k: keyof SegSettings, v: string | boolean) => setS(prev => ({ ...prev, [k]: v }));
+function SegmentBlock({ name, value, onChange }: { name: string; value: SegSettings; onChange: (k: keyof SegSettings, v: string | boolean) => void }) {
+  const s = value;
+  const upd = (k: keyof SegSettings, v: string | boolean) => onChange(k, v);
 
   return (
     <div className="adm-upd-seg-block">
@@ -1747,34 +1915,112 @@ function SegmentBlock({ name }: { name: string }) {
 
 function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
   const uid = selectedUser.id;
-  const base = USER_UPDATE_DATA[uid] ?? USER_UPDATE_DATA['QEE875'];
 
-  const [activation, setActivation] = useState(base.activation);
-  const [email, setEmail] = useState(base.email);
+  const [activation, setActivation] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [fullName, setFullName] = useState(base.fullName);
-  const [phone, setPhone] = useState(base.phone);
-  const [role, setRole] = useState(base.role);
-  const [parent, setParent] = useState(base.parent);
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState('User');
+  const [parent, setParent] = useState('');
   const [copyFrom, setCopyFrom] = useState('undefined (undefined)');
-  const [readOnly, setReadOnly] = useState(base.readOnly);
-  const [demoUser, setDemoUser] = useState(base.demoUser);
-  const [intradaySqOff, setIntradaySqOff] = useState(base.intradaySqOff);
-  const [autoSqoff, setAutoSqoff] = useState(base.autoSqoff);
-  const [sqoffMethod, setSqoffMethod] = useState(base.sqoffMethod);
-  const [segments, setSegments] = useState<string[]>(base.segments);
+  const [readOnly, setReadOnly] = useState(false);
+  const [demoUser, setDemoUser] = useState(false);
+  const [intradaySqOff, setIntradaySqOff] = useState(false);
+  const [autoSqoff, setAutoSqoff] = useState('90');
+  const [sqoffMethod, setSqoffMethod] = useState('Credit');
+  const [segments, setSegments] = useState<string[]>([]);
+  const [segSettings, setSegSettings] = useState<Record<string, SegSettings>>({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
-  // Reset when user changes
+  // Helper: map a SegmentSettingRow to SegSettings (string-valued form state)
+  const rowToSegSettings = (row: {
+    commission_type: string; commission_value: number;
+    profit_hold_sec: number; loss_hold_sec: number;
+    strike_range: number; max_lot: number; max_order_lot: number;
+    intraday_leverage: number; intraday_type: string;
+    holding_leverage: number; entry_buffer: number;
+    holding_type: string; exit_buffer: number; trade_allowed: boolean;
+  }): SegSettings => ({
+    commissionType: row.commission_type,
+    commissionValue: String(row.commission_value),
+    profitHoldSec: String(row.profit_hold_sec),
+    lossHoldSec: String(row.loss_hold_sec),
+    strikeRange: String(row.strike_range),
+    maxLot: String(row.max_lot),
+    maxOrderLot: String(row.max_order_lot),
+    intradayLeverage: String(row.intraday_leverage),
+    intradayType: row.intraday_type,
+    holdingLeverage: String(row.holding_leverage),
+    entryBuffer: String(row.entry_buffer),
+    holdingType: row.holding_type,
+    exitBuffer: String(row.exit_buffer),
+    tradeAllowed: row.trade_allowed,
+  });
+
+  // Fetch user profile and segment settings when selectedUser changes
+  // Validates: Requirements 8.5, 13.7, 14.1–14.10
   useEffect(() => {
-    const d = USER_UPDATE_DATA[uid] ?? USER_UPDATE_DATA['QEE875'];
-    setActivation(d.activation); setEmail(d.email); setPassword('');
-    setFullName(d.fullName); setPhone(d.phone); setRole(d.role);
-    setParent(d.parent); setReadOnly(d.readOnly); setDemoUser(d.demoUser);
-    setIntradaySqOff(d.intradaySqOff); setAutoSqoff(d.autoSqoff);
-    setSqoffMethod(d.sqoffMethod); setSegments(d.segments);
+    if (!uid) return;
+    setPassword('');
+
+    // Fetch user profile
+    apiCall(`/api/admin/users/${uid}`, { method: 'GET' }).then(({ ok, status, data }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      const p = data as {
+        email: string; full_name: string | null; phone: string | null;
+        role: string; parent_id: string | null; segments: string[] | null;
+        active: boolean; read_only: boolean; demo_user: boolean;
+        intraday_sq_off: boolean; auto_sqoff: number | null; sqoff_method: string | null;
+      };
+      setEmail(p.email ?? '');
+      setFullName(p.full_name ?? '');
+      setPhone(p.phone ?? '');
+      // Normalize role from snake_case to display form
+      const roleMap: Record<string, string> = {
+        user: 'User', sub_broker: 'Sub Broker', broker: 'Broker', admin: 'Admin', super_admin: 'Admin',
+      };
+      setRole(roleMap[p.role] ?? 'User');
+      setParent(p.parent_id ?? '');
+      setActivation(p.active ?? false);
+      setReadOnly(p.read_only ?? false);
+      setDemoUser(p.demo_user ?? false);
+      setIntradaySqOff(p.intraday_sq_off ?? false);
+      setAutoSqoff(String(p.auto_sqoff ?? 90));
+      setSqoffMethod(p.sqoff_method ?? 'Credit');
+      setSegments(p.segments ?? []);
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    });
+
+    // Fetch segment settings
+    apiCall(`/api/admin/users/${uid}/segments`, { method: 'GET' }).then(({ ok, status, data }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      const rows = data as Array<{
+        segment: string; side: string;
+        commission_type: string; commission_value: number;
+        profit_hold_sec: number; loss_hold_sec: number;
+        strike_range: number; max_lot: number; max_order_lot: number;
+        intraday_leverage: number; intraday_type: string;
+        holding_leverage: number; entry_buffer: number;
+        holding_type: string; exit_buffer: number; trade_allowed: boolean;
+      }>;
+      const map: Record<string, SegSettings> = {};
+      for (const row of rows) {
+        const key = `${row.segment}-${row.side}`;
+        map[key] = rowToSegSettings(row);
+      }
+      setSegSettings(map);
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
 
   const toggleSeg = (s: string) => setSegments(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -1838,7 +2084,37 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
         </div>
         <div className="adm-upd-field">
           <label className="adm-upd-label">Copy Settings From (optional)</label>
-          <input className="adm-upd-input" value={copyFrom} onChange={e => setCopyFrom(e.target.value)} />
+          <input className="adm-upd-input" value={copyFrom} onChange={e => {
+            const val = e.target.value;
+            setCopyFrom(val);
+            // When a user id is typed/selected, fetch their segments and populate form
+            // Validates: Requirements 8.7, 14.1–14.10
+            const trimmed = val.trim();
+            if (trimmed && trimmed !== 'undefined (undefined)') {
+              apiCall(`/api/admin/users/${encodeURIComponent(trimmed)}/segments`, { method: 'GET' })
+                .then(({ ok, status, data }) => {
+                  if (status === 401) { signOut(); return; }
+                  if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+                  if (!ok) return; // silently ignore if user not found
+                  const rows = data as Array<{
+                    segment: string; side: string;
+                    commission_type: string; commission_value: number;
+                    profit_hold_sec: number; loss_hold_sec: number;
+                    strike_range: number; max_lot: number; max_order_lot: number;
+                    intraday_leverage: number; intraday_type: string;
+                    holding_leverage: number; entry_buffer: number;
+                    holding_type: string; exit_buffer: number; trade_allowed: boolean;
+                  }>;
+                  const map: Record<string, SegSettings> = {};
+                  for (const row of rows) {
+                    const key = `${row.segment}-${row.side}`;
+                    map[key] = rowToSegSettings(row);
+                  }
+                  setSegSettings(map);
+                })
+                .catch(() => { /* silently ignore copy-from errors */ });
+            }
+          }} />
         </div>
       </div>
 
@@ -1887,7 +2163,7 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
 
       {/* Segment Settings */}
       <div className="adm-upd-section-title">Segment Settings</div>
-      {segBlocks.map(name => <SegmentBlock key={name} name={name} />)}
+      {segBlocks.map(name => <SegmentBlock key={name} name={name} value={segSettings[name] ?? defaultSeg()} onChange={(k, v) => setSegSettings(prev => ({ ...prev, [name]: { ...(prev[name] ?? defaultSeg()), [k]: v } }))} />)}
 
       {/* Save button */}
       <button
@@ -1896,7 +2172,9 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
         disabled={loading}
         onClick={async () => {
           setLoading(true);
-          const { ok, data } = await apiCall(`/api/admin/users/${uid}`, {
+          // Step 1: PATCH user profile
+          // Validates: Requirements 8.6, 14.1–14.10
+          const { ok, status, data } = await apiCall(`/api/admin/users/${uid}`, {
             method: 'PATCH',
             body: JSON.stringify({
               email,
@@ -1914,11 +2192,48 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
               segments,
             }),
           });
-          if (ok) {
-            setToast({ message: 'Changes saved successfully', type: 'success' });
-          } else {
-            setToast({ message: (data as { error: string }).error, type: 'error' });
+          if (status === 401) { signOut(); setLoading(false); return; }
+          if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); setLoading(false); return; }
+          if (!ok) { setToast({ message: 'Server Error', type: 'error' }); setLoading(false); return; }
+
+          // Step 2: POST segment settings for all enabled segment blocks
+          // Validates: Requirements 8.6, 14.1–14.10
+          if (segBlocks.length > 0) {
+            const segRows = segBlocks.map(name => {
+              const parts = name.split('-');
+              const side = parts[parts.length - 1] as 'BUY' | 'SELL';
+              const segment = parts.slice(0, parts.length - 1).join('-');
+              const s = segSettings[name] ?? defaultSeg();
+              return {
+                user_id: uid,
+                segment,
+                side,
+                commission_type: s.commissionType,
+                commission_value: Number(s.commissionValue),
+                profit_hold_sec: Number(s.profitHoldSec),
+                loss_hold_sec: Number(s.lossHoldSec),
+                strike_range: Number(s.strikeRange),
+                max_lot: Number(s.maxLot),
+                max_order_lot: Number(s.maxOrderLot),
+                intraday_leverage: Number(s.intradayLeverage),
+                intraday_type: s.intradayType,
+                holding_leverage: Number(s.holdingLeverage),
+                entry_buffer: Number(s.entryBuffer),
+                holding_type: s.holdingType,
+                exit_buffer: Number(s.exitBuffer),
+                trade_allowed: s.tradeAllowed,
+              };
+            });
+            const segRes = await apiCall(`/api/admin/users/${uid}/segments`, {
+              method: 'POST',
+              body: JSON.stringify(segRows),
+            });
+            if (segRes.status === 401) { signOut(); setLoading(false); return; }
+            if (segRes.status === 403) { setToast({ message: 'Access Denied', type: 'error' }); setLoading(false); return; }
+            if (!segRes.ok) { setToast({ message: 'Server Error', type: 'error' }); setLoading(false); return; }
           }
+
+          setToast({ message: 'Changes saved successfully', type: 'success' });
           setLoading(false);
         }}
       >
@@ -1933,21 +2248,39 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
 }
 
 // ─── Users Page ───────────────────────────────────────────────────────────────
-const USERS_LIST = [
-  { id: 'QEE875', fullName: 'Rahul Sharma',    role: 'USER', active: true,  ledgerBal: 12450, mAvailable: 12450, openPnl: 0,    m2m: 0,    weeklyPnl: -5200,    alltimePnl: -22400,   marginUsed: 0, holdingMargin: 0, broker: 'SDR001', mobile: '9000000001' },
-  { id: 'BMC986', fullName: 'Priya Mehta',     role: 'USER', active: true,  ledgerBal: 8900,  mAvailable: 8900,  openPnl: 0,    m2m: 0,    weeklyPnl: -3500,    alltimePnl: -8500,    marginUsed: 0, holdingMargin: 0, broker: 'SDR001', mobile: '9000000002' },
-  { id: 'SJE055', fullName: 'Amit Verma',      role: 'USER', active: true,  ledgerBal: 5200,  mAvailable: 5200,  openPnl: 0,    m2m: 0,    weeklyPnl: -2800,    alltimePnl: -5200,    marginUsed: 0, holdingMargin: 0, broker: 'SDR001', mobile: '9000000003' },
-  { id: 'KWF295', fullName: 'Sneha Patel',     role: 'USER', active: true,  ledgerBal: 18750, mAvailable: 18750, openPnl: 0,    m2m: 0,    weeklyPnl: -12600,   alltimePnl: -22400,   marginUsed: 0, holdingMargin: 0, broker: 'SDR001', mobile: '9000000004' },
-  { id: 'JBI977', fullName: 'Gaurav Dhu',      role: 'USER', active: true,  ledgerBal: 545.16,mAvailable: 545.16,openPnl: 0,    m2m: 0,    weeklyPnl: -17377.42,alltimePnl: -94954.86,marginUsed: 0, holdingMargin: 0, broker: 'QPG446', mobile: '9000000005' },
-  { id: 'CXF406', fullName: 'Vikram Singh',    role: 'USER', active: true,  ledgerBal: 0,     mAvailable: 0,     openPnl: 0,    m2m: 0,    weeklyPnl: 0,        alltimePnl: -17350,   marginUsed: 0, holdingMargin: 0, broker: 'QPG446', mobile: '9000000006' },
-  { id: 'SIH008', fullName: 'Neha Joshi',      role: 'USER', active: true,  ledgerBal: 545.16,mAvailable: 545.16,openPnl: 0,    m2m: 0,    weeklyPnl: -17377.42,alltimePnl: -94954.86,marginUsed: 0, holdingMargin: 0, broker: 'QPG446', mobile: '9000000008' },
-];
+type UserRow = {
+  id: string; fullName: string; role: string; active: boolean;
+  ledgerBal: number; mAvailable: number; openPnl: number; m2m: number;
+  weeklyPnl: number; alltimePnl: number; marginUsed: number; holdingMargin: number;
+  broker: string; mobile: string; scheduled_delete_at: string | null;
+};
+
+function mapUserListItem(u: UserListItem): UserRow {
+  return {
+    id: u.id,
+    fullName: u.full_name ?? u.email,
+    role: u.role.toUpperCase(),
+    active: u.active,
+    ledgerBal: u.balance,
+    mAvailable: u.balance,
+    openPnl: 0,
+    m2m: 0,
+    weeklyPnl: 0,
+    alltimePnl: 0,
+    marginUsed: 0,
+    holdingMargin: 0,
+    broker: u.parent_id ?? '',
+    mobile: u.phone ?? '',
+    scheduled_delete_at: u.scheduled_delete_at,
+  };
+}
 
 function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   selectedUser: { id: string; role: string };
   onSelectUser: (u: { id: string; role: string }) => void;
   onNavigate: (page: string) => void;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
   const [page, setPage] = useState(1);
@@ -1955,14 +2288,33 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const [deletedUsers, setDeletedUsers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
-  const filtered = USERS_LIST.filter(u =>
+  useEffect(() => {
+    setUsersLoading(true);
+    apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
+      if (ok) {
+        setUsers((data as UserListItem[]).map(mapUserListItem));
+      } else if (status === 401) {
+        signOut();
+        router.replace('/login');
+      } else if (status === 403) {
+        setToast({ message: 'Access Denied', type: 'error' });
+      } else {
+        setToast({ message: 'Server Error', type: 'error' });
+      }
+      setUsersLoading(false);
+    });
+  }, [router]);
+
+  const filtered = users.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
     u.fullName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const active = USERS_LIST.filter(u => u.active).length;
-  const inactive = USERS_LIST.filter(u => !u.active).length;
+  const active = users.filter(u => u.active).length;
+  const inactive = users.filter(u => !u.active).length;
 
   const rowsNum = Number(rows);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsNum));
@@ -1984,7 +2336,7 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
         </div>
         <div className="adm-users-stat">
           <div className="adm-users-stat-label">TOTAL</div>
-          <div className="adm-users-stat-value">{USERS_LIST.length}</div>
+          <div className="adm-users-stat-value">{users.length}</div>
         </div>
       </div>
 
@@ -2047,7 +2399,7 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
             {/* Action buttons */}
             <div className="adm-users-actions">
               <button className="adm-users-btn pos-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('position'); }}>Positions</button>
-              <button className="adm-users-btn ledger-btn">Ledger</button>
+              <button className="adm-users-btn ledger-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('actledger'); }}>Ledger</button>
               <button className="adm-users-btn update-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('update'); }}>Update</button>
               <button className="adm-users-btn delete-btn" onClick={() => setConfirmDialog({ userId: u.id })}>Delete</button>
             </div>
@@ -2095,63 +2447,84 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
 }
 
 // ─── Act Ledger Page ──────────────────────────────────────────────────────────
-type LogEntry = {
-  type: 'ORDER_EXECUTION' | 'AUTO_SQUARE_OFF' | 'ORDER_CANCEL' | 'LOGIN' | 'LOGOUT';
-  time: string;
-  by: string;
-  target: string;
-  symbol?: string;
-  qty?: number;
-  price?: number;
-  reason?: string;
-  ip: string;
-};
-
-const ACT_LOGS: LogEntry[] = [
-  { type: 'ORDER_EXECUTION', time: '13/04/2026, 22:00:58', by: 'System', target: 'SIH008', symbol: 'CRUDEOIL26APR9950CE', qty: 100, price: 200.98593, reason: 'Risk Management: Loss Limit Exce...', ip: 'system-automation' },
-  { type: 'ORDER_EXECUTION', time: '13/04/2026, 22:00:58', by: 'System', target: 'SIH008', symbol: 'CRUDEOIL26APR9950CE', qty: 100, price: 200.98593, reason: 'Risk Management: Loss Limit Exce...', ip: 'system-automation' },
-  { type: 'AUTO_SQUARE_OFF', time: '13/04/2026, 22:00:58', by: 'System', target: 'SIH008', symbol: 'CRUDEOIL26APR9950CE', qty: 100, price: 200.98593, reason: 'Risk Management: Loss Limit Exce...', ip: 'system-automation' },
-  { type: 'ORDER_EXECUTION', time: '09/04/2026, 09:33:37', by: 'BMC986', target: 'BMC986', symbol: 'NIFTY2641323900CE', qty: 65, price: 216.278112, reason: 'Entry', ip: '106.192.43.29' },
-  { type: 'ORDER_EXECUTION', time: '09/04/2026, 09:33:37', by: 'BMC986', target: 'BMC986', symbol: 'NIFTY2641323900CE', qty: 65, price: 192.274992, reason: 'Entry', ip: '106.192.43.29' },
-  { type: 'ORDER_EXECUTION', time: '09/04/2026, 09:31:11', by: 'BMC986', target: 'BMC986', symbol: 'SENSEX2640977000PE', qty: 80, price: 142.14474, reason: 'Exit', ip: '106.192.43.29' },
-  { type: 'ORDER_CANCEL',    time: '09/04/2026, 09:30:23', by: 'BMC986', target: 'BMC986', symbol: 'SENSEX2640977000PE', ip: '106.192.43.29' },
-  { type: 'ORDER_EXECUTION', time: '08/04/2026, 14:22:10', by: 'JBI977', target: 'JBI977', symbol: 'ETHUSD', qty: 4, price: 2080.97, reason: 'Entry', ip: '103.45.67.89' },
-  { type: 'ORDER_EXECUTION', time: '07/04/2026, 21:07:00', by: 'JBI977', target: 'JBI977', symbol: 'ETHUSD', qty: 4, price: 2080.97, reason: 'Entry', ip: '103.45.67.89' },
-  { type: 'AUTO_SQUARE_OFF', time: '02/04/2026, 23:25:59', by: 'System', target: 'JBI977', symbol: 'CRUDEOIL26APR10500PE', qty: 5, price: 994.33, reason: 'Marginal Shortfall (NRML Conversion Failed)', ip: 'system-automation' },
-  { type: 'ORDER_EXECUTION', time: '01/04/2026, 21:37:12', by: 'System', target: 'SJE055', symbol: 'SILVERMIC26APRFUT', qty: 1, price: 263800.00, reason: 'System Order: EOD Auto-Cancellation', ip: 'system-automation' },
-  { type: 'ORDER_CANCEL',    time: '31/03/2026, 17:28:55', by: 'KWF295', target: 'KWF295', symbol: 'SILVER26APR238000CE', ip: '98.76.54.32' },
-  { type: 'LOGIN',           time: '07/04/2026, 09:00:00', by: 'QEE875', target: 'QEE875', ip: '192.168.1.10' },
-  { type: 'LOGOUT',          time: '07/04/2026, 18:30:00', by: 'QEE875', target: 'QEE875', ip: '192.168.1.10' },
-  { type: 'ORDER_EXECUTION', time: '06/04/2026, 14:30:00', by: 'QEE875', target: 'QEE875', symbol: 'BTCUSD', qty: 1, price: 71200.00, reason: 'Exit', ip: '192.168.1.10' },
-  { type: 'ORDER_EXECUTION', time: '05/04/2026, 10:00:00', by: 'SJE055', target: 'SJE055', symbol: 'ETHUSD', qty: 2, price: 2100.50, reason: 'Entry', ip: '77.88.99.11' },
-  { type: 'AUTO_SQUARE_OFF', time: '04/04/2026, 21:37:12', by: 'System', target: 'SDR001', symbol: 'GOLDMINI26APRFUT', qty: 1, price: 9250.00, reason: 'System Order: EOD Auto-Cancellation', ip: 'system-automation' },
-  { type: 'ORDER_EXECUTION', time: '05/04/2026, 09:30:00', by: 'SDR001', target: 'SDR001', symbol: 'GOLD26APRFUT', qty: 1, price: 92500.00, reason: 'Entry', ip: '55.66.77.88' },
-  { type: 'ORDER_CANCEL',    time: '03/04/2026, 17:00:00', by: 'SDR001', target: 'SDR001', symbol: 'SILVERMINI26APRFUT', ip: '55.66.77.88' },
-  { type: 'LOGIN',           time: '01/04/2026, 08:55:00', by: 'CXF406', target: 'CXF406', ip: '44.55.66.77' },
-];
+// ACT_LOGS constant removed — data is now fetched from /api/admin/actlogs
 
 const LOG_ROWS = 10;
 
+// ActLogItem matches the API response shape
+type ActLogItem = {
+  id: string; type: string; time: string; by: string; target: string;
+  symbol: string | null; qty: number | null; price: number | null;
+  reason: string | null; ip: string;
+};
+
 function ActLedgerPage() {
+  // Validates: Requirements 9.7–9.8, 13.8, 14.1–14.10
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
   const [dlRows, setDlRows]     = useState('100');
   const [search, setSearch]     = useState('');
   const [page, setPage]         = useState(1);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [logs, setLogs]         = useState<ActLogItem[]>([]);
+  const [toast, setToast]       = useState<ToastState>(null);
 
-  const filtered = ACT_LOGS.filter(l =>
-    l.type.toLowerCase().includes(search.toLowerCase()) ||
-    l.target.toLowerCase().includes(search.toLowerCase()) ||
-    l.by.toLowerCase().includes(search.toLowerCase()) ||
-    (l.symbol ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+  // Fetch logs from API; re-fetch when search or date filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to', dateTo);
+    if (search)   params.set('search', search);
+    params.set('rows', dlRows);
+    params.set('page', String(page));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    apiCall(`/api/admin/actlogs${query}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setLogs(data as ActLogItem[]);
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFrom, dateTo, search, page, dlRows]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / LOG_ROWS));
-  const displayed  = filtered.slice((page - 1) * LOG_ROWS, page * LOG_ROWS);
+  // Export CSV: fetch with export=csv param and trigger browser download
+  const handleExportCsv = () => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to', dateTo);
+    if (search)   params.set('search', search);
+    params.set('rows', dlRows);
+    params.set('export', 'csv');
+    supabase.auth.getSession().then(({ data: sessionData }) => {
+      const token = sessionData.session?.access_token ?? '';
+      fetch(`/api/admin/actlogs?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => {
+        if (!res.ok) { setToast({ message: 'Export failed', type: 'error' }); return; }
+        return res.blob();
+      }).then(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'actlogs.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      }).catch(() => setToast({ message: 'Export failed', type: 'error' }));
+    });
+  };
+
+  // Client-side filtering is now handled server-side; logs already filtered
+  const displayed  = logs;
+  const totalPages = Math.max(1, Math.ceil(logs.length / LOG_ROWS));
 
   return (
     <div className="adm-al-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       <h2 className="adm-page-title">Action Logs</h2>
 
       {/* Date filter */}
@@ -2174,7 +2547,7 @@ function ActLedgerPage() {
             <select className="adm-ord-rows-select" value={dlRows} onChange={e => setDlRows(e.target.value)}>
               {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            <button className="adm-al-export-btn">Export CSV</button>
+            <button className="adm-al-export-btn" onClick={handleExportCsv}>Export CSV</button>
           </div>
         </div>
       </div>
@@ -2248,41 +2621,100 @@ function ActLedgerPage() {
   );
 }
 
-// ─── Accounts Page ────────────────────────────────────────────────────────────
-const ACCOUNTS_DATA = [
-  { id: 'SIH008', fullName: 'Neha Joshi',   broker: 'SDR001', netPnl: -85052.55, brokerage: 9902.32, pnlBkg: -94954.86, settlement: 9871.94 },
-  { id: 'CXF406', fullName: 'Vikram Singh', broker: 'SDR001', netPnl: -15660.99, brokerage: 1689.01, pnlBkg: -17350.00, settlement: 11389.46 },
-  { id: 'JBI977', fullName: 'Gaurav Dhu',   broker: 'SDR001', netPnl: -99829.05, brokerage: 5520.43, pnlBkg: -105349.48,settlement: 1201.64 },
-  { id: 'KWF295', fullName: 'Sneha Patel',  broker: 'SDR001', netPnl: -7181.38,  brokerage: 123.83,  pnlBkg: -7305.21,  settlement: 1301.46 },
-  { id: 'SJE055', fullName: 'Amit Verma',   broker: 'SDR001', netPnl: -7338.19,  brokerage: 2225.84, pnlBkg: -9564.03,  settlement: 2976.42 },
-  { id: 'BMC986', fullName: 'Priya Mehta',  broker: 'SDR001', netPnl: 613.62,    brokerage: 9813.56, pnlBkg: -9199.94,  settlement: 16081.49 },
-  { id: 'QEE875', fullName: 'Rahul Sharma', broker: 'SDR001', netPnl: -12213.98, brokerage: 5586.06, pnlBkg: -17800.04, settlement: 657.78 },
-];
+// ACCOUNTS_DATA constant removed — data is now fetched from /api/admin/accounts
 
-// Sub-broker summary
-const SUB_BROKER = { id: 'SDR001', sharingPnl: 0, sharingBkg: 8715.26, pnlBkg: -261523.56, clientNetPnl: -226662.52, totalBrokerage: 34861.05 };
-// Broker summary
-const BROKER     = { id: 'QPG446', sharingPnl: -113331.26, sharingBkg: 17430.52, pnlBkg: -261523.56, clientNetPnl: -226662.52, totalBrokerage: 34861.05 };
+// AccountItem matches the API response shape
+type AccountItem = {
+  id: string; full_name: string; broker: string;
+  net_pnl: number; brokerage: number; pnl_bkg: number; settlement: number;
+};
+
+// AccountSummary for the summary stat cards (computed from fetched data)
+type AccountSummary = {
+  id: string; pnlBkg: number; clientNetPnl: number;
+  totalBrokerage: number; sharingBkg: number; sharingPnl: number;
+};
 
 function AccountsPageImpl() {
+  // Validates: Requirements 10.9–10.10, 13.9, 14.1–14.10
   const [filter, setFilter] = useState<'all' | 'subbrokers' | 'brokers'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
   const [search, setSearch]     = useState('');
   const [userSearch, setUserSearch] = useState('');
   const [page, setPage]         = useState(1);
+  const [accounts, setAccounts] = useState<AccountItem[]>([]);
+  const [toast, setToast]       = useState<ToastState>(null);
   const ROWS = 10;
 
-  // Summary changes per tab
-  const summary = filter === 'subbrokers'
-    ? { id: 'SDR001', pnlBkg: -261523.56, clientNetPnl: -226662.52, totalBrokerage: 34861.05, sharingBkg: 8715.26,  sharingPnl: 0 }
-    : filter === 'brokers'
-    ? { id: 'SDR001', pnlBkg: -261523.56, clientNetPnl: -226662.52, totalBrokerage: 34861.05, sharingBkg: 17430.52, sharingPnl: -113331.26 }
-    : { id: 'SDR001', pnlBkg: -261523.56, clientNetPnl: -226662.52, totalBrokerage: 34861.05, sharingBkg: 17430.52, sharingPnl: -113331.26 };
+  // Fetch accounts from API; re-fetch when filter or date changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set('filter', filter);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to', dateTo);
+    if (search)   params.set('search', search);
+    apiCall(`/api/admin/accounts?${params.toString()}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setAccounts(data as AccountItem[]);
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, dateFrom, dateTo, search]);
 
-  const filtered = ACCOUNTS_DATA.filter(u =>
+  // Compute summary from fetched accounts
+  const totalNetPnl      = accounts.reduce((s, a) => s + a.net_pnl, 0);
+  const totalBrokerage   = accounts.reduce((s, a) => s + a.brokerage, 0);
+  const totalPnlBkg      = accounts.reduce((s, a) => s + a.pnl_bkg, 0);
+  const summary: AccountSummary = {
+    id: accounts.length > 0 ? (accounts[0].broker || '—') : '—',
+    pnlBkg: totalPnlBkg,
+    clientNetPnl: totalNetPnl,
+    totalBrokerage: totalBrokerage,
+    sharingBkg: 0,
+    sharingPnl: 0,
+  };
+
+  // Export helper: generate CSV from fetched accounts data
+  const exportAccountsCsv = (rows: AccountItem[], filename: string) => {
+    const header = 'ID,Full Name,Broker,Net PNL,Brokerage,PNL+BKG,Settlement\n';
+    const body = rows.map(r =>
+      `${r.id},${r.full_name},${r.broker},${r.net_pnl},${r.brokerage},${r.pnl_bkg},${r.settlement}`
+    ).join('\n');
+    const blob = new Blob([header + body], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export Excel: generate CSV (Excel-compatible) from fetched data
+  const handleExportExcel = () => exportAccountsCsv(accounts, 'accounts.csv');
+
+  // Export PDF: open print dialog with a simple HTML table
+  const handleExportPdf = () => {
+    const rows = accounts.map(r =>
+      `<tr><td>${r.id}</td><td>${r.full_name}</td><td>${r.broker}</td><td>${r.net_pnl}</td><td>${r.brokerage}</td><td>${r.pnl_bkg}</td><td>${r.settlement}</td></tr>`
+    ).join('');
+    const html = `<html><head><title>Accounts</title></head><body>
+      <table border="1" cellpadding="4" cellspacing="0">
+        <thead><tr><th>ID</th><th>Full Name</th><th>Broker</th><th>Net PNL</th><th>Brokerage</th><th>PNL+BKG</th><th>Settlement</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></body></html>`;
+    const win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); win.print(); }
+  };
+
+  const filtered = accounts.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
-    u.fullName.toLowerCase().includes(search.toLowerCase())
+    u.full_name.toLowerCase().includes(search.toLowerCase())
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
   const displayed  = filtered.slice((page - 1) * ROWS, page * ROWS);
@@ -2291,6 +2723,7 @@ function AccountsPageImpl() {
 
   return (
     <div className="adm-acc-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* Filter tabs */}
       <div className="adm-acc-tabs">
         {(['all','subbrokers','brokers'] as const).map(t => (
@@ -2334,8 +2767,8 @@ function AccountsPageImpl() {
           <input className="adm-ord-search" placeholder="Search..." value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <button className="adm-acc-export-btn excel">Export Excel</button>
-        <button className="adm-acc-export-btn pdf">Export PDF</button>
+        <button className="adm-acc-export-btn excel" onClick={handleExportExcel}>Export Excel</button>
+        <button className="adm-acc-export-btn pdf" onClick={handleExportPdf}>Export PDF</button>
       </div>
 
       {/* Summary stat cards */}
@@ -2379,8 +2812,8 @@ function AccountsPageImpl() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className="adm-acc-export-btn excel" style={{ fontSize: '0.72rem', padding: '6px 10px' }}>Export Excel</button>
-              <button className="adm-acc-export-btn pdf"   style={{ fontSize: '0.72rem', padding: '6px 10px' }}>Export PDF</button>
+              <button className="adm-acc-export-btn excel" style={{ fontSize: '0.72rem', padding: '6px 10px' }} onClick={handleExportExcel}>Export Excel</button>
+              <button className="adm-acc-export-btn pdf"   style={{ fontSize: '0.72rem', padding: '6px 10px' }} onClick={handleExportPdf}>Export PDF</button>
             </div>
           </div>
           <div className="adm-acc-broker-detail-grid">
@@ -2417,7 +2850,7 @@ function AccountsPageImpl() {
             <div className="adm-acc-card-top">
               <div>
                 <div className="adm-acc-uid">{u.id}</div>
-                <div className="adm-acc-name">{u.fullName}</div>
+                <div className="adm-acc-name">{u.full_name}</div>
               </div>
               <div className="adm-acc-card-btns">
                 <button className="adm-acc-xls">XLS</button>
@@ -2426,11 +2859,11 @@ function AccountsPageImpl() {
             </div>
             <div className="adm-acc-card-grid">
               <span className="adm-acc-dl">Net PNL</span>
-              <span className="adm-acc-dv">₹{fmt(u.netPnl)}</span>
+              <span className="adm-acc-dv">₹{fmt(u.net_pnl)}</span>
               <span className="adm-acc-dl">Brokerage</span>
               <span className="adm-acc-dv">₹{fmt(u.brokerage)}</span>
               <span className="adm-acc-dl">PNL+BKG</span>
-              <span className="adm-acc-dv">₹{fmt(u.pnlBkg)}</span>
+              <span className="adm-acc-dv">₹{fmt(u.pnl_bkg)}</span>
               <span className="adm-acc-dl">Settlement</span>
               <span className="adm-acc-dv">₹{fmt(u.settlement)}</span>
             </div>

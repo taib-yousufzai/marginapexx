@@ -1,8 +1,9 @@
 /**
- * PATCH /api/admin/users/[id]
+ * GET    /api/admin/users/[id]
+ * PATCH  /api/admin/users/[id]
  * DELETE /api/admin/users/[id]
  *
- * Validates: Requirements 4.2–4.10, 5.2–5.8
+ * Validates: Requirements 4.2–4.10, 5.2–5.8, 8.5–8.7, 13.7
  */
 
 import { requireAdmin } from '../../_auth';
@@ -22,6 +23,42 @@ const PROFILE_FIELDS = [
   'auto_sqoff',
   'sqoff_method',
 ] as const;
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> | { id: string } },
+): Promise<Response> {
+  try {
+    // Step 1: Authenticate and authorize the caller
+    // Validates: Requirements 12.1–12.6
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof Response) return authResult;
+    const { adminClient } = authResult;
+
+    // Resolve params (may be a Promise in newer Next.js versions)
+    const resolvedParams = await Promise.resolve(params);
+    const id = resolvedParams.id;
+
+    // Step 2: Query the profile row
+    // Validates: Requirements 8.5, 13.7
+    const { data, error } = await adminClient
+      .from('profiles')
+      .select(
+        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at',
+      )
+      .eq('id', id)
+      .single();
+
+    if (error || data === null) {
+      return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    // Step 3: Return the profile
+    return Response.json(data, { status: 200 });
+  } catch {
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   request: Request,
@@ -122,14 +159,16 @@ export async function DELETE(
 
     // Step 2: Soft-delete the profile row
     // Validates: Requirements 5.3, 5.4, 5.8
+    const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const { data: row, error: updateError } = await adminClient
       .from('profiles')
-      .update({ active: false, scheduled_delete_at: "NOW() + INTERVAL '1 day'" })
+      .update({ active: false, scheduled_delete_at: scheduledAt })
       .eq('id', id)
       .select('scheduled_delete_at')
       .single();
 
     if (updateError || row === null) {
+      console.error('[DELETE /api/admin/users/[id]] update error:', updateError?.message, 'row:', row);
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 

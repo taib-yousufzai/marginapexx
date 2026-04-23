@@ -1,4 +1,12 @@
 /**
+ * GET /api/admin/users
+ *
+ * Returns a list of all user profiles for admin management.
+ *
+ * Validates: Requirements 2.1–2.6, 12.1–12.6
+ */
+
+/**
  * POST /api/admin/users
  *
  * Creates a new Supabase auth user and inserts a corresponding profile row.
@@ -8,6 +16,35 @@
  */
 
 import { requireAdmin } from '../_auth';
+
+export async function GET(request: Request): Promise<Response> {
+  try {
+    // Step 1: Authenticate and authorize the caller
+    // Validates: Requirements 2.2, 2.5, 12.1–12.6
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof Response) return authResult;
+    const { adminClient } = authResult;
+
+    // Step 2: Query all profiles with the required UserListItem fields
+    // Validates: Requirements 2.3, 2.4
+    const { data, error } = await adminClient
+      .from('profiles')
+      .select(
+        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, created_at, scheduled_delete_at',
+      );
+
+    if (error) {
+      console.error('[GET /api/admin/users] DB error:', error);
+      return Response.json({ error: 'Internal server error', detail: error.message }, { status: 500 });
+    }
+
+    // Step 3: Return the profile array
+    // Validates: Requirement 2.4
+    return Response.json(data, { status: 200 });
+  } catch {
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
 
 // Profile fields extracted from the request body (excluding email and password)
 const PROFILE_FIELDS = [
