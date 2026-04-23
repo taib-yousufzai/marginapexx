@@ -4,6 +4,9 @@
  * Fetches live prices from Kite Connect via /api/kite/quotes.
  * Polls every `refreshInterval` ms (default 5000ms = 5 seconds).
  *
+ * On mount, checks /api/kite/status first (which also triggers session
+ * restore from DB). Only starts polling quotes once the session is confirmed.
+ *
  * Returns a map of instrument key → { lastPrice, change, changePercent, ohlc }
  * Falls back gracefully if Kite is not connected (returns empty map).
  *
@@ -40,9 +43,12 @@ export function useKiteQuotes(
 ): UseKiteQuotesResult {
   const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [connected, setConnected] = useState(false);
+  // Start in loading=true so the UI shows a spinner, not "No live data",
+  // while we check the session status on mount.
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const instrumentsKey = instruments.join(',');
 
   const fetchQuotes = useCallback(async () => {
     if (instruments.length === 0) return;
@@ -103,14 +109,50 @@ export function useKiteQuotes(
     } finally {
       setLoading(false);
     }
-  }, [instruments.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [instrumentsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    fetchQuotes();
+    let cancelled = false;
 
-    intervalRef.current = setInterval(fetchQuotes, refreshInterval);
+    async function init() {
+      // Step 1: restore session from DB if cookie is missing (same as KiteConnectButton)
+      try {
+        await fetch('/api/kite/restore', { method: 'POST' });
+      } catch {
+        // best-effort
+      }
+
+      if (cancelled) return;
+
+      // Step 2: check whether a valid session exists before polling quotes
+      try {
+        const res = await fetch('/api/kite/status', { cache: 'no-store' });
+        const status = await res.json() as { connected: boolean };
+        if (!status.connected) {
+          setConnected(false);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        setConnected(false);
+        setLoading(false);
+        return;
+      }
+
+      if (cancelled) return;
+
+      // Step 3: session confirmed — fetch quotes immediately then start polling
+      await fetchQuotes();
+
+      if (cancelled) return;
+
+      intervalRef.current = setInterval(fetchQuotes, refreshInterval);
+    }
+
+    init();
 
     return () => {
+      cancelled = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [fetchQuotes, refreshInterval]);

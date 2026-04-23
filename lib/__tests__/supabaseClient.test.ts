@@ -94,8 +94,7 @@ describe('supabaseClient – preservation-checking (Property 2)', () => {
   // Validates: Requirement 3.1 — persistSession option is forwarded correctly
   it('the initialized client has auth.persistSession: true', async () => {
     const { supabase } = await freshImportSupabase();
-    // @ts-expect-error accessing internal storage key to verify persistSession
-    const storageKey = supabase.auth['storageKey'] as string | undefined;
+    const storageKey = (supabase.auth as unknown as Record<string, unknown>)['storageKey'] as string | undefined;
     // The presence of a storageKey confirms the auth instance was created with
     // session persistence enabled (supabase-js sets this when persistSession: true)
     expect(storageKey).toBeDefined();

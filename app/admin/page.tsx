@@ -2,8 +2,143 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, getRole, signOut } from '@/lib/auth';
+import { supabase } from '@/lib/supabaseClient';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import './page.css';
+
+// ─── API helper ───────────────────────────────────────────────────────────────
+async function apiCall(
+  path: string,
+  options: RequestInit,
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token ?? '';
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers ?? {}),
+    },
+  });
+  const data = await res.json();
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+type ToastState = { message: string; type: 'success' | 'error' } | null;
+
+function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(onDismiss, 3000);
+    return () => clearTimeout(t);
+  }, [toast, onDismiss]);
+
+  if (!toast) return null;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 24,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        background: toast.type === 'success' ? '#1a7f4b' : '#b91c1c',
+        color: '#fff',
+        padding: '12px 20px',
+        borderRadius: 8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        minWidth: 240,
+        maxWidth: 400,
+      }}
+    >
+      <span style={{ flex: 1, fontSize: '0.875rem' }}>{toast.message}</span>
+      <button
+        onClick={onDismiss}
+        style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+// ─── ConfirmDialog ────────────────────────────────────────────────────────────
+function ConfirmDialog({
+  message,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.6)',
+        zIndex: 9998,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: '#161b22',
+          border: '1px solid #30363d',
+          borderRadius: 12,
+          padding: '24px',
+          maxWidth: 360,
+          width: '90%',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ color: '#e6edf3', fontSize: '0.95rem', marginBottom: 20 }}>{message}</div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <button className="adm-sheet-cancel" onClick={onCancel} disabled={loading}>
+            Cancel
+          </button>
+          <button className="adm-btn-primary" onClick={onConfirm} disabled={loading}>
+            {loading ? 'Deleting…' : 'Confirm'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── DeletionBanner ───────────────────────────────────────────────────────────
+function DeletionBanner({ scheduledDeleteAt }: { scheduledDeleteAt: string }) {
+  const hoursRemaining = Math.max(
+    0,
+    Math.round((new Date(scheduledDeleteAt).getTime() - Date.now()) / (1000 * 60 * 60)),
+  );
+  return (
+    <div
+      style={{
+        background: '#7c2d12',
+        color: '#fca5a5',
+        borderRadius: 6,
+        padding: '8px 12px',
+        fontSize: '0.8rem',
+        marginTop: 8,
+      }}
+    >
+      Scheduled for deletion in {hoursRemaining} hours — log in to cancel
+    </div>
+  );
+}
 
 const navItems = [
   { key: 'telegram', label: 'TELEGRAM' },
@@ -783,16 +918,43 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
   const [autoSqoff, setAutoSqoff]   = useState('90');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
   const [segments, setSegments]     = useState<string[]>([]);
+  const [loading, setLoading]       = useState(false);
+  const [toast, setToast]           = useState<ToastState>(null);
 
   const usernameAvailable = username.length >= 3;
 
   const toggleSegment = (s: string) =>
     setSegments(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!username.trim()) return;
-    // Prototype: password = username, backend will handle real passwords later
-    onCreated(username.trim().toUpperCase(), role.toUpperCase().replace(' ', '_'));
+    setLoading(true);
+    const { ok, data } = await apiCall('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        full_name: fullName,
+        phone,
+        role: role.toLowerCase().replace(' ', '_'),
+        parent_id: parent,
+        segments,
+        active,
+        read_only: readOnly,
+        demo_user: demoUser,
+        intraday_sq_off: intradaySqOff,
+        auto_sqoff: Number(autoSqoff),
+        sqoff_method: sqoffMethod,
+      }),
+    });
+    if (ok) {
+      const d = data as { id: string; role?: string };
+      DEMO_USERS.push({ id: d.id, role: d.role ?? role.toUpperCase().replace(' ', '_') });
+      onCreated(d.id, d.role ?? role.toUpperCase().replace(' ', '_'));
+    } else {
+      setToast({ message: (data as { error: string }).error, type: 'error' });
+      setLoading(false);
+    }
   };
 
   return (
@@ -952,11 +1114,14 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
         {/* Actions */}
         <div className="adm-cu-actions">
           <button className="adm-sheet-cancel" onClick={onBack}>Cancel</button>
-          <button className="adm-btn-primary" style={{ padding: '10px 24px' }} onClick={handleCreate}>Create User</button>
+          <button className="adm-btn-primary" style={{ padding: '10px 24px' }} onClick={handleCreate} disabled={loading}>
+            {loading ? 'Creating…' : 'Create User'}
+          </button>
         </div>
 
         <div style={{ height: 24 }} />
       </div>
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 }
@@ -1599,6 +1764,8 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
   const [autoSqoff, setAutoSqoff] = useState(base.autoSqoff);
   const [sqoffMethod, setSqoffMethod] = useState(base.sqoffMethod);
   const [segments, setSegments] = useState<string[]>(base.segments);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
   // Reset when user changes
   useEffect(() => {
@@ -1723,9 +1890,42 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
       {segBlocks.map(name => <SegmentBlock key={name} name={name} />)}
 
       {/* Save button */}
-      <button className="adm-btn-primary" style={{ width: '100%', padding: '14px', fontSize: '0.9rem', borderRadius: 10 }}>
-        Save Changes
+      <button
+        className="adm-btn-primary"
+        style={{ width: '100%', padding: '14px', fontSize: '0.9rem', borderRadius: 10 }}
+        disabled={loading}
+        onClick={async () => {
+          setLoading(true);
+          const { ok, data } = await apiCall(`/api/admin/users/${uid}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              email,
+              password: password || undefined,
+              full_name: fullName,
+              phone,
+              role: role.toLowerCase().replace(' ', '_'),
+              parent_id: parent,
+              active: activation,
+              read_only: readOnly,
+              demo_user: demoUser,
+              intraday_sq_off: intradaySqOff,
+              auto_sqoff: Number(autoSqoff),
+              sqoff_method: sqoffMethod,
+              segments,
+            }),
+          });
+          if (ok) {
+            setToast({ message: 'Changes saved successfully', type: 'success' });
+          } else {
+            setToast({ message: (data as { error: string }).error, type: 'error' });
+          }
+          setLoading(false);
+        }}
+      >
+        {loading ? 'Saving…' : 'Save Changes'}
       </button>
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       <div style={{ height: 24 }} />
     </div>
@@ -1751,6 +1951,10 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
   const [page, setPage] = useState(1);
+  const [confirmDialog, setConfirmDialog] = useState<{ userId: string } | null>(null);
+  const [deletedUsers, setDeletedUsers] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
   const filtered = USERS_LIST.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -1845,8 +2049,9 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
               <button className="adm-users-btn pos-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('position'); }}>Positions</button>
               <button className="adm-users-btn ledger-btn">Ledger</button>
               <button className="adm-users-btn update-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('update'); }}>Update</button>
-              <button className="adm-users-btn delete-btn">Delete</button>
+              <button className="adm-users-btn delete-btn" onClick={() => setConfirmDialog({ userId: u.id })}>Delete</button>
             </div>
+            {deletedUsers[u.id] && <DeletionBanner scheduledDeleteAt={deletedUsers[u.id]} />}
           </div>
         ))}
       </div>
@@ -1859,6 +2064,30 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
           <button className="adm-pos-page-btn active-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
         </div>
       </div>
+
+      {confirmDialog && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete ${confirmDialog.userId}?`}
+          loading={loading}
+          onCancel={() => setConfirmDialog(null)}
+          onConfirm={async () => {
+            const userId = confirmDialog.userId;
+            setLoading(true);
+            const { ok, data } = await apiCall(`/api/admin/users/${userId}`, { method: 'DELETE' });
+            if (ok) {
+              const d = data as { scheduled_delete_at: string };
+              setDeletedUsers(prev => ({ ...prev, [userId]: d.scheduled_delete_at }));
+              setConfirmDialog(null);
+            } else {
+              setToast({ message: (data as { error: string }).error, type: 'error' });
+              setConfirmDialog(null);
+            }
+            setLoading(false);
+          }}
+        />
+      )}
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       <div style={{ height: 24 }} />
     </div>

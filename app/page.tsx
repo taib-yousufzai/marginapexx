@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
+import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
 import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import './page.css';
@@ -22,24 +23,7 @@ const KITE_INSTRUMENTS_ROW2 = [
   'MCX:NATURALGAS',
 ];
 
-// --- Fallback static data (shown when Kite is not connected) ---
-const marketRow1Static = [
-  { name: "NIFTY 50",   price: 79842.35,  change: 0.62,  type: "positive", icon: "fas fa-chart-line" },
-  { name: "SENSEX",     price: 264512.80, change: 0.48,  type: "positive", icon: "fas fa-chart-simple" },
-  { name: "BANK NIFTY", price: 51234.65,  change: 0.35,  type: "positive", icon: "fas fa-building" },
-  { name: "USD/INR",    price: 83.42,     change: -0.18, type: "negative", icon: "fas fa-dollar-sign" },
-  { name: "EUR/USD",    price: 1.0875,    change: 0.12,  type: "positive", icon: "fas fa-euro-sign" },
-  { name: "GBP/USD",    price: 1.2640,    change: -0.08, type: "negative", icon: "fas fa-pound-sign" },
-];
-
-const marketRow2Static = [
-  { name: "USD/JPY",   price: 151.42,   change: -0.25, type: "negative", icon: "fas fa-chart-line" },
-  { name: "BTC/USD",   price: 71892.40, change: 2.85,  type: "positive", icon: "fab fa-bitcoin" },
-  { name: "ETH/USD",   price: 3820.15,  change: 1.92,  type: "positive", icon: "fab fa-ethereum" },
-  { name: "XAU/USD",   price: 2478.30,  change: 0.95,  type: "positive", icon: "fas fa-coins" },
-  { name: "XAG/USD",   price: 28.90,    change: 1.12,  type: "positive", icon: "fas fa-gem" },
-  { name: "CRUDEOIL",  price: 82.40,    change: -0.45, type: "negative", icon: "fas fa-oil-can" },
-];
+// No static fallback — market data is only shown when Kite is connected.
 
 // Maps Kite instrument key → display config
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
@@ -139,15 +123,14 @@ export default function Page() {
 
   // Live prices from Kite — only active after Kite OAuth login
   const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
-  const { quotes, connected: kiteConnected } = useKiteQuotes(allKiteInstruments, 5000);
+  const { quotes, connected: kiteConnected, loading: kiteLoading } = useKiteQuotes(allKiteInstruments, 5000);
 
-  // Build market rows — use live data if connected, else static fallback
-  const buildRow = (instruments: string[], staticFallback: MarketItem[]): MarketItem[] => {
-    if (!kiteConnected || Object.keys(quotes).length === 0) return staticFallback;
-    return instruments.map((key, i) => {
+  // Build market rows from live Kite data only — no static fallback
+  const buildRow = (instruments: string[]): MarketItem[] => {
+    return instruments.map((key) => {
       const q = quotes[key];
       const display = KITE_DISPLAY_MAP[key] ?? { name: key, icon: 'fas fa-chart-line' };
-      if (!q) return staticFallback[i] ?? { name: display.name, price: 0, change: 0, type: 'positive', icon: display.icon };
+      if (!q) return { name: display.name, price: 0, change: 0, type: 'positive', icon: display.icon };
       return {
         name: display.name,
         price: q.lastPrice,
@@ -158,8 +141,8 @@ export default function Page() {
     });
   };
 
-  const marketRow1 = buildRow(KITE_INSTRUMENTS_ROW1, marketRow1Static);
-  const marketRow2 = buildRow(KITE_INSTRUMENTS_ROW2, marketRow2Static);
+  const marketRow1 = buildRow(KITE_INSTRUMENTS_ROW1);
+  const marketRow2 = buildRow(KITE_INSTRUMENTS_ROW2);
 
 
   useEffect(() => {
@@ -355,28 +338,66 @@ export default function Page() {
                     </span>
                   )}
                 </div>
-                <div className="markets-two-rows">
-                  {[marketRow1, marketRow2].map((row, rowIdx) => (
-                    <div className="market-row-scroll" key={`market-row-${rowIdx}`}>
-                      <div className="market-row-blocks">
-                        {row.map((market, i) => {
-                          const changePercent = market.change > 0 ? `+${market.change}%` : `${market.change}%`;
-                          const formattedPrice = market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 });
-                          return (
-                            <div className="market-rectangle" key={i} onClick={() => showToast(`📊 ${market.name} : ${formattedPrice} (${changePercent})`, 1500)}>
-                              <div className="market-rect-header">
-                                <i className={market.icon}></i>
-                                <span className="market-rect-name">{market.name}</span>
-                              </div>
-                              <div className="market-rect-price">{formattedPrice}</div>
-                              <div className={`market-rect-change ${market.type}`}>{changePercent}</div>
-                            </div>
-                          );
-                        })}
+
+                {/* Loading state */}
+                {kiteLoading && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    <i className="fas fa-circle-notch fa-spin" style={{ marginRight: 8 }} />
+                    Checking connection…
+                  </div>
+                )}
+
+                {/* Not connected — prompt to connect */}
+                {!kiteLoading && !kiteConnected && (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '24px 16px',
+                    background: 'var(--card-alt-bg)',
+                    borderRadius: 20,
+                    border: '1px dashed var(--border-card)',
+                    textAlign: 'center',
+                  }}>
+                    <i className="fas fa-plug" style={{ fontSize: '1.8rem', color: 'var(--text-muted)' }} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                        No live data
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: 12 }}>
+                        Connect your Zerodha account to see real-time prices for NIFTY, SENSEX, GOLD, CRUDE OIL and more.
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <KiteConnectButton />
+                  </div>
+                )}
+
+                {/* Live data rows */}
+                {!kiteLoading && kiteConnected && (
+                  <div className="markets-two-rows">
+                    {[marketRow1, marketRow2].map((row, rowIdx) => (
+                      <div className="market-row-scroll" key={`market-row-${rowIdx}`}>
+                        <div className="market-row-blocks">
+                          {row.map((market, i) => {
+                            const changePercent = market.change > 0 ? `+${market.change}%` : `${market.change}%`;
+                            const formattedPrice = market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 });
+                            return (
+                              <div className="market-rectangle" key={i} onClick={() => showToast(`📊 ${market.name} : ${formattedPrice} (${changePercent})`, 1500)}>
+                                <div className="market-rect-header">
+                                  <i className={market.icon}></i>
+                                  <span className="market-rect-name">{market.name}</span>
+                                </div>
+                                <div className="market-rect-price">{formattedPrice}</div>
+                                <div className={`market-rect-change ${market.type}`}>{changePercent}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* AI & Learning */}

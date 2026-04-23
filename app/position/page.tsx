@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { getSession } from '@/lib/auth';
+import { useKitePositions, KitePosition } from '@/hooks/useKitePositions';
+import KiteConnectButton from '@/components/KiteConnectButton';
 import '../watchlist/page.css';
 import './page.css';
 
@@ -52,6 +54,68 @@ type ClosedPosition = {
   exitReason?: 'TP' | 'SL' | 'Manual';
 };
 
+// Map a Kite net position → cumulative open card shape
+function toOpenPosition(p: KitePosition, idx: number): Position {
+  const side: 'LONG' | 'SHORT' = p.quantity > 0 ? 'LONG' : 'SHORT';
+  const qty = Math.abs(p.quantity);
+  const pnlPct = p.average_price > 0 ? (p.pnl / (p.average_price * qty * p.multiplier)) * 100 : 0;
+  return {
+    id: idx,
+    symbol: `${p.exchange}:${p.tradingsymbol}`,
+    side,
+    avgPrice: p.average_price,
+    qty,
+    pnl: p.pnl,
+    pnlPercent: parseFloat(pnlPct.toFixed(2)),
+    ltp: p.last_price,
+    orderType: p.product,
+  };
+}
+
+// Map a Kite day position (squared off today) → cumulative closed card shape
+function toClosedPosition(p: KitePosition): ClosedPosition {
+  const side: 'LONG' | 'SHORT' = p.buy_quantity >= p.sell_quantity ? 'LONG' : 'SHORT';
+  const qty = Math.max(p.buy_quantity, p.sell_quantity);
+  const avgPrice = side === 'LONG' ? p.buy_price : p.sell_price;
+  const exitPrice = side === 'LONG' ? p.sell_price : p.buy_price;
+  const pnlPct = avgPrice > 0 ? (p.pnl / (avgPrice * qty)) * 100 : 0;
+  return {
+    symbol: `${p.exchange}:${p.tradingsymbol}`,
+    side,
+    avgPrice,
+    qty,
+    pnl: p.pnl,
+    pnlPercent: parseFloat(pnlPct.toFixed(2)),
+    ltp: p.last_price,
+    orderType: p.product,
+    status: 'COMPLETED',
+    exitPrice,
+  };
+}
+
+// Map a Kite day position → detailed card shape
+function toDetailedPosition(p: KitePosition, idx: number): DetailedPosition {
+  const isOpen = p.quantity !== 0;
+  const side: 'LONG' | 'SHORT' = p.quantity >= 0 ? 'LONG' : 'SHORT';
+  const qty = Math.abs(p.quantity) || Math.max(p.buy_quantity, p.sell_quantity);
+  const entryPrice = side === 'LONG' ? p.buy_price : p.sell_price;
+  const exitPrice = isOpen ? null : (side === 'LONG' ? p.sell_price : p.buy_price);
+  const pnlPct = entryPrice > 0 ? (p.pnl / (entryPrice * qty)) * 100 : 0;
+  return {
+    id: idx,
+    symbol: `${p.exchange}:${p.tradingsymbol}`,
+    side,
+    qty,
+    entryPrice,
+    exitPrice,
+    currentPrice: p.last_price,
+    pnl: p.pnl,
+    pnlPercent: parseFloat(pnlPct.toFixed(2)),
+    status: isOpen ? 'OPEN' : 'CLOSED',
+    date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+  };
+}
+
 export default function PositionPage() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
@@ -68,30 +132,20 @@ export default function PositionPage() {
   const [selectedAction, setSelectedAction] = useState<'buy' | 'sell' | null>(null);
   const [tradeQty, setTradeQty] = useState(1);
 
-  const [openPositions, setOpenPositions] = useState<Position[]>([
-    { id: 1, symbol: 'BTC/USD', side: 'LONG', avgPrice: 61800.00, qty: 0.025, pnl: 36.25, pnlPercent: 2.34, ltp: 63250.00, orderType: 'SLM' },
-    { id: 2, symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3150.50, qty: 0.5, pnl: 35.25, pnlPercent: 2.24, ltp: 3080.00, orderType: 'GTT' },
-    { id: 3, symbol: 'SOL/USD', side: 'LONG', avgPrice: 142.80, qty: 2.25, pnl: 12.83, pnlPercent: 3.99, ltp: 148.50, orderType: 'SLM' },
-    { id: 4, symbol: 'DOGE/USD', side: 'LONG', avgPrice: 0.1245, qty: 1500, pnl: 10.05, pnlPercent: 5.38, ltp: 0.1312, orderType: 'GTT' },
-  ]);
+  // Live Kite positions
+  const { netPositions, dayPositions, connected: kiteConnected, loading: kiteLoading } = useKitePositions(5000);
 
-  const [closedPositions, setClosedPositions] = useState<ClosedPosition[]>([
-    { symbol: 'BTC/USD', side: 'LONG', avgPrice: 60500.00, qty: 0.02, pnl: 55.00, pnlPercent: 4.55, ltp: 63250.00, orderType: 'SLM', status: 'COMPLETED', entryTime: '09:15 AM', exitTime: '11:50 AM', exitPrice: 63250.00, exitReason: 'TP' },
-    { symbol: 'ETH/USD', side: 'SHORT', avgPrice: 3220.50, qty: 0.3, pnl: 42.15, pnlPercent: 4.36, ltp: 3080.00, orderType: 'GTT', status: 'COMPLETED', entryTime: '10:00 AM', exitTime: '01:30 PM', exitPrice: 3080.00, exitReason: 'Manual' },
-    { symbol: 'SOL/USD', side: 'LONG', avgPrice: 138.50, qty: 1.5, pnl: 15.00, pnlPercent: 7.22, ltp: 148.50, orderType: 'SLM', status: 'COMPLETED', entryTime: '11:20 AM', exitTime: '02:45 PM', exitPrice: 148.50, exitReason: 'TP' },
-    { symbol: 'AVAX/USD', side: 'LONG', avgPrice: 27.80, qty: 8.0, pnl: 13.60, pnlPercent: 6.12, ltp: 29.50, orderType: 'GTT', status: 'COMPLETED', entryTime: '09:45 AM', exitTime: '12:10 PM', exitPrice: 29.50, exitReason: 'SL' },
-    { symbol: 'LINK/USD', side: 'SHORT', avgPrice: 13.85, qty: 12.0, pnl: 7.20, pnlPercent: 4.33, ltp: 13.25, orderType: 'SLM', status: 'COMPLETED', entryTime: '02:00 PM', exitTime: '03:15 PM', exitPrice: 13.25, exitReason: 'Manual' },
-    { symbol: 'NEAR/USD', side: 'LONG', avgPrice: 3.42, qty: 25.0, pnl: 10.75, pnlPercent: 12.57, ltp: 3.85, orderType: 'GTT', status: 'COMPLETED', entryTime: '10:30 AM', exitTime: '01:05 PM', exitPrice: 3.85, exitReason: 'TP' },
-  ]);
+  // Derive display data from Kite positions
+  const openPositions: Position[] = netPositions
+    .filter(p => p.quantity !== 0)
+    .map(toOpenPosition);
 
-  const [detailedPositions, setDetailedPositions] = useState<DetailedPosition[]>([
-    { id: 1, symbol: 'BTC/USD', side: 'LONG', qty: 0.015, entryPrice: 61200.00, exitPrice: 63250.00, currentPrice: 63250.00, pnl: 30.75, pnlPercent: 3.35, status: 'CLOSED', date: 'Mar 31', exitTime: '02:15 PM', intradayMargin: 918.00, carryMargin: 1530.00 },
-    { id: 2, symbol: 'BTC/USD', side: 'LONG', qty: 0.01, entryPrice: 61800.00, exitPrice: null, currentPrice: 63250.00, pnl: 14.50, pnlPercent: 2.35, status: 'OPEN', date: 'Mar 31', entryTime: '11:30 AM', intradayMargin: 618.00, carryMargin: 1030.00 },
-    { id: 3, symbol: 'ETH/USD', side: 'SHORT', qty: 0.3, entryPrice: 3220.50, exitPrice: 3080.00, currentPrice: 3080.00, pnl: 42.15, pnlPercent: 4.36, status: 'CLOSED', date: 'Mar 31', exitTime: '03:45 PM', intradayMargin: 193.23, carryMargin: 322.05 },
-    { id: 4, symbol: 'ETH/USD', side: 'SHORT', qty: 0.2, entryPrice: 3150.50, exitPrice: null, currentPrice: 3080.00, pnl: 14.10, pnlPercent: 2.24, status: 'OPEN', date: 'Mar 31', entryTime: '10:15 AM', intradayMargin: 126.02, carryMargin: 210.03 },
-    { id: 5, symbol: 'SOL/USD', side: 'LONG', qty: 1.5, entryPrice: 138.50, exitPrice: 148.50, currentPrice: 148.50, pnl: 15.00, pnlPercent: 7.22, status: 'CLOSED', date: 'Mar 30', exitTime: '01:30 PM', intradayMargin: 41.55, carryMargin: 69.25 },
-    { id: 6, symbol: 'SOL/USD', side: 'LONG', qty: 0.75, entryPrice: 142.80, exitPrice: null, currentPrice: 148.50, pnl: 4.28, pnlPercent: 4.00, status: 'OPEN', date: 'Mar 30', entryTime: '09:45 AM', intradayMargin: 21.42, carryMargin: 35.70 },
-  ]);
+  const closedPositions: ClosedPosition[] = dayPositions
+    .filter(p => p.quantity === 0)
+    .map(toClosedPosition);
+
+  const detailedPositions: DetailedPosition[] = dayPositions
+    .map(toDetailedPosition);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,30 +166,6 @@ export default function PositionPage() {
     else document.body.classList.remove('dark');
   }, []);
 
-  // Live price simulation for open positions
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setOpenPositions(prev =>
-        prev.map(pos => {
-          const change = (Math.random() - 0.5) * (pos.symbol === 'BTC/USD' ? 200 : pos.symbol === 'ETH/USD' ? 30 : 5);
-          const newLtp = Math.max(0.01, pos.ltp + change);
-          const newPnl = pos.side === 'LONG' ? (newLtp - pos.avgPrice) * pos.qty : (pos.avgPrice - newLtp) * pos.qty;
-          return { ...pos, ltp: newLtp, pnl: newPnl, pnlPercent: (newPnl / (pos.avgPrice * pos.qty)) * 100 };
-        })
-      );
-      setDetailedPositions(prev =>
-        prev.map(pos => {
-          if (pos.status !== 'OPEN') return pos;
-          const change = (Math.random() - 0.5) * (pos.symbol === 'BTC/USD' ? 200 : pos.symbol === 'ETH/USD' ? 30 : 5);
-          const newCurrent = Math.max(0.01, pos.currentPrice + change);
-          const newPnl = pos.side === 'LONG' ? (newCurrent - pos.entryPrice) * pos.qty : (pos.entryPrice - newCurrent) * pos.qty;
-          return { ...pos, currentPrice: newCurrent, pnl: newPnl, pnlPercent: (newPnl / (pos.entryPrice * pos.qty)) * 100 };
-        })
-      );
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   if (isChecking) return null;
 
   const showToast = (msg: string) => {
@@ -145,30 +175,7 @@ export default function PositionPage() {
   };
 
   const exitAllPositions = () => {
-    const hasOpen = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
-    if (!hasOpen) { showToast('No open positions to exit'); return; }
-
-    const total = openPositions.length + detailedPositions.filter(p => p.status === 'OPEN').length;
-    const now = new Date();
-    const exitTimeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    setClosedPositions(prev => [
-      ...openPositions.map(pos => ({
-        symbol: pos.symbol, side: pos.side, avgPrice: pos.avgPrice,
-        qty: pos.qty, pnl: pos.pnl, pnlPercent: pos.pnlPercent,
-        ltp: pos.ltp, orderType: pos.orderType, status: 'COMPLETED',
-      })),
-      ...prev,
-    ]);
-    setOpenPositions([]);
-    setDetailedPositions(prev =>
-      prev.map(p =>
-        p.status === 'OPEN'
-          ? { ...p, status: 'CLOSED' as const, exitPrice: p.currentPrice, exitTime: exitTimeStr }
-          : p
-      )
-    );
-    showToast(`Exited ${total} position${total > 1 ? 's' : ''} successfully`);
+    showToast('To exit all positions, place opposite orders via Zerodha Kite.');
   };
 
   const filteredOpen = openPositions;
@@ -188,8 +195,8 @@ export default function PositionPage() {
   const openTradeSheet = (action: 'buy' | 'sell') => {
     setSelectedAction(action);
     setTradeQty(selectedPos ? selectedPos.qty : 1);
-    setIsSheetOpen(false); // Close position detail
-    setTimeout(() => setIsTradeSheetOpen(true), 300); // Open trade sheet after detail closes
+    setIsSheetOpen(false);
+    setTimeout(() => setIsTradeSheetOpen(true), 300);
   };
 
   const closeTradeSheet = () => {
@@ -202,15 +209,15 @@ export default function PositionPage() {
     closeTradeSheet();
   };
 
-  // Totals (always based on full data, not filtered)
-  const realized = closedPositions.reduce((s, p) => s + p.pnl, 0);
-  const unrealized = openPositions.reduce((s, p) => s + p.pnl, 0);
+  // Totals from live Kite data
+  const realized = dayPositions.reduce((s, p) => s + p.realised, 0);
+  const unrealized = netPositions.reduce((s, p) => s + p.unrealised, 0);
   const totalPnl = realized + unrealized;
 
-  const fmtUSD = (v: number) => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const fmtPrice = (v: number) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+  const fmtUSD = (v: number) => (v >= 0 ? '+' : '') + '₹' + Math.abs(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtPrice = (v: number) => '₹' + v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
 
-  const hasOpenPositions = openPositions.length > 0 || detailedPositions.some(p => p.status === 'OPEN');
+  const hasOpenPositions = openPositions.length > 0;
 
   // Detailed: showing all items
   const detailedDisplayed = filteredDetailed;
@@ -294,6 +301,29 @@ export default function PositionPage() {
 
         {/* ── Scrollable Content ── */}
         <div className="pos-content">
+
+          {/* Loading state */}
+          {kiteLoading && (
+            <div className="pos-empty">
+              <i className="fas fa-circle-notch fa-spin" />
+              <p>Loading positions…</p>
+            </div>
+          )}
+
+          {/* Not connected state */}
+          {!kiteLoading && !kiteConnected && (
+            <div className="pos-empty" style={{ gap: 16 }}>
+              <i className="fas fa-plug" style={{ fontSize: '2rem', color: 'var(--text-muted)' }} />
+              <p style={{ fontWeight: 700 }}>No live data</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: 240, textAlign: 'center' }}>
+                Connect your Zerodha account to see real positions and P&amp;L.
+              </p>
+              <KiteConnectButton />
+            </div>
+          )}
+
+          {/* Live content */}
+          {!kiteLoading && kiteConnected && (<>
 
           {/* ── Cumulative View ── */}
           {currentMain === 'cumulative' && (
@@ -407,6 +437,8 @@ export default function PositionPage() {
               </div>
             ))
           )}
+
+          </>)}{/* end kiteConnected */}
 
         </div>{/* end pos-content */}
 
