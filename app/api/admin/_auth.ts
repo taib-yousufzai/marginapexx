@@ -90,3 +90,64 @@ export async function requireAdmin(
 
   return { adminClient, callerUser: userData.user };
 }
+
+/**
+ * Validates the Bearer token and asserts the caller is super_admin only.
+ *
+ * Returns AdminContext on success.
+ * Returns a Response (401 or 403) on failure — caller must return it immediately.
+ *
+ * Steps:
+ *   1. Extract Authorization: Bearer <token> header → 401 if absent or wrong format
+ *   2. Create admin client via createAdminClient()
+ *   3. Call adminClient.auth.getUser(token) → 401 if error or no user
+ *   4. Call getRole(user) → 403 if role is NOT super_admin (admin role is also rejected)
+ *   5. Return { adminClient, callerUser }
+ *
+ * Usage:
+ *   const result = await requireSuperAdmin(request);
+ *   if (result instanceof Response) return result;
+ *   const { adminClient, callerUser } = result;
+ *
+ * Validates: Requirements 22.1, 22.2, 22.3, 22.4, 22.5
+ */
+export async function requireSuperAdmin(
+  request: Request,
+): Promise<AdminContext | Response> {
+  // Step 1: Extract Authorization: Bearer <token> header
+  // Validates: Requirements 22.1, 22.2
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const token = authHeader.slice('Bearer '.length).trim();
+  if (!token) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Step 2: Create admin client
+  let adminClient: SupabaseClient;
+  try {
+    adminClient = createAdminClient();
+  } catch (e) {
+    console.error('[requireSuperAdmin] createAdminClient failed:', e);
+    return Response.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  // Step 3: Validate session via admin client
+  // Validates: Requirements 22.3
+  const { data: userData, error: userError } = await adminClient.auth.getUser(token);
+  if (userError || !userData?.user) {
+    console.error('[requireSuperAdmin] getUser failed:', userError?.message);
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Step 4: Determine caller role and assert super_admin only
+  // Validates: Requirements 22.4, 22.5
+  const role = getRole(userData.user);
+  if (role !== 'super_admin') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  return { adminClient, callerUser: userData.user };
+}

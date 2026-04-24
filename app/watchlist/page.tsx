@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
-import { getSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import './page.css';
 
@@ -91,19 +91,9 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
 
 export default function WatchlistPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+  useAuth();
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const scriptMountedRef = useRef(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSession().then((session) => {
-      if (cancelled) return;
-      if (!session) router.replace('/login');
-      else setIsChecking(false);
-    });
-    return () => { cancelled = true; };
-  }, [router]);
 
   useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');
@@ -112,8 +102,7 @@ export default function WatchlistPage() {
   }, []);
 
   useEffect(() => {
-    if (!isChecking) {
-      const raw = localStorage.getItem(WATCHLIST_KEY);
+    const raw = localStorage.getItem(WATCHLIST_KEY);
 
       // Key doesn't exist = first time user → populate defaults
       if (raw === null) {
@@ -125,8 +114,7 @@ export default function WatchlistPage() {
         const loaded = loadWatchlistFromStorage();
         setWatchlistItems(loaded);
       }
-    }
-  }, [isChecking]);
+  }, []);
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
   const { quotes } = useKiteQuotes(kiteSymbols, 5000);
@@ -158,7 +146,6 @@ export default function WatchlistPage() {
   }, []);
 
   useEffect(() => {
-    if (isChecking) return;
     window.__kiteQuotes = window.__kiteQuotes || {};
     window.__watchlistItems = window.__watchlistItems || [];
 
@@ -170,9 +157,7 @@ export default function WatchlistPage() {
       if (document.body.contains(script)) document.body.removeChild(script);
       scriptMountedRef.current = false;
     };
-  }, [isChecking]);
-
-  if (isChecking) return null;
+  }, []);
 
   return (
     <div className="mobile-app">

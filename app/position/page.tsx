@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
-import { getSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { useKitePositions, KitePosition } from '@/hooks/useKitePositions';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import '../watchlist/page.css';
@@ -118,7 +118,7 @@ function toDetailedPosition(p: KitePosition, idx: number): DetailedPosition {
 
 export default function PositionPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+  useAuth();
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
   const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
   const [toast, setToast] = useState<string | null>(null);
@@ -148,25 +148,10 @@ export default function PositionPage() {
     .map(toDetailedPosition);
 
   useEffect(() => {
-    let cancelled = false;
-    getSession().then((session) => {
-      if (cancelled) return;
-      if (!session) {
-        router.replace('/login');
-      } else {
-        setIsChecking(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [router]);
-
-  useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');
     if (saved === 'dark') document.body.classList.add('dark');
     else document.body.classList.remove('dark');
   }, []);
-
-  if (isChecking) return null;
 
   const showToast = (msg: string) => {
     setToast(msg);

@@ -3,13 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 import type { Session } from '@supabase/supabase-js';
 import './page.css';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const [isChecking, setIsChecking] = useState(true);
+    useAuth();
     const [isDark, setIsDark] = useState(false);
     const [session, setSession] = useState<Session | null>(null);
     const [balance, setBalance] = useState<number | null>(null);
@@ -18,12 +19,8 @@ export default function ProfilePage() {
         let cancelled = false;
         getSession().then(async (s) => {
             if (cancelled) return;
-            if (!s) {
-                router.replace('/login');
-                return;
-            }
+            if (!s) return;
             setSession(s);
-            setIsChecking(false);
 
             // Fetch balance from profiles table
             const { data } = await supabase
@@ -36,7 +33,7 @@ export default function ProfilePage() {
             }
         });
         return () => { cancelled = true; };
-    }, [router]);
+    }, []);
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
@@ -45,8 +42,6 @@ export default function ProfilePage() {
         if (dark) document.body.classList.add('dark');
         else document.body.classList.remove('dark');
     }, []);
-
-    if (isChecking) return null;
 
     // Derive display name from email
     const email = session?.user?.email ?? '';

@@ -1,30 +1,14 @@
 
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { getSession } from '@/lib/auth';
+import { useEffect, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import './page.css';
 
 export default function Page() {
-  const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+  useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    getSession().then((session) => {
-      if (cancelled) return;
-      if (!session) {
-        router.replace('/login');
-      } else {
-        setIsChecking(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [router]);
-
-  useEffect(() => {
-    if (isChecking) return;
     // Inject scripts
     const script = document.createElement('script');
     script.innerHTML = `
@@ -336,9 +320,7 @@ export default function Page() {
         document.body.removeChild(script);
       }
     };
-  }, [isChecking]);
-
-  if (isChecking) return null;
+  }, []);
 
   return (
     <div 

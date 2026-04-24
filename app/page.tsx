@@ -81,25 +81,14 @@ export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
   const [scrollKey, setScrollKey] = useState(() => Date.now());
 
   useEffect(() => {
-    let cancelled = false;
     getSession().then((session) => {
-      if (cancelled) return;
-      if (!session) {
-        router.replace('/login');
-        return;
-      }
-      // Redirect admin users away from the regular user dashboard
-      if (getRole(session.user) === 'admin') {
-        router.replace('/admin');
-        return;
-      }
-      setIsChecking(false);
+      if (!session) { router.replace('/login'); return; }
+      const role = getRole(session.user);
+      if (role === 'admin' || role === 'super_admin') { router.replace('/admin'); return; }
     });
-    return () => { cancelled = true; };
   }, [router]);
 
   useEffect(() => {
@@ -171,8 +160,6 @@ export default function Page() {
   useEffect(() => {
     if (containerRef.current) containerRef.current.scrollTop = 0;
   }, [pathname]);
-
-  if (isChecking) return null;
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';

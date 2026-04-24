@@ -71,6 +71,8 @@ export async function signIn(email: string, password: string): Promise<SignInRes
  * Validates: Requirements 4.1, 4.2, 4.3
  */
 export async function signOut(): Promise<void> {
+  _cachedSession = null;
+  _cacheTimestamp = 0;
   const { error } = await supabase.auth.signOut();
   if (error) {
     console.error('signOut error:', error);
@@ -129,21 +131,58 @@ export async function updatePassword(newPassword: string): Promise<PasswordReset
 
 // ─── Session helpers ──────────────────────────────────────────────────────────
 
+// In-memory session cache — avoids a network round-trip on every page mount.
+// Invalidated on sign-out and refreshed when the token changes.
+let _cachedSession: Session | null = null;
+let _cacheTimestamp = 0;
+const SESSION_CACHE_TTL_MS = 60_000; // re-validate after 60 seconds
+
+// Supabase keeps the session fresh via its own token refresh mechanism.
+// We listen for auth state changes to keep our cache in sync.
+if (typeof window !== 'undefined') {
+  import('./supabaseClient').then(({ supabase: sb }) => {
+    sb.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        _cachedSession = session;
+        _cacheTimestamp = Date.now();
+      } else {
+        _cachedSession = null;
+        _cacheTimestamp = 0;
+      }
+    });
+  });
+}
+
 /**
  * Returns the current Supabase session, or null if the user is not authenticated.
- * Uses getUser() to ensure fresh user metadata (including role) is always current.
+ * Uses an in-memory cache (60s TTL) to avoid a network call on every page mount.
+ * Falls back to a fresh getUser() call when the cache is stale or empty.
  *
  * Validates: Requirements 3.2
  */
 export async function getSession(): Promise<Session | null> {
+  // Return cached session if still fresh
+  if (_cachedSession && Date.now() - _cacheTimestamp < SESSION_CACHE_TTL_MS) {
+    return _cachedSession;
+  }
+
   const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) return null;
+  if (!sessionData.session) {
+    _cachedSession = null;
+    return null;
+  }
 
   // Refresh user data from server to get latest user_metadata (e.g. role)
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return null;
+  if (!userData.user) {
+    _cachedSession = null;
+    return null;
+  }
 
-  // Merge fresh user into session
-  return { ...sessionData.session, user: userData.user };
+  // Merge fresh user into session and cache it
+  const freshSession = { ...sessionData.session, user: userData.user };
+  _cachedSession = freshSession;
+  _cacheTimestamp = Date.now();
+  return freshSession;
 }
 

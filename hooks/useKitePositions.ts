@@ -11,6 +11,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { pageCache } from '@/lib/pageCache';
+
+type PositionsCache = { net: KitePosition[]; day: KitePosition[] };
 
 export interface KitePosition {
   tradingsymbol: string;
@@ -52,10 +55,14 @@ interface UseKitePositionsResult {
 }
 
 export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult {
-  const [netPositions, setNetPositions] = useState<KitePosition[]>([]);
-  const [dayPositions, setDayPositions] = useState<KitePosition[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [netPositions, setNetPositions] = useState<KitePosition[]>(
+    () => pageCache.get<PositionsCache>('kite:positions')?.net ?? []
+  );
+  const [dayPositions, setDayPositions] = useState<KitePosition[]>(
+    () => pageCache.get<PositionsCache>('kite:positions')?.day ?? []
+  );
+  const [connected, setConnected] = useState(() => pageCache.get<boolean>('kite:connected') ?? false);
+  const [loading, setLoading] = useState(() => pageCache.get<PositionsCache>('kite:positions') === null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -65,6 +72,7 @@ export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult
 
       if (response.status === 401 || response.status === 403) {
         setConnected(false);
+        pageCache.set('kite:connected', false);
         setLoading(false);
         return;
       }
@@ -77,12 +85,15 @@ export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult
       }
 
       const data = await response.json() as { net: KitePosition[]; day: KitePosition[] };
-
-      setNetPositions(data.net ?? []);
-      setDayPositions(data.day ?? []);
+      const net = data.net ?? [];
+      const day = data.day ?? [];
+      setNetPositions(net);
+      setDayPositions(day);
+      pageCache.set('kite:positions', { net, day });
       setConnected(true);
+      pageCache.set('kite:connected', true);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Network error fetching positions');
     } finally {
       setLoading(false);

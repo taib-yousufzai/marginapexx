@@ -4,11 +4,11 @@
  * Fetches today's orders from Kite Connect via /api/kite/orders.
  * Polls every `refreshInterval` ms (default 5000ms).
  *
- * Follows the same session-restore-first pattern as useKiteQuotes:
- *   restore cookie → check status → fetch → poll
+ * Shows cached data instantly on mount, then refreshes in the background.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { pageCache } from '@/lib/pageCache';
 
 export interface KiteOrder {
   order_id: string;
@@ -51,9 +51,9 @@ interface UseKiteOrdersResult {
 }
 
 export function useKiteOrders(refreshInterval = 5000): UseKiteOrdersResult {
-  const [orders, setOrders] = useState<KiteOrder[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<KiteOrder[]>(() => pageCache.get<KiteOrder[]>('kite:orders') ?? []);
+  const [connected, setConnected] = useState(() => pageCache.get<boolean>('kite:connected') ?? false);
+  const [loading, setLoading] = useState(() => pageCache.get<KiteOrder[]>('kite:orders') === null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -63,6 +63,7 @@ export function useKiteOrders(refreshInterval = 5000): UseKiteOrdersResult {
 
       if (response.status === 401 || response.status === 403) {
         setConnected(false);
+        pageCache.set('kite:connected', false);
         setLoading(false);
         return;
       }
@@ -75,8 +76,11 @@ export function useKiteOrders(refreshInterval = 5000): UseKiteOrdersResult {
       }
 
       const data = await response.json() as { orders: KiteOrder[] };
-      setOrders(data.orders ?? []);
+      const freshOrders = data.orders ?? [];
+      setOrders(freshOrders);
+      pageCache.set('kite:orders', freshOrders);
       setConnected(true);
+      pageCache.set('kite:connected', true);
       setError(null);
     } catch {
       setError('Network error fetching orders');

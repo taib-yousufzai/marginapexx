@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getSession } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import './page.css';
 
 // Mock Data for Margin Segments
@@ -74,22 +73,8 @@ const marginSegments = [
 ];
 
 export default function MarginSettingsPage() {
-  const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
+  useAuth();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-  useEffect(() => {
-    let cancelled = false;
-    getSession().then((session) => {
-      if (cancelled) return;
-      if (!session) {
-        router.replace('/login');
-      } else {
-        setIsChecking(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [router]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
@@ -98,8 +83,6 @@ export default function MarginSettingsPage() {
       document.body.classList.toggle('dark', savedTheme === 'dark');
     }
   }, []);
-
-  if (isChecking) return null;
 
   return (
     <div className={`app-container ${theme}`}>

@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { getSession, getRole, signOut } from '@/lib/auth';
 import { supabase } from '@/lib/supabaseClient';
 import KiteConnectButton from '@/components/KiteConnectButton';
+import { toCsvPayRequests } from '@/lib/csvExport';
+import type { PayRequest } from '@/lib/csvExport';
 import './page.css';
 
 // ─── API helper ───────────────────────────────────────────────────────────────
@@ -205,6 +207,7 @@ export default function AdminPage() {
   const [creatingUser, setCreatingUser] = useState(false);
   const [activePage, setActivePage] = useState('marketwatch');
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>({ id: '', role: '' });
+  const [userRole, setUserRole] = useState<string>('');
 
   // Route guard — Supabase session + admin role check
   useEffect(() => {
@@ -214,10 +217,11 @@ export default function AdminPage() {
         return;
       }
       const role = getRole(session.user);
-      if (role !== 'admin') {
+      if (role !== 'admin' && role !== 'super_admin') {
         router.replace('/');
         return;
       }
+      setUserRole(role);
       setIsChecking(false);
     });
   }, [router]);
@@ -283,6 +287,15 @@ export default function AdminPage() {
               {item.label}
             </div>
           ))}
+          {userRole === 'super_admin' && (
+            <div
+              key="paymentaccounts"
+              className={`adm-nav-item ${activePage === 'paymentaccounts' ? 'active' : ''}`}
+              onClick={() => handleNav('paymentaccounts')}
+            >
+              PAYMENT ACCOUNTS
+            </div>
+          )}
         </nav>
         {/* Kite connect — pinned to bottom of sidebar */}
         <div style={{ padding: '16px', borderTop: '1px solid #21262d', marginTop: 'auto' }}>
@@ -331,6 +344,7 @@ export default function AdminPage() {
 // Forward declarations to fix Turbopack hoisting
 function AccountsPage() { return <AccountsPageImpl />; }
 function PayinOutPage()  { return <PayinOutPageImpl />; }
+function PaymentAccountsPage() { return <PaymentAccountsPageImpl />; }
 
 function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
   activePage: string;
@@ -338,40 +352,25 @@ function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
   onSelectUser: (u: { id: string; role: string }) => void;
   onNavigate: (page: string) => void;
 }) {
-  const titles: Record<string, string> = {
-    telegram: 'Telegram Bot',
-    settings: 'Settings',
-    marketwatch: 'Market Watch',
-    dashboard: 'Dashboard',
-    orders: 'Orders',
-    position: 'Position',
-    update: 'Update',
-    users: 'Users',
-    actledger: 'Act Ledger',
-    accounts: 'Accounts',
-    payinout: 'Payin-Out',
-    logout: 'Logout',
-  };
-
-  if (activePage === 'telegram') return <TelegramPage />;
-  if (activePage === 'settings') return <SettingsPage />;
-  if (activePage === 'marketwatch') return <MarketWatchPage />;
-  if (activePage === 'dashboard') return <DashboardPage selectedUser={selectedUser} />;
-  if (activePage === 'orders') return <OrdersPage selectedUser={selectedUser} />;
-  if (activePage === 'position') return <PositionPage selectedUser={selectedUser} />;
-  if (activePage === 'update') return <UpdatePage selectedUser={selectedUser} />;
-  if (activePage === 'users') return <UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} />;
-  if (activePage === 'actledger') return <ActLedgerPage />;
-  if (activePage === 'accounts') return <AccountsPage />;
-  if (activePage === 'payinout') return <PayinOutPage />;
+  // Render all pages simultaneously, show/hide with CSS.
+  // This keeps components mounted so their data stays cached — no reload on tab switch.
+  const show = (key: string) => ({ display: activePage === key ? undefined : 'none' } as React.CSSProperties);
 
   return (
-    <div className="adm-page">
-      <h2 className="adm-page-title">{titles[activePage] ?? activePage}</h2>
-      <div className="adm-card">
-        <div className="adm-empty-state">No data available</div>
-      </div>
-    </div>
+    <>
+      <div style={show('telegram')}><TelegramPage /></div>
+      <div style={show('settings')}><SettingsPage /></div>
+      <div style={show('marketwatch')}><MarketWatchPage /></div>
+      <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} /></div>
+      <div style={show('orders')}><OrdersPage selectedUser={selectedUser} /></div>
+      <div style={show('position')}><PositionPage selectedUser={selectedUser} /></div>
+      <div style={show('update')}><UpdatePage selectedUser={selectedUser} /></div>
+      <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} /></div>
+      <div style={show('actledger')}><ActLedgerPage /></div>
+      <div style={show('accounts')}><AccountsPage /></div>
+      <div style={show('payinout')}><PayinOutPage /></div>
+      <div style={show('paymentaccounts')}><PaymentAccountsPage /></div>
+    </>
   );
 }
 
@@ -3008,25 +3007,6 @@ function AccountsPageImpl() {
 }
 
 // ─── PayIn/Out Page ───────────────────────────────────────────────────────────
-type PayRequest = {
-  id: string; userId: string; time: string; refId: string;
-  type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number; broker: string;
-  updated: string; status: 'APPROVED' | 'PENDING' | 'REJECTED';
-  accountName?: string; accountNo?: string; ifsc?: string; upi?: string;
-};
-
-const PAY_REQUESTS: PayRequest[] = [
-  { id: '1873', userId: 'QEE875', time: '13/04/2026, 19:25:09', refId: '#1873', type: 'DEPOSIT',    amount: 8000,  broker: 'SDR001', updated: '13/04/2026 07:25 PM', status: 'APPROVED' },
-  { id: '1856', userId: 'BMC986', time: '13/04/2026, 14:28:27', refId: '#1856', type: 'DEPOSIT',    amount: 5000,  broker: 'SDR001', updated: '13/04/2026 02:30 PM', status: 'APPROVED' },
-  { id: '1746', userId: 'KWF295', time: '09/04/2026, 15:35:47', refId: '#1746', type: 'WITHDRAWAL', amount: 14000, broker: 'SDR001', updated: '09/04/2026 04:11 PM', status: 'APPROVED', accountName: 'Sneha Patel', accountNo: '98765432101', ifsc: 'HDFC0001234', upi: 'sneha@upi' },
-  { id: '1720', userId: 'JBI977', time: '07/04/2026, 10:00:00', refId: '#1720', type: 'DEPOSIT',    amount: 20000, broker: 'SDR001', updated: '07/04/2026 10:05 AM', status: 'APPROVED' },
-  { id: '1698', userId: 'QEE875', time: '06/04/2026, 09:00:00', refId: '#1698', type: 'DEPOSIT',    amount: 15000, broker: 'SDR001', updated: '06/04/2026 09:10 AM', status: 'APPROVED' },
-  { id: '1650', userId: 'SJE055', time: '05/04/2026, 11:00:00', refId: '#1650', type: 'WITHDRAWAL', amount: 3000,  broker: 'SDR001', updated: '05/04/2026 11:15 AM', status: 'PENDING',  accountName: 'Amit Verma', accountNo: '11223344556', ifsc: 'ICIC0005678', upi: 'amit@upi' },
-  { id: '1620', userId: 'CXF406', time: '04/04/2026, 14:00:00', refId: '#1620', type: 'DEPOSIT',    amount: 6500,  broker: 'SDR001', updated: '04/04/2026 02:05 PM', status: 'APPROVED' },
-  { id: '1590', userId: 'BMC986', time: '03/04/2026, 16:00:00', refId: '#1590', type: 'WITHDRAWAL', amount: 3500,  broker: 'SDR001', updated: '03/04/2026 04:10 PM', status: 'REJECTED', accountName: 'Priya Mehta', accountNo: '22334455667', ifsc: 'SBIN0009876', upi: 'priya@upi' },
-  { id: '1560', userId: 'SIH008', time: '02/04/2026, 12:00:00', refId: '#1560', type: 'DEPOSIT',    amount: 9000,  broker: 'SDR001', updated: '02/04/2026 12:10 PM', status: 'APPROVED' },
-  { id: '1530', userId: 'KWF295', time: '01/04/2026, 10:00:00', refId: '#1530', type: 'DEPOSIT',    amount: 35000, broker: 'SDR001', updated: '01/04/2026 10:15 AM', status: 'APPROVED' },
-];
 
 function PayinOutPageImpl() {
   const [tab, setTab]       = useState<'deposit' | 'withdrawal' | 'rules'>('deposit');
@@ -3045,14 +3025,179 @@ function PayinOutPageImpl() {
   const [minWithdraw, setMinWithdraw] = useState('100');
   const [minDeposit, setMinDeposit]   = useState('1000');
 
+  // Dynamic data state
+  const [requests, setRequests]           = useState<PayRequest[]>([]);
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [rulesLoading, setRulesLoading]   = useState(false);
+  const [rulesSaving, setRulesSaving]     = useState(false);
+  const [toast, setToast]                 = useState<ToastState>(null);
+
   const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const toggleDay = (d: string) => setAllowedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
-  const requests = PAY_REQUESTS.filter(r =>
-    (tab === 'deposit' ? r.type === 'DEPOSIT' : r.type === 'WITHDRAWAL') &&
-    (status === 'All Status' || r.status === status) &&
-    (r.userId.toLowerCase().includes(search.toLowerCase()) || r.refId.includes(search))
-  );
+  // Fetch requests whenever filters change (not for rules tab)
+  useEffect(() => {
+    if (tab === 'rules') return;
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams();
+    params.set('type', tab.toUpperCase());
+    if (status !== 'All Status') params.set('status', status);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo)   params.set('date_to', dateTo);
+    if (search)   params.set('search', search);
+    params.set('page', String(page));
+    params.set('rows', rows);
+    apiCall(`/api/admin/payinout?${params.toString()}`, { method: 'GET' })
+      .then(({ ok, status: httpStatus, data }) => {
+        if (httpStatus === 401) { signOut(); return; }
+        if (!ok) {
+          const msg = (data as { error?: string })?.error ?? 'Failed to load requests';
+          setError(msg);
+          setRequests([]);
+          return;
+        }
+        setRequests(data as PayRequest[]);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Network error');
+        setRequests([]);
+      })
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, dateFrom, dateTo, status, search, page, rows]);
+
+  // Fetch rules when rules tab is opened
+  useEffect(() => {
+    if (tab !== 'rules') return;
+    setRulesLoading(true);
+    apiCall('/api/admin/payinout/rules', { method: 'GET' })
+      .then(({ ok, status: httpStatus, data }) => {
+        if (httpStatus === 401) { signOut(); return; }
+        if (!ok) {
+          setToast({ message: (data as { error?: string })?.error ?? 'Failed to load rules', type: 'error' });
+          return;
+        }
+        const r = data as {
+          withdraw_enabled: boolean; allowed_days: string[];
+          start_time: string; end_time: string;
+          min_withdraw: number; min_deposit: number;
+        };
+        setWithdrawEnabled(r.withdraw_enabled);
+        setAllowedDays(r.allowed_days);
+        setStartTime(r.start_time);
+        setEndTime(r.end_time);
+        setMinWithdraw(String(r.min_withdraw));
+        setMinDeposit(String(r.min_deposit));
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      })
+      .finally(() => setRulesLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  const handleAccept = async (r: PayRequest) => {
+    setActionLoading(prev => ({ ...prev, [r.id]: true }));
+    try {
+      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payinout/${r.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'approve' }),
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setToast({ message: (data as { error?: string })?.error ?? 'Failed to approve', type: 'error' });
+        return;
+      }
+      setRequests(prev => prev.map(req => req.id === r.id ? { ...req, status: 'APPROVED' } : req));
+    } catch (err: unknown) {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setActionLoading(prev => ({ ...prev, [r.id]: false }));
+    }
+  };
+
+  const handleReject = async (r: PayRequest) => {
+    setActionLoading(prev => ({ ...prev, [r.id]: true }));
+    try {
+      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payinout/${r.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action: 'reject' }),
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setToast({ message: (data as { error?: string })?.error ?? 'Failed to reject', type: 'error' });
+        return;
+      }
+      setRequests(prev => prev.map(req => req.id === r.id ? { ...req, status: 'REJECTED' } : req));
+    } catch (err: unknown) {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setActionLoading(prev => ({ ...prev, [r.id]: false }));
+    }
+  };
+
+  const handleDelete = async (r: PayRequest) => {
+    if (!window.confirm('Are you sure you want to delete this request?')) return;
+    setActionLoading(prev => ({ ...prev, [r.id]: true }));
+    try {
+      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payinout/${r.id}`, {
+        method: 'DELETE',
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setToast({ message: (data as { error?: string })?.error ?? 'Failed to delete', type: 'error' });
+        return;
+      }
+      setRequests(prev => prev.filter(req => req.id !== r.id));
+    } catch (err: unknown) {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setActionLoading(prev => { const next = { ...prev }; delete next[r.id]; return next; });
+    }
+  };
+
+  const handleSaveRules = async () => {
+    setRulesSaving(true);
+    try {
+      const { ok, status: httpStatus, data } = await apiCall('/api/admin/payinout/rules', {
+        method: 'PUT',
+        body: JSON.stringify({
+          withdraw_enabled: withdrawEnabled,
+          allowed_days: allowedDays,
+          start_time: startTime,
+          end_time: endTime,
+          min_withdraw: Number(minWithdraw),
+          min_deposit: Number(minDeposit),
+        }),
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setToast({ message: (data as { error?: string })?.error ?? 'Failed to save rules', type: 'error' });
+        return;
+      }
+      setToast({ message: 'Rules saved successfully', type: 'success' });
+    } catch (err: unknown) {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setRulesSaving(false);
+    }
+  };
+
+  const handleDownloadCsv = () => {
+    const csv = toCsvPayRequests(requests);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const today = new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payinout_${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const rowsNum = Number(rows);
   const totalPages = Math.max(1, Math.ceil(requests.length / rowsNum));
   const displayed  = requests.slice((page - 1) * rowsNum, page * rowsNum);
@@ -3061,6 +3206,7 @@ function PayinOutPageImpl() {
 
   return (
     <div className="adm-pay-root">
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
       <h2 className="adm-page-title">Pay In / Out</h2>
 
       {/* Tabs */}
@@ -3076,6 +3222,11 @@ function PayinOutPageImpl() {
           <div className="adm-pay-rules-sub">Configure withdrawal and deposit settings.</div>
           <div className="adm-cu-divider" />
 
+          {rulesLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonLine key={i} height={36} />)}
+            </div>
+          ) : (<>
           <div className="adm-upd-section-title" style={{ fontSize: '0.95rem' }}>Withdrawal Rules</div>
           <div className="adm-pay-rule-row">
             <span className="adm-upd-label">Withdrawals Enabled</span>
@@ -3117,8 +3268,16 @@ function PayinOutPageImpl() {
           </div>
           <div className="adm-cu-divider" />
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button className="adm-btn-primary" style={{ padding: '12px 28px', fontSize: '0.9rem', borderRadius: 10 }}>Save Rules</button>
+            <button
+              className="adm-btn-primary"
+              style={{ padding: '12px 28px', fontSize: '0.9rem', borderRadius: 10 }}
+              disabled={rulesSaving}
+              onClick={handleSaveRules}
+            >
+              {rulesSaving ? 'Saving…' : 'Save Rules'}
+            </button>
           </div>
+          </>)}
         </div>
       ) : (<>
         {/* Date filter */}
@@ -3145,7 +3304,7 @@ function PayinOutPageImpl() {
           </select>
         </div>
 
-        <button className="adm-ord-download"><i className="fas fa-download" /> Download Excel</button>
+        <button className="adm-ord-download" onClick={handleDownloadCsv}><i className="fas fa-download" /> Download Excel</button>
 
         {/* Search */}
         <div className="adm-ord-search-wrap">
@@ -3156,15 +3315,21 @@ function PayinOutPageImpl() {
 
         {/* Request cards */}
         <div className="adm-pay-list">
-          {displayed.length === 0 ? (
+          {loading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} rows={5} />)}
+            </div>
+          ) : error ? (
+            <div className="adm-mw-empty" style={{ color: '#f85149' }}>{error}</div>
+          ) : displayed.length === 0 ? (
             <div className="adm-mw-empty">No requests found.</div>
-          ) : displayed.map((r, i) => (
-            <div className="adm-pay-card" key={i}>
+          ) : displayed.map((r) => (
+            <div className="adm-pay-card" key={r.id}>
               <div className="adm-pay-card-top">
                 <div>
-                  <div className="adm-pay-uid">{r.userId}</div>
-                  <div className="adm-pay-time">{r.time}</div>
-                  <div className="adm-pay-refid">{r.refId}</div>
+                  <div className="adm-pay-uid">{r.user_id}</div>
+                  <div className="adm-pay-time">{new Date(r.created_at).toLocaleString()}</div>
+                  <div className="adm-pay-refid">{r.id}</div>
                 </div>
                 <span className="adm-pay-status" style={{ background: statusColor(r.status) + '22', color: statusColor(r.status), border: `1px solid ${statusColor(r.status)}` }}>
                   {r.status}
@@ -3174,29 +3339,45 @@ function PayinOutPageImpl() {
                 <span className="adm-pay-dl">Type</span>
                 <span className="adm-pay-dv bold">{r.type}</span>
                 <span className="adm-pay-dl">Amount</span>
-                <span className="adm-pay-dv bold">₹{r.amount.toFixed(6)}</span>
-                <span className="adm-pay-dl">Broker</span>
-                <span className="adm-pay-dv">{r.broker}</span>
+                <span className="adm-pay-dv bold">₹{r.amount.toFixed(2)}</span>
                 <span className="adm-pay-dl">Updated</span>
-                <span className="adm-pay-dv">{r.updated}</span>
+                <span className="adm-pay-dv">{new Date(r.updated_at).toLocaleString()}</span>
               </div>
-              {r.type === 'WITHDRAWAL' && r.accountName && (
+              {r.type === 'WITHDRAWAL' && r.account_name && (
                 <div className="adm-pay-account-box">
                   <div className="adm-pay-account-title">Account Details</div>
                   <div className="adm-pay-account-grid">
-                    <span className="adm-pay-dl">Name</span><span className="adm-pay-dv bold">{r.accountName}</span>
-                    <span className="adm-pay-dl">Account No</span><span className="adm-pay-dv">{r.accountNo}</span>
+                    <span className="adm-pay-dl">Name</span><span className="adm-pay-dv bold">{r.account_name}</span>
+                    <span className="adm-pay-dl">Account No</span><span className="adm-pay-dv">{r.account_no}</span>
                     <span className="adm-pay-dl">IFSC</span><span className="adm-pay-dv">{r.ifsc}</span>
                     <span className="adm-pay-dl">UPI</span><span className="adm-pay-dv">{r.upi}</span>
                   </div>
                 </div>
               )}
               <div className="adm-pay-actions">
-                <button className="adm-pay-btn accept">Accept</button>
-                <button className="adm-pay-btn reject">Reject</button>
+                <button
+                  className="adm-pay-btn accept"
+                  disabled={!!actionLoading[r.id]}
+                  onClick={() => handleAccept(r)}
+                >
+                  {actionLoading[r.id] ? '…' : 'Accept'}
+                </button>
+                <button
+                  className="adm-pay-btn reject"
+                  disabled={!!actionLoading[r.id]}
+                  onClick={() => handleReject(r)}
+                >
+                  {actionLoading[r.id] ? '…' : 'Reject'}
+                </button>
                 <button className="adm-pay-btn position">Position</button>
                 <button className="adm-pay-btn ledger">Ledger</button>
-                <button className="adm-pay-btn delete">Delete</button>
+                <button
+                  className="adm-pay-btn delete"
+                  disabled={!!actionLoading[r.id]}
+                  onClick={() => handleDelete(r)}
+                >
+                  {actionLoading[r.id] ? '…' : 'Delete'}
+                </button>
               </div>
             </div>
           ))}
@@ -3212,6 +3393,454 @@ function PayinOutPageImpl() {
         </div>
       </>)}
       <div style={{ height: 24 }} />
+    </div>
+  );
+}
+
+// ─── Payment Accounts Page ────────────────────────────────────────────────────
+
+type PaymentAccount = {
+  id: string;
+  account_holder: string;
+  bank_name: string;
+  account_no: string;
+  ifsc: string;
+  upi_id: string;
+  qr_image_url: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type PAFormState = {
+  account_holder: string;
+  bank_name: string;
+  account_no: string;
+  ifsc: string;
+  upi_id: string;
+  sort_order: string;
+  is_active: boolean;
+  qr_image: File | null;
+};
+
+const emptyPAForm = (): PAFormState => ({
+  account_holder: '',
+  bank_name: '',
+  account_no: '',
+  ifsc: '',
+  upi_id: '',
+  sort_order: '0',
+  is_active: true,
+  qr_image: null,
+});
+
+function accountToForm(a: PaymentAccount): PAFormState {
+  return {
+    account_holder: a.account_holder,
+    bank_name: a.bank_name,
+    account_no: a.account_no,
+    ifsc: a.ifsc,
+    upi_id: a.upi_id,
+    sort_order: String(a.sort_order),
+    is_active: a.is_active,
+    qr_image: null,
+  };
+}
+
+function PaymentAccountsPageImpl() {
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
+  const [paLoading, setPaLoading]             = useState(false);
+  const [paError, setPaError]                 = useState<string | null>(null);
+  const [paActionLoading, setPaActionLoading] = useState<Record<string, boolean>>({});
+  const [showAddForm, setShowAddForm]         = useState(false);
+  const [editingAccount, setEditingAccount]   = useState<PaymentAccount | null>(null);
+  const [paToast, setPaToast]                 = useState<ToastState>(null);
+
+  // Form state (shared for add and edit)
+  const [form, setForm] = useState<PAFormState>(emptyPAForm());
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  // Confirm dialog state for delete
+  const [deleteTarget, setDeleteTarget]   = useState<PaymentAccount | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const fetchAccounts = async () => {
+    setPaLoading(true);
+    setPaError(null);
+    try {
+      const { ok, status: httpStatus, data } = await apiCall('/api/admin/payment-accounts', { method: 'GET' });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setPaError((data as { error?: string })?.error ?? 'Failed to load payment accounts');
+        return;
+      }
+      setPaymentAccounts(data as PaymentAccount[]);
+    } catch (err: unknown) {
+      setPaError(err instanceof Error ? err.message : 'Network error');
+    } finally {
+      setPaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Open add form
+  const handleOpenAdd = () => {
+    setEditingAccount(null);
+    setForm(emptyPAForm());
+    setShowAddForm(true);
+  };
+
+  // Open edit form
+  const handleOpenEdit = (account: PaymentAccount) => {
+    setShowAddForm(false);
+    setEditingAccount(account);
+    setForm(accountToForm(account));
+  };
+
+  // Cancel form
+  const handleCancelForm = () => {
+    setShowAddForm(false);
+    setEditingAccount(null);
+    setForm(emptyPAForm());
+  };
+
+  // Submit add or edit form
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token ?? '';
+
+      const fd = new FormData();
+      fd.append('account_holder', form.account_holder);
+      fd.append('bank_name', form.bank_name);
+      fd.append('account_no', form.account_no);
+      fd.append('ifsc', form.ifsc);
+      fd.append('upi_id', form.upi_id);
+      fd.append('sort_order', form.sort_order);
+      fd.append('is_active', String(form.is_active));
+      if (form.qr_image) {
+        fd.append('qr_image', form.qr_image);
+      }
+
+      if (editingAccount) {
+        // PATCH existing account
+        const res = await fetch(`/api/admin/payment-accounts/${editingAccount.id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (res.status === 401) { signOut(); return; }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setPaToast({ message: (errData as { error?: string })?.error ?? 'Failed to update account', type: 'error' });
+          return;
+        }
+        setPaToast({ message: 'Account updated successfully', type: 'success' });
+        setEditingAccount(null);
+        setForm(emptyPAForm());
+        await fetchAccounts();
+      } else {
+        // POST new account
+        const res = await fetch('/api/admin/payment-accounts', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (res.status === 401) { signOut(); return; }
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setPaToast({ message: (errData as { error?: string })?.error ?? 'Failed to create account', type: 'error' });
+          return;
+        }
+        setPaToast({ message: 'Account created successfully', type: 'success' });
+        setShowAddForm(false);
+        setForm(emptyPAForm());
+        await fetchAccounts();
+      }
+    } catch (err: unknown) {
+      setPaToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  // Toggle active/inactive
+  const handleToggleActive = async (account: PaymentAccount) => {
+    setPaActionLoading(prev => ({ ...prev, [account.id]: true }));
+    try {
+      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payment-accounts/${account.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: !account.is_active }),
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setPaToast({ message: (data as { error?: string })?.error ?? 'Failed to update account', type: 'error' });
+        return;
+      }
+      setPaymentAccounts(prev =>
+        prev.map(a => a.id === account.id ? { ...a, is_active: !account.is_active } : a),
+      );
+    } catch (err: unknown) {
+      setPaToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setPaActionLoading(prev => ({ ...prev, [account.id]: false }));
+    }
+  };
+
+  // Delete account
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payment-accounts/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      if (httpStatus === 401) { signOut(); return; }
+      if (!ok) {
+        setPaToast({ message: (data as { error?: string })?.error ?? 'Failed to delete account', type: 'error' });
+        return;
+      }
+      setPaymentAccounts(prev => prev.filter(a => a.id !== deleteTarget.id));
+      setPaToast({ message: 'Account deleted', type: 'success' });
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      setPaToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const formTitle = editingAccount ? 'Edit Payment Account' : 'Add Payment Account';
+  const isFormOpen = showAddForm || editingAccount !== null;
+
+  return (
+    <div className="adm-page">
+      <Toast toast={paToast} onDismiss={() => setPaToast(null)} />
+
+      {deleteTarget && (
+        <ConfirmDialog
+          message={`Delete account "${deleteTarget.account_holder}" (${deleteTarget.bank_name})? This cannot be undone.`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+          loading={deleteLoading}
+        />
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 className="adm-page-title" style={{ margin: 0 }}>Payment Accounts</h2>
+        {!isFormOpen && (
+          <button className="adm-btn-primary" onClick={handleOpenAdd}>
+            + Add Account
+          </button>
+        )}
+      </div>
+
+      {/* Add / Edit Form */}
+      {isFormOpen && (
+        <div className="adm-card" style={{ marginBottom: 20 }}>
+          <div className="adm-upd-section-title" style={{ marginBottom: 16 }}>{formTitle}</div>
+          <form onSubmit={handleFormSubmit}>
+            <div className="adm-upd-grid2">
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Account Holder *</label>
+                <input
+                  className="adm-upd-input"
+                  value={form.account_holder}
+                  onChange={e => setForm(f => ({ ...f, account_holder: e.target.value }))}
+                  required
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Bank Name *</label>
+                <input
+                  className="adm-upd-input"
+                  value={form.bank_name}
+                  onChange={e => setForm(f => ({ ...f, bank_name: e.target.value }))}
+                  required
+                  placeholder="e.g. HDFC Bank"
+                />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Account Number *</label>
+                <input
+                  className="adm-upd-input"
+                  value={form.account_no}
+                  onChange={e => setForm(f => ({ ...f, account_no: e.target.value }))}
+                  required
+                  placeholder="e.g. 1234567890"
+                />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">IFSC Code *</label>
+                <input
+                  className="adm-upd-input"
+                  value={form.ifsc}
+                  onChange={e => setForm(f => ({ ...f, ifsc: e.target.value }))}
+                  required
+                  placeholder="e.g. HDFC0001234"
+                />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">UPI ID *</label>
+                <input
+                  className="adm-upd-input"
+                  value={form.upi_id}
+                  onChange={e => setForm(f => ({ ...f, upi_id: e.target.value }))}
+                  required
+                  placeholder="e.g. name@upi"
+                />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Sort Order</label>
+                <input
+                  type="number"
+                  className="adm-upd-input"
+                  value={form.sort_order}
+                  onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="adm-upd-field" style={{ marginTop: 12 }}>
+              <label className="adm-upd-label">
+                QR Image {editingAccount ? '(leave blank to keep existing)' : '*'}
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                style={{ color: '#e6edf3', fontSize: '0.875rem' }}
+                onChange={e => setForm(f => ({ ...f, qr_image: e.target.files?.[0] ?? null }))}
+                required={!editingAccount}
+              />
+            </div>
+
+            <div className="adm-pay-rule-row" style={{ marginTop: 12 }}>
+              <span className="adm-upd-label">Active</span>
+              <div
+                className={`adm-toggle ${form.is_active ? 'on' : ''}`}
+                onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
+              >
+                <div className="adm-toggle-thumb" />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
+              <button type="submit" className="adm-btn-primary" disabled={formSubmitting}>
+                {formSubmitting ? 'Saving…' : editingAccount ? 'Update Account' : 'Create Account'}
+              </button>
+              <button type="button" className="adm-sheet-cancel" onClick={handleCancelForm} disabled={formSubmitting}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Account list */}
+      {paLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} rows={6} />)}
+        </div>
+      ) : paError ? (
+        <div className="adm-mw-empty" style={{ color: '#f85149' }}>{paError}</div>
+      ) : paymentAccounts.length === 0 ? (
+        <div className="adm-mw-empty">No payment accounts found. Add one to get started.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {paymentAccounts.map(account => (
+            <div className="adm-pay-card" key={account.id}>
+              <div className="adm-pay-card-top">
+                <div>
+                  <div className="adm-pay-uid">{account.account_holder}</div>
+                  <div className="adm-pay-time">{account.bank_name}</div>
+                  <div className="adm-pay-refid">{account.id}</div>
+                </div>
+                <span
+                  className="adm-pay-status"
+                  style={{
+                    background: account.is_active ? '#2ea04322' : '#f8514922',
+                    color: account.is_active ? '#2ea043' : '#f85149',
+                    border: `1px solid ${account.is_active ? '#2ea043' : '#f85149'}`,
+                  }}
+                >
+                  {account.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              <div className="adm-pay-grid">
+                <span className="adm-pay-dl">Account No</span>
+                <span className="adm-pay-dv bold">{account.account_no}</span>
+                <span className="adm-pay-dl">IFSC</span>
+                <span className="adm-pay-dv">{account.ifsc}</span>
+                <span className="adm-pay-dl">UPI ID</span>
+                <span className="adm-pay-dv">{account.upi_id}</span>
+                <span className="adm-pay-dl">Sort Order</span>
+                <span className="adm-pay-dv">{account.sort_order}</span>
+              </div>
+
+              {account.qr_image_url && (
+                <div style={{ marginTop: 10 }}>
+                  <div className="adm-pay-dl" style={{ marginBottom: 6 }}>QR Code</div>
+                  <img
+                    src={account.qr_image_url}
+                    alt={`QR code for ${account.account_holder}`}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      objectFit: 'cover',
+                      borderRadius: 6,
+                      border: '1px solid #30363d',
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="adm-pay-actions" style={{ marginTop: 12 }}>
+                <button
+                  className="adm-pay-btn accept"
+                  disabled={!!paActionLoading[account.id]}
+                  onClick={() => handleOpenEdit(account)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="adm-pay-btn"
+                  style={{
+                    background: account.is_active ? '#7c2d1222' : '#16532422',
+                    color: account.is_active ? '#fca5a5' : '#86efac',
+                    border: `1px solid ${account.is_active ? '#fca5a5' : '#86efac'}`,
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: '0.8rem',
+                    cursor: paActionLoading[account.id] ? 'not-allowed' : 'pointer',
+                    opacity: paActionLoading[account.id] ? 0.6 : 1,
+                  }}
+                  disabled={!!paActionLoading[account.id]}
+                  onClick={() => handleToggleActive(account)}
+                >
+                  {paActionLoading[account.id] ? '…' : account.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+                <button
+                  className="adm-pay-btn delete"
+                  disabled={!!paActionLoading[account.id]}
+                  onClick={() => setDeleteTarget(account)}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
