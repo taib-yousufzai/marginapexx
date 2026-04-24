@@ -2463,3 +2463,9 @@
 }
 .login-btn:hover  { background: #e55a00; }
 .login-btn:active { transform: scale(0.98); }
+
+/* ─── Skeleton shimmer animation ─────────────────────────────────────────── */
+@keyframes adm-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

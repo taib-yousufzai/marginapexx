@@ -68,6 +68,48 @@ function Toast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void 
   );
 }
 
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function SkeletonLine({ width = '100%', height = 14, style = {} }: { width?: string | number; height?: number; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      width,
+      height,
+      borderRadius: 6,
+      background: 'linear-gradient(90deg, #21262d 25%, #30363d 50%, #21262d 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'adm-skeleton-shimmer 1.4s infinite',
+      ...style,
+    }} />
+  );
+}
+
+function SkeletonCard({ rows = 3, style = {} }: { rows?: number; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 10, padding: '16px', display: 'flex', flexDirection: 'column', gap: 10, ...style }}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <SkeletonLine key={i} width={i === 0 ? '60%' : i % 2 === 0 ? '80%' : '90%'} />
+      ))}
+    </div>
+  );
+}
+
+function SkeletonTable({ cols = 4, rows = 5 }: { cols?: number; rows?: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* header */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8, padding: '8px 0' }}>
+        {Array.from({ length: cols }).map((_, i) => <SkeletonLine key={i} height={12} width="70%" />)}
+      </div>
+      {/* rows */}
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 8, padding: '10px 12px', background: '#161b22', borderRadius: 8 }}>
+          {Array.from({ length: cols }).map((_, c) => <SkeletonLine key={c} height={13} width={c === 0 ? '85%' : '60%'} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── ConfirmDialog ────────────────────────────────────────────────────────────
 function ConfirmDialog({
   message,
@@ -646,6 +688,13 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
         { label: 'MARK-TO-MARKET' },
       ]} />
 
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} rows={4} />
+          ))}
+        </div>
+      ) : (<>
       <DashBoardSection key={uid+'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" fields={[
         { label: 'NET' },
         { label: 'TOTAL DEPOSITS' },
@@ -672,6 +721,7 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
         { label: 'SELL POSITION' },
         { label: 'RATIO' },
       ]} />
+      </>)}
 
       <div style={{ height: 24 }} />
     </div>
@@ -1266,21 +1316,29 @@ function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: 
 
         {/* User list */}
         <div className="adm-up-list">
-          {paged.map((u, i) => {
-            const isSelected = selectedUser.id === u.id;
-            return (
-              <div
-                key={i}
-                className={`adm-up-row ${isSelected ? 'selected' : ''}`}
-                onClick={() => onSelectUser(u)}
-              >
-                <span className="adm-up-id">{u.id}</span>
-                <span className={`adm-up-role ${u.role === 'SUB_BROKER' ? 'sub' : ''} ${isSelected ? 'sel' : ''}`}>
-                  {u.role}
-                </span>
-              </div>
-            );
-          })}
+          {usersLoading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="adm-up-row" style={{ pointerEvents: 'none' }}>
+                  <SkeletonLine width="70%" height={13} />
+                  <SkeletonLine width="30%" height={13} />
+                </div>
+              ))
+            : paged.map((u, i) => {
+                const isSelected = selectedUser.id === u.id;
+                return (
+                  <div
+                    key={i}
+                    className={`adm-up-row ${isSelected ? 'selected' : ''}`}
+                    onClick={() => onSelectUser(u)}
+                  >
+                    <span className="adm-up-id">{u.id}</span>
+                    <span className={`adm-up-role ${u.role === 'SUB_BROKER' ? 'sub' : ''} ${isSelected ? 'sel' : ''}`}>
+                      {u.role}
+                    </span>
+                  </div>
+                );
+              })
+          }
         </div>
 
         {/* Pagination */}
@@ -1315,12 +1373,14 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
   const uid = selectedUser.id;
 
   useEffect(() => {
     if (!uid) return;
+    setOrdersLoading(true);
     apiCall(`/api/admin/users/${uid}/orders?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
@@ -1340,7 +1400,8 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
       })
       .catch((err: unknown) => {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-      });
+      })
+      .finally(() => setOrdersLoading(false));
   }, [uid, tab]);
 
   const allOrders = orders;
@@ -1413,7 +1474,26 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
 
       {/* Order cards */}
       <div className="adm-ord-list">
-        {displayed.length === 0 ? (
+        {ordersLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div className="adm-ord-card" key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <SkeletonLine width={100} height={14} />
+                  <SkeletonLine width={160} height={11} />
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <SkeletonLine width={40} height={22} style={{ borderRadius: 4 }} />
+                  <SkeletonLine width={60} height={22} style={{ borderRadius: 4 }} />
+                </div>
+              </div>
+              <SkeletonLine width="100%" height={1} style={{ background: '#21262d' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {Array.from({ length: 4 }).map((_, j) => <SkeletonLine key={j} height={12} width="70%" />)}
+              </div>
+            </div>
+          ))
+        ) : displayed.length === 0 ? (
           <div className="adm-mw-empty">No orders found.</div>
         ) : displayed.map((o, i) => (
           <div className="adm-ord-card" key={i}>
@@ -1517,6 +1597,7 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
   const [rows, setRows] = useState('10');
   const [page, setPage] = useState(1);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [posLoading, setPosLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -1529,6 +1610,7 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
 
   const fetchPositions = () => {
     if (!uid) return;
+    setPosLoading(true);
     apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
@@ -1539,7 +1621,8 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
       })
       .catch((err: unknown) => {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-      });
+      })
+      .finally(() => setPosLoading(false));
   };
 
   useEffect(() => {
@@ -1704,7 +1787,31 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
 
       {/* Position cards */}
       <div className="adm-ord-list">
-        {displayed.length === 0 ? (
+        {posLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div className="adm-ord-card" key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <SkeletonLine width={100} height={14} />
+                  <SkeletonLine width={160} height={11} />
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <SkeletonLine width={40} height={22} style={{ borderRadius: 4 }} />
+                  <SkeletonLine width={60} height={22} style={{ borderRadius: 4 }} />
+                </div>
+              </div>
+              <SkeletonLine width="100%" height={1} style={{ background: '#21262d' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {Array.from({ length: 6 }).map((_, j) => <SkeletonLine key={j} height={12} width="70%" />)}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <SkeletonLine width={70} height={30} style={{ borderRadius: 6 }} />
+                <SkeletonLine width={50} height={30} style={{ borderRadius: 6 }} />
+                <SkeletonLine width={60} height={30} style={{ borderRadius: 6 }} />
+              </div>
+            </div>
+          ))
+        ) : displayed.length === 0 ? (
           <div className="adm-mw-empty">No positions found.</div>
         ) : displayed.map((p, i) => (
           <div className="adm-ord-card" key={i}>
@@ -2360,7 +2467,23 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
 
       {/* User cards */}
       <div className="adm-users-list">
-        {displayed.map((u, i) => (
+        {usersLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div className="adm-users-card" key={i} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <SkeletonLine width="50%" height={14} />
+                <SkeletonLine width={50} height={20} style={{ borderRadius: 10 }} />
+              </div>
+              <SkeletonLine width="80%" height={12} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {Array.from({ length: 8 }).map((_, j) => <SkeletonLine key={j} height={12} width="75%" />)}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                {Array.from({ length: 4 }).map((_, j) => <SkeletonLine key={j} width={70} height={32} style={{ borderRadius: 6 }} />)}
+              </div>
+            </div>
+          ))
+        ) : displayed.map((u, i) => (
           <div className="adm-users-card" key={i}>
             {/* Header */}
             <div className="adm-users-card-header">
