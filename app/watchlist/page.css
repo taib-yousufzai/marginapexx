@@ -2461,3 +2461,165 @@ body.dark .instrument-delete-btn:hover {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* ── Segment Tab Bar ── */
+.seg-tab-bar {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 0;
+  padding: 8px 0 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  border-bottom: 1px solid #E8ECF0;
+}
+.seg-tab-bar::-webkit-scrollbar { display: none; }
+
+.seg-tab {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #8C94A8;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+
+.seg-tab--active {
+  color: #C62E2E;
+  font-weight: 700;
+}
+
+.seg-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: #C62E2E;
+  border-radius: 2px 2px 0 0;
+}
+
+/* ── Exchange Badge ── */
+.exchange-badge {
+  display: inline-block;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #C62E2E;
+  background: #FEF2F2;
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+/* ── Instrument Row (new layout) ── */
+.instr-row {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid #EEF2F8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.instr-row__left {
+  flex: 1;
+  min-width: 0;
+}
+
+.instr-row__name-line {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+.instr-row__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1A1E2B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instr-row__date {
+  font-size: 0.65rem;
+  color: #8C94A8;
+  margin-top: 3px;
+}
+
+.instr-row__right {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.instr-row__ltp {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1A1E2B;
+}
+
+.instr-row__abs-change {
+  font-size: 0.7rem;
+  color: #5B677E;
+  margin-top: 2px;
+}
+
+.instr-row__pct-change {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.pct-positive { color: #2C8E5A; }
+.pct-negative { color: #C62E2E; }
+
+/* ── Empty State ── */
+.watchlist-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: #9CA3B9;
+}
+
+.watchlist-empty-state__icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.watchlist-empty-state__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6B728E;
+  margin-bottom: 6px;
+}
+
+.watchlist-empty-state__subtitle {
+  font-size: 0.72rem;
+  color: #AEB5CC;
+}
+
+/* ── Dark mode overrides for new components ── */
+.dark .seg-tab { color: #6B728E; }
+.dark .seg-tab--active { color: #E57373; }
+.dark .seg-tab--active::after { background: #E57373; }
+.dark .exchange-badge { color: #E57373; background: #3B1A1A; }
+.dark .instr-row { background: #1E2130; border-color: #2A2F42; }
+.dark .instr-row__name { color: #E8ECF8; }
+.dark .instr-row__date { color: #5B677E; }
+.dark .instr-row__ltp { color: #E8ECF8; }
+.dark .watchlist-empty-state__title { color: #8C94A8; }

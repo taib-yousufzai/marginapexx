@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { pageCache } from '@/lib/pageCache';
+import { kiteRestore, kiteStatus } from '@/lib/kiteClient';
 
 export interface KiteOrder {
   order_id: string;
@@ -93,15 +94,11 @@ export function useKiteOrders(refreshInterval = 5000): UseKiteOrdersResult {
     let cancelled = false;
 
     async function init() {
-      try {
-        await fetch('/api/kite/restore', { method: 'POST' });
-      } catch { /* best-effort */ }
-
+      await kiteRestore();
       if (cancelled) return;
 
       try {
-        const res = await fetch('/api/kite/status', { cache: 'no-store' });
-        const status = await res.json() as { connected: boolean };
+        const status = await kiteStatus();
         if (!status.connected) {
           setConnected(false);
           setLoading(false);

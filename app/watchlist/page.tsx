@@ -89,10 +89,168 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
   ];
 }
 
+// ── Tab Labels ──────────────────────────────────────────────────────────────
+
+export type TabLabel =
+  | 'INDEX-FUT' | 'INDEX-OPT'
+  | 'STOCK-FUT' | 'STOCK-OPT'
+  | 'MCX-FUT'   | 'MCX-OPT'
+  | 'NSF-EQ'    | 'CRYPTO'
+  | 'FOREX'     | 'COI';
+
+export const TAB_LABELS: TabLabel[] = [
+  'INDEX-FUT', 'INDEX-OPT',
+  'STOCK-FUT', 'STOCK-OPT',
+  'MCX-FUT',   'MCX-OPT',
+  'NSF-EQ',    'CRYPTO',
+  'FOREX',     'COI',
+];
+
+// ── Segment → Tab Mapping ────────────────────────────────────────────────────
+
+export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
+  'NSE - Futures':       'INDEX-FUT',
+  'BSE - Futures':       'INDEX-FUT',
+  'NSE - Options':       'INDEX-OPT',
+  'BSE - Options':       'INDEX-OPT',
+  'NSE - Stock Futures': 'STOCK-FUT',
+  'BSE - Stock Futures': 'STOCK-FUT',
+  'NSE - Stock Options': 'STOCK-OPT',
+  'BSE - Stock Options': 'STOCK-OPT',
+  'MCX - Futures':       'MCX-FUT',
+  'MCX - Options':       'MCX-OPT',
+  'NSE - Equity':        'NSF-EQ',
+  'BSE - Equity':        'NSF-EQ',
+  'Crypto':              'CRYPTO',
+  'CRYPTO':              'CRYPTO',
+  'Forex':               'FOREX',
+  'FOREX':               'FOREX',
+  'CDS - Futures':       'FOREX',
+  'CDS - Options':       'FOREX',
+};
+
+// ── Pure Helper Functions ────────────────────────────────────────────────────
+
+/** Maps a WatchlistItem to its TabLabel. Checks category first, then segment. */
+export function getTabForItem(item: WatchlistItem): TabLabel {
+  if (item.category && TAB_LABELS.includes(item.category as TabLabel)) {
+    return item.category as TabLabel;
+  }
+  return SEGMENT_TAB_MAP[item.segment] ?? 'COI';
+}
+
+/** Filters items to those belonging to the active tab. */
+export function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistItem[] {
+  return items.filter(item => getTabForItem(item) === tab);
+}
+
+/** Filters items by case-insensitive name/symbol match. Treats whitespace-only query as empty. */
+export function filterBySearch(items: WatchlistItem[], query: string): WatchlistItem[] {
+  if (!query.trim()) return items;
+  const q = query.toLowerCase();
+  return items.filter(
+    item =>
+      item.name.toLowerCase().includes(q) ||
+      item.symbol.toLowerCase().includes(q)
+  );
+}
+
+/** Derives the exchange badge string from a segment string. */
+export function getExchangeBadge(segment: string): string {
+  if (segment.startsWith('NSE') && segment !== 'NSE - Equity') return 'NFO';
+  if (segment.startsWith('BSE') && segment !== 'BSE - Equity') return 'BFO';
+  if (segment.startsWith('MCX')) return 'MCX';
+  if (segment.startsWith('CDS')) return 'CDS';
+  if (segment === 'NSE - Equity') return 'NSE';
+  if (segment === 'BSE - Equity') return 'BSE';
+  return 'OTH';
+}
+
+/** Returns the CSS class for a percentage change value. */
+export function getPctClass(pct: number): 'pct-positive' | 'pct-negative' {
+  return pct < 0 ? 'pct-negative' : 'pct-positive';
+}
+
+// ── SegmentTabBar Component ──────────────────────────────────────────────────
+
+interface SegmentTabBarProps {
+  activeTab: TabLabel;
+  onTabChange: (tab: TabLabel) => void;
+}
+
+function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
+  return (
+    <div className="seg-tab-bar">
+      {TAB_LABELS.map(label => (
+        <button
+          key={label}
+          className={`seg-tab${activeTab === label ? ' seg-tab--active' : ''}`}
+          onClick={() => onTabChange(label)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── InstrumentRow Component ─────────────────────────────────────────────────
+
+interface InstrumentRowProps {
+  item: WatchlistItem;
+  quote?: QuoteData;
+}
+
+function InstrumentRow({ item, quote }: InstrumentRowProps) {
+  const ltp = quote?.lastPrice ?? item.price;
+  const absoluteChange = ltp - item.close;
+  const percentChange = item.close !== 0 ? ((ltp - item.close) / item.close) * 100 : 0;
+
+  return (
+    <div className="instr-row">
+      <div className="instr-row__left">
+        <div className="instr-row__name-line">
+          <span className="instr-row__name">{item.name}</span>
+          <span className="exchange-badge">{getExchangeBadge(item.segment)}</span>
+        </div>
+        {item.contractDate && (
+          <div className="instr-row__date">{item.contractDate}</div>
+        )}
+      </div>
+      <div className="instr-row__right">
+        <div className="instr-row__ltp">LTP: {ltp.toFixed(2)}</div>
+        <div className="instr-row__abs-change">{absoluteChange.toFixed(2)}</div>
+        <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
+          {percentChange.toFixed(2)}%
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EmptyState Component ────────────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="watchlist-empty-state">
+      <div className="watchlist-empty-state__icon">
+        <i className="fas fa-inbox"></i>
+      </div>
+      <div className="watchlist-empty-state__title">No instruments here</div>
+      <div className="watchlist-empty-state__subtitle">Add instruments from the Library to this segment</div>
+    </div>
+  );
+}
+
+// ── WatchlistPage Component ──────────────────────────────────────────────────
+
 export default function WatchlistPage() {
   const router = useRouter();
   useAuth();
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
+  const [activeTab, setActiveTab] = useState<TabLabel>('INDEX-FUT');
+  const [searchText, setSearchText] = useState<string>('');
+  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
   const scriptMountedRef = useRef(false);
 
   useEffect(() => {
@@ -174,10 +332,11 @@ export default function WatchlistPage() {
             </div>
           </div>
         </div>
+        <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
-          <input type="text" className="search-input" id="globalSearchInput" placeholder="Search stocks, futures, crypto from library..." autoComplete="off" />
-          <i className="fas fa-times-circle clear-search" id="clearSearchBtn"></i>
+          <input type="text" className="search-input" id="globalSearchInput" placeholder="Search instrument" autoComplete="off" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          <i className="fas fa-trash clear-search" id="clearSearchBtn" onClick={() => setSearchText('')}></i>
         </div>
       </div>
 
@@ -205,6 +364,7 @@ export default function WatchlistPage() {
             </div>
           </div>
           <div className="watchlist-cards-container">
+            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => <InstrumentRow key={item.symbol} item={item} quote={quotes[item.kiteSymbol]} />)}
             <div id="watchlistMobileContainer"></div>
           </div>
         </div>

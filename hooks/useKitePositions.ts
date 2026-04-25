@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { pageCache } from '@/lib/pageCache';
+import { kiteRestore, kiteStatus } from '@/lib/kiteClient';
 
 type PositionsCache = { net: KitePosition[]; day: KitePosition[] };
 
@@ -104,19 +105,11 @@ export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult
     let cancelled = false;
 
     async function init() {
-      // Step 1: restore session from DB if cookie is missing
-      try {
-        await fetch('/api/kite/restore', { method: 'POST' });
-      } catch {
-        // best-effort
-      }
-
+      await kiteRestore();
       if (cancelled) return;
 
-      // Step 2: check whether a valid session exists
       try {
-        const res = await fetch('/api/kite/status', { cache: 'no-store' });
-        const status = await res.json() as { connected: boolean };
+        const status = await kiteStatus();
         if (!status.connected) {
           setConnected(false);
           setLoading(false);
@@ -130,7 +123,6 @@ export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult
 
       if (cancelled) return;
 
-      // Step 3: session confirmed — fetch positions immediately then start polling
       await fetchPositions();
 
       if (cancelled) return;

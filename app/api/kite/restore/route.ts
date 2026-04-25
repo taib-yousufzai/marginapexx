@@ -5,9 +5,7 @@
  * Called on app load when the kite_access_token cookie is missing.
  * Looks up the Supabase user's saved Kite session and re-sets the cookie.
  *
- * This handles the case where:
- * - User cleared cookies but token is still valid in DB
- * - User opened the app on a new device/browser
+ * Auth: prefers Authorization: Bearer <token> header, falls back to cookie.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -16,17 +14,30 @@ import { loadKiteSession } from '@/lib/kiteSession';
 
 async function getSupabaseUserId(request: NextRequest): Promise<string | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) return null;
+  if (!url) return null;
 
+  // Prefer Bearer token from Authorization header (most reliable)
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ') && serviceKey) {
+    const token = authHeader.slice('Bearer '.length).trim();
+    const admin = createClient(url, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data } = await admin.auth.getUser(token);
+    return data.user?.id ?? null;
+  }
+
+  // Fall back to cookie-based auth
+  if (!anonKey) return null;
   const cookieHeader = request.headers.get('cookie') ?? '';
   const supabase = createClient(url, anonKey, {
     auth: { persistSession: false },
     global: { headers: { cookie: cookieHeader } },
   });
-
   const { data } = await supabase.auth.getUser();
   return data.user?.id ?? null;
 }

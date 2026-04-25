@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/kite/autologin?secret=REPLACE_WITH_YOUR_AUTOLOGIN_SECRET",
+      "schedule": "1 1 * * *"
+    }
+  ]
+}

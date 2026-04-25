@@ -10,6 +10,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface KiteStatus {
   connected: boolean;
@@ -22,16 +23,25 @@ export default function KiteConnectButton() {
 
   useEffect(() => {
     async function init() {
+      // Get the Supabase access token to send with restore request
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token ?? '';
+
       // Try to restore session from DB (no-op if cookie already exists)
       try {
-        await fetch('/api/kite/restore', { method: 'POST' });
+        await fetch('/api/kite/restore', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
       } catch {
         // Ignore — restore is best-effort
       }
 
       // Now check status
       try {
-        const res = await fetch('/api/kite/status');
+        const res = await fetch('/api/kite/status', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         const data: KiteStatus = await res.json();
         setStatus(data);
       } catch {
