@@ -102,21 +102,24 @@ async function fetchJson(url, options = {}) {
 
     // ── Step 2: Enter user ID ───────────────────────────────────────────────
     console.log('Entering user ID...');
-    await page.fill('input[type="text"]', ZERODHA_USER_ID);
-    await page.fill('input[type="password"]', ZERODHA_PASSWORD);
+    await page.waitForSelector('#userid', { timeout: 10000 });
+    await page.fill('#userid', ZERODHA_USER_ID);
+    await page.fill('#password', ZERODHA_PASSWORD);
     await page.click('button[type="submit"]');
 
     // ── Step 3: Wait for TOTP field ─────────────────────────────────────────
     console.log('Waiting for TOTP field...');
-    // Wait for the page to transition away from the password screen
-    await page.waitForTimeout(2000);
+    await page.waitForSelector('#userid', { state: 'hidden', timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(1500);
 
     // ── Step 4: Enter TOTP ──────────────────────────────────────────────────
     const totpCode = generateTOTP(ZERODHA_TOTP_SECRET);
-    console.log('Entering TOTP code...');
+    console.log('Entering TOTP code:', totpCode);
 
-    // Try multiple selectors for the TOTP input
+    // Zerodha TOTP field has id="totp" or name="totp"
     const totpSelectors = [
+      '#totp',
+      'input[name="totp"]',
       'input[type="text"][autocomplete="one-time-code"]',
       'input[placeholder*="TOTP"]',
       'input[placeholder*="totp"]',
@@ -129,55 +132,43 @@ async function fetchJson(url, options = {}) {
     let totpFilled = false;
     for (const selector of totpSelectors) {
       try {
-        await page.waitForSelector(selector, { timeout: 3000 });
-        await page.fill(selector, totpCode);
-        totpFilled = true;
-        console.log(`Filled TOTP using selector: ${selector}`);
-        break;
+        const el = await page.$(selector);
+        if (el) {
+          await el.fill(totpCode);
+          totpFilled = true;
+          console.log(`Filled TOTP using selector: ${selector}`);
+          break;
+        }
       } catch { /* try next */ }
     }
 
     if (!totpFilled) {
-      // Last resort: find all visible inputs and fill the last one
-      const allInputs = await page.$$('input:visible');
-      if (allInputs.length > 0) {
-        await allInputs[allInputs.length - 1].fill(totpCode);
-        totpFilled = true;
-        console.log('Filled TOTP using last visible input');
-      }
-    }
-
-    if (!totpFilled) {
-      console.error('Could not find TOTP input field');
+      // Dump all inputs for debugging
+      const inputInfo = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('input')).map(i => ({
+          id: i.id, name: i.name, type: i.type, placeholder: i.placeholder
+        }));
+      });
+      console.log('Available inputs:', JSON.stringify(inputInfo));
       await page.screenshot({ path: 'totp-debug.png' });
       process.exit(1);
     }
 
     await page.waitForTimeout(500);
 
-    // Click submit button
-    const submitSelectors = [
-      'button[type="submit"]',
-      'button:has-text("Continue")',
-      'button:has-text("Login")',
-      'button:has-text("Verify")',
-      '.button-orange',
-    ];
-
-    for (const sel of submitSelectors) {
-      try {
-        await page.click(sel, { timeout: 2000 });
-        console.log(`Clicked submit using: ${sel}`);
-        break;
-      } catch { /* try next */ }
-    }
+    // Click the submit/continue button
+    await page.click('button[type="submit"]');
+    console.log('Submitted TOTP form');
 
     // ── Step 5: Wait for redirect with request_token ────────────────────────
     console.log('Waiting for OAuth redirect...');
     try {
       await page.waitForURL(/request_token=/, { timeout: 20000 });
+      console.log('Redirected to:', page.url());
     } catch {
-      // Check current URL anyway
+      console.log('Timeout waiting for redirect. Current URL:', page.url());
+      // Take screenshot to see what happened
+      await page.screenshot({ path: 'login-debug.png' });
     }
 
     if (!requestToken) {
@@ -188,7 +179,6 @@ async function fetchJson(url, options = {}) {
 
     if (!requestToken) {
       console.error('Failed to capture request_token. Current URL:', page.url());
-      await page.screenshot({ path: 'login-debug.png' });
       process.exit(1);
     }
 
