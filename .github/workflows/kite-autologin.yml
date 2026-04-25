@@ -25,6 +25,14 @@ jobs:
           npm install playwright otpauth
           npx playwright install chromium --with-deps
 
+      - name: Upload debug screenshot on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: '*.png'
+          if-no-files-found: ignore
+
       - name: Run Kite auto-login
         env:
           ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}

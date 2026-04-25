@@ -108,34 +108,77 @@ async function fetchJson(url, options = {}) {
 
     // ── Step 3: Wait for TOTP field ─────────────────────────────────────────
     console.log('Waiting for TOTP field...');
-    await page.waitForSelector('input[type="text"][autocomplete="one-time-code"], input[label="External TOTP"], input[placeholder*="TOTP"], input[placeholder*="totp"]', {
-      timeout: 10000,
-    }).catch(async () => {
-      // Try a more generic selector
-      await page.waitForSelector('input[type="text"]:not([value])', { timeout: 5000 });
-    });
+    // Wait for the page to transition away from the password screen
+    await page.waitForTimeout(2000);
 
     // ── Step 4: Enter TOTP ──────────────────────────────────────────────────
     const totpCode = generateTOTP(ZERODHA_TOTP_SECRET);
     console.log('Entering TOTP code...');
 
-    // Find the TOTP input — it's usually the only visible text input after password step
-    const inputs = await page.$$('input[type="text"]');
-    if (inputs.length > 0) {
-      await inputs[inputs.length - 1].fill(totpCode);
+    // Try multiple selectors for the TOTP input
+    const totpSelectors = [
+      'input[type="text"][autocomplete="one-time-code"]',
+      'input[placeholder*="TOTP"]',
+      'input[placeholder*="totp"]',
+      'input[placeholder*="code"]',
+      'input[placeholder*="Code"]',
+      'input[type="number"]',
+      'input[type="tel"]',
+    ];
+
+    let totpFilled = false;
+    for (const selector of totpSelectors) {
+      try {
+        await page.waitForSelector(selector, { timeout: 3000 });
+        await page.fill(selector, totpCode);
+        totpFilled = true;
+        console.log(`Filled TOTP using selector: ${selector}`);
+        break;
+      } catch { /* try next */ }
     }
 
-    // Submit
-    await page.click('button[type="submit"]').catch(() => {});
+    if (!totpFilled) {
+      // Last resort: find all visible inputs and fill the last one
+      const allInputs = await page.$$('input:visible');
+      if (allInputs.length > 0) {
+        await allInputs[allInputs.length - 1].fill(totpCode);
+        totpFilled = true;
+        console.log('Filled TOTP using last visible input');
+      }
+    }
+
+    if (!totpFilled) {
+      console.error('Could not find TOTP input field');
+      await page.screenshot({ path: 'totp-debug.png' });
+      process.exit(1);
+    }
+
+    await page.waitForTimeout(500);
+
+    // Click submit button
+    const submitSelectors = [
+      'button[type="submit"]',
+      'button:has-text("Continue")',
+      'button:has-text("Login")',
+      'button:has-text("Verify")',
+      '.button-orange',
+    ];
+
+    for (const sel of submitSelectors) {
+      try {
+        await page.click(sel, { timeout: 2000 });
+        console.log(`Clicked submit using: ${sel}`);
+        break;
+      } catch { /* try next */ }
+    }
 
     // ── Step 5: Wait for redirect with request_token ────────────────────────
     console.log('Waiting for OAuth redirect...');
-    await page.waitForURL(/request_token=/, { timeout: 15000 }).catch(() => {
-      // May have already redirected — check current URL
-      const url = page.url();
-      const match = url.match(/request_token=([^&]+)/);
-      if (match) requestToken = match[1];
-    });
+    try {
+      await page.waitForURL(/request_token=/, { timeout: 20000 });
+    } catch {
+      // Check current URL anyway
+    }
 
     if (!requestToken) {
       const url = page.url();
