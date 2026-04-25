@@ -1,0 +1,38 @@
+name: Kite Auto Login
+
+on:
+  schedule:
+    # 01:01 UTC = 06:31 IST — just after Zerodha invalidates tokens at 06:00 IST
+    - cron: '1 1 * * *'
+  workflow_dispatch: # allow manual trigger from GitHub Actions UI
+
+jobs:
+  autologin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright + dependencies
+        run: |
+          npm install playwright otpauth
+          npx playwright install chromium --with-deps
+
+      - name: Run Kite auto-login
+        env:
+          ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
+          ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
+          ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZERODHA_SUPABASE_USER_ID: ${{ secrets.ZERODHA_SUPABASE_USER_ID }}
+        run: node scripts/kite-autologin.js
