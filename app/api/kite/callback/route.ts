@@ -47,7 +47,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const status = searchParams.get('status');
 
   // Kite may send action=login&type=login alongside status=success — that's fine
+  console.log('[Kite Callback] Received request:', { requestToken, status });
   if (!requestToken || status !== 'success') {
+    console.error('[Kite Callback] Missing token or failed status');
     return NextResponse.redirect(new URL('/login?kite_error=cancelled', request.url));
   }
 
@@ -87,6 +89,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       };
     };
 
+    console.log('[Kite Callback] Token exchange response:', JSON.stringify(tokenData));
+
     const accessToken = tokenData.data?.access_token;
     const kiteUserId = tokenData.data?.user_id ?? '';
 
@@ -99,15 +103,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // ── 2. Save to Supabase (best-effort — don't block redirect on failure) ──
     const supabaseUserId = await getSupabaseUserId(request);
+    console.log('[Kite Callback] Resolved Supabase User ID:', supabaseUserId);
     if (supabaseUserId) {
       try {
+        console.log('[Kite Callback] Saving session to Supabase...');
         await saveKiteSession(supabaseUserId, { kiteUserId, accessToken, expiresAt });
+        console.log('[Kite Callback] Session saved successfully.');
       } catch (err) {
         // Log but don't fail — cookie fallback still works
-        console.error('Failed to persist Kite session to DB:', err);
+        console.error('[Kite Callback] Failed to persist Kite session to DB:', err);
       }
     } else {
-      console.warn('Could not resolve Supabase user — Kite token saved to cookie only');
+      console.warn('[Kite Callback] Could not resolve Supabase user — Kite token saved to cookie only');
     }
 
     // ── 3. Set HTTP-only cookie (fast cache for API routes) ──────────────────

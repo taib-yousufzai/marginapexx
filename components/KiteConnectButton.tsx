@@ -54,8 +54,9 @@ export default function KiteConnectButton() {
 
   const handleConnect = () => {
     const apiKey = process.env.NEXT_PUBLIC_KITE_API_KEY ?? '6029iuextwfch9pp';
+    const redirectUrl = encodeURIComponent('http://localhost:3000/api/kite/callback');
     window.open(
-      `https://kite.trade/connect/login?api_key=${encodeURIComponent(apiKey)}&v=3`,
+      `https://kite.trade/connect/login?api_key=${apiKey}&v=3&redirect_url=${redirectUrl}`,
       '_blank',
     );
   };

@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getSharedKiteSession } from '@/lib/kiteSession';
 
 export interface KiteQuote {
   instrument_token: number;
@@ -44,7 +45,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   // Read access token from HTTP-only cookie
-  const accessToken = request.cookies.get('kite_access_token')?.value;
+  let accessToken = request.cookies.get('kite_access_token')?.value;
+  
+  if (!accessToken) {
+    console.log('[Kite Quotes] No cookie found, checking shared session...');
+    const sharedSession = await getSharedKiteSession();
+    if (sharedSession) {
+      accessToken = sharedSession.accessToken;
+    }
+  }
+
   if (!accessToken) {
     return NextResponse.json({ error: 'Not authenticated with Kite' }, { status: 401 });
   }

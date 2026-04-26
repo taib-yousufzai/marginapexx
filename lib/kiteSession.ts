@@ -87,6 +87,19 @@ export async function loadKiteSession(
 }
 
 /**
+ * Load the master/shared Kite session that is used for "everyone".
+ * Uses the ZERODHA_SUPABASE_USER_ID from environment variables.
+ */
+export async function getSharedKiteSession(): Promise<KiteSessionData | null> {
+  const masterId = process.env.ZERODHA_SUPABASE_USER_ID;
+  if (!masterId) {
+    console.warn('ZERODHA_SUPABASE_USER_ID not configured for shared session');
+    return null;
+  }
+  return loadKiteSession(masterId);
+}
+
+/**
  * Delete a Kite session (e.g. on logout or token invalidation).
  */
 export async function deleteKiteSession(supabaseUserId: string): Promise<void> {

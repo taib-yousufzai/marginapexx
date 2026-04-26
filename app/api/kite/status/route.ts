@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { loadKiteSession } from '@/lib/kiteSession';
+import { loadKiteSession, getSharedKiteSession } from '@/lib/kiteSession';
 
 async function getSupabaseUserId(request: NextRequest): Promise<string | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,15 +35,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // ── 1. Check cookie first (fast path) ────────────────────────────────────
   let accessToken = request.cookies.get('kite_access_token')?.value;
+  console.log('[Kite Status] Cookie token exists:', !!accessToken);
 
   // ── 2. Fall back to DB if cookie missing ─────────────────────────────────
   if (!accessToken) {
     const supabaseUserId = await getSupabaseUserId(request);
+    console.log('[Kite Status] Resolved Supabase User ID:', supabaseUserId);
     if (supabaseUserId) {
       const session = await loadKiteSession(supabaseUserId);
+      console.log('[Kite Status] DB Session found:', !!session);
       if (session) {
         accessToken = session.accessToken;
       }
+    }
+  }
+
+  // ── 3. Fall back to Shared Session if still missing ──────────────────────
+  if (!accessToken) {
+    console.log('[Kite Status] Trying shared session fallback...');
+    const sharedSession = await getSharedKiteSession();
+    if (sharedSession) {
+      console.log('[Kite Status] Shared session found.');
+      accessToken = sharedSession.accessToken;
     }
   }
 
@@ -51,7 +64,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ connected: false, reason: 'no_token' });
   }
 
-  // ── 3. Verify token is still valid with Kite ─────────────────────────────
+  // ── 4. Verify token is still valid with Kite ─────────────────────────────
   try {
     const response = await fetch('https://api.kite.trade/user/profile', {
       headers: {
@@ -62,6 +75,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('[Kite Status] Kite profile check failed:', response.status, errorBody);
       return NextResponse.json({ connected: false, reason: 'token_invalid' });
     }
 

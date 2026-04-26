@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { loadKiteSession } from '@/lib/kiteSession';
+import { loadKiteSession, getSharedKiteSession } from '@/lib/kiteSession';
 
 async function getSupabaseUserId(request: NextRequest): Promise<string | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -50,12 +50,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const supabaseUserId = await getSupabaseUserId(request);
-  if (!supabaseUserId) {
-    return NextResponse.json({ restored: false, reason: 'not_authenticated' });
-  }
-
+  console.log('[Kite Restore] Resolved Supabase User ID:', supabaseUserId);
+  
   try {
-    const session = await loadKiteSession(supabaseUserId);
+    let session = null;
+
+    if (supabaseUserId) {
+      session = await loadKiteSession(supabaseUserId);
+      console.log('[Kite Restore] DB Session found for user:', !!session);
+    }
+
+    if (!session) {
+      console.log('[Kite Restore] Trying shared session fallback...');
+      session = await getSharedKiteSession();
+    }
 
     if (!session) {
       return NextResponse.json({ restored: false, reason: 'no_session' });
