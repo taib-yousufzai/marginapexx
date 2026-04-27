@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
+import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import './page.css';
 
 interface WatchlistItem {
@@ -202,9 +203,10 @@ function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
 interface InstrumentRowProps {
   item: WatchlistItem;
   quote?: QuoteData;
+  onTrade: (item: WatchlistItem) => void;
 }
 
-function InstrumentRow({ item, quote }: InstrumentRowProps) {
+function InstrumentRow({ item, quote, onTrade }: InstrumentRowProps) {
   const ltp = quote?.lastPrice ?? item.price;
   const absoluteChange = ltp - item.close;
   const percentChange = item.close !== 0 ? ((ltp - item.close) / item.close) * 100 : 0;
@@ -216,9 +218,7 @@ function InstrumentRow({ item, quote }: InstrumentRowProps) {
   };
 
   const handleRightClick = () => {
-    if (typeof window !== 'undefined' && (window as any).openTradeSheet) {
-      (window as any).openTradeSheet(item.symbol);
-    }
+    onTrade(item);
   };
 
   return (
@@ -262,9 +262,20 @@ function EmptyState() {
 export default function WatchlistPage() {
   const router = useRouter();
   useAuth();
+  const { placeOrder, loading: placingOrder, error: placeOrderError } = useOrderEntry();
+
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
   const [searchText, setSearchText] = useState<string>('');
+
+  // Trade Sheet State
+  const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
+  const [orderQty, setOrderQty] = useState<number>(25);
+  const [orderType, setOrderType] = useState<OrderType>('MARKET');
+  const [productType, setProductType] = useState<ProductType>('INTRADAY');
+  const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
+  const [limitPrice, setLimitPrice] = useState<string>('');
+
   const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
   const scriptMountedRef = useRef(false);
 
@@ -316,7 +327,74 @@ export default function WatchlistPage() {
         return next;
       });
     };
-  }, []);
+    // Expose trade sheet to window for legacy scripts
+    (window as any).openTradeSheet = (symbol: string) => {
+      const item = window.__watchlistItems?.find(i => i.symbol === symbol) 
+                || watchlistItems.find(i => i.symbol === symbol);
+      if (item) {
+        openTradeSheet(item);
+      }
+    };
+  }, [watchlistItems]);
+
+  const openTradeSheet = (item: WatchlistItem) => {
+    setSelectedItem(item);
+    // Reset defaults or set based on item type
+    const isIndex = item.name.includes('NIFTY') || item.name.includes('BANKNIFTY');
+    setOrderQty(isIndex ? 25 : 1);
+    setOrderUnit('qty');
+    setOrderType('MARKET');
+    setProductType('INTRADAY');
+
+    // Trigger visual sheet open (compat with existing CSS)
+    const sheet = document.getElementById('tradeSheet');
+    const overlay = document.getElementById('tradeSheetOverlay');
+    if (sheet) sheet.classList.add('open');
+    if (overlay) overlay.classList.add('active');
+  };
+
+  const closeTradeSheet = () => {
+    const sheet = document.getElementById('tradeSheet');
+    const overlay = document.getElementById('tradeSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setSelectedItem(null);
+  };
+
+  const handlePlaceOrder = async (side: OrderSide) => {
+    if (!selectedItem) return;
+
+    const quote = quotes[selectedItem.kiteSymbol];
+    const currentLtp = quote?.lastPrice ?? selectedItem.price;
+
+    const result = await placeOrder({
+      symbol: selectedItem.symbol,
+      kite_instrument: selectedItem.kiteSymbol || selectedItem.symbol,
+      segment: selectedItem.segment,
+      side,
+      order_type: orderType,
+      product_type: productType,
+      qty: orderQty,
+      lots: orderUnit === 'lot' ? orderQty : 0, // Simplified for now
+      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentLtp
+    });
+
+    if (result.success) {
+      // Show success toast
+      if (typeof window !== 'undefined' && (window as any).showToast) {
+        (window as any).showToast(`Order Placed Successfully: ${side} ${orderQty} ${selectedItem.name}`, false);
+      }
+      closeTradeSheet();
+    } else {
+      if (typeof window !== 'undefined' && (window as any).showToast) {
+        (window as any).showToast(`Order Failed: ${result.error}`, true);
+      }
+    }
+  };
+
+  const currentQuote = selectedItem ? quotes[selectedItem.kiteSymbol] : null;
+  const currentLtp = currentQuote?.lastPrice ?? selectedItem?.price ?? 0;
+  const ltpStr = currentLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   useEffect(() => {
     window.__kiteQuotes = window.__kiteQuotes || {};
@@ -379,7 +457,7 @@ export default function WatchlistPage() {
             </div>
           </div>
           <div className="watchlist-cards-container">
-            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => <InstrumentRow key={item.symbol} item={item} quote={quotes[item.kiteSymbol]} />)}
+            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => <InstrumentRow key={item.symbol} item={item} quote={quotes[item.kiteSymbol]} onTrade={openTradeSheet} />)}
             <div id="watchlistMobileContainer"></div>
           </div>
         </div>
@@ -389,16 +467,18 @@ export default function WatchlistPage() {
       <div id="tradeSheet" className="trade-sheet">
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div className="ts-header">
-          <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close">
+          <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close" onClick={closeTradeSheet}>
             <i className="fas fa-chevron-down"></i>
           </button>
           <div className="ts-name-block">
-            <div className="ts-instr-name" id="sheetScriptName">NIFTY FUT</div>
-            <span className="ts-segment-badge" id="sheetSegment">NSE · Futures</span>
+            <div className="ts-instr-name" id="sheetScriptName">{selectedItem?.name || '---'}</div>
+            <span className="ts-segment-badge" id="sheetSegment">{selectedItem?.segment || '---'}</span>
           </div>
           <div className="ts-price-block">
-            <div className="ts-price-value" id="sheetCmpValue">₹22,456.80</div>
-            <span className="ts-change-badge negative" id="sheetChange">+0.45%</span>
+            <div className="ts-price-value" id="sheetCmpValue">₹{ltpStr}</div>
+            <span className={`ts-change-badge ${currentQuote && currentQuote.changePercent < 0 ? 'negative' : ''}`} id="sheetChange">
+              {currentQuote ? (currentQuote.changePercent >= 0 ? '+' : '') + currentQuote.changePercent.toFixed(2) + '%' : '0.00%'}
+            </span>
           </div>
         </div>
         <div className="ts-bidask-row">
@@ -418,8 +498,14 @@ export default function WatchlistPage() {
               <div className="ts-qty-lot-row">
                 <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
                 <div className="ts-toggle-switch" id="qtyLotToggle">
-                  <button className="ts-toggle-opt active" data-unit="qty">QTY</button>
-                  <button className="ts-toggle-opt" data-unit="lot">LOT</button>
+                  <button 
+                    className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`} 
+                    onClick={() => setOrderUnit('qty')}
+                  >QTY</button>
+                  <button 
+                    className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`} 
+                    onClick={() => setOrderUnit('lot')}
+                  >LOT</button>
                 </div>
               </div>
             </div>
@@ -434,35 +520,54 @@ export default function WatchlistPage() {
             <div className="ts-qty-container">
               <div className="ts-section-label">Quantity</div>
               <div className="ts-qty-stepper">
-                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease"><i className="fas fa-minus"></i></button>
-                <div className="ts-qty-display" id="tradeQtyDisplay">25</div>
-                <input type="hidden" id="tradeQtyInput" defaultValue="25" />
-                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase"><i className="fas fa-plus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => setOrderQty(q => Math.max(1, q - 1))}><i className="fas fa-minus"></i></button>
+                <div className="ts-qty-display" id="tradeQtyDisplay">{orderQty}</div>
+                <input type="hidden" id="tradeQtyInput" value={orderQty} />
+                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => setOrderQty(q => q + 1)}><i className="fas fa-plus"></i></button>
               </div>
-              <div className="ts-qty-hint" id="sheetLotHint">1 Lot × 25 = 25 Qty</div>
+              <div className="ts-qty-hint" id="sheetLotHint">
+                {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
+              </div>
             </div>
             <div className="ts-section-card">
               <div className="ts-section-label">Order Type</div>
               <div className="ts-pill-group" id="orderTypeContainer">
-                <button className="ts-pill active" data-type="market">MARKET</button>
-                <button className="ts-pill" data-type="limit">LIMIT</button>
-                <button className="ts-pill" data-type="slm">SL-M</button>
-                <button className="ts-pill" data-type="gtt">GTT</button>
+                {(['MARKET', 'LIMIT', 'SL-M', 'GTT'] as OrderType[]).map(type => (
+                  <button 
+                    key={type}
+                    className={`ts-pill ${orderType === type ? 'active' : ''}`} 
+                    onClick={() => setOrderType(type)}
+                  >{type}</button>
+                ))}
               </div>
             </div>
-            <div className="ts-section-card" id="priceInputCard" style={{ display: 'none' }}>
+            <div className="ts-section-card" id="priceInputCard" style={{ display: orderType === 'LIMIT' ? 'block' : 'none' }}>
               <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input type="number" id="tradePriceInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} />
+              <input 
+                type="number" 
+                id="tradePriceInput" 
+                placeholder="0.00" 
+                className="price-input" 
+                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} 
+                value={limitPrice}
+                onChange={(e) => setLimitPrice(e.target.value)}
+              />
             </div>
-            <div className="ts-section-card" id="triggerCard" style={{ display: 'none' }}>
+            <div className="ts-section-card" id="triggerCard" style={{ display: orderType === 'SL-M' ? 'block' : 'none' }}>
               <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
               <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} />
             </div>
             <div className="ts-section-card">
               <div className="ts-section-label">Product Type</div>
               <div className="ts-pill-group" id="productTypeContainer">
-                <button className="ts-pill active" data-type="mis">INTRADAY</button>
-                <button className="ts-pill" data-type="nrml">CARRY</button>
+                <button 
+                  className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`} 
+                  onClick={() => setProductType('INTRADAY')}
+                >INTRADAY</button>
+                <button 
+                  className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`} 
+                  onClick={() => setProductType('CARRY')}
+                >CARRY</button>
               </div>
             </div>
             <div className="ts-margin-card">
@@ -476,8 +581,22 @@ export default function WatchlistPage() {
       </div>
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
-        <button className="ts-btn ts-btn-buy" id="sheetBuyBtn">BUY</button>
-        <button className="ts-btn ts-btn-sell" id="sheetSellBtn">SELL</button>
+        <button 
+          className="ts-btn ts-btn-buy" 
+          id="sheetBuyBtn" 
+          disabled={placingOrder}
+          onClick={() => handlePlaceOrder('BUY')}
+        >
+          {placingOrder ? 'PLACING...' : 'BUY'}
+        </button>
+        <button 
+          className="ts-btn ts-btn-sell" 
+          id="sheetSellBtn" 
+          disabled={placingOrder}
+          onClick={() => handlePlaceOrder('SELL')}
+        >
+          {placingOrder ? 'PLACING...' : 'SELL'}
+        </button>
       </div>
 
       <div id="detailSheetOverlay" className="trade-sheet-overlay"></div>
@@ -527,8 +646,20 @@ export default function WatchlistPage() {
               <div id="detailContractDate" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>28 Mar 2025</div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button id="detailBuyBtn" style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}><i className="fas fa-arrow-up"></i> BUY</button>
-              <button id="detailSellBtn" style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}><i className="fas fa-arrow-down"></i> SELL</button>
+              <button 
+                id="detailBuyBtn" 
+                style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
+                onClick={() => openTradeSheet(selectedItem!)}
+              >
+                <i className="fas fa-arrow-up"></i> BUY
+              </button>
+              <button 
+                id="detailSellBtn" 
+                style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
+                onClick={() => openTradeSheet(selectedItem!)}
+              >
+                <i className="fas fa-arrow-down"></i> SELL
+              </button>
             </div>
           </div>
         </div>
@@ -547,7 +678,17 @@ export default function WatchlistPage() {
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span><span id="basketAvailBalance" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>₹4,50,000.00</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-            <button id="basketExecuteBtn" style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0 }}><i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '1rem' }}></i> Execute Basket</button>
+            <button 
+              id="basketExecuteBtn" 
+              style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0 }}
+              onClick={() => {
+                if (typeof window !== 'undefined' && (window as any).showToast) {
+                  (window as any).showToast('Basket execution is currently in demo mode', false);
+                }
+              }}
+            >
+              <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '1rem' }}></i> Execute Basket
+            </button>
             <button id="basketClearBtn" style={{ flex: 1, background: '#EFEFEF', color: '#6B7280', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', minWidth: 0 }}><i className="fas fa-trash-alt" style={{ opacity: 0.5 }}></i> Clear</button>
           </div>
         </div>
