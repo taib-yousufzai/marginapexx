@@ -2,6 +2,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/lib/supabaseClient';
 import './page.css';
 
 export default function Page() {
@@ -9,18 +10,26 @@ export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Inject scripts
-    const script = document.createElement('script');
+    let injectedScript: HTMLScriptElement | null = null;
+
+    (async () => {
+      // Fetch auth token so the injected script can call /api/orders
+      const { data: sd } = await supabase.auth.getSession();
+      (window as unknown as Record<string, string>).__mapexToken =
+        sd.session?.access_token ?? '';
+
+      const script = document.createElement('script');
+      injectedScript = script;
     script.innerHTML = `
     // COMPLETE TRADING DATABASE
     var allScripts = [
-        { name: "NIFTY FUT", symbol: "NIFTY_FUT", price: 22456.80, change: "+0.45%", segment: "INDEX - FUTURE", lotSize: 50, maxLots: 100, marginPercent: 0.12 },
-        { name: "SENSEX FUT", symbol: "SENSEX_FUT", price: 74230.15, change: "+0.32%", segment: "INDEX - FUTURE", lotSize: 15, maxLots: 100, marginPercent: 0.12 },
-        { name: "BANKNIFTY FUT", symbol: "BANKNIFTY_FUT", price: 48210.50, change: "-0.21%", segment: "INDEX - FUTURE", lotSize: 25, maxLots: 150, marginPercent: 0.12 },
-        { name: "RELIANCE FUT", symbol: "RELIANCE_FUT", price: 2856.40, change: "+0.75%", segment: "STOCKS - FUTURE", lotSize: 250, maxLots: 50, marginPercent: 0.15 },
-        { name: "RELIANCE EQ", symbol: "RELIANCE", price: 2845.30, change: "+0.68%", segment: "NSE - EQ", lotSize: 1, maxLots: 5000, marginPercent: 0.2 },
-        { name: "BTC/USDT", symbol: "BTCUSDT", price: 68450.20, change: "+2.1%", segment: "CRYPTO", lotSize: 0.01, maxLots: 100, marginPercent: 0.05 },
-        { name: "GOLD FUT", symbol: "GOLD_FUT", price: 62340.00, change: "+0.28%", segment: "MCX - FUTURE", lotSize: 1, maxLots: 100, marginPercent: 0.08 }
+        { name: "NIFTY FUT",     symbol: "NIFTY_FUT",     kiteInstrument: "NFO:NIFTY25MAYFUT",     price: 22456.80, change: "+0.45%", segment: "INDEX - FUTURE",  lotSize: 50,  maxLots: 100,  marginPercent: 0.12 },
+        { name: "SENSEX FUT",    symbol: "SENSEX_FUT",    kiteInstrument: "BSE:SENSEX",             price: 74230.15, change: "+0.32%", segment: "INDEX - FUTURE",  lotSize: 15,  maxLots: 100,  marginPercent: 0.12 },
+        { name: "BANKNIFTY FUT", symbol: "BANKNIFTY_FUT", kiteInstrument: "NFO:BANKNIFTY25MAYFUT", price: 48210.50, change: "-0.21%", segment: "INDEX - FUTURE",  lotSize: 25,  maxLots: 150,  marginPercent: 0.12 },
+        { name: "RELIANCE FUT",  symbol: "RELIANCE_FUT",  kiteInstrument: "NFO:RELIANCE25MAYFUT",  price: 2856.40,  change: "+0.75%", segment: "STOCKS - FUTURE", lotSize: 250, maxLots: 50,   marginPercent: 0.15 },
+        { name: "RELIANCE EQ",   symbol: "RELIANCE",      kiteInstrument: "NSE:RELIANCE",           price: 2845.30,  change: "+0.68%", segment: "NSE - EQ",        lotSize: 1,   maxLots: 5000, marginPercent: 0.20 },
+        { name: "BTC/USDT",      symbol: "BTCUSDT",       kiteInstrument: "CRYPTO:BTC",             price: 68450.20, change: "+2.1%",  segment: "CRYPTO",          lotSize: 0.01,maxLots: 100,  marginPercent: 0.05 },
+        { name: "GOLD FUT",      symbol: "GOLD_FUT",      kiteInstrument: "MCX:GOLD25MAYFUT",      price: 62340.00, change: "+0.28%", segment: "MCX - FUTURE",    lotSize: 1,   maxLots: 100,  marginPercent: 0.08 }
     ];
 
     var watchlistItems = [], selectedIndices = new Set(), selectionMode = false;
@@ -197,25 +206,41 @@ export default function Page() {
         updateMarginDisplay();
     }
 
-    function executeFinalOrder() {
-        var lotSize = currentScript.lotSize || 1, actualQty = currentIsLotMode ? currentQuantity * lotSize : currentQuantity;
-        var price = currentScript.price, orderTypeText = "";
-        if (currentOrderType === "limit") { 
-            var limitPrice = parseFloat(document.getElementById('limitPriceInput')?.value); 
-            if (limitPrice && limitPrice > 0) price = limitPrice; 
-            orderTypeText = \`LIMIT @ \${formatPrice(price)}\`; 
-        } else if (currentOrderType === "slm") { 
-            var stopPrice = parseFloat(document.getElementById('slmStopPrice')?.value) || price; 
-            orderTypeText = \`SL-M @ \${formatPrice(stopPrice)}\`; 
-        } else if (currentOrderType === "gtt") { 
-            var stopPrice = parseFloat(document.getElementById('gttStopPrice')?.value) || price; 
-            var limitPrice = parseFloat(document.getElementById('gttLimitPrice')?.value) || price; 
-            orderTypeText = \`GTT @ Stop:\${formatPrice(stopPrice)} / Limit:\${formatPrice(limitPrice)}\`; 
-        } else { orderTypeText = "MARKET"; }
-        var productText = currentProductType === "intraday" ? "INTRADAY" : "CARRY";
-        var qtyText = currentIsLotMode ? \`\${currentQuantity} Lot (\${actualQty} units)\` : \`\${actualQty} units\`;
-        var brokerageText = currentOrderType === 'gtt' ? \` | Brokerage: ₹\${BROKERAGE_FLAT}\` : '';
-        showToast(\`\${currentTradeType.toUpperCase()} order: \${qtyText} \${currentScript.name} | \${orderTypeText} | \${productText}\${brokerageText}\`);
+    async function executeFinalOrder() {
+        var lotSize = currentScript.lotSize || 1;
+        var actualQty = currentIsLotMode ? currentQuantity * lotSize : currentQuantity;
+        var price = currentScript.price;
+        if (currentOrderType === 'limit') { var lp = parseFloat(document.getElementById('limitPriceInput')?.value); if (lp && lp > 0) price = lp; }
+        var orderTypeMap = { market: 'MARKET', limit: 'LIMIT', slm: 'SLM', gtt: 'GTT' };
+        var btn = document.getElementById(selectedAction === 'buy' ? 'confirmBuyBtn' : 'confirmSellBtn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Placing...'; }
+        try {
+            var res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.__mapexToken || '') },
+                body: JSON.stringify({
+                    symbol: currentScript.symbol,
+                    kite_instrument: currentScript.kiteInstrument || currentScript.symbol,
+                    segment: currentScript.segment,
+                    side: currentTradeType.toUpperCase(),
+                    order_type: orderTypeMap[currentOrderType] || 'MARKET',
+                    product_type: currentProductType === 'intraday' ? 'INTRADAY' : 'CARRY',
+                    qty: actualQty,
+                    lots: currentIsLotMode ? currentQuantity : Math.floor(actualQty / lotSize),
+                    client_price: price
+                })
+            });
+            var result = await res.json();
+            if (res.ok) {
+                showToast('\u2713 Order placed @ \u20b9' + result.fill_price.toLocaleString('en-IN', {minimumFractionDigits: 2}));
+            } else {
+                showToast(result.error || 'Order failed. Try again.', true);
+            }
+        } catch(e) {
+            showToast('Network error. Please try again.', true);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = selectedAction === 'buy' ? '<i class="fas fa-arrow-up"></i> BUY' : '<i class="fas fa-arrow-down"></i> SELL'; }
+        }
         closeOrderFullpage();
     }
 
@@ -313,11 +338,12 @@ export default function Page() {
     openBtn.addEventListener('click', openDrawer); closeDrawerBtn.addEventListener('click', closeDrawer); overlay.addEventListener('click', closeDrawer);
     renderWatchlist(); buildFolderTree();
 `;
-    document.body.appendChild(script);
-    
+      document.body.appendChild(script);
+    })();
+
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
+      if (injectedScript && document.body.contains(injectedScript)) {
+        document.body.removeChild(injectedScript);
       }
     };
   }, []);
@@ -428,300 +454,7 @@ export default function Page() {
 </div>
 <div id="toastMessageMobile" class="mobile-toast" style="opacity:0;"></div>
 
-<script>
-    // COMPLETE TRADING DATABASE
-    const allScripts = [
-        { name: "NIFTY FUT", symbol: "NIFTY_FUT", price: 22456.80, change: "+0.45%", segment: "INDEX - FUTURE", lotSize: 50, maxLots: 100, marginPercent: 0.12 },
-        { name: "SENSEX FUT", symbol: "SENSEX_FUT", price: 74230.15, change: "+0.32%", segment: "INDEX - FUTURE", lotSize: 15, maxLots: 100, marginPercent: 0.12 },
-        { name: "BANKNIFTY FUT", symbol: "BANKNIFTY_FUT", price: 48210.50, change: "-0.21%", segment: "INDEX - FUTURE", lotSize: 25, maxLots: 150, marginPercent: 0.12 },
-        { name: "RELIANCE FUT", symbol: "RELIANCE_FUT", price: 2856.40, change: "+0.75%", segment: "STOCKS - FUTURE", lotSize: 250, maxLots: 50, marginPercent: 0.15 },
-        { name: "RELIANCE EQ", symbol: "RELIANCE", price: 2845.30, change: "+0.68%", segment: "NSE - EQ", lotSize: 1, maxLots: 5000, marginPercent: 0.2 },
-        { name: "BTC/USDT", symbol: "BTCUSDT", price: 68450.20, change: "+2.1%", segment: "CRYPTO", lotSize: 0.01, maxLots: 100, marginPercent: 0.05 },
-        { name: "GOLD FUT", symbol: "GOLD_FUT", price: 62340.00, change: "+0.28%", segment: "MCX - FUTURE", lotSize: 1, maxLots: 100, marginPercent: 0.08 }
-    ];
 
-    let watchlistItems = [], selectedIndices = new Set(), selectionMode = false;
-    let currentScript = null, currentTradeType = null, selectedAction = null, currentIsLotMode = false, currentOrderType = "market", currentProductType = "intraday", currentQuantity = 1;
-    const BROKERAGE_FLAT = 5;
-
-    // DOM Elements
-    const watchlistContainer = document.getElementById('watchlistMobileContainer');
-    const watchlistCounter = document.getElementById('mobileWatchlistCounter');
-    const multiSelectBar = document.getElementById('multiSelectBar');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const unselectAllBtn = document.getElementById('unselectAllBtn');
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const exitSelectionBtn = document.getElementById('exitSelectionBtn');
-    const searchInput = document.getElementById('globalSearchInput');
-    const clearSearchBtn = document.getElementById('clearSearchBtn');
-    const searchResultsArea = document.getElementById('searchResultsArea');
-    const searchResultsList = document.getElementById('searchResultsList');
-    const searchResultCount = document.getElementById('searchResultCount');
-    const tradeSheet = document.getElementById('tradeSheet');
-    const tradeSheetOverlay = document.getElementById('tradeSheetOverlay');
-    const orderFullpage = document.getElementById('orderFullpage');
-    const orderFullpageOverlay = document.getElementById('orderFullpageOverlay');
-    const folderDrawer = document.getElementById('scriptsFolderDrawer');
-    const openBtn = document.getElementById('openFolderMobileBtn');
-    const closeDrawerBtn = document.getElementById('closeFolderDrawerBtn');
-    const overlay = document.getElementById('drawerOverlay');
-    const toastEl = document.getElementById('toastMessageMobile');
-    let toastTimeout = null, longPressTimer = null;
-
-    function showToast(msg, isError = false) { 
-        if (toastTimeout) clearTimeout(toastTimeout); 
-        toastEl.textContent = msg; 
-        toastEl.style.background = isError ? "#C62E2E" : "#2C8E5A"; 
-        toastEl.style.opacity = "1"; 
-        toastTimeout = setTimeout(() => toastEl.style.opacity = "0", 2000); 
-    }
-
-    function formatPrice(price) { 
-        let num = typeof price === 'number' ? price : parseFloat(price); 
-        return \`₹\${num.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\`; 
-    }
-    
-    function formatPriceNumber(price) {
-        let num = typeof price === 'number' ? price : parseFloat(price);
-        return num.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    }
-
-    function generateBidAsk(price) { 
-        let spread = price * 0.001; 
-        return { bid: price - spread, ask: price + spread }; 
-    }
-
-    function openTradeSheet(script) {
-        currentScript = script; 
-        document.getElementById('tradeScriptName').innerText = script.name; 
-        document.getElementById('tradeSegment').innerText = script.segment;
-        document.getElementById('tradeCmpValue').innerText = formatPrice(script.price);
-        const isPositive = script.change.includes('+'); 
-        document.getElementById('tradeChange').innerText = script.change;
-        document.getElementById('tradeChange').className = \`sheet-change \${isPositive ? 'positive' : 'negative'}\`;
-        const { bid, ask } = generateBidAsk(script.price); 
-        document.getElementById('tradeBid').innerText = formatPrice(bid); 
-        document.getElementById('tradeAsk').innerText = formatPrice(ask);
-        tradeSheet.classList.add('open'); 
-        tradeSheetOverlay.classList.add('active');
-    }
-
-    function closeTradeSheet() { 
-        tradeSheet.classList.remove('open'); 
-        tradeSheetOverlay.classList.remove('active'); 
-    }
-
-    function closeOrderFullpage() { 
-        orderFullpage.classList.remove('open'); 
-        orderFullpageOverlay.classList.remove('active'); 
-    }
-
-    function updateLotInfoDisplay() {
-        let lotSize = currentScript.lotSize || 1, maxLots = currentScript.maxLots || 100;
-        let orderLots = currentIsLotMode ? currentQuantity : Math.floor(currentQuantity / lotSize);
-        if (!currentIsLotMode && currentQuantity < lotSize) orderLots = 0;
-        let totalQty = currentIsLotMode ? currentQuantity * lotSize : currentQuantity;
-        document.getElementById('lotSizeValue').innerText = lotSize; 
-        document.getElementById('maxLotsValue').innerText = maxLots;
-        document.getElementById('orderLotsValue').innerText = orderLots; 
-        document.getElementById('totalQtyValue').innerText = totalQty;
-    }
-
-    function updateMarginDisplay() {
-        let lotSize = currentScript.lotSize || 1, actualQty = currentIsLotMode ? currentQuantity * lotSize : currentQuantity;
-        let exposure = actualQty * currentScript.price, marginPercent = currentScript.marginPercent || 0.12;
-        let requiredMargin = exposure * marginPercent, carryMargin = exposure * marginPercent * 1.5, availableMargin = 125000;
-        document.getElementById('requiredMargin').innerHTML = formatPrice(requiredMargin);
-        document.getElementById('carryMargin').innerHTML = formatPrice(carryMargin);
-        document.getElementById('availableMargin').innerHTML = formatPrice(availableMargin);
-        
-        let brokerageRow = document.getElementById('brokerageRow');
-        if (currentOrderType === 'gtt') {
-            brokerageRow.style.display = 'block';
-            document.getElementById('brokerageAmount').innerHTML = \`₹\${BROKERAGE_FLAT}.00\`;
-        } else {
-            brokerageRow.style.display = 'none';
-        }
-    }
-
-    function openOrderFullpage(type) {
-        currentTradeType = type;
-        selectedAction = type;
-        currentQuantity = 1; 
-        currentIsLotMode = false; 
-        currentOrderType = "market";
-        document.getElementById('qtyLotSwitch').checked = false;
-        document.getElementById('orderScriptName').innerText = currentScript.name; 
-        document.getElementById('orderSegment').innerText = currentScript.segment;
-        document.getElementById('orderCmpValue').innerText = formatPrice(currentScript.price);
-        const isPositive = currentScript.change.includes('+');
-        document.getElementById('orderChange').innerText = currentScript.change;
-        document.getElementById('orderChange').className = \`order-change \${isPositive ? 'positive' : 'negative'}\`;
-        const { bid, ask } = generateBidAsk(currentScript.price);
-        document.getElementById('orderBid').innerText = formatPriceNumber(bid);
-        document.getElementById('orderAsk').innerText = formatPriceNumber(ask);
-        document.getElementById('orderQtyInput').value = currentQuantity;
-        updateQuantityModeDisplay(); 
-        updateMarginDisplay(); 
-        updateLotInfoDisplay();
-        document.querySelectorAll('[data-order-type]').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('[data-order-type="market"]').classList.add('active');
-        document.getElementById('limitPriceContainer').style.display = 'none';
-        document.getElementById('slmContainer').style.display = 'none';
-        document.getElementById('gttContainer').style.display = 'none';
-        document.querySelectorAll('[data-product-type]').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('[data-product-type="intraday"]').classList.add('active');
-        const buyBtn = document.getElementById('confirmBuyBtn');
-        const sellBtn = document.getElementById('confirmSellBtn');
-        if (selectedAction === 'buy') {
-            buyBtn.style.display = 'flex';
-            buyBtn.style.width = '100%';
-            sellBtn.style.display = 'none';
-        } else {
-            sellBtn.style.display = 'flex';
-            sellBtn.style.width = '100%';
-            buyBtn.style.display = 'none';
-        }
-        closeTradeSheet(); 
-        orderFullpage.classList.add('open'); 
-        orderFullpageOverlay.classList.add('active');
-    }
-
-    function updateQuantityModeDisplay() {
-        let lotSize = currentScript.lotSize || 1;
-        document.getElementById('qtyLabel').innerHTML = currentIsLotMode ? \`LOTS (1 Lot = \${lotSize} units)\` : "QUANTITY";
-        document.getElementById('lotSizeInfo').innerHTML = currentIsLotMode ? \`Lot Size: \${lotSize} | \${currentQuantity} Lot = \${currentQuantity * lotSize} Units\` : \`Lot Size: \${lotSize} | 1 Lot = \${lotSize} Units\`;
-        document.getElementById('orderQtyInput').value = currentQuantity;
-        updateLotInfoDisplay(); 
-        updateMarginDisplay();
-    }
-
-    function updateQuantity(value) {
-        let lotSize = currentScript.lotSize || 1, maxLots = currentScript.maxLots || 100;
-        let newVal = Math.max(1, Math.min(value, currentIsLotMode ? maxLots : maxLots * lotSize));
-        currentQuantity = newVal;
-        document.getElementById('orderQtyInput').value = currentQuantity;
-        updateLotInfoDisplay(); 
-        updateMarginDisplay();
-    }
-
-    function executeFinalOrder() {
-        let lotSize = currentScript.lotSize || 1, actualQty = currentIsLotMode ? currentQuantity * lotSize : currentQuantity;
-        let price = currentScript.price, orderTypeText = "";
-        if (currentOrderType === "limit") { 
-            let limitPrice = parseFloat(document.getElementById('limitPriceInput')?.value); 
-            if (limitPrice && limitPrice > 0) price = limitPrice; 
-            orderTypeText = \`LIMIT @ \${formatPrice(price)}\`; 
-        } else if (currentOrderType === "slm") { 
-            let stopPrice = parseFloat(document.getElementById('slmStopPrice')?.value) || price; 
-            orderTypeText = \`SL-M @ \${formatPrice(stopPrice)}\`; 
-        } else if (currentOrderType === "gtt") { 
-            let stopPrice = parseFloat(document.getElementById('gttStopPrice')?.value) || price; 
-            let limitPrice = parseFloat(document.getElementById('gttLimitPrice')?.value) || price; 
-            orderTypeText = \`GTT @ Stop:\${formatPrice(stopPrice)} / Limit:\${formatPrice(limitPrice)}\`; 
-        } else { orderTypeText = "MARKET"; }
-        let productText = currentProductType === "intraday" ? "INTRADAY" : "CARRY";
-        let qtyText = currentIsLotMode ? \`\${currentQuantity} Lot (\${actualQty} units)\` : \`\${actualQty} units\`;
-        let brokerageText = currentOrderType === 'gtt' ? \` | Brokerage: ₹\${BROKERAGE_FLAT}\` : '';
-        showToast(\`\${currentTradeType.toUpperCase()} order: \${qtyText} \${currentScript.name} | \${orderTypeText} | \${productText}\${brokerageText}\`);
-        closeOrderFullpage();
-    }
-
-    // Event Listeners
-    document.getElementById('qtyLotSwitch').addEventListener('change', (e) => { currentIsLotMode = e.target.checked; updateQuantityModeDisplay(); });
-    document.getElementById('orderQtyMinus').addEventListener('click', () => updateQuantity(currentQuantity - 1));
-    document.getElementById('orderQtyPlus').addEventListener('click', () => updateQuantity(currentQuantity + 1));
-    document.getElementById('orderQtyInput').addEventListener('change', (e) => updateQuantity(parseInt(e.target.value) || 1));
-    
-    document.querySelectorAll('[data-order-type]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('[data-order-type]').forEach(b => b.classList.remove('active')); 
-            btn.classList.add('active');
-            currentOrderType = btn.getAttribute('data-order-type');
-            document.getElementById('limitPriceContainer').style.display = currentOrderType === 'limit' ? 'block' : 'none';
-            document.getElementById('slmContainer').style.display = currentOrderType === 'slm' ? 'block' : 'none';
-            document.getElementById('gttContainer').style.display = currentOrderType === 'gtt' ? 'block' : 'none';
-            updateMarginDisplay();
-        });
-    });
-    document.querySelectorAll('[data-product-type]').forEach(btn => {
-        btn.addEventListener('click', () => { 
-            document.querySelectorAll('[data-product-type]').forEach(b => b.classList.remove('active')); 
-            btn.classList.add('active'); 
-            currentProductType = btn.getAttribute('data-product-type'); 
-        });
-    });
-    document.getElementById('confirmBuyBtn').addEventListener('click', () => { currentTradeType = 'buy'; executeFinalOrder(); });
-    document.getElementById('confirmSellBtn').addEventListener('click', () => { currentTradeType = 'sell'; executeFinalOrder(); });
-    document.getElementById('backToTradeSheetBtn').addEventListener('click', () => { closeOrderFullpage(); openTradeSheet(currentScript); });
-    document.getElementById('proceedToOrderBuy').addEventListener('click', () => openOrderFullpage('buy'));
-    document.getElementById('proceedToOrderSell').addEventListener('click', () => openOrderFullpage('sell'));
-    tradeSheetOverlay.addEventListener('click', closeTradeSheet); 
-    orderFullpageOverlay.addEventListener('click', closeOrderFullpage);
-
-    // Simplified Watchlist Functions
-    function renderWatchlist() {
-        if (watchlistItems.length === 0) {
-            watchlistContainer.innerHTML = \`<div class="empty-watchlist"><i class="fas fa-plus-circle"></i><p>Your watchlist is empty</p><p>Search or tap Scripts Library ➕</p></div>\`;
-            watchlistCounter.innerText = \`0 items\`;
-            return;
-        }
-        let html = \`<div class="watchlist-card-list">\`;
-        watchlistItems.forEach((item, idx) => {
-            let isPositive = item.change.includes('+'), changeClass = isPositive ? 'positive' : 'negative';
-            html += \`<div class="swipe-container" data-idx="\${idx}"><div class="delete-background"><i class="fas fa-trash-alt"></i> Delete</div><div class="instrument-card" data-name="\${escapeHtml(item.name)}" data-price="\${item.price}" data-change="\${item.change}" data-segment="\${escapeHtml(item.segment)}" data-lotsize="\${item.lotSize}" data-maxlots="\${item.maxLots}" data-margin="\${item.marginPercent}"><div class="instrument-info"><div class="instrument-symbol">\${escapeHtml(item.name)}</div><div class="instrument-name">\${escapeHtml(item.symbol)}</div></div><div class="instrument-price-area"><div class="price-value">\${item.price}</div><div class="change-badge \${changeClass}">\${item.change}</div></div></div></div>\`;
-        });
-        html += \`</div>\`;
-        watchlistContainer.innerHTML = html;
-        watchlistCounter.innerText = \`\${watchlistItems.length} items\`;
-        
-        document.querySelectorAll('.instrument-card').forEach(card => {
-            let name = card.dataset.name, price = parseFloat(card.dataset.price), change = card.dataset.change, segment = card.dataset.segment;
-            let lotSize = parseInt(card.dataset.lotsize), maxLots = parseInt(card.dataset.maxlots), marginPercent = parseFloat(card.dataset.margin);
-            card.addEventListener('click', () => openTradeSheet({ name, price, change, segment, lotSize, maxLots, marginPercent }));
-        });
-        
-        // Simple swipe delete
-        document.querySelectorAll('.swipe-container').forEach(container => {
-            let idx = parseInt(container.dataset.idx), startX = 0, isSwiping = false, card = container.querySelector('.instrument-card');
-            function handleStart(e) { startX = e.touches ? e.touches[0].clientX : e.clientX; isSwiping = true; container.classList.add('swiping'); card.style.transition = 'none'; e.preventDefault(); }
-            function handleMove(e) { if (!isSwiping) return; let delta = (e.touches ? e.touches[0].clientX : e.clientX) - startX; let offset = Math.min(Math.max(delta, -80), 80); card.style.transform = \`translateX(\${offset}px)\`; e.preventDefault(); }
-            function handleEnd(e) { if (!isSwiping) return; isSwiping = false; container.classList.remove('swiping'); card.style.transition = 'transform 0.3s'; if (Math.abs(startX - (e.changedTouches ? e.changedTouches[0].clientX : e.clientX)) > 45) { watchlistItems.splice(idx, 1); renderWatchlist(); showToast(\`Removed\`); } else { card.style.transform = 'translateX(0px)'; } }
-            card.addEventListener('touchstart', handleStart, { passive: false }); card.addEventListener('touchmove', handleMove, { passive: false }); card.addEventListener('touchend', handleEnd);
-        });
-    }
-    
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-    function addToWatchlist(inst) { 
-        if (watchlistItems.some(i => i.symbol === inst.symbol)) { showToast(\`Already in watchlist\`, true); return false; } 
-        watchlistItems.push(inst); 
-        renderWatchlist(); 
-        showToast(\`✓ \${inst.name} added\`); 
-        return true; 
-    }
-    function performSearch(query) {
-        let term = query.trim().toLowerCase();
-        if (!term) { searchResultsArea.style.display = 'none'; clearSearchBtn.classList.remove('visible'); return; }
-        clearSearchBtn.classList.add('visible');
-        let filtered = allScripts.filter(s => s.name.toLowerCase().includes(term) || s.symbol.toLowerCase().includes(term));
-        if (!filtered.length) { searchResultsArea.style.display = 'block'; searchResultCount.innerText = \`0 results\`; searchResultsList.innerHTML = \`<div class="no-results">No results</div>\`; return; }
-        searchResultCount.innerText = \`\${filtered.length} results\`;
-        let html = \`<div class="search-result-list">\`;
-        filtered.forEach(s => { html += \`<div class="search-result-item"><div><div class="search-result-name">\${escapeHtml(s.name)}</div><div class="search-result-symbol">\${escapeHtml(s.symbol)}</div></div><div>\${s.price}</div><button class="add-smart-btn" data-name="\${escapeHtml(s.name)}" data-symbol="\${escapeHtml(s.symbol)}" data-price="\${s.price}" data-change="\${s.change}" data-segment="\${escapeHtml(s.segment)}" data-lotsize="\${s.lotSize}" data-maxlots="\${s.maxLots}" data-margin="\${s.marginPercent}">Add</button></div>\`; });
-        html += \`</div>\`;
-        searchResultsList.innerHTML = html;
-        searchResultsArea.style.display = 'block';
-        document.querySelectorAll('.add-smart-btn').forEach(btn => btn.addEventListener('click', () => addToWatchlist({ name: btn.dataset.name, symbol: btn.dataset.symbol, price: parseFloat(btn.dataset.price), change: btn.dataset.change, segment: btn.dataset.segment, lotSize: parseInt(btn.dataset.lotsize), maxLots: parseInt(btn.dataset.maxlots), marginPercent: parseFloat(btn.dataset.margin) })));
-    }
-    searchInput.addEventListener('input', (e) => performSearch(e.target.value));
-    clearSearchBtn.addEventListener('click', () => { searchInput.value = ''; performSearch(''); });
-    function buildFolderTree() { let container = document.getElementById('folderTreeMobile'); if (!container) return; container.innerHTML = '<div style="padding:16px">Scripts Library - Tap + to add</div>'; }
-    function openDrawer() { folderDrawer.classList.add('open'); overlay.classList.add('active'); }
-    function closeDrawer() { folderDrawer.classList.remove('open'); overlay.classList.remove('active'); }
-    openBtn.addEventListener('click', openDrawer); closeDrawerBtn.addEventListener('click', closeDrawer); overlay.addEventListener('click', closeDrawer);
-    renderWatchlist(); buildFolderTree();
-</script>
 
 ` }} 
     />

@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getSharedKiteSession } from '@/lib/kiteSession';
 
 export interface KitePosition {
   tradingsymbol: string;
@@ -46,7 +47,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Kite API not configured' }, { status: 500 });
   }
 
-  const accessToken = request.cookies.get('kite_access_token')?.value;
+  let accessToken = request.cookies.get('kite_access_token')?.value;
+
+  if (!accessToken) {
+    console.log('[Kite Positions] No cookie found, checking shared session...');
+    const sharedSession = await getSharedKiteSession();
+    if (sharedSession) {
+      accessToken = sharedSession.accessToken;
+    }
+  }
+
   if (!accessToken) {
     return NextResponse.json({ error: 'Not authenticated with Kite' }, { status: 401 });
   }

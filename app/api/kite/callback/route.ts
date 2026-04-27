@@ -103,18 +103,28 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // ── 2. Save to Supabase (best-effort — don't block redirect on failure) ──
     const supabaseUserId = await getSupabaseUserId(request);
-    console.log('[Kite Callback] Resolved Supabase User ID:', supabaseUserId);
+    const masterId = process.env.ZERODHA_SUPABASE_USER_ID;
+
+    console.log('[Kite Callback] Resolved User ID:', supabaseUserId, '| Master ID:', masterId);
+
+    // Save to current user's record
     if (supabaseUserId) {
       try {
-        console.log('[Kite Callback] Saving session to Supabase...');
         await saveKiteSession(supabaseUserId, { kiteUserId, accessToken, expiresAt });
-        console.log('[Kite Callback] Session saved successfully.');
+        console.log('[Kite Callback] Saved session for user:', supabaseUserId);
       } catch (err) {
-        // Log but don't fail — cookie fallback still works
-        console.error('[Kite Callback] Failed to persist Kite session to DB:', err);
+        console.error('[Kite Callback] Failed to save for user:', err);
       }
-    } else {
-      console.warn('[Kite Callback] Could not resolve Supabase user — Kite token saved to cookie only');
+    }
+
+    // ALSO save to Master ID if set (Global Session)
+    if (masterId && masterId !== supabaseUserId) {
+      try {
+        await saveKiteSession(masterId, { kiteUserId, accessToken, expiresAt });
+        console.log('[Kite Callback] Saved session for Master ID (Global):', masterId);
+      } catch (err) {
+        console.error('[Kite Callback] Failed to save for Master ID:', err);
+      }
     }
 
     // ── 3. Set HTTP-only cookie (fast cache for API routes) ──────────────────

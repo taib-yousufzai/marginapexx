@@ -99,28 +99,50 @@ async function handleAutoLogin(request: NextRequest): Promise<NextResponse> {
 
     const requestId = loginData.data.request_id;
 
-    // ── Step 2: Submit TOTP ──────────────────────────────────────────────
-    const totpCode = generateTOTP(totpSecret);
+    // ── Step 2: Submit TOTP (with drift correction) ──────────────────────
+    const tryLogin = async (offsetSeconds: number) => {
+      const ts = Date.now() + (offsetSeconds * 1000);
+      const totp = new OTPAuth.TOTP({
+        secret: OTPAuth.Secret.fromBase32(totpSecret),
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+      });
+      const totpCode = totp.generate({ timestamp: ts });
+      console.log(`[autologin] Trying TOTP window with ${offsetSeconds}s offset...`);
 
-    const twoFaRes = await fetch('https://kite.zerodha.com/api/twofa', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0',
-        'X-Kite-Version': '3',
-      },
-      body: new URLSearchParams({
-        user_id: userId,
-        request_id: requestId,
-        twofa_value: totpCode,
-        twofa_type: 'totp',
-        skip_session: 'true',
-      }),
-    });
+      const res = await fetch('https://kite.zerodha.com/api/twofa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0',
+          'X-Kite-Version': '3',
+        },
+        body: new URLSearchParams({
+          user_id: userId,
+          request_id: requestId,
+          twofa_value: totpCode,
+          twofa_type: 'totp',
+          skip_session: 'true',
+        }),
+      });
+      return res;
+    };
+
+    // Try current time, then -60s, then +60s
+    let twoFaRes = await tryLogin(0);
+    if (!twoFaRes.ok) {
+      console.log('[autologin] First TOTP failed, trying -60s drift offset...');
+      twoFaRes = await tryLogin(-60);
+    }
+    if (!twoFaRes.ok) {
+      console.log('[autologin] Second TOTP failed, trying +60s drift offset...');
+      twoFaRes = await tryLogin(60);
+    }
 
     if (!twoFaRes.ok) {
       const body = await twoFaRes.text();
-      console.error('[autologin] 2FA step failed:', twoFaRes.status, body);
+      console.error('[autologin] 2FA step failed after retries:', twoFaRes.status, body);
       return NextResponse.json({ error: '2FA step failed', detail: body }, { status: 502 });
     }
 
@@ -129,8 +151,6 @@ async function handleAutoLogin(request: NextRequest): Promise<NextResponse> {
       data?: { request_token?: string };
     };
 
-    // After 2FA, Zerodha redirects to the Kite Connect redirect_uri with request_token.
-    // With skip_session=true the token is returned directly in the response body.
     let requestToken = twoFaData.data?.request_token;
 
     if (!requestToken) {
