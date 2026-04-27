@@ -19,6 +19,7 @@ interface UseMyOrdersResult {
   loading: boolean;
   error:   string | null;
   refresh: () => void;
+  cancelOrder: (id: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 async function getAuthHeader(): Promise<Record<string, string>> {
@@ -74,5 +75,26 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
     };
   }, [fetchOrders, refreshInterval]);
 
-  return { orders, loading, error, refresh: fetchOrders };
+  const cancelOrder = async (id: string) => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        throw new Error(body.error ?? 'Failed to cancel order');
+      }
+
+      await fetchOrders(); // Refresh list
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  return { orders, loading, error, refresh: fetchOrders, cancelOrder };
 }
