@@ -97,7 +97,7 @@ export async function POST(request: Request): Promise<Response> {
     // Extract profile fields from body
     const profileFields: Record<string, unknown> = {};
     for (const field of PROFILE_FIELDS) {
-      if (field in body) {
+      if (field in body && body[field] !== '') {
         profileFields[field] = body[field];
       }
     }
@@ -108,10 +108,11 @@ export async function POST(request: Request): Promise<Response> {
       email: email as string,
       password: password as string,
       email_confirm: true,
-      user_metadata: { role: body.role },
+      user_metadata: { username: body.username },
     });
 
     if (createError || !createData?.user) {
+      console.error('[POST /api/admin/users] Auth error:', createError);
       return Response.json(
         { error: createError?.message ?? 'Failed to create user' },
         { status: 422 },
@@ -120,17 +121,25 @@ export async function POST(request: Request): Promise<Response> {
 
     const newUser = createData.user;
 
-    // Step 6: Insert profile row
+    // Workaround: Supabase createUser can fail if 'role' is in user_metadata during creation.
+    // We update it immediately after.
+    await adminClient.auth.admin.updateUserById(newUser.id, {
+      user_metadata: { role: body.role, username: body.username }
+    });
+
+    // Step 6: Update profile row (already created by auth trigger)
     // Validates: Requirements 3.3, 3.5
     const { error: insertError } = await adminClient
       .from('profiles')
-      .insert({ id: newUser.id, email: email as string, ...profileFields });
+      .update({ email: email as string, ...profileFields })
+      .eq('id', newUser.id);
 
     if (insertError) {
+      console.error('[POST /api/admin/users] Insert error:', insertError);
       // Rollback: attempt to delete the auth user
       await adminClient.auth.admin.deleteUser(newUser.id);
       return Response.json(
-        { error: 'Failed to create profile. User creation rolled back.' },
+        { error: `Database error: ${insertError.message}` },
         { status: 500 },
       );
     }
@@ -138,9 +147,10 @@ export async function POST(request: Request): Promise<Response> {
     // Step 7: Return 201 with id and email
     // Validates: Requirement 3.6
     return Response.json({ id: newUser.id, email: newUser.email }, { status: 201 });
-  } catch {
+  } catch (err: any) {
     // Outer catch: unhandled exceptions
     // Validates: Requirement 6.1
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[POST /api/admin/users] Unexpected error:', err);
+    return Response.json({ error: `Internal error: ${err.message || err}` }, { status: 500 });
   }
 }

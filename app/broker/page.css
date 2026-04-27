@@ -1,0 +1,154 @@
+/* ===== BROKER PANEL — supplemental styles ===== */
+/* These classes are not in admin-layout.css but are used by broker/page.tsx */
+
+/* ── Root ── */
+.brk-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Sidebar brand header ── */
+.adm-drawer-brand {
+  padding: 20px 20px 16px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #e6edf3;
+  border-bottom: 1px solid #21262d;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* ── Page header (title + breadcrumb) ── */
+.adm-page-header {
+  margin-bottom: 20px;
+}
+
+.adm-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #8b949e;
+  margin-top: 4px;
+}
+
+.adm-breadcrumb i {
+  font-size: 0.6rem;
+  color: #484f58;
+}
+
+/* ── Toast notification ── */
+.adm-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  min-width: 260px;
+  max-width: 420px;
+  animation: fadeSlideUp 0.25s ease;
+}
+
+.adm-toast.success { border-color: #2ea043; }
+.adm-toast.error   { border-color: #f85149; }
+.adm-toast.info    { border-color: #388bfd; }
+
+.adm-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #e6edf3;
+}
+
+.adm-toast.success .adm-toast-content i { color: #2ea043; }
+.adm-toast.error   .adm-toast-content i { color: #f85149; }
+.adm-toast.info    .adm-toast-content i { color: #388bfd; }
+
+.adm-toast-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.adm-toast-close:hover { color: #e6edf3; }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Full-page loader spinner ── */
+.adm-loader {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #21262d;
+  border-top-color: #388bfd;
+  border-radius: 50%;
+  animation: adm-spin 0.8s linear infinite;
+}
+
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Skeleton shimmer ── */
+.adm-skeleton {
+  background: linear-gradient(90deg, #161b22 25%, #21262d 50%, #161b22 75%);
+  background-size: 200% 100%;
+  animation: adm-skeleton-loading 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes adm-skeleton-loading {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Nav item button reset (broker uses <button> not <div>) ── */
+button.adm-nav-item {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+button.adm-nav-item:hover  { background: #1c2128; color: #e6edf3; }
+button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
+
+/* ── Misc utilities ── */
+.adm-nav-icon { flex-shrink: 0; }
+
+.adm-role-badge {
+  background: #006400;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+}

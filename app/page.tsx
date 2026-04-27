@@ -7,6 +7,7 @@ import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
 import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import './page.css';
+import './admin-layout.css';
 
 // --- Kite instrument keys for the market overview ---
 // Format: EXCHANGE:TRADINGSYMBOL
@@ -27,14 +28,14 @@ const KITE_INSTRUMENTS_ROW2 = [
 
 // Maps Kite instrument key → display config
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
-  'NSE:NIFTY 50':    { name: 'NIFTY 50',    icon: 'fas fa-chart-line' },
-  'BSE:SENSEX':      { name: 'SENSEX',       icon: 'fas fa-chart-simple' },
-  'NSE:NIFTY BANK':  { name: 'BANK NIFTY',  icon: 'fas fa-building' },
-  'NSE:USDINR':      { name: 'USD/INR',      icon: 'fas fa-dollar-sign' },
-  'MCX:CRUDEOIL':    { name: 'CRUDE OIL',   icon: 'fas fa-oil-can' },
-  'MCX:GOLD':        { name: 'GOLD',         icon: 'fas fa-coins' },
-  'MCX:SILVER':      { name: 'SILVER',       icon: 'fas fa-gem' },
-  'MCX:NATURALGAS':  { name: 'NAT GAS',      icon: 'fas fa-fire' },
+  'NSE:NIFTY 50': { name: 'NIFTY 50', icon: 'fas fa-chart-line' },
+  'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-simple' },
+  'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
+  'NSE:USDINR': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
+  'MCX:CRUDEOIL': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
+  'MCX:GOLD': { name: 'GOLD', icon: 'fas fa-coins' },
+  'MCX:SILVER': { name: 'SILVER', icon: 'fas fa-gem' },
+  'MCX:NATURALGAS': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 
 type MarketItem = { name: string; price: number; change: number; type: string; icon: string };
@@ -88,6 +89,7 @@ export default function Page() {
       if (!session) { router.replace('/login'); return; }
       const role = getRole(session.user);
       if (role === 'admin' || role === 'super_admin') { router.replace('/admin'); return; }
+      if (role === 'broker') { router.replace('/broker'); return; }
     });
   }, [router]);
 
@@ -237,7 +239,7 @@ export default function Page() {
       </div>
 
       {/* Scrollable Main Content - only this div scrolls */}
-      <div ref={containerRef} key={scrollKey} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} onScroll={() => {}}>
+      <div ref={containerRef} key={scrollKey} className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }} onScroll={() => { }}>
         {/* Scrollable Main Content */}
         <div className="main-content">
           <div className="screen">

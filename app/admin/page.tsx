@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import { toCsvPayRequests } from '@/lib/csvExport';
 import type { PayRequest } from '@/lib/csvExport';
-import './page.css';
+import '../admin-layout.css';
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 async function apiCall(
@@ -366,6 +366,15 @@ function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
       <div style={show('position')}><PositionPage selectedUser={selectedUser} /></div>
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} /></div>
       <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} /></div>
+      <div style={show('create')}>
+        <CreateUserForm
+          onBack={() => onNavigate('users')}
+          onCreated={(id, role) => {
+            onNavigate('users');
+            onSelectUser({ id, role });
+          }}
+        />
+      </div>
       <div style={show('actledger')}><ActLedgerPage /></div>
       <div style={show('accounts')}><AccountsPage /></div>
       <div style={show('payinout')}><PayinOutPage /></div>
@@ -1031,7 +1040,7 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
   const [fullName, setFullName]     = useState('');
   const [email, setEmail]           = useState('');
   const [phone, setPhone]           = useState('');
-  const [role, setRole]             = useState('User');
+  const [role, setRole]             = useState('Broker');
   const [parent, setParent]         = useState('');
   const [copyFrom, setCopyFrom]     = useState('');
   const [active, setActive]         = useState(true);
@@ -1057,6 +1066,7 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
       body: JSON.stringify({
         email,
         password,
+        username,
         full_name: fullName,
         phone,
         role: role.toLowerCase().replace(' ', '_'),
@@ -1074,7 +1084,8 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
       const d = data as { id: string; role?: string };
       onCreated(d.id, d.role ?? role.toUpperCase().replace(' ', '_'));
     } else {
-      setToast({ message: (data as { error: string }).error, type: 'error' });
+      const errorMsg = (data as any).error || (data as any).message || 'Failed to create user';
+      setToast({ message: errorMsg, type: 'error' });
       setLoading(false);
     }
   };
@@ -1146,10 +1157,8 @@ function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: 
         <div className="adm-cu-field">
           <label className="adm-cu-label">Role</label>
           <select className="adm-cu-input adm-cu-select" value={role} onChange={e => setRole(e.target.value)}>
-            <option>User</option>
-            <option>Sub Broker</option>
             <option>Broker</option>
-            <option>Admin</option>
+            <option>Sub Broker</option>
           </select>
         </div>
 
@@ -2446,11 +2455,17 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="adm-ord-search-wrap">
-        <i className="fas fa-search adm-ord-search-icon" />
-        <input className="adm-ord-search" placeholder="Search users..." value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }} />
+      {/* Search + Create */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div className="adm-ord-search-wrap" style={{ flex: 1 }}>
+          <i className="fas fa-search adm-ord-search-icon" />
+          <input className="adm-ord-search" placeholder="Search users..." value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }} />
+        </div>
+        <button className="adm-btn-primary" style={{ padding: '12px 24px' }} onClick={() => onNavigate('create')}>
+          <i className="fas fa-user-plus" style={{ marginRight: 8 }} />
+          Create New User
+        </button>
       </div>
 
       {/* Rows + Download */}
@@ -2525,7 +2540,9 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
               <button className="adm-users-btn update-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('update'); }}>Update</button>
               <button className="adm-users-btn delete-btn" onClick={() => setConfirmDialog({ userId: u.id })}>Delete</button>
             </div>
-            {deletedUsers[u.id] && <DeletionBanner scheduledDeleteAt={deletedUsers[u.id]} />}
+            {(deletedUsers[u.id] || u.scheduled_delete_at) && (
+              <DeletionBanner scheduledDeleteAt={deletedUsers[u.id] || u.scheduled_delete_at!} />
+            )}
           </div>
         ))}
       </div>
@@ -2549,9 +2566,9 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
             setLoading(true);
             const { ok, data } = await apiCall(`/api/admin/users/${userId}`, { method: 'DELETE' });
             if (ok) {
-              const d = data as { scheduled_delete_at: string };
-              setDeletedUsers(prev => ({ ...prev, [userId]: d.scheduled_delete_at }));
+              setUsers(prev => prev.filter(u => u.id !== userId));
               setConfirmDialog(null);
+              setToast({ message: 'User deleted successfully', type: 'success' });
             } else {
               setToast({ message: (data as { error: string }).error, type: 'error' });
               setConfirmDialog(null);

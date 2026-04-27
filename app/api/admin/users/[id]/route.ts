@@ -157,27 +157,16 @@ export async function DELETE(
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
 
-    // Step 2: Soft-delete the profile row
-    // Validates: Requirements 5.3, 5.4, 5.8
-    const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    const { data: row, error: updateError } = await adminClient
-      .from('profiles')
-      .update({ active: false, scheduled_delete_at: scheduledAt })
-      .eq('id', id)
-      .select('scheduled_delete_at')
-      .single();
+    // Step 2: Hard-delete the user from auth (cascades to profiles)
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(id);
 
-    if (updateError || row === null) {
-      console.error('[DELETE /api/admin/users/[id]] update error:', updateError?.message, 'row:', row);
-      return Response.json({ error: 'User not found' }, { status: 404 });
+    if (deleteError) {
+      console.error('[DELETE /api/admin/users/[id]] delete error:', deleteError.message);
+      return Response.json({ error: 'Failed to delete user' }, { status: 500 });
     }
 
-    // Step 3: Return success with scheduled deletion timestamp
-    // Validates: Requirements 5.4, 5.5
-    return Response.json(
-      { success: true, scheduled_delete_at: (row as { scheduled_delete_at: string }).scheduled_delete_at },
-      { status: 200 },
-    );
+    // Step 3: Return success
+    return Response.json({ success: true }, { status: 200 });
   } catch {
     // Outer catch: unhandled exceptions
     // Validates: Requirement 6.1
