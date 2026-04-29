@@ -16,17 +16,109 @@ export async function GET(request: Request): Promise<Response> {
     }
     const { adminClient, callerUser } = authResult as any;
 
-    // Brokers see only users where parent_id matches their ID
-    const { data, error } = await adminClient
+    // Check role from profiles table (more reliable than user_metadata)
+    const { data: callerProfile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', callerUser.id)
+      .single();
+
+    const callerRole = callerProfile?.role ?? authResult.role;
+    const isAdmin = callerRole === 'admin' || callerRole === 'super_admin';
+
+    let profilesQuery = adminClient
       .from('profiles')
       .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, created_at, scheduled_delete_at')
-      .eq('parent_id', callerUser.id);
+      .not('role', 'in', '("admin","super_admin","broker")');
+
+    if (!isAdmin) {
+      profilesQuery = profilesQuery.eq('parent_id', callerUser.id);
+    }
+
+    const { data: profiles, error } = await profilesQuery;
 
     if (error) {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return Response.json(data ?? [], { status: 200 });
+    if (!profiles || profiles.length === 0) {
+      return Response.json([], { status: 200 });
+    }
+
+    const userIds = profiles.map((p: any) => p.id);
+
+    // Fetch positions to compute PnL metrics
+    const { data: positions } = await adminClient
+      .from('positions')
+      .select('user_id, pnl, brokerage, settlement, open_qty, status, created_at')
+      .in('user_id', userIds);
+
+    // Fetch orders count per user
+    const { data: orders } = await adminClient
+      .from('orders')
+      .select('user_id, side, status, created_at')
+      .in('user_id', userIds);
+
+    const positionsByUser = new Map<string, any[]>();
+    for (const pos of (positions ?? [])) {
+      if (!positionsByUser.has(pos.user_id)) positionsByUser.set(pos.user_id, []);
+      positionsByUser.get(pos.user_id)!.push(pos);
+    }
+
+    const ordersByUser = new Map<string, any[]>();
+    for (const ord of (orders ?? [])) {
+      if (!ordersByUser.has(ord.user_id)) ordersByUser.set(ord.user_id, []);
+      ordersByUser.get(ord.user_id)!.push(ord);
+    }
+
+    // Weekly boundary
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const enriched = profiles.map((profile: any) => {
+      const userPositions = positionsByUser.get(profile.id) ?? [];
+      const userOrders = ordersByUser.get(profile.id) ?? [];
+
+      // Open positions (open_qty != 0 or status = 'open')
+      const openPositions = userPositions.filter((p: any) => p.status === 'open' || Number(p.open_qty ?? 0) !== 0);
+
+      // All-time PnL
+      const alltimePnl = userPositions.reduce((acc: number, p: any) => acc + Number(p.pnl ?? 0), 0);
+
+      // Open PnL (from open positions)
+      const openPnl = openPositions.reduce((acc: number, p: any) => acc + Number(p.pnl ?? 0), 0);
+
+      // Weekly PnL
+      const weeklyPnl = userPositions
+        .filter((p: any) => new Date(p.created_at) >= weekStart)
+        .reduce((acc: number, p: any) => acc + Number(p.pnl ?? 0), 0);
+
+      // Brokerage (m2m proxy)
+      const totalBrokerage = userPositions.reduce((acc: number, p: any) => acc + Number(p.brokerage ?? 0), 0);
+
+      // Margin used = balance - available (approximate from open positions)
+      const marginUsed = openPositions.reduce((acc: number, p: any) => acc + Math.abs(Number(p.settlement ?? 0)), 0);
+
+      return {
+        ...profile,
+        openPnl,
+        weeklyPnl,
+        alltimePnl,
+        m2m: alltimePnl,
+        marginUsed,
+        holdingMargin: marginUsed,
+        ledgerBal: Number(profile.balance ?? 0),
+        mAvailable: Number(profile.balance ?? 0) - marginUsed,
+        totalPositions: userPositions.length,
+        openPositions: openPositions.length,
+        totalOrders: userOrders.length,
+        brokerage: totalBrokerage,
+      };
+    });
+
+    return Response.json(enriched, { status: 200 });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
