@@ -249,7 +249,7 @@ export default function BrokerPage() {
   }
 
   return (
-    <div className="adm-root adm-dark brk-root">
+    <div className="adm-root adm-dark">
       <Toast toast={toast} onDismiss={() => setToast(null)} />
       
       {/* Drawer (Sidebar) */}
@@ -325,7 +325,7 @@ export default function BrokerPage() {
 
 function PageContent({ page, broker, apiCall, setToast, setSelectedUser, selectedUser, onNavigate }: any) {
   switch (page) {
-    case 'dashboard': return <BrokerDashboard apiCall={apiCall} onNavigate={onNavigate} onSelectUser={setSelectedUser} />;
+    case 'dashboard': return <BrokerDashboard broker={broker} apiCall={apiCall} onNavigate={onNavigate} onSelectUser={setSelectedUser} />;
     case 'users': return <BrokerUsers apiCall={apiCall} onSelectUser={setSelectedUser} onNavigate={onNavigate} />;
     case 'position': return <BrokerPositions apiCall={apiCall} selectedUser={selectedUser} />;
     case 'order': return <BrokerOrders apiCall={apiCall} selectedUser={selectedUser} />;
@@ -344,9 +344,19 @@ function PageContent({ page, broker, apiCall, setToast, setSelectedUser, selecte
 
 // --- Sub-Pages ---
 
-function BrokerDashboard({ apiCall, onNavigate, onSelectUser }: any) {
+function BrokerDashboard({ broker, apiCall, onNavigate, onSelectUser }: any) {
   const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, todayPnl: 0 });
   const [loading, setLoading] = useState(true);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  const referralLink = broker?.id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${broker.id}` : '';
+
+  const handleCopyLink = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink);
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 2000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -390,6 +400,32 @@ function BrokerDashboard({ apiCall, onNavigate, onSelectUser }: any) {
           </div>
         </div>
       </div>
+
+      {broker?.id && (
+        <div className="adm-db-section" style={{ marginTop: 24 }}>
+          <div className="adm-db-section-header">
+            <span className="adm-db-section-title">YOUR REFERRAL LINK</span>
+          </div>
+          <div style={{ padding: '16px', background: '#161b22', borderRadius: '10px', border: '1px solid #30363d' }}>
+            <p style={{ color: '#8b949e', fontSize: '0.85rem', marginBottom: '12px' }}>
+              Share this link with users. When they register, they will be automatically assigned to you.
+            </p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                readOnly
+                value={referralLink}
+                className="adm-input"
+                style={{ flex: 1, backgroundColor: '#0d1117', color: '#c9d1d9', cursor: 'text' }}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <button className="adm-btn-primary" onClick={handleCopyLink} style={{ whiteSpace: 'nowrap', minWidth: '90px' }}>
+                {copyFeedback ? <><i className="fas fa-check" style={{ marginRight: 6 }} />Copied</> : <><i className="fas fa-copy" style={{ marginRight: 6 }} />Copy</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button

@@ -1,139 +1,185 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import '../login/page.css';
 
+// ─── OTP Input component — 6 auto-advance boxes ───────────────────────────────
+function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const refs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+  const digits = value.split('').concat(Array(6).fill('')).slice(0, 6);
+
+  const handleKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !digits[i] && i > 0) {
+      refs[i - 1].current?.focus();
+    }
+  };
+
+  const handleChange = (i: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const ch = e.target.value.replace(/\D/g, '').slice(-1);
+    const next = [...digits];
+    next[i] = ch;
+    onChange(next.join(''));
+    if (ch && i < 5) refs[i + 1].current?.focus();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    onChange(pasted.padEnd(6, '').slice(0, 6));
+    refs[Math.min(pasted.length, 5)].current?.focus();
+    e.preventDefault();
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+      {digits.map((d, i) => (
+        <input
+          key={i}
+          ref={refs[i]}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={d}
+          onChange={(e) => handleChange(i, e)}
+          onKeyDown={(e) => handleKey(i, e)}
+          onPaste={handlePaste}
+          style={{
+            width: 48, height: 56, textAlign: 'center', fontSize: '1.5rem',
+            fontWeight: 700, borderRadius: 10, border: '1.5px solid #d1d5db',
+            outline: 'none', background: '#f9fafb', color: '#111',
+            transition: 'border-color 0.2s',
+          }}
+          onFocus={e => (e.target.style.borderColor = '#16a34a')}
+          onBlur={e => (e.target.style.borderColor = '#d1d5db')}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Register Form ────────────────────────────────────────────────────────
 function RegisterForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
-  // Form field state
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+
+  // Step 1 fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // Visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [brokerRef, setBrokerRef] = useState<string | null>(null);
 
-  // Field-level errors
+  // Field errors
   const [fullNameError, setFullNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
-  // Form-level state
+  // Step 2 fields
+  const [otp, setOtp] = useState('');
+
+  // Shared state
   const [formError, setFormError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Broker referral (silent capture)
-  const [brokerRef, setBrokerRef] = useState<string | null>(null);
+  // Resend cooldown
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  // On mount: read ?ref param and apply theme
   useEffect(() => {
     const ref = searchParams.get('ref');
     if (ref) setBrokerRef(ref);
-
     try {
       const saved = localStorage.getItem('marginApexTheme');
-      if (saved === 'dark') {
-        document.body.classList.add('dark');
-      } else {
-        document.body.classList.remove('dark');
-      }
-    } catch {
-      // localStorage unavailable — proceed without theme
-    }
+      document.body.classList.toggle('dark', saved === 'dark');
+    } catch { /* noop */ }
   }, [searchParams]);
 
-  // Field change handlers — clear field error and form error on change
-  const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFullName(e.target.value);
-    setFullNameError('');
-    setFormError('');
-  };
+  // Countdown timer for resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    setEmailError('');
-    setFormError('');
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    setPasswordError('');
-    setFormError('');
-  };
-
-  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setConfirmPassword(e.target.value);
-    setConfirmPasswordError('');
-    setFormError('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ── Step 1: Send OTP ─────────────────────────────────────────────────────────
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate all fields non-empty
     let hasError = false;
-    if (!fullName.trim()) {
-      setFullNameError('Full name is required');
-      hasError = true;
-    }
-    if (!email.trim()) {
-      setEmailError('Email address is required');
-      hasError = true;
-    }
-    if (!password) {
-      setPasswordError('Password is required');
-      hasError = true;
-    }
-    if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
-      hasError = true;
-    }
+    if (!fullName.trim()) { setFullNameError('Full name is required'); hasError = true; }
+    if (!email.trim()) { setEmailError('Email address is required'); hasError = true; }
+    if (!password) { setPasswordError('Password is required'); hasError = true; }
+    if (!confirmPassword) { setConfirmPasswordError('Please confirm your password'); hasError = true; }
     if (hasError) return;
-
-    // Validate password match
-    if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
-      return;
-    }
+    if (password !== confirmPassword) { setConfirmPasswordError('Passwords do not match'); return; }
 
     setIsLoading(true);
     setFormError('');
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            ...(brokerRef ? { broker_ref: brokerRef } : {}),
-          },
-        },
-      });
+    const res = await fetch('/api/register/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), brokerRef }),
+    });
+    const data = await res.json();
 
-      if (error) {
-        setFormError(error.message);
-        setIsLoading(false);
-      } else {
-        setIsSuccess(true);
-        setIsLoading(false);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setFormError(message);
-      setIsLoading(false);
+    setIsLoading(false);
+    if (!res.ok) {
+      setFormError(data.error || 'Failed to send OTP');
+    } else {
+      setStep('otp');
+      setResendCooldown(60);
     }
   };
 
-  // Confirmation screen shown after successful sign-up
+  // ── Step 2: Verify OTP ───────────────────────────────────────────────────────
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) { setFormError('Please enter the full 6-digit code'); return; }
+
+    setIsLoading(true);
+    setFormError('');
+
+    const res = await fetch('/api/register/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), otp, password }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setIsLoading(false);
+      setFormError(data.error || 'Verification failed');
+    } else {
+      // Sign in the newly created user
+      await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      setIsLoading(false);
+      setIsSuccess(true);
+      setTimeout(() => router.replace('/'), 2000);
+    }
+  };
+
+  // ── Resend OTP ───────────────────────────────────────────────────────────────
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    setFormError('');
+    setOtp('');
+    await fetch('/api/register/send-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), brokerRef }),
+    });
+    setResendCooldown(60);
+  };
+
+  // ── Success screen ───────────────────────────────────────────────────────────
   if (isSuccess) {
     return (
       <div className="login-page">
@@ -142,18 +188,11 @@ function RegisterForm() {
           <span className="login-brand-apex">APEX</span>
         </div>
         <div className="login-card">
-          <h1 className="login-card-title">Check your email</h1>
-          <p className="login-card-subtitle">
-            We&apos;ve sent a confirmation link to <strong>{email}</strong>. Click it to verify
-            your account before signing in.
-          </p>
-          <Link
-            href="/login"
-            className="login-submit-btn"
-            style={{ textDecoration: 'none', marginTop: '16px', display: 'flex' }}
-          >
-            Back to sign in
-          </Link>
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 16 }}>✅</div>
+            <h2 className="login-card-title">Account Created!</h2>
+            <p className="login-card-subtitle">Signing you in…</p>
+          </div>
         </div>
       </div>
     );
@@ -161,188 +200,145 @@ function RegisterForm() {
 
   return (
     <div className="login-page">
-      {/* Branding */}
       <div className="login-branding">
         <span className="login-brand-margin">MARGIN</span>
         <span className="login-brand-apex">APEX</span>
       </div>
 
-      {/* Auth card */}
       <div className="login-card">
-        <h1 className="login-card-title">Create account</h1>
-        <p className="login-card-subtitle">Fill in your details to get started</p>
+        {step === 'form' ? (
+          <>
+            <h1 className="login-card-title">Create account</h1>
+            <p className="login-card-subtitle">Fill in your details to get started</p>
 
-        <form className="login-form" onSubmit={handleSubmit} noValidate>
+            <form className="login-form" onSubmit={handleSendOtp} noValidate>
 
-          {/* Full Name field */}
-          <div className="login-field-group">
-            <label htmlFor="fullName" className="login-label">
-              Full Name
-            </label>
-            <div className={`login-input-wrapper${fullNameError ? ' login-input-error' : ''}`}>
-              <span className="login-input-icon">
-                <i className="fas fa-user"></i>
-              </span>
-              <input
-                id="fullName"
-                type="text"
-                className="login-input"
-                value={fullName}
-                onChange={handleFullNameChange}
-                autoComplete="name"
-                autoCapitalize="words"
-                spellCheck={false}
-                disabled={isLoading}
-              />
+              {/* Full Name */}
+              <div className="login-field-group">
+                <label htmlFor="fullName" className="login-label">Full Name</label>
+                <div className={`login-input-wrapper${fullNameError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-user" /></span>
+                  <input id="fullName" type="text" className="login-input" value={fullName}
+                    onChange={e => { setFullName(e.target.value); setFullNameError(''); setFormError(''); }}
+                    autoComplete="name" disabled={isLoading} />
+                </div>
+                {fullNameError && <span className="login-field-error" role="alert">{fullNameError}</span>}
+              </div>
+
+              {/* Email */}
+              <div className="login-field-group">
+                <label htmlFor="email" className="login-label">Email Address</label>
+                <div className={`login-input-wrapper${emailError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-envelope" /></span>
+                  <input id="email" type="email" className="login-input" value={email}
+                    onChange={e => { setEmail(e.target.value); setEmailError(''); setFormError(''); }}
+                    autoComplete="email" disabled={isLoading} />
+                </div>
+                {emailError && <span className="login-field-error" role="alert">{emailError}</span>}
+              </div>
+
+              {/* Password */}
+              <div className="login-field-group">
+                <label htmlFor="password" className="login-label">Password</label>
+                <div className={`login-input-wrapper${passwordError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-lock" /></span>
+                  <input id="password" type={showPassword ? 'text' : 'password'} className="login-input"
+                    value={password} onChange={e => { setPassword(e.target.value); setPasswordError(''); setFormError(''); }}
+                    autoComplete="new-password" disabled={isLoading} />
+                  <button type="button" className="login-toggle-eye" onClick={() => setShowPassword(v => !v)}
+                    tabIndex={-1} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    <i className={`fas fa-eye${showPassword ? '-slash' : ''}`} />
+                  </button>
+                </div>
+                {passwordError && <span className="login-field-error" role="alert">{passwordError}</span>}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="login-field-group">
+                <label htmlFor="confirmPassword" className="login-label">Confirm Password</label>
+                <div className={`login-input-wrapper${confirmPasswordError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-lock" /></span>
+                  <input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} className="login-input"
+                    value={confirmPassword} onChange={e => { setConfirmPassword(e.target.value); setConfirmPasswordError(''); setFormError(''); }}
+                    autoComplete="new-password" disabled={isLoading} />
+                  <button type="button" className="login-toggle-eye" onClick={() => setShowConfirmPassword(v => !v)}
+                    tabIndex={-1} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>
+                    <i className={`fas fa-eye${showConfirmPassword ? '-slash' : ''}`} />
+                  </button>
+                </div>
+                {confirmPasswordError && <span className="login-field-error" role="alert">{confirmPasswordError}</span>}
+              </div>
+
+              {formError && (
+                <div className="login-form-error" role="alert">
+                  <i className="fas fa-circle-exclamation" style={{ marginRight: 6 }} />{formError}
+                </div>
+              )}
+
+              <button type="submit" className="login-submit-btn" disabled={isLoading}>
+                {isLoading ? 'Sending code…' : 'Send verification code'}
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <Link href="/login" style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                Already have an account? <span style={{ color: '#16a34a', fontWeight: 600 }}>Sign in</span>
+              </Link>
             </div>
-            {fullNameError && (
-              <span className="login-field-error" role="alert">
-                {fullNameError}
-              </span>
-            )}
-          </div>
+          </>
+        ) : (
+          <>
+            <h1 className="login-card-title">Verify your email</h1>
+            <p className="login-card-subtitle">
+              We sent a 6-digit code to <strong>{email}</strong>
+            </p>
 
-          {/* Email field */}
-          <div className="login-field-group">
-            <label htmlFor="email" className="login-label">
-              Email Address
-            </label>
-            <div className={`login-input-wrapper${emailError ? ' login-input-error' : ''}`}>
-              <span className="login-input-icon">
-                <i className="fas fa-envelope"></i>
-              </span>
-              <input
-                id="email"
-                type="email"
-                className="login-input"
-                value={email}
-                onChange={handleEmailChange}
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-                disabled={isLoading}
-              />
-            </div>
-            {emailError && (
-              <span className="login-field-error" role="alert">
-                {emailError}
-              </span>
-            )}
-          </div>
+            <form className="login-form" onSubmit={handleVerifyOtp} noValidate>
+              <div style={{ margin: '24px 0' }}>
+                <OtpInput value={otp} onChange={v => { setOtp(v); setFormError(''); }} />
+              </div>
 
-          {/* Password field */}
-          <div className="login-field-group">
-            <label htmlFor="password" className="login-label">
-              Password
-            </label>
-            <div className={`login-input-wrapper${passwordError ? ' login-input-error' : ''}`}>
-              <span className="login-input-icon">
-                <i className="fas fa-lock"></i>
-              </span>
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                className="login-input"
-                value={password}
-                onChange={handlePasswordChange}
-                autoComplete="new-password"
-                disabled={isLoading}
-              />
+              {formError && (
+                <div className="login-form-error" role="alert">
+                  <i className="fas fa-circle-exclamation" style={{ marginRight: 6 }} />{formError}
+                </div>
+              )}
+
+              <button type="submit" className="login-submit-btn" disabled={isLoading || otp.length < 6}>
+                {isLoading ? 'Verifying…' : 'Create account'}
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
               <button
-                type="button"
-                className="login-toggle-password"
-                onClick={() => setShowPassword((v) => !v)}
-                tabIndex={-1}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={handleResend}
+                disabled={resendCooldown > 0}
+                style={{
+                  background: 'none', border: 'none', cursor: resendCooldown > 0 ? 'default' : 'pointer',
+                  color: resendCooldown > 0 ? '#9ca3af' : '#16a34a', fontSize: '0.875rem', fontWeight: 600
+                }}
               >
-                <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
               </button>
             </div>
-            {passwordError && (
-              <span className="login-field-error" role="alert">
-                {passwordError}
-              </span>
-            )}
-          </div>
 
-          {/* Confirm Password field */}
-          <div className="login-field-group">
-            <label htmlFor="confirmPassword" className="login-label">
-              Confirm Password
-            </label>
-            <div className={`login-input-wrapper${confirmPasswordError ? ' login-input-error' : ''}`}>
-              <span className="login-input-icon">
-                <i className="fas fa-lock"></i>
-              </span>
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                className="login-input"
-                value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                autoComplete="new-password"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                className="login-toggle-password"
-                onClick={() => setShowConfirmPassword((v) => !v)}
-                tabIndex={-1}
-                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-              >
-                <i className={showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <button onClick={() => { setStep('form'); setOtp(''); setFormError(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem' }}>
+                ← Change email
               </button>
             </div>
-            {confirmPasswordError && (
-              <span className="login-field-error" role="alert">
-                {confirmPasswordError}
-              </span>
-            )}
-          </div>
-
-          {/* Form-level error */}
-          {formError && (
-            <div className="login-form-error" role="alert">
-              <i className="fas fa-circle-exclamation"></i>
-              {' '}{formError}
-            </div>
-          )}
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            className="login-submit-btn"
-            disabled={isLoading}
-            aria-label="Create your Margin Apex account"
-          >
-            {isLoading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i>
-                {' '}Creating account…
-              </>
-            ) : (
-              'Create account'
-            )}
-          </button>
-        </form>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// ─── Page wrapper ─────────────────────────────────────────────────────────────
 export default function RegisterPage() {
   return (
-    <Suspense fallback={
-      <div className="login-page">
-        <div className="login-branding">
-          <span className="login-brand-margin">MARGIN</span>
-          <span className="login-brand-apex">APEX</span>
-        </div>
-        <div className="login-card">
-          <p className="login-card-subtitle">Loading…</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div className="login-page" />}>
       <RegisterForm />
     </Suspense>
   );

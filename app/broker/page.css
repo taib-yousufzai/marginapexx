@@ -1,18 +1,4 @@
-/* ===== BROKER PANEL — supplemental styles ===== */
-/* These classes are not in admin-layout.css but are used by broker/page.tsx */
 
-/* ── Root ── */
-.brk-root {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  width: 100%;
-  background: #0d1117;
-  color: #e6edf3;
-  font-family: 'Inter', sans-serif;
-  position: relative;
-  overflow: hidden;
-}
 
 /* ── Sidebar brand header ── */
 .adm-drawer-brand {
