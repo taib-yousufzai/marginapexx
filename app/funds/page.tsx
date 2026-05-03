@@ -48,6 +48,16 @@ export default function FundsPage() {
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Toast state for feedback
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setToast({ message: `${label} copied!`, type: 'success' });
+    setTimeout(() => setToast(null), 2000);
+  };
+
   useEffect(() => {
     let cancelled = false;
     getSession().then((session) => {
@@ -385,12 +395,29 @@ export default function FundsPage() {
                           />
                         ) : null}
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.8', marginBottom: '20px' }}>
-                        <div><strong>Account Holder:</strong> {activeAccount.account_holder}</div>
-                        <div><strong>Bank Name:</strong> {activeAccount.bank_name}</div>
-                        <div><strong>Account Number:</strong> {activeAccount.account_no}</div>
-                        <div><strong>IFSC:</strong> {activeAccount.ifsc}</div>
-                        <div><strong>UPI ID:</strong> {activeAccount.upi_id}</div>
+                      <div style={{ marginBottom: '20px' }}>
+                        {activeAccount.upi_id && (
+                          <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.upi_id, 'UPI ID')}>
+                            <div><strong>UPI ID</strong> <span>{activeAccount.upi_id}</span></div>
+                            <i className="fas fa-copy copy-icon"></i>
+                          </div>
+                        )}
+                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.account_holder, 'Account Holder')}>
+                          <div><strong>Account Holder</strong> <span>{activeAccount.account_holder}</span></div>
+                          <i className="fas fa-copy copy-icon"></i>
+                        </div>
+                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.account_no, 'Account Number')}>
+                          <div><strong>Account Number</strong> <span>{activeAccount.account_no}</span></div>
+                          <i className="fas fa-copy copy-icon"></i>
+                        </div>
+                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.bank_name, 'Bank Name')}>
+                          <div><strong>Bank Name</strong> <span>{activeAccount.bank_name}</span></div>
+                          <i className="fas fa-copy copy-icon"></i>
+                        </div>
+                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.ifsc, 'IFSC Code')}>
+                          <div><strong>IFSC Code</strong> <span>{activeAccount.ifsc}</span></div>
+                          <i className="fas fa-copy copy-icon"></i>
+                        </div>
                       </div>
 
                       <div style={{ marginBottom: '16px' }}>
@@ -595,6 +622,32 @@ export default function FundsPage() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toast.type === 'success' ? '#006400' : '#c0392b',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '50px',
+          zIndex: 1000,
+          fontSize: '0.9rem',
+          fontWeight: 600,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          animation: 'fadeInUp 0.3s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          whiteSpace: 'nowrap'
+        }}>
+          <i className={`fas ${toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+          {toast.message}
+        </div>
+      )}
 
       {/* Footer Navigation Overlay */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
