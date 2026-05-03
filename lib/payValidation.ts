@@ -20,6 +20,7 @@ export type ValidatedPayRequest = {
   ifsc?: string;
   upi?: string;
   utr?: string;
+  screenshot_url?: string;
 };
 
 /**
@@ -114,23 +115,31 @@ export function validatePayRequest(
   }
 
   // DEPOSIT — valid
-  // 9. Deposit requires 12-digit numeric UTR
-  const utr = raw.utr;
+  // 9. Deposit requires screenshot_url, UTR is optional but must be 12 digits if provided
   if (type === 'DEPOSIT') {
-    if (!utr || typeof utr !== 'string' || !/^\d{12}$/.test(utr)) {
-      return { valid: false, error: 'Invalid UTR: Must be exactly 12 digits', status: 400 };
+    const screenshotUrl = raw.screenshot_url;
+    if (!screenshotUrl || typeof screenshotUrl !== 'string' || screenshotUrl.trim() === '') {
+      return { valid: false, error: 'Payment screenshot is required', status: 400 };
     }
+
+    const utr = raw.utr;
+    if (utr && (typeof utr !== 'string' || !/^\d{12}$/.test(utr))) {
+      return { valid: false, error: 'Invalid UTR: Must be exactly 12 digits if provided', status: 400 };
+    }
+
+    return {
+      valid: true,
+      data: {
+        type,
+        amount,
+        upi: typeof raw.upi === 'string' ? raw.upi : undefined,
+        utr: typeof utr === 'string' ? utr : undefined,
+        screenshot_url: screenshotUrl,
+      },
+    };
   }
 
-  return {
-    valid: true,
-    data: {
-      type,
-      amount,
-      upi: typeof raw.upi === 'string' ? raw.upi : undefined,
-      utr: type === 'DEPOSIT' ? (utr as string) : undefined,
-    },
-  };
+  return { valid: false, error: 'Internal validation error', status: 500 };
 }
 
 /**

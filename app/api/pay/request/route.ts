@@ -116,6 +116,7 @@ export async function POST(request: Request): Promise<Response> {
         ifsc: validatedData.ifsc ?? null,
         upi: validatedData.upi ?? null,
         utr: validatedData.utr ?? null,
+        screenshot_url: validatedData.screenshot_url ?? null,
         status: 'PENDING',
       })
       .select('id')

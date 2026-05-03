@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, getRole, signOut } from '@/lib/auth';
 import { supabase } from '@/lib/supabaseClient';
@@ -333,6 +333,7 @@ export default function AdminPage() {
             activePage={activePage}
             selectedUser={selectedUser}
             onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
+            onOpenUserPanel={() => setUserPanelOpen(true)}
             onNavigate={(page) => { setActivePage(page); }}
           />
         </div>
@@ -346,10 +347,11 @@ function AccountsPage() { return <AccountsPageImpl />; }
 function PayinOutPage()  { return <PayinOutPageImpl />; }
 function PaymentAccountsPage() { return <PaymentAccountsPageImpl />; }
 
-function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
+function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate }: {
   activePage: string;
   selectedUser: { id: string; role: string };
   onSelectUser: (u: { id: string; role: string }) => void;
+  onOpenUserPanel: () => void;
   onNavigate: (page: string) => void;
 }) {
   // Render all pages simultaneously, show/hide with CSS.
@@ -361,7 +363,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onNavigate }: {
       <div style={show('telegram')}><TelegramPage /></div>
       <div style={show('settings')}><SettingsPage /></div>
       <div style={show('marketwatch')}><MarketWatchPage /></div>
-      <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} /></div>
+      <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('orders')}><OrdersPage selectedUser={selectedUser} /></div>
       <div style={show('position')}><PositionPage selectedUser={selectedUser} /></div>
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} /></div>
@@ -607,10 +609,12 @@ function metricsToStore(m: DashboardMetrics | null): Record<string, string> {
   };
 }
 
-function DashBoardSection({ title, fields, metrics }: {
+function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
   title: string;
   fields: { label: string }[];
   metrics: Record<string, string>;
+  onFetch?: () => void;
+  loading?: boolean;
 }) {
   const hasData = Object.keys(metrics).length > 0;
 
@@ -618,8 +622,12 @@ function DashBoardSection({ title, fields, metrics }: {
     <div className="adm-db-section">
       <div className="adm-db-section-header">
         <span className="adm-db-section-title">{title}</span>
-        <button className="adm-btn-primary adm-db-fetch-btn" onClick={() => {}}>
-          Fetch
+        <button 
+          className="adm-btn-primary adm-db-fetch-btn" 
+          onClick={onFetch}
+          disabled={loading}
+        >
+          {loading ? <i className="fas fa-spinner fa-spin" /> : 'Fetch'}
         </button>
       </div>
       <div className="adm-db-grid">
@@ -645,7 +653,10 @@ function DashBoardSection({ title, fields, metrics }: {
   );
 }
 
-function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+function DashboardPage({ selectedUser, onOpenUserPanel }: { 
+  selectedUser: { id: string; role: string };
+  onOpenUserPanel: () => void;
+}) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
   const [metrics, setMetrics]   = useState<DashboardMetrics | null>(null);
@@ -654,22 +665,56 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
 
   const uid = selectedUser.id;
 
-  useEffect(() => {
-    if (!uid) return;
+  const fetchMetrics = useCallback((manual = false) => {
+    if (!uid) {
+      if (manual) {
+        setToast({ message: 'Please select a user from the sidebar first', type: 'error' });
+        onOpenUserPanel();
+      }
+      return;
+    }
     setLoading(true);
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo)   params.set('date_to', dateTo);
     const query = params.toString() ? `?${params.toString()}` : '';
-    apiCall(`/api/admin/users/${uid}/dashboard${query}`, { method: 'GET' }).then(({ ok, status, data }) => {
-      if (status === 401) { signOut(); return; }
-      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
-      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
-      setMetrics(data as DashboardMetrics);
-    }).catch((err: unknown) => {
-      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-    }).finally(() => setLoading(false));
+    apiCall(`/api/admin/users/${uid}/dashboard${query}`, { method: 'GET' })
+      .then(({ ok, status, data }) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setMetrics(data as DashboardMetrics);
+        if (manual) setToast({ message: 'Dashboard updated successfully', type: 'success' });
+      })
+      .catch((err: unknown) => {
+        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+      })
+      .finally(() => setLoading(false));
   }, [uid, dateFrom, dateTo]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
+  if (!uid) {
+    return (
+      <div className="adm-db-root">
+        <Toast toast={toast} onDismiss={() => setToast(null)} />
+        <div className="adm-db-empty-state">
+          <div className="adm-db-empty-icon">
+            <i className="fas fa-user-clock" />
+          </div>
+          <h2 className="adm-db-empty-title">No User Selected</h2>
+          <p className="adm-db-empty-text">
+            Select a user from the USERS panel to view their detailed performance metrics, balance info, and profit/loss data.
+          </p>
+          <button className="adm-btn-primary" onClick={onOpenUserPanel} style={{ padding: '12px 32px', fontSize: '1rem' }}>
+            Select User Now
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const metricsStore = metricsToStore(metrics);
 
@@ -678,20 +723,22 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
       <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* User + date filter */}
       <div className="adm-db-top-card">
-        <div className="adm-db-username">{selectedUser.id}
+        <div className="adm-db-username">
+          <i className="fas fa-user-circle" style={{ marginRight: 8, opacity: 0.7 }} />
+          {selectedUser.id}
           <span className="adm-db-role-badge">{selectedUser.role}</span>
         </div>
         <div className="adm-db-filter-row">
           <span className="adm-db-filter-label">Filter:</span>
-          <input type="date" className="adm-db-date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          <span className="adm-db-filter-dash">–</span>
-        </div>
-        <div>
-          <input type="date" className="adm-db-date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          <div className="adm-db-date-group">
+            <input type="date" className="adm-db-date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <span className="adm-db-filter-dash">–</span>
+            <input type="date" className="adm-db-date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
         </div>
       </div>
 
-      <DashBoardSection key={uid+'bal'} metrics={metricsStore} title="BALANCE INFO" fields={[
+      <DashBoardSection key={uid+'bal'} metrics={metricsStore} title="BALANCE INFO" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'LEDGER BALANCE' },
         { label: 'MARK-TO-MARKET' },
       ]} />
@@ -703,7 +750,7 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
           ))}
         </div>
       ) : (<>
-      <DashBoardSection key={uid+'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" fields={[
+      <DashBoardSection key={uid+'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'NET' },
         { label: 'TOTAL DEPOSITS' },
         { label: 'TOTAL WITHDRAWALS' },
@@ -711,20 +758,20 @@ function DashboardPage({ selectedUser }: { selectedUser: { id: string; role: str
         { label: 'AVG WITHDRAWAL' },
       ]} />
 
-      <DashBoardSection key={uid+'reg'} metrics={metricsStore} title="CLIENT REGISTRATION" fields={[
+      <DashBoardSection key={uid+'reg'} metrics={metricsStore} title="CLIENT REGISTRATION" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'REGISTERED' },
         { label: 'ADDED FUNDS' },
         { label: 'CONVERSION' },
       ]} />
 
-      <DashBoardSection key={uid+'pnl'} metrics={metricsStore} title="CLIENT PROFIT & LOSS" fields={[
+      <DashBoardSection key={uid+'pnl'} metrics={metricsStore} title="CLIENT PROFIT & LOSS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'AVG PROFIT' },
         { label: 'AVG LOSS' },
         { label: 'PROFITABLE CLIENTS' },
         { label: 'LOSS-MAKING CLIENTS' },
       ]} />
 
-      <DashBoardSection key={uid+'pos'} metrics={metricsStore} title="POSITION DETAILS" fields={[
+      <DashBoardSection key={uid+'pos'} metrics={metricsStore} title="POSITION DETAILS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'BUY POSITION' },
         { label: 'SELL POSITION' },
         { label: 'RATIO' },
@@ -3094,11 +3141,20 @@ function PayinOutPageImpl() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'pay_requests' },
-        () => {
+        (payload) => {
+          console.log('Realtime update received:', payload);
           setRefreshKey(prev => prev + 1);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Realtime subscription active for pay_requests');
+        } else if (status === 'CLOSED') {
+          console.log('Realtime subscription closed');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Realtime subscription error');
+        }
+      });
     return () => {
       supabase.removeChannel(channel);
     };
@@ -3421,6 +3477,30 @@ function PayinOutPageImpl() {
                     <span className="adm-pay-utr-value">{r.utr}</span>
                   </div>
                   <i className="fas fa-shield-alt" style={{ color: '#58a6ff', fontSize: '1.2rem', opacity: 0.5 }} />
+                </div>
+              )}
+
+              {r.type === 'DEPOSIT' && r.screenshot_url && (
+                <div className="adm-pay-account-box" style={{ marginTop: '12px', border: '1px dashed #30363d' }}>
+                  <div className="adm-pay-account-title">Payment Proof (Screenshot)</div>
+                  <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                    <a href={r.screenshot_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', position: 'relative' }}>
+                      <img 
+                        src={r.screenshot_url} 
+                        alt="Proof" 
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: '200px', 
+                          borderRadius: '8px', 
+                          border: '1px solid #30363d',
+                          cursor: 'pointer'
+                        }} 
+                      />
+                      <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, fontSize: '0.65rem', color: '#fff' }}>
+                        Click to view full size
+                      </div>
+                    </a>
+                  </div>
                 </div>
               )}
 

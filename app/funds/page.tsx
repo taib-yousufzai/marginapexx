@@ -44,6 +44,9 @@ export default function FundsPage() {
 
   // Submission state
   const [utr, setUtr] = useState<string>('');
+  const [screenshot, setScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -190,18 +193,38 @@ export default function FundsPage() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setToast({ message: 'File too large. Max 5MB allowed.', type: 'error' });
+        return;
+      }
+      setScreenshot(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setScreenshotPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleConfirmDeposit = async () => {
     setSubmitError(null);
     const numAmount = Number(amount);
     if (!amount || isNaN(numAmount) || numAmount < 1000) return;
     if (!activeAccount) return;
     
-    if (!/^\d{12}$/.test(utr)) {
-      setSubmitError('Invalid UTR: Must be exactly 12 digits');
+    if (utr && !/^\d{12}$/.test(utr)) {
+      setSubmitError('Invalid UTR: Must be exactly 12 digits if provided');
+      return;
+    }
+
+    if (!screenshot) {
+      setSubmitError('Payment screenshot is required');
       return;
     }
 
     setSubmitting(true);
+    setUploading(true);
     try {
       const session = await getSession();
       if (!session) {
@@ -209,25 +232,51 @@ export default function FundsPage() {
         return;
       }
 
-      // Step 2: Submit deposit request with payment_account_id
+      // Step 1: Upload screenshot to Supabase Storage
+      const fileExt = screenshot.name.split('.').pop();
+      const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `payments/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payments')
+        .upload(filePath, screenshot);
+
+      if (uploadError) {
+        throw new Error('Failed to upload screenshot. Please ensure the "payments" bucket exists.');
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('payments')
+        .getPublicUrl(filePath);
+
+      // Step 2: Submit deposit request with screenshot_url
       const res = await fetch('/api/pay/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ type: 'DEPOSIT', amount: numAmount, payment_account_id: activeAccount.id, utr }),
+        body: JSON.stringify({ 
+          type: 'DEPOSIT', 
+          amount: numAmount, 
+          payment_account_id: activeAccount.id, 
+          utr: utr || undefined,
+          screenshot_url: publicUrl,
+        }),
       });
       if (res.status === 201) {
         setSubmitted(true);
+        setScreenshot(null);
+        setScreenshotPreview(null);
       } else {
         const data = await res.json();
         setSubmitError(data.error ?? 'Something went wrong. Please try again.');
       }
-    } catch {
-      setSubmitError('Network error. Please try again.');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Network error. Please try again.');
     } finally {
       setSubmitting(false);
+      setUploading(false);
     }
   };
 
@@ -421,7 +470,7 @@ export default function FundsPage() {
                       </div>
 
                       <div style={{ marginBottom: '16px' }}>
-                        <label>12-Digit UTR / Reference Number <span style={{ color: '#c0392b' }}>*</span></label>
+                        <label>12-Digit UTR / Reference Number <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional)</span></label>
                         <input
                           type="text"
                           value={utr}
@@ -444,6 +493,39 @@ export default function FundsPage() {
                         )}
                       </div>
 
+                      <div style={{ marginBottom: '20px' }}>
+                        <label>Upload Payment Screenshot <span style={{ color: '#c0392b' }}>*</span></label>
+                        <div style={{
+                          border: '2px dashed var(--border-card)',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          textAlign: 'center',
+                          background: 'var(--main-bg)',
+                          cursor: 'pointer',
+                          position: 'relative'
+                        }} onClick={() => document.getElementById('screenshot-upload')?.click()}>
+                          {screenshotPreview ? (
+                            <div style={{ position: 'relative' }}>
+                              <img src={screenshotPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} />
+                              <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click to change image</div>
+                            </div>
+                          ) : (
+                            <>
+                              <i className="fas fa-cloud-upload-alt" style={{ fontSize: '2rem', color: 'var(--text-secondary)', marginBottom: '8px' }}></i>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>Click to upload proof</div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>JPG, PNG or PDF (Max 5MB)</div>
+                            </>
+                          )}
+                          <input 
+                            id="screenshot-upload"
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleFileChange} 
+                            style={{ display: 'none' }}
+                          />
+                        </div>
+                      </div>
+
                       {submitError && (
                         <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
                           ❌ {submitError}
@@ -453,11 +535,11 @@ export default function FundsPage() {
                       <button
                         className="submit-funds-btn"
                         onClick={handleConfirmDeposit}
-                        disabled={utr.length !== 12 || submitting}
-                        style={{ opacity: (utr.length !== 12 || submitting) ? 0.6 : 1, cursor: (utr.length !== 12 || submitting) ? 'not-allowed' : 'pointer' }}
+                        disabled={!screenshot || submitting}
+                        style={{ opacity: (!screenshot || submitting) ? 0.6 : 1, cursor: (!screenshot || submitting) ? 'not-allowed' : 'pointer' }}
                       >
                         <i className="fas fa-check"></i>
-                        {submitting ? 'Submitting…' : 'Confirm Deposit'}
+                        {submitting ? (uploading ? 'Uploading Proof…' : 'Submitting…') : 'Confirm Deposit'}
                       </button>
                     </div>
                   ) : (
