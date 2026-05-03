@@ -19,6 +19,7 @@ export type ValidatedPayRequest = {
   account_no?: string;
   ifsc?: string;
   upi?: string;
+  utr?: string;
 };
 
 /**
@@ -113,12 +114,21 @@ export function validatePayRequest(
   }
 
   // DEPOSIT — valid
+  // 9. Deposit requires 12-digit numeric UTR
+  const utr = raw.utr;
+  if (type === 'DEPOSIT') {
+    if (!utr || typeof utr !== 'string' || !/^\d{12}$/.test(utr)) {
+      return { valid: false, error: 'Invalid UTR: Must be exactly 12 digits', status: 400 };
+    }
+  }
+
   return {
     valid: true,
     data: {
       type,
       amount,
       upi: typeof raw.upi === 'string' ? raw.upi : undefined,
+      utr: type === 'DEPOSIT' ? (utr as string) : undefined,
     },
   };
 }

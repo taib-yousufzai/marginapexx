@@ -109,37 +109,35 @@ export async function POST(request: Request): Promise<Response> {
       textValues[fieldName] = value.trim();
     }
 
-    // Step 4: Extract and validate QR image file
-    // Validates: Requirements 25.6
+    // Step 4: Extract and validate QR image file (Optional)
     const qrImageFile = formData.get('qr_image');
-    if (!qrImageFile || !(qrImageFile instanceof File)) {
-      return Response.json({ error: 'QR image is required' }, { status: 400 });
+    let qrImageUrl: string = '';
+
+    if (qrImageFile && qrImageFile instanceof File && qrImageFile.size > 0) {
+      // Step 5: Upload QR image to Supabase Storage
+      const filename = qrImageFile.name || 'qr.png';
+      const storagePath = `${Date.now()}_${filename}`;
+      const fileBuffer = await qrImageFile.arrayBuffer();
+
+      const { error: uploadError } = await adminClient.storage
+        .from('payment-qr-codes')
+        .upload(storagePath, fileBuffer, {
+          contentType: qrImageFile.type || 'image/png',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[POST /api/admin/payment-accounts] Storage upload error:', uploadError.message);
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
+      }
+
+      // Step 6: Get public URL for the uploaded file
+      const { data: publicUrlData } = adminClient.storage
+        .from('payment-qr-codes')
+        .getPublicUrl(storagePath);
+
+      qrImageUrl = publicUrlData.publicUrl;
     }
-
-    // Step 5: Upload QR image to Supabase Storage
-    // Validates: Requirements 25.13, 26.3
-    const filename = qrImageFile.name || 'qr.png';
-    const storagePath = `${Date.now()}_${filename}`;
-    const fileBuffer = await qrImageFile.arrayBuffer();
-
-    const { error: uploadError } = await adminClient.storage
-      .from('payment-qr-codes')
-      .upload(storagePath, fileBuffer, {
-        contentType: qrImageFile.type || 'image/png',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('[POST /api/admin/payment-accounts] Storage upload error:', uploadError.message);
-      return Response.json({ error: 'Internal server error' }, { status: 500 });
-    }
-
-    // Step 6: Get public URL for the uploaded file
-    const { data: publicUrlData } = adminClient.storage
-      .from('payment-qr-codes')
-      .getPublicUrl(storagePath);
-
-    const qrImageUrl = publicUrlData.publicUrl;
 
     // Step 7: Insert row into payment_accounts
     // Validates: Requirements 25.4, 26.3

@@ -179,11 +179,7 @@ export default function Page() {
   };
 
   const handleNavFunds = () => {
-    showToast(`💰 Funds: $${fundsBalance.toFixed(2)} | Tap again to add $500`, 1200);
-    if (window.confirm(`Add $500 demo funds?`)) {
-      setFundsBalance(prev => prev + 500);
-      showToast("✅ +$500 added to funds", 1500);
-    }
+    router.push('/funds');
   };
 
   const handleNavNotification = () => showToast("🔔 New: Margin updates & trading reminders", 2000);

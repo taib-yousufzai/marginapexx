@@ -115,12 +115,16 @@ export async function POST(request: Request): Promise<Response> {
         account_no: validatedData.account_no ?? null,
         ifsc: validatedData.ifsc ?? null,
         upi: validatedData.upi ?? null,
+        utr: validatedData.utr ?? null,
         status: 'PENDING',
       })
       .select('id')
       .single();
 
     if (insertError) {
+      if (insertError.code === '23505') {
+        return Response.json({ error: 'This UTR has already been submitted.' }, { status: 400 });
+      }
       console.error('[POST /api/pay/request] insert error:', insertError.message);
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }

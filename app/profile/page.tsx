@@ -99,8 +99,8 @@ export default function ProfilePage() {
                         ) : formattedBalance}
                     </div>
                     <div className="funds-actions">
-                        <button className="fund-btn add-btn"><i className="fas fa-plus"></i> Add Funds</button>
-                        <button className="fund-btn wd-btn"><i className="fas fa-arrow-down"></i> Withdraw</button>
+                        <button className="fund-btn add-btn" onClick={() => router.push('/funds')}><i className="fas fa-plus"></i> Add Funds</button>
+                        <button className="fund-btn wd-btn" onClick={() => router.push('/funds?tab=withdraw')}><i className="fas fa-arrow-down"></i> Withdraw</button>
                     </div>
                 </div>
 

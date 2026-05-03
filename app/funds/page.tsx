@@ -6,7 +6,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { pageCache } from '@/lib/pageCache';
 import './page.css';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 import Footer from '../../components/Footer';
+import QRCode from 'react-qr-code';
 
 type ActiveAccountResponse = {
   id: string;
@@ -41,6 +43,7 @@ export default function FundsPage() {
   const [activeAccountError, setActiveAccountError] = useState<string | null>(null);
 
   // Submission state
+  const [utr, setUtr] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -78,6 +81,51 @@ export default function FundsPage() {
     }
   };
 
+  // Realtime balance and request updates
+  useEffect(() => {
+    let channel: any;
+    let isMounted = true;
+
+    const setupRealtime = async () => {
+      const session = await getSession();
+      if (!session || !isMounted) return;
+
+      const userId = session.user.id;
+
+      // Consolidate into a single channel for this user's funds
+      channel = supabase
+        .channel(`user_funds_realtime_${userId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
+          () => {
+            if (isMounted) fetchBalance(session.access_token);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'pay_requests', filter: `user_id=eq.${userId}` },
+          (payload) => {
+            if (!isMounted) return;
+            if (payload.new && payload.new.status !== 'PENDING') {
+              if (payload.new.status === 'APPROVED') {
+                fetchBalance(session.access_token);
+              }
+              setSubmitted(false);
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtime();
+
+    return () => {
+      isMounted = false;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Parse "?tab=withdraw" flag
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -99,13 +147,12 @@ export default function FundsPage() {
     setSubmitError(null);
   };
 
-  const handleDeposit = async () => {
+  const handleProceedToPay = async () => {
     setSubmitError(null);
     setActiveAccountError(null);
     const numAmount = Number(amount);
     if (!amount || isNaN(numAmount) || numAmount < 1000) return;
 
-    setSubmitting(true);
     setActiveAccountLoading(true);
     try {
       const session = await getSession();
@@ -122,12 +169,35 @@ export default function FundsPage() {
         const accountData = await accountRes.json();
         setActiveAccountError(accountData.error ?? 'Failed to fetch payment account. Please try again.');
         setActiveAccountLoading(false);
-        setSubmitting(false);
         return;
       }
       const account: ActiveAccountResponse = await accountRes.json();
       setActiveAccount(account);
       setActiveAccountLoading(false);
+    } catch {
+      setActiveAccountError('Network error. Please try again.');
+      setActiveAccountLoading(false);
+    }
+  };
+
+  const handleConfirmDeposit = async () => {
+    setSubmitError(null);
+    const numAmount = Number(amount);
+    if (!amount || isNaN(numAmount) || numAmount < 1000) return;
+    if (!activeAccount) return;
+    
+    if (!/^\d{12}$/.test(utr)) {
+      setSubmitError('Invalid UTR: Must be exactly 12 digits');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const session = await getSession();
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
 
       // Step 2: Submit deposit request with payment_account_id
       const res = await fetch('/api/pay/request', {
@@ -136,7 +206,7 @@ export default function FundsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ type: 'DEPOSIT', amount: numAmount, payment_account_id: account.id }),
+        body: JSON.stringify({ type: 'DEPOSIT', amount: numAmount, payment_account_id: activeAccount.id, utr }),
       });
       if (res.status === 201) {
         setSubmitted(true);
@@ -147,7 +217,6 @@ export default function FundsPage() {
     } catch {
       setSubmitError('Network error. Please try again.');
     } finally {
-      setActiveAccountLoading(false);
       setSubmitting(false);
     }
   };
@@ -210,7 +279,7 @@ export default function FundsPage() {
 
       <div className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="main-content screen">
-          <div className="content-padded" style={{ paddingTop: '20px' }}>
+          <div className="content-padded" style={{ paddingTop: '20px', paddingBottom: '120px' }}>
 
             {/* Balance Overview Card */}
             <div className="balance-card">
@@ -282,26 +351,87 @@ export default function FundsPage() {
                       padding: '20px',
                       marginBottom: '16px',
                     }}>
-                      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                      <div style={{ textAlign: 'center' }}>
                         <i className="fas fa-check-circle" style={{ color: '#006400', fontSize: '1.5rem', marginRight: '8px' }}></i>
                         <span style={{ color: '#006400', fontWeight: 700, fontSize: '1rem' }}>
                           Request submitted — pending admin approval
                         </span>
                       </div>
-                      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                        <img
-                          src={activeAccount.qr_image_url}
-                          alt="Payment QR Code"
-                          style={{ maxWidth: '200px', width: '100%', borderRadius: '8px', border: '1px solid var(--border-card)' }}
-                        />
+                      <div style={{ marginTop: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        UTR: {utr}
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.8' }}>
+                    </div>
+                  ) : activeAccount ? (
+                    <div style={{
+                      background: 'var(--icon-bg)',
+                      border: '1px solid var(--border-card)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '16px',
+                    }}>
+                      <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+                        {activeAccount.upi_id ? (
+                          <div style={{ padding: '16px', background: 'white', borderRadius: '12px', display: 'inline-block' }}>
+                            <QRCode 
+                              value={`upi://pay?pa=${activeAccount.upi_id}&pn=${encodeURIComponent(activeAccount.account_holder)}&am=${amount}&cu=INR`}
+                              size={200}
+                            />
+                          </div>
+                        ) : activeAccount.qr_image_url ? (
+                          <img
+                            src={activeAccount.qr_image_url}
+                            alt="Payment QR Code"
+                            style={{ maxWidth: '200px', width: '100%', borderRadius: '8px', border: '1px solid var(--border-card)' }}
+                          />
+                        ) : null}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.8', marginBottom: '20px' }}>
                         <div><strong>Account Holder:</strong> {activeAccount.account_holder}</div>
                         <div><strong>Bank Name:</strong> {activeAccount.bank_name}</div>
                         <div><strong>Account Number:</strong> {activeAccount.account_no}</div>
                         <div><strong>IFSC:</strong> {activeAccount.ifsc}</div>
                         <div><strong>UPI ID:</strong> {activeAccount.upi_id}</div>
                       </div>
+
+                      <div style={{ marginBottom: '16px' }}>
+                        <label>12-Digit UTR / Reference Number <span style={{ color: '#c0392b' }}>*</span></label>
+                        <input
+                          type="text"
+                          value={utr}
+                          onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                          placeholder="e.g. 123456789012"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border-card)',
+                            background: 'var(--main-bg)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.9rem',
+                            boxSizing: 'border-box',
+                            outline: 'none',
+                          }}
+                        />
+                        {utr.length > 0 && utr.length < 12 && (
+                          <p style={{ color: '#c0392b', fontSize: '0.75rem', marginTop: '4px' }}>Must be exactly 12 digits.</p>
+                        )}
+                      </div>
+
+                      {submitError && (
+                        <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
+                          ❌ {submitError}
+                        </p>
+                      )}
+                      
+                      <button
+                        className="submit-funds-btn"
+                        onClick={handleConfirmDeposit}
+                        disabled={utr.length !== 12 || submitting}
+                        style={{ opacity: (utr.length !== 12 || submitting) ? 0.6 : 1, cursor: (utr.length !== 12 || submitting) ? 'not-allowed' : 'pointer' }}
+                      >
+                        <i className="fas fa-check"></i>
+                        {submitting ? 'Submitting…' : 'Confirm Deposit'}
+                      </button>
                     </div>
                   ) : (
                     <>
@@ -317,12 +447,12 @@ export default function FundsPage() {
                       )}
                       <button
                         className="submit-funds-btn"
-                        onClick={handleDeposit}
+                        onClick={handleProceedToPay}
                         disabled={depositDisabled}
                         style={{ opacity: depositDisabled ? 0.6 : 1, cursor: depositDisabled ? 'not-allowed' : 'pointer' }}
                       >
-                        <i className="fas fa-lock"></i>
-                        {submitting ? (activeAccountLoading ? 'Fetching account…' : 'Submitting…') : 'Request Deposit'}
+                        <i className="fas fa-qrcode"></i>
+                        {activeAccountLoading ? 'Fetching details…' : 'Proceed to Pay'}
                       </button>
                     </>
                   )}
