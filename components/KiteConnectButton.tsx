@@ -53,7 +53,11 @@ export default function KiteConnectButton() {
   }, []);
 
   const handleConnect = () => {
-    const apiKey = process.env.NEXT_PUBLIC_KITE_API_KEY ?? '6029iuextwfch9pp';
+    const apiKey = process.env.NEXT_PUBLIC_KITE_API_KEY;
+    if (!apiKey) {
+      alert("Missing NEXT_PUBLIC_KITE_API_KEY in .env.local!");
+      return;
+    }
     window.open(
       `https://kite.trade/connect/login?api_key=${apiKey}&v=3`,
       '_blank',

@@ -256,7 +256,7 @@ export default function AdminPage() {
     return (
       <div className="adm-root">
         <div className="adm-topbar">
-          <button className="adm-hamburger" onClick={() => {}}>
+          <button className="adm-hamburger" onClick={() => { }}>
             <span /><span /><span />
           </button>
         </div>
@@ -344,7 +344,7 @@ export default function AdminPage() {
 
 // Forward declarations to fix Turbopack hoisting
 function AccountsPage() { return <AccountsPageImpl />; }
-function PayinOutPage()  { return <PayinOutPageImpl />; }
+function PayinOutPage() { return <PayinOutPageImpl />; }
 function PaymentAccountsPage() { return <PaymentAccountsPageImpl />; }
 
 function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate }: {
@@ -414,7 +414,7 @@ function SettingsPage() {
 
   useEffect(() => {
     fetchScripts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openAdd = () => {
@@ -589,23 +589,23 @@ function metricsToStore(m: DashboardMetrics | null): Record<string, string> {
     ? `${Math.round((m.buy_position_count / (m.buy_position_count + m.sell_position_count)) * 100)}%`
     : '0%';
   return {
-    'LEDGER BALANCE':      String(m.ledger_balance),
-    'MARK-TO-MARKET':      String(m.mark_to_market),
-    'NET':                 String(m.net),
-    'TOTAL DEPOSITS':      String(m.total_deposits),
-    'TOTAL WITHDRAWALS':   String(m.total_withdrawals),
-    'AVG DEPOSIT':         String(m.avg_deposit),
-    'AVG WITHDRAWAL':      String(m.avg_withdrawal),
-    'REGISTERED':          String(m.registered),
-    'ADDED FUNDS':         String(m.added_funds),
-    'CONVERSION':          m.conversion,
-    'AVG PROFIT':          m.avg_profit !== 0 ? String(m.avg_profit) : '—',
-    'AVG LOSS':            m.avg_loss !== 0 ? String(m.avg_loss) : '—',
-    'PROFITABLE CLIENTS':  m.profitable_clients !== 0 ? String(m.profitable_clients) : '—',
+    'LEDGER BALANCE': String(m.ledger_balance),
+    'MARK-TO-MARKET': String(m.mark_to_market),
+    'NET': String(m.net),
+    'TOTAL DEPOSITS': String(m.total_deposits),
+    'TOTAL WITHDRAWALS': String(m.total_withdrawals),
+    'AVG DEPOSIT': String(m.avg_deposit),
+    'AVG WITHDRAWAL': String(m.avg_withdrawal),
+    'REGISTERED': String(m.registered),
+    'ADDED FUNDS': String(m.added_funds),
+    'CONVERSION': m.conversion,
+    'AVG PROFIT': m.avg_profit !== 0 ? String(m.avg_profit) : '—',
+    'AVG LOSS': m.avg_loss !== 0 ? String(m.avg_loss) : '—',
+    'PROFITABLE CLIENTS': m.profitable_clients !== 0 ? String(m.profitable_clients) : '—',
     'LOSS-MAKING CLIENTS': m.loss_making_clients !== 0 ? String(m.loss_making_clients) : '—',
-    'BUY POSITION':        m.buy_position_count !== 0 ? String(m.buy_position_count) : '—',
-    'SELL POSITION':       m.sell_position_count !== 0 ? String(m.sell_position_count) : '—',
-    'RATIO':               ratio,
+    'BUY POSITION': m.buy_position_count !== 0 ? String(m.buy_position_count) : '—',
+    'SELL POSITION': m.sell_position_count !== 0 ? String(m.sell_position_count) : '—',
+    'RATIO': ratio,
   };
 }
 
@@ -622,8 +622,8 @@ function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
     <div className="adm-db-section">
       <div className="adm-db-section-header">
         <span className="adm-db-section-title">{title}</span>
-        <button 
-          className="adm-btn-primary adm-db-fetch-btn" 
+        <button
+          className="adm-btn-primary adm-db-fetch-btn"
           onClick={onFetch}
           disabled={loading}
         >
@@ -637,10 +637,10 @@ function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
           const isNeg = num.startsWith('-') && raw !== '—';
           const isPos = !isNeg && raw !== '—' && raw !== '0' && !num.startsWith('—');
           // deposits/totals shown in green, withdrawals in red
-          const greenLabels = ['TOTAL DEPOSITS','NET','ADDED FUNDS','AVG DEPOSIT','REGISTERED','CONVERSION','BUY POSITION','AVG PROFIT','PROFITABLE CLIENTS'];
-          const redLabels   = ['TOTAL WITHDRAWALS','AVG WITHDRAWAL','AVG LOSS','LOSS-MAKING CLIENTS','SELL POSITION'];
-          const forceGreen  = hasData && raw !== '—' && raw !== '0' && greenLabels.includes(f.label);
-          const forceRed    = hasData && (isNeg || (raw !== '—' && redLabels.includes(f.label)));
+          const greenLabels = ['TOTAL DEPOSITS', 'NET', 'ADDED FUNDS', 'AVG DEPOSIT', 'REGISTERED', 'CONVERSION', 'BUY POSITION', 'AVG PROFIT', 'PROFITABLE CLIENTS'];
+          const redLabels = ['TOTAL WITHDRAWALS', 'AVG WITHDRAWAL', 'AVG LOSS', 'LOSS-MAKING CLIENTS', 'SELL POSITION'];
+          const forceGreen = hasData && raw !== '—' && raw !== '0' && greenLabels.includes(f.label);
+          const forceRed = hasData && (isNeg || (raw !== '—' && redLabels.includes(f.label)));
           return (
             <div className="adm-db-cell" key={i}>
               <div className="adm-db-cell-label">{f.label}</div>
@@ -653,15 +653,15 @@ function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
   );
 }
 
-function DashboardPage({ selectedUser, onOpenUserPanel }: { 
+function DashboardPage({ selectedUser, onOpenUserPanel }: {
   selectedUser: { id: string; role: string };
   onOpenUserPanel: () => void;
 }) {
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo]     = useState('');
-  const [metrics, setMetrics]   = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading]   = useState(false);
-  const [toast, setToast]       = useState<ToastState>(null);
+  const [dateTo, setDateTo] = useState('');
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
   const uid = selectedUser.id;
 
@@ -676,7 +676,7 @@ function DashboardPage({ selectedUser, onOpenUserPanel }: {
     setLoading(true);
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to', dateTo);
+    if (dateTo) params.set('date_to', dateTo);
     const query = params.toString() ? `?${params.toString()}` : '';
     apiCall(`/api/admin/users/${uid}/dashboard${query}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
@@ -738,7 +738,7 @@ function DashboardPage({ selectedUser, onOpenUserPanel }: {
         </div>
       </div>
 
-      <DashBoardSection key={uid+'bal'} metrics={metricsStore} title="BALANCE INFO" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
+      <DashBoardSection key={uid + 'bal'} metrics={metricsStore} title="BALANCE INFO" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
         { label: 'LEDGER BALANCE' },
         { label: 'MARK-TO-MARKET' },
       ]} />
@@ -750,32 +750,32 @@ function DashboardPage({ selectedUser, onOpenUserPanel }: {
           ))}
         </div>
       ) : (<>
-      <DashBoardSection key={uid+'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-        { label: 'NET' },
-        { label: 'TOTAL DEPOSITS' },
-        { label: 'TOTAL WITHDRAWALS' },
-        { label: 'AVG DEPOSIT' },
-        { label: 'AVG WITHDRAWAL' },
-      ]} />
+        <DashBoardSection key={uid + 'dep'} metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
+          { label: 'NET' },
+          { label: 'TOTAL DEPOSITS' },
+          { label: 'TOTAL WITHDRAWALS' },
+          { label: 'AVG DEPOSIT' },
+          { label: 'AVG WITHDRAWAL' },
+        ]} />
 
-      <DashBoardSection key={uid+'reg'} metrics={metricsStore} title="CLIENT REGISTRATION" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-        { label: 'REGISTERED' },
-        { label: 'ADDED FUNDS' },
-        { label: 'CONVERSION' },
-      ]} />
+        <DashBoardSection key={uid + 'reg'} metrics={metricsStore} title="CLIENT REGISTRATION" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
+          { label: 'REGISTERED' },
+          { label: 'ADDED FUNDS' },
+          { label: 'CONVERSION' },
+        ]} />
 
-      <DashBoardSection key={uid+'pnl'} metrics={metricsStore} title="CLIENT PROFIT & LOSS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-        { label: 'AVG PROFIT' },
-        { label: 'AVG LOSS' },
-        { label: 'PROFITABLE CLIENTS' },
-        { label: 'LOSS-MAKING CLIENTS' },
-      ]} />
+        <DashBoardSection key={uid + 'pnl'} metrics={metricsStore} title="CLIENT PROFIT & LOSS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
+          { label: 'AVG PROFIT' },
+          { label: 'AVG LOSS' },
+          { label: 'PROFITABLE CLIENTS' },
+          { label: 'LOSS-MAKING CLIENTS' },
+        ]} />
 
-      <DashBoardSection key={uid+'pos'} metrics={metricsStore} title="POSITION DETAILS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-        { label: 'BUY POSITION' },
-        { label: 'SELL POSITION' },
-        { label: 'RATIO' },
-      ]} />
+        <DashBoardSection key={uid + 'pos'} metrics={metricsStore} title="POSITION DETAILS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
+          { label: 'BUY POSITION' },
+          { label: 'SELL POSITION' },
+          { label: 'RATIO' },
+        ]} />
       </>)}
 
       <div style={{ height: 24 }} />
@@ -785,22 +785,22 @@ function DashboardPage({ selectedUser, onOpenUserPanel }: {
 
 // ─── Instrument data per tab ─────────────────────────────────────────────────
 const TAB_INSTRUMENTS: Record<string, string[]> = {
-  'INDEX-FUT': ['NIFTY','BANKNIFTY','SENSEX','FINNIFTY','MIDCPNIFTY','BANKEX','NIFTYNXT50'],
-  'INDEX-OPT': ['NIFTY','BANKNIFTY','SENSEX','FINNIFTY','MIDCPNIFTY','BANKEX'],
-  'STOCK-FUT': ['RELIANCE','TCS','INFY','HDFCBANK','ICICIBANK','SBIN','WIPRO','AXISBANK','LT','BAJFINANCE','MARUTI','TATAMOTORS','ADANIENT','ONGC','NTPC','POWERGRID','COALINDIA','BPCL','IOC','HINDUNILVR'],
-  'STOCK-OPT': ['RELIANCE','TCS','INFY','HDFCBANK','ICICIBANK','SBIN','WIPRO','AXISBANK','LT','BAJFINANCE','MARUTI','TATAMOTORS','ADANIENT','ONGC','NTPC'],
-  'NSE-EQ':    ['RELIANCE','TCS','INFY','HDFCBANK','ICICIBANK','SBIN','WIPRO','AXISBANK','LT','BAJFINANCE','MARUTI','TATAMOTORS','ADANIENT','ONGC','NTPC','POWERGRID','COALINDIA','BPCL','IOC','HINDUNILVR','NESTLEIND','BRITANNIA','DABUR','MARICO','GODREJCP'],
-  'MCX-FUT':   ['GOLD','GOLDMINI','SILVER','SILVERMINI','CRUDEOIL','CRUDEOILM','NATURALGAS','NATURALGASM','COPPER','ZINC','LEAD','ALUMINIUM','NICKEL'],
-  'MCX-OPT':   ['GOLD','SILVER','CRUDEOIL','NATURALGAS','COPPER'],
-  'COMEX':     ['XAUUSD','XAGUSD','XPTUSD','XPDUSD','HGUSD','CLUSD','NGUSD'],
-  'CRYPTO':    ['BTCUSD','ETHUSD','XRPUSD','BNBUSD','SOLUSD','ADAUSD','DOTUSD','MATICUSD','LINKUSD','AVAXUSD','ATOMUSD','UNIUSD','LTCUSD','TRXUSD','FILUSD','AAVEUSD'],
-  'FOREX':     ['EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','USDCHF','NZDUSD','EURGBP','EURJPY','GBPJPY','AUDJPY','CADJPY','CHFJPY','EURCHF','EURAUD'],
+  'INDEX-FUT': ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX', 'NIFTYNXT50'],
+  'INDEX-OPT': ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX'],
+  'STOCK-FUT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 'IOC', 'HINDUNILVR'],
+  'STOCK-OPT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC'],
+  'NSE-EQ': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 'IOC', 'HINDUNILVR', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'MARICO', 'GODREJCP'],
+  'MCX-FUT': ['GOLD', 'GOLDMINI', 'SILVER', 'SILVERMINI', 'CRUDEOIL', 'CRUDEOILM', 'NATURALGAS', 'NATURALGASM', 'COPPER', 'ZINC', 'LEAD', 'ALUMINIUM', 'NICKEL'],
+  'MCX-OPT': ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'COPPER'],
+  'COMEX': ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD', 'HGUSD', 'CLUSD', 'NGUSD'],
+  'CRYPTO': ['BTCUSD', 'ETHUSD', 'XRPUSD', 'BNBUSD', 'SOLUSD', 'ADAUSD', 'DOTUSD', 'MATICUSD', 'LINKUSD', 'AVAXUSD', 'ATOMUSD', 'UNIUSD', 'LTCUSD', 'TRXUSD', 'FILUSD', 'AAVEUSD'],
+  'FOREX': ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'EURCHF', 'EURAUD'],
 };
 
 type WatchlistItem = { id: string; symbol: string; tab: string };
 
 function MarketWatchPage() {
-  const tabs = ['INDEX-FUT','INDEX-OPT','STOCK-FUT','STOCK-OPT','NSE-EQ','MCX-FUT','MCX-OPT','COMEX','CRYPTO','FOREX'];
+  const tabs = ['INDEX-FUT', 'INDEX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'NSE-EQ', 'MCX-FUT', 'MCX-OPT', 'COMEX', 'CRYPTO', 'FOREX'];
   const [activeTab, setActiveTab] = useState('INDEX-FUT');
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
@@ -1078,27 +1078,27 @@ type UserListItem = {
 
 const PAGE_SIZE = 8;
 
-const SEGMENTS = ['INDEX-FUT','STOCK-OPT','NSE-EQ','COMEX','INDEX-OPT','MCX-FUT','CRYPTO','STOCK-FUT','MCX-OPT','FOREX'];
+const SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
 function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: (id: string, role: string) => void }) {
-  const [username, setUsername]     = useState('');
-  const [password, setPassword]     = useState('');
-  const [showPass, setShowPass]     = useState(false);
-  const [fullName, setFullName]     = useState('');
-  const [email, setEmail]           = useState('');
-  const [phone, setPhone]           = useState('');
-  const [role, setRole]             = useState('Broker');
-  const [parent, setParent]         = useState('');
-  const [copyFrom, setCopyFrom]     = useState('');
-  const [active, setActive]         = useState(true);
-  const [readOnly, setReadOnly]     = useState(false);
-  const [demoUser, setDemoUser]     = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState('Broker');
+  const [parent, setParent] = useState('');
+  const [copyFrom, setCopyFrom] = useState('');
+  const [active, setActive] = useState(true);
+  const [readOnly, setReadOnly] = useState(false);
+  const [demoUser, setDemoUser] = useState(false);
   const [intradaySqOff, setIntradaySqOff] = useState(false);
-  const [autoSqoff, setAutoSqoff]   = useState('90');
+  const [autoSqoff, setAutoSqoff] = useState('90');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
-  const [segments, setSegments]     = useState<string[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [toast, setToast]           = useState<ToastState>(null);
+  const [segments, setSegments] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
   const usernameAvailable = username.length >= 3;
 
@@ -1312,11 +1312,11 @@ function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: 
   onSelectUser: (u: { id: string; role: string }) => void;
 }) {
   const router = useRouter();
-  const [search, setSearch]   = useState('');
-  const [users, setUsers]     = useState<UserListItem[]>([]);
+  const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<UserListItem[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [page, setPage]       = useState(1);
-  const [toast, setToast]     = useState<ToastState>(null);
+  const [page, setPage] = useState(1);
+  const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
     setUsersLoading(true);
@@ -1373,26 +1373,26 @@ function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: 
         <div className="adm-up-list">
           {usersLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="adm-up-row" style={{ pointerEvents: 'none' }}>
-                  <SkeletonLine width="70%" height={13} />
-                  <SkeletonLine width="30%" height={13} />
-                </div>
-              ))
+              <div key={i} className="adm-up-row" style={{ pointerEvents: 'none' }}>
+                <SkeletonLine width="70%" height={13} />
+                <SkeletonLine width="30%" height={13} />
+              </div>
+            ))
             : paged.map((u, i) => {
-                const isSelected = selectedUser.id === u.id;
-                return (
-                  <div
-                    key={i}
-                    className={`adm-up-row ${isSelected ? 'selected' : ''}`}
-                    onClick={() => onSelectUser(u)}
-                  >
-                    <span className="adm-up-id">{u.id}</span>
-                    <span className={`adm-up-role ${u.role === 'SUB_BROKER' ? 'sub' : ''} ${isSelected ? 'sel' : ''}`}>
-                      {u.role}
-                    </span>
-                  </div>
-                );
-              })
+              const isSelected = selectedUser.id === u.id;
+              return (
+                <div
+                  key={i}
+                  className={`adm-up-row ${isSelected ? 'selected' : ''}`}
+                  onClick={() => onSelectUser(u)}
+                >
+                  <span className="adm-up-id">{u.id}</span>
+                  <span className={`adm-up-role ${u.role === 'SUB_BROKER' ? 'sub' : ''} ${isSelected ? 'sel' : ''}`}>
+                    {u.role}
+                  </span>
+                </div>
+              );
+            })
           }
         </div>
 
@@ -1518,7 +1518,7 @@ function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string
         <div className="adm-ord-rows-wrap">
           <span className="adm-ord-rows-label">Rows</span>
           <select className="adm-ord-rows-select" value={rows} onChange={e => setRows(e.target.value)}>
-            {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
+            {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
       </div>
@@ -1682,7 +1682,7 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
 
   useEffect(() => {
     fetchPositions();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, tab]);
 
   const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
@@ -1834,7 +1834,7 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
         <div className="adm-ord-rows-wrap">
           <span className="adm-ord-rows-label">Rows</span>
           <select className="adm-ord-rows-select" value={rows} onChange={e => { setRows(e.target.value); setPage(1); }}>
-            {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
+            {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
       </div>
@@ -1892,10 +1892,10 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
                 <span className="adm-ord-dv">{p.entry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 {tab !== 'closed' ? (
                   <><span className="adm-ord-dl">LTP</span>
-                  <span className="adm-ord-dv" style={{ color: '#388bfd' }}>{p.ltp?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
+                    <span className="adm-ord-dv" style={{ color: '#388bfd' }}>{p.ltp?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
                 ) : (
                   <><span className="adm-ord-dl">Exit</span>
-                  <span className="adm-ord-dv">{p.exit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
+                    <span className="adm-ord-dv">{p.exit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
                 )}
               </div>
               <div className="adm-ord-detail-row">
@@ -1965,7 +1965,7 @@ function PositionPage({ selectedUser }: { selectedUser: { id: string; role: stri
 }
 
 // ─── Update Page ──────────────────────────────────────────────────────────────
-const ALL_SEGMENTS = ['INDEX-FUT','STOCK-OPT','NSE-EQ','COMEX','INDEX-OPT','MCX-FUT','CRYPTO','STOCK-FUT','MCX-OPT','FOREX'];
+const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
 type SegSettings = {
   commissionType: string; commissionValue: string;
@@ -2182,7 +2182,7 @@ function UpdatePage({ selectedUser }: { selectedUser: { id: string; role: string
     }).catch((err: unknown) => {
       setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid]);
 
   const toggleSeg = (s: string) => setSegments(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -2520,7 +2520,7 @@ function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
         <div className="adm-ord-rows-wrap">
           <span className="adm-ord-rows-label">Rows</span>
           <select className="adm-ord-rows-select" value={rows} onChange={e => { setRows(e.target.value); setPage(1); }}>
-            {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
+            {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
       </div>
@@ -2647,20 +2647,20 @@ type ActLogItem = {
 function ActLedgerPage() {
   // Validates: Requirements 9.7–9.8, 13.8, 14.1–14.10
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo]     = useState('');
-  const [dlRows, setDlRows]     = useState('100');
-  const [search, setSearch]     = useState('');
-  const [page, setPage]         = useState(1);
+  const [dateTo, setDateTo] = useState('');
+  const [dlRows, setDlRows] = useState('100');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<number | null>(null);
-  const [logs, setLogs]         = useState<ActLogItem[]>([]);
-  const [toast, setToast]       = useState<ToastState>(null);
+  const [logs, setLogs] = useState<ActLogItem[]>([]);
+  const [toast, setToast] = useState<ToastState>(null);
 
   // Fetch logs from API; re-fetch when search or date filters change
   useEffect(() => {
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to', dateTo);
-    if (search)   params.set('search', search);
+    if (dateTo) params.set('date_to', dateTo);
+    if (search) params.set('search', search);
     params.set('rows', dlRows);
     params.set('page', String(page));
     const query = params.toString() ? `?${params.toString()}` : '';
@@ -2674,15 +2674,15 @@ function ActLedgerPage() {
       .catch((err: unknown) => {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFrom, dateTo, search, page, dlRows]);
 
   // Export CSV: fetch with export=csv param and trigger browser download
   const handleExportCsv = () => {
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to', dateTo);
-    if (search)   params.set('search', search);
+    if (dateTo) params.set('date_to', dateTo);
+    if (search) params.set('search', search);
     params.set('rows', dlRows);
     params.set('export', 'csv');
     supabase.auth.getSession().then(({ data: sessionData }) => {
@@ -2705,7 +2705,7 @@ function ActLedgerPage() {
   };
 
   // Client-side filtering is now handled server-side; logs already filtered
-  const displayed  = logs;
+  const displayed = logs;
   const totalPages = Math.max(1, Math.ceil(logs.length / LOG_ROWS));
 
   return (
@@ -2731,7 +2731,7 @@ function ActLedgerPage() {
           <label className="adm-al-label">Download Rows</label>
           <div className="adm-al-dl-inner">
             <select className="adm-ord-rows-select" value={dlRows} onChange={e => setDlRows(e.target.value)}>
-              {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
+              {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
             </select>
             <button className="adm-al-export-btn" onClick={handleExportCsv}>Export CSV</button>
           </div>
@@ -2783,8 +2783,8 @@ function ActLedgerPage() {
                 <div className="adm-al-exp-row"><span>By</span><span>{l.by}</span></div>
                 <div className="adm-al-exp-row"><span>Target</span><span>{l.target}</span></div>
                 {l.symbol && <div className="adm-al-exp-row"><span>Symbol</span><span>{l.symbol}</span></div>}
-                {l.qty    && <div className="adm-al-exp-row"><span>Qty</span><span>{l.qty}</span></div>}
-                {l.price  && <div className="adm-al-exp-row"><span>Price</span><span>{l.price}</span></div>}
+                {l.qty && <div className="adm-al-exp-row"><span>Qty</span><span>{l.qty}</span></div>}
+                {l.price && <div className="adm-al-exp-row"><span>Price</span><span>{l.price}</span></div>}
                 {l.reason && <div className="adm-al-exp-row"><span>Reason</span><span>{l.reason}</span></div>}
                 <div className="adm-al-exp-row"><span>IP</span><span>{l.ip}</span></div>
               </div>
@@ -2825,12 +2825,12 @@ function AccountsPageImpl() {
   // Validates: Requirements 10.9–10.10, 13.9, 14.1–14.10
   const [filter, setFilter] = useState<'all' | 'subbrokers' | 'brokers'>('all');
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo]     = useState('');
-  const [search, setSearch]     = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [search, setSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
-  const [page, setPage]         = useState(1);
+  const [page, setPage] = useState(1);
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
-  const [toast, setToast]       = useState<ToastState>(null);
+  const [toast, setToast] = useState<ToastState>(null);
   const ROWS = 10;
 
   // Fetch accounts from API; re-fetch when filter or date changes
@@ -2838,8 +2838,8 @@ function AccountsPageImpl() {
     const params = new URLSearchParams();
     params.set('filter', filter);
     if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to', dateTo);
-    if (search)   params.set('search', search);
+    if (dateTo) params.set('date_to', dateTo);
+    if (search) params.set('search', search);
     apiCall(`/api/admin/accounts?${params.toString()}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
@@ -2850,13 +2850,13 @@ function AccountsPageImpl() {
       .catch((err: unknown) => {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter, dateFrom, dateTo, search]);
 
   // Compute summary from fetched accounts
-  const totalNetPnl      = accounts.reduce((s, a) => s + a.net_pnl, 0);
-  const totalBrokerage   = accounts.reduce((s, a) => s + a.brokerage, 0);
-  const totalPnlBkg      = accounts.reduce((s, a) => s + a.pnl_bkg, 0);
+  const totalNetPnl = accounts.reduce((s, a) => s + a.net_pnl, 0);
+  const totalBrokerage = accounts.reduce((s, a) => s + a.brokerage, 0);
+  const totalPnlBkg = accounts.reduce((s, a) => s + a.pnl_bkg, 0);
   const summary: AccountSummary = {
     id: accounts.length > 0 ? (accounts[0].broker || '—') : '—',
     pnlBkg: totalPnlBkg,
@@ -2903,7 +2903,7 @@ function AccountsPageImpl() {
     u.full_name.toLowerCase().includes(search.toLowerCase())
   );
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
-  const displayed  = filtered.slice((page - 1) * ROWS, page * ROWS);
+  const displayed = filtered.slice((page - 1) * ROWS, page * ROWS);
 
   const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -2912,7 +2912,7 @@ function AccountsPageImpl() {
       <Toast toast={toast} onDismiss={() => setToast(null)} />
       {/* Filter tabs */}
       <div className="adm-acc-tabs">
-        {(['all','subbrokers','brokers'] as const).map(t => (
+        {(['all', 'subbrokers', 'brokers'] as const).map(t => (
           <button key={t} className={`adm-acc-tab ${filter === t ? 'active' : ''}`}
             onClick={() => { setFilter(t); setPage(1); setUserSearch(''); }}>
             {t === 'all' ? 'All' : t === 'subbrokers' ? 'Sub-Brokers' : 'Brokers'}
@@ -2999,7 +2999,7 @@ function AccountsPageImpl() {
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               <button className="adm-acc-export-btn excel" style={{ fontSize: '0.72rem', padding: '6px 10px' }} onClick={handleExportExcel}>Export Excel</button>
-              <button className="adm-acc-export-btn pdf"   style={{ fontSize: '0.72rem', padding: '6px 10px' }} onClick={handleExportPdf}>Export PDF</button>
+              <button className="adm-acc-export-btn pdf" style={{ fontSize: '0.72rem', padding: '6px 10px' }} onClick={handleExportPdf}>Export PDF</button>
             </div>
           </div>
           <div className="adm-acc-broker-detail-grid">
@@ -3073,33 +3073,33 @@ function AccountsPageImpl() {
 // ─── PayIn/Out Page ───────────────────────────────────────────────────────────
 
 function PayinOutPageImpl() {
-  const [tab, setTab]       = useState<'deposit' | 'withdrawal' | 'rules'>('deposit');
+  const [tab, setTab] = useState<'deposit' | 'withdrawal' | 'rules'>('deposit');
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo]     = useState('');
-  const [status, setStatus]     = useState('All Status');
-  const [rows, setRows]         = useState('10');
-  const [search, setSearch]     = useState('');
-  const [page, setPage]         = useState(1);
+  const [dateTo, setDateTo] = useState('');
+  const [status, setStatus] = useState('All Status');
+  const [rows, setRows] = useState('10');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Rules state
   const [withdrawEnabled, setWithdrawEnabled] = useState(true);
-  const [allowedDays, setAllowedDays] = useState(['Monday','Tuesday','Wednesday','Thursday','Friday']);
+  const [allowedDays, setAllowedDays] = useState(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
   const [startTime, setStartTime] = useState('10:00');
-  const [endTime, setEndTime]     = useState('16:00');
+  const [endTime, setEndTime] = useState('16:00');
   const [minWithdraw, setMinWithdraw] = useState('100');
-  const [minDeposit, setMinDeposit]   = useState('1000');
+  const [minDeposit, setMinDeposit] = useState('1000');
 
   // Dynamic data state
-  const [requests, setRequests]           = useState<PayRequest[]>([]);
-  const [loading, setLoading]             = useState(false);
-  const [error, setError]                 = useState<string | null>(null);
+  const [requests, setRequests] = useState<PayRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-  const [rulesLoading, setRulesLoading]   = useState(false);
-  const [rulesSaving, setRulesSaving]     = useState(false);
-  const [toast, setToast]                 = useState<ToastState>(null);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesSaving, setRulesSaving] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
 
-  const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const toggleDay = (d: string) => setAllowedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
   // Fetch requests whenever filters change (not for rules tab)
@@ -3111,8 +3111,8 @@ function PayinOutPageImpl() {
     params.set('type', tab.toUpperCase());
     if (status !== 'All Status') params.set('status', status);
     if (dateFrom) params.set('date_from', dateFrom);
-    if (dateTo)   params.set('date_to', dateTo);
-    if (search)   params.set('search', search);
+    if (dateTo) params.set('date_to', dateTo);
+    if (search) params.set('search', search);
     params.set('page', String(page));
     params.set('rows', rows);
     apiCall(`/api/admin/payinout?${params.toString()}`, { method: 'GET' })
@@ -3131,7 +3131,7 @@ function PayinOutPageImpl() {
         setRequests([]);
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, dateFrom, dateTo, status, search, page, rows, refreshKey]);
 
   // Realtime subscription
@@ -3187,7 +3187,7 @@ function PayinOutPageImpl() {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       })
       .finally(() => setRulesLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
   const handleAccept = async (r: PayRequest) => {
@@ -3291,7 +3291,7 @@ function PayinOutPageImpl() {
 
   const rowsNum = Number(rows);
   const totalPages = Math.max(1, Math.ceil(requests.length / rowsNum));
-  const displayed  = requests.slice((page - 1) * rowsNum, page * rowsNum);
+  const displayed = requests.slice((page - 1) * rowsNum, page * rowsNum);
 
   const statusColor = (s: string) => s === 'APPROVED' ? '#2ea043' : s === 'PENDING' ? '#e3b341' : '#f85149';
 
@@ -3318,56 +3318,56 @@ function PayinOutPageImpl() {
               {Array.from({ length: 6 }).map((_, i) => <SkeletonLine key={i} height={36} />)}
             </div>
           ) : (<>
-          <div className="adm-upd-section-title" style={{ fontSize: '0.95rem' }}>Withdrawal Rules</div>
-          <div className="adm-pay-rule-row">
-            <span className="adm-upd-label">Withdrawals Enabled</span>
-            <div className={`adm-toggle ${withdrawEnabled ? 'on' : ''}`} onClick={() => setWithdrawEnabled(v => !v)}>
-              <div className="adm-toggle-thumb" />
-            </div>
-          </div>
-          <div className="adm-upd-field">
-            <label className="adm-upd-label">Allowed Days</label>
-            <div className="adm-pay-days-grid">
-              {allDays.map(d => (
-                <label key={d} className="adm-cu-seg-item">
-                  <input type="checkbox" className="adm-cu-checkbox" checked={allowedDays.includes(d)} onChange={() => toggleDay(d)} />
-                  <span className="adm-cu-seg-label" style={{ color: '#e6edf3', fontSize: '0.8rem' }}>{d}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="adm-upd-grid2">
-            <div className="adm-upd-field">
-              <label className="adm-upd-label">Allowed Start Time</label>
-              <input type="time" className="adm-upd-input" value={startTime} onChange={e => setStartTime(e.target.value)} />
+            <div className="adm-upd-section-title" style={{ fontSize: '0.95rem' }}>Withdrawal Rules</div>
+            <div className="adm-pay-rule-row">
+              <span className="adm-upd-label">Withdrawals Enabled</span>
+              <div className={`adm-toggle ${withdrawEnabled ? 'on' : ''}`} onClick={() => setWithdrawEnabled(v => !v)}>
+                <div className="adm-toggle-thumb" />
+              </div>
             </div>
             <div className="adm-upd-field">
-              <label className="adm-upd-label">Allowed End Time</label>
-              <input type="time" className="adm-upd-input" value={endTime} onChange={e => setEndTime(e.target.value)} />
+              <label className="adm-upd-label">Allowed Days</label>
+              <div className="adm-pay-days-grid">
+                {allDays.map(d => (
+                  <label key={d} className="adm-cu-seg-item">
+                    <input type="checkbox" className="adm-cu-checkbox" checked={allowedDays.includes(d)} onChange={() => toggleDay(d)} />
+                    <span className="adm-cu-seg-label" style={{ color: '#e6edf3', fontSize: '0.8rem' }}>{d}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="adm-upd-field">
-            <label className="adm-upd-label">Minimum Withdrawal Amount</label>
-            <input className="adm-upd-input" value={minWithdraw} onChange={e => setMinWithdraw(e.target.value)} />
-          </div>
+            <div className="adm-upd-grid2">
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Allowed Start Time</label>
+                <input type="time" className="adm-upd-input" value={startTime} onChange={e => setStartTime(e.target.value)} />
+              </div>
+              <div className="adm-upd-field">
+                <label className="adm-upd-label">Allowed End Time</label>
+                <input type="time" className="adm-upd-input" value={endTime} onChange={e => setEndTime(e.target.value)} />
+              </div>
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Minimum Withdrawal Amount</label>
+              <input className="adm-upd-input" value={minWithdraw} onChange={e => setMinWithdraw(e.target.value)} />
+            </div>
 
-          <div className="adm-cu-divider" />
-          <div className="adm-upd-section-title" style={{ fontSize: '0.95rem' }}>Deposit Rules</div>
-          <div className="adm-upd-field">
-            <label className="adm-upd-label">Minimum Deposit Amount</label>
-            <input className="adm-upd-input" value={minDeposit} onChange={e => setMinDeposit(e.target.value)} />
-          </div>
-          <div className="adm-cu-divider" />
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              className="adm-btn-primary"
-              style={{ padding: '12px 28px', fontSize: '0.9rem', borderRadius: 10 }}
-              disabled={rulesSaving}
-              onClick={handleSaveRules}
-            >
-              {rulesSaving ? 'Saving…' : 'Save Rules'}
-            </button>
-          </div>
+            <div className="adm-cu-divider" />
+            <div className="adm-upd-section-title" style={{ fontSize: '0.95rem' }}>Deposit Rules</div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Minimum Deposit Amount</label>
+              <input className="adm-upd-input" value={minDeposit} onChange={e => setMinDeposit(e.target.value)} />
+            </div>
+            <div className="adm-cu-divider" />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="adm-btn-primary"
+                style={{ padding: '12px 28px', fontSize: '0.9rem', borderRadius: 10 }}
+                disabled={rulesSaving}
+                onClick={handleSaveRules}
+              >
+                {rulesSaving ? 'Saving…' : 'Save Rules'}
+              </button>
+            </div>
           </>)}
         </div>
       ) : (<>
@@ -3385,26 +3385,26 @@ function PayinOutPageImpl() {
             <div className="adm-al-date-field">
               <label className="adm-al-label" style={{ marginBottom: 4, display: 'block' }}>Status</label>
               <select className="adm-ord-rows-select" style={{ width: '100%', height: 38 }} value={status} onChange={e => setStatus(e.target.value)}>
-                {['All Status','APPROVED','PENDING','REJECTED'].map(s => <option key={s}>{s}</option>)}
+                {['All Status', 'APPROVED', 'PENDING', 'REJECTED'].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div className="adm-al-date-field">
               <label className="adm-al-label" style={{ marginBottom: 4, display: 'block' }}>Rows</label>
               <select className="adm-ord-rows-select" style={{ width: '100%', height: 38 }} value={rows} onChange={e => { setRows(e.target.value); setPage(1); }}>
-                {['10','25','50','100'].map(r => <option key={r} value={r}>{r}</option>)}
+                {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
           </div>
-          
+
           <div style={{ display: 'flex', gap: 10, marginTop: 16, borderTop: '1px solid #21262d', paddingTop: 16 }}>
             <div style={{ flex: 1, position: 'relative' }}>
               <i className="fas fa-search" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8b949e', fontSize: '0.8rem' }} />
-              <input 
-                className="adm-ord-search" 
-                style={{ width: '100%', paddingLeft: 34, height: 38 }} 
-                placeholder="Search by username, reference id..." 
+              <input
+                className="adm-ord-search"
+                style={{ width: '100%', paddingLeft: 34, height: 38 }}
+                placeholder="Search by username, reference id..."
                 value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }} 
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
               />
             </div>
             <button className="adm-pay-clear-btn" style={{ height: 38, padding: '0 20px' }} onClick={() => { setStatus('All Status'); setSearch(''); setDateFrom(''); setDateTo(''); }}>
@@ -3441,7 +3441,7 @@ function PayinOutPageImpl() {
                   {r.status}
                 </span>
               </div>
-              
+
               <div className="adm-pay-grid">
                 <div className="adm-pay-item">
                   <span className="adm-pay-dl">Transaction Type</span>
@@ -3485,16 +3485,16 @@ function PayinOutPageImpl() {
                   <div className="adm-pay-account-title">Payment Proof (Screenshot)</div>
                   <div style={{ marginTop: '8px', textAlign: 'center' }}>
                     <a href={r.screenshot_url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', position: 'relative' }}>
-                      <img 
-                        src={r.screenshot_url} 
-                        alt="Proof" 
-                        style={{ 
-                          maxWidth: '100%', 
-                          maxHeight: '200px', 
-                          borderRadius: '8px', 
+                      <img
+                        src={r.screenshot_url}
+                        alt="Proof"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: '200px',
+                          borderRadius: '8px',
                           border: '1px solid #30363d',
                           cursor: 'pointer'
-                        }} 
+                        }}
                       />
                       <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4, fontSize: '0.65rem', color: '#fff' }}>
                         Click to view full size
@@ -3602,19 +3602,19 @@ function accountToForm(a: PaymentAccount): PAFormState {
 
 function PaymentAccountsPageImpl() {
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
-  const [paLoading, setPaLoading]             = useState(false);
-  const [paError, setPaError]                 = useState<string | null>(null);
+  const [paLoading, setPaLoading] = useState(false);
+  const [paError, setPaError] = useState<string | null>(null);
   const [paActionLoading, setPaActionLoading] = useState<Record<string, boolean>>({});
-  const [showAddForm, setShowAddForm]         = useState(false);
-  const [editingAccount, setEditingAccount]   = useState<PaymentAccount | null>(null);
-  const [paToast, setPaToast]                 = useState<ToastState>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<PaymentAccount | null>(null);
+  const [paToast, setPaToast] = useState<ToastState>(null);
 
   // Form state (shared for add and edit)
   const [form, setForm] = useState<PAFormState>(emptyPAForm());
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   // Confirm dialog state for delete
-  const [deleteTarget, setDeleteTarget]   = useState<PaymentAccount | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PaymentAccount | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchAccounts = async () => {
@@ -3637,7 +3637,7 @@ function PaymentAccountsPageImpl() {
 
   useEffect(() => {
     fetchAccounts();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Open add form

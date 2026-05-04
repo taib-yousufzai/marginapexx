@@ -3,6 +3,14 @@
     {
       "path": "/api/kite/autologin?secret=qwertyuiopasdfghjklzxcvbnm",
       "schedule": "1 1 * * *"
+    },
+    {
+      "path": "/api/cron/sync-instruments?secret=qwertyuiopasdfghjklzxcvbnm",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/sync-prices?secret=qwertyuiopasdfghjklzxcvbnm",
+      "schedule": "*/5 9-16 * * 1-5"
     }
   ]
 }
