@@ -1,11 +1,3 @@
-/**
- * KiteConnectButton
- *
- * On mount:
- * 1. Tries to restore the Kite session from DB if cookie is missing
- * 2. Checks connection status
- * 3. Shows "Connect Zerodha" if not connected, green "LIVE" if connected
- */
 
 'use client';
 

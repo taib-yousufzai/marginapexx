@@ -268,6 +268,20 @@ export default function WatchlistPage() {
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
   const [searchText, setSearchText] = useState<string>('');
 
+  // Toast State
+  const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
+    msg: '', isError: false, visible: false
+  });
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (msg: string, isError: boolean) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ msg, isError, visible: true });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(t => ({ ...t, visible: false }));
+    }, 3500);
+  };
+
   // Trade Sheet State
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
   const [orderQty, setOrderQty] = useState<number>(25);
@@ -353,18 +367,28 @@ export default function WatchlistPage() {
     setOrderType('MARKET');
     setProductType('INTRADAY');
 
+    // Close detail sheet if open
+    const detailSheet = document.getElementById('detailSheet');
+    const detailOverlay = document.getElementById('detailSheetOverlay');
+    if (detailSheet) detailSheet.classList.remove('open');
+    if (detailOverlay) detailOverlay.classList.remove('active');
+
     // Trigger visual sheet open (compat with existing CSS)
     const sheet = document.getElementById('tradeSheet');
     const overlay = document.getElementById('tradeSheetOverlay');
+    const footer = document.getElementById('tsStickyFooter');
     if (sheet) sheet.classList.add('open');
     if (overlay) overlay.classList.add('active');
+    if (footer) footer.classList.add('visible');
   };
 
   const closeTradeSheet = () => {
     const sheet = document.getElementById('tradeSheet');
     const overlay = document.getElementById('tradeSheetOverlay');
+    const footer = document.getElementById('tsStickyFooter');
     if (sheet) sheet.classList.remove('open');
     if (overlay) overlay.classList.remove('active');
+    if (footer) footer.classList.remove('visible');
     setSelectedItem(null);
   };
 
@@ -387,21 +411,29 @@ export default function WatchlistPage() {
     });
 
     if (result.success) {
-      // Show success toast
-      if (typeof window !== 'undefined' && (window as any).showToast) {
-        (window as any).showToast(`Order Placed Successfully: ${side} ${orderQty} ${selectedItem.name}`, false);
-      }
       closeTradeSheet();
+      showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ₹${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
-      if (typeof window !== 'undefined' && (window as any).showToast) {
-        (window as any).showToast(`Order Failed: ${result.error}`, true);
-      }
+      showToast(`❌ Order Failed: ${result.error}`, true);
     }
   };
 
   const currentQuote = selectedItem ? quotes[selectedItem.kiteSymbol] : null;
   const currentLtp = currentQuote?.lastPrice ?? selectedItem?.price ?? 0;
+  
+  const isCrypto = selectedItem?.segment?.includes('Crypto') ?? false;
+  const formatPrice = (price: number) => {
+    if (isCrypto) return `$${price.toFixed(2)}`;
+    return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+  
   const ltpStr = currentLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const bidPrice = currentLtp - (currentLtp * 0.001);
+  const askPrice = currentLtp + (currentLtp * 0.001);
+
+  const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice 
+    ? orderQty * parseFloat(limitPrice) 
+    : orderQty * currentLtp;
 
   useEffect(() => {
     window.__kiteQuotes = window.__kiteQuotes || {};
@@ -491,12 +523,12 @@ export default function WatchlistPage() {
         <div className="ts-bidask-row">
           <div className="ts-ba-cell">
             <span className="ts-ba-label">BID</span>
-            <span className="ts-ba-val bid-val" id="sheetBid">₹22,434.20</span>
+            <span className="ts-ba-val bid-val" id="sheetBid">{formatPrice(bidPrice)}</span>
           </div>
           <div className="ts-ba-divider"></div>
           <div className="ts-ba-cell">
             <span className="ts-ba-label">ASK</span>
-            <span className="ts-ba-val ask-val" id="sheetAsk">₹22,479.40</span>
+            <span className="ts-ba-val ask-val" id="sheetAsk">{formatPrice(askPrice)}</span>
           </div>
         </div>
         <div className="sheet-content-scroll">
@@ -518,10 +550,10 @@ export default function WatchlistPage() {
             </div>
             <div className="ts-info-cards-wrap">
               <div className="ts-info-cards">
-                <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">25</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">500</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">1</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">25</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">1</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">--</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{orderUnit === 'lot' ? orderQty : '--'}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty : orderQty}</div></div>
               </div>
             </div>
             <div className="ts-qty-container">
@@ -578,8 +610,8 @@ export default function WatchlistPage() {
               </div>
             </div>
             <div className="ts-margin-card">
-              <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">₹ 4,50,000.00</span></div>
-              <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ 0.00</span></div>
+              <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">--</span></div>
+              <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Carry Charges</span><span className="ts-mv carry">₹ 0.00</span></div>
             </div>
             <div style={{ height: '8px' }}></div>
@@ -711,6 +743,36 @@ export default function WatchlistPage() {
         <div className="drawer-footer"><i className="fas fa-plus-circle"></i> Tap <span style={{ color: '#C62E2E' }}>+ Add</span> to watchlist | Browse all segments</div>
       </div>
 
+      {/* React-driven order toast */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: '90px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toast.isError ? '#C62E2E' : '#1a7a4a',
+          color: '#fff',
+          padding: '14px 22px',
+          borderRadius: '40px',
+          fontSize: '0.82rem',
+          fontWeight: '600',
+          fontFamily: 'Inter, sans-serif',
+          zIndex: 99999,
+          whiteSpace: 'nowrap',
+          maxWidth: '90vw',
+          overflowX: 'hidden',
+          textOverflow: 'ellipsis',
+          boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
+          opacity: toast.visible ? 1 : 0,
+          visibility: toast.visible ? 'visible' : 'hidden',
+          transition: 'opacity 0.3s ease, visibility 0.3s ease',
+          pointerEvents: 'none',
+        }}
+      >
+        {toast.msg}
+      </div>
+
+      {/* Legacy inline-script toast (kept for "add to watchlist" etc) */}
       <div id="toastMessageMobile" className="mobile-toast" style={{ opacity: 0, visibility: 'hidden' }}></div>
 
       <div id="multiSelectBar" style={{ display: 'none', position: 'absolute', bottom: '70px', left: '16px', right: '16px', zIndex: 100 }}>
