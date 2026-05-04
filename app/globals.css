@@ -28,7 +28,11 @@ body {
   }
   .app-container,
   .mobile-app,
-  .history-root {
+  .history-root,
+  .pd-root,
+  .rp-root,
+  .sec-root,
+  .notif-root {
     max-width: 100% !important;
     width: 100vw !important;
     height: 100dvh !important;

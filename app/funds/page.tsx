@@ -144,7 +144,6 @@ export default function FundsPage() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('tab') === 'withdraw') {
       setActiveTab('withdraw');
-      setAmount('100');
     }
 
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;

@@ -1289,7 +1289,7 @@ function BrokerActLogs({ apiCall }: any) {
       )}
 
       {/* ── Log list — scrollable ── */}
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 6 }).map((_, i) => <SkeletonLine key={i} height={62} style={{ borderRadius: 8 }} />)}
@@ -1622,7 +1622,7 @@ function BrokerPayInOut({ apiCall }: any) {
       </div>
 
       {/* ── Request list ── */}
-      <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 310px)' }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 4 }).map((_, i) => <SkeletonLine key={i} height={72} style={{ borderRadius: 10 }} />)}
