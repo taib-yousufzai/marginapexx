@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
+import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import './page.css';
 
@@ -11,6 +12,7 @@ interface WatchlistItem {
   name: string;
   symbol: string;
   kiteSymbol: string;
+  binanceSymbol?: string;  // e.g. 'BTCUSDT' — for crypto items
   price: number;
   change: string;
   segment: string;
@@ -45,6 +47,19 @@ function loadWatchlistFromStorage(): WatchlistItem[] {
 function saveWatchlistToStorage(items: WatchlistItem[]) {
   try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(items)); } catch {}
 }
+
+// ── Default Crypto Items (Binance) ──────────────────────────────────────────
+
+const DEFAULT_CRYPTO_ITEMS: WatchlistItem[] = [
+  { name: 'Bitcoin', symbol: 'BTC', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Ethereum', symbol: 'ETH', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'BNB', symbol: 'BNB', kiteSymbol: '', binanceSymbol: 'BNBUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Solana', symbol: 'SOL', kiteSymbol: '', binanceSymbol: 'SOLUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'XRP', symbol: 'XRP', kiteSymbol: '', binanceSymbol: 'XRPUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Dogecoin', symbol: 'DOGE', kiteSymbol: '', binanceSymbol: 'DOGEUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Cardano', symbol: 'ADA', kiteSymbol: '', binanceSymbol: 'ADAUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Polygon', symbol: 'MATIC', kiteSymbol: '', binanceSymbol: 'MATICUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+];
 
 function getDefaultWatchlistItems(): WatchlistItem[] {
   return [
@@ -86,7 +101,8 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
       high: 74500,
       low: 73800,
       close: 74230.15
-    }
+    },
+    ...DEFAULT_CRYPTO_ITEMS,
   ];
 }
 
@@ -203,13 +219,22 @@ function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
 interface InstrumentRowProps {
   item: WatchlistItem;
   quote?: QuoteData;
+  binanceQuote?: BinanceQuoteData;
   onTrade: (item: WatchlistItem) => void;
 }
 
-function InstrumentRow({ item, quote, onTrade }: InstrumentRowProps) {
-  const ltp = quote?.lastPrice ?? item.price;
-  const absoluteChange = ltp - item.close;
-  const percentChange = item.close !== 0 ? ((ltp - item.close) / item.close) * 100 : 0;
+function InstrumentRow({ item, quote, binanceQuote, onTrade }: InstrumentRowProps) {
+  // Crypto: use Binance data. Everything else: use Kite data.
+  const isCrypto = !!item.binanceSymbol;
+  const ltp = isCrypto
+    ? (binanceQuote?.lastPrice ?? 0)
+    : (quote?.lastPrice ?? item.price);
+  const prevClose = isCrypto
+    ? (binanceQuote?.close ?? 0)
+    : item.close;
+  const absoluteChange = ltp - prevClose;
+  const percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
+  const isLoading = isCrypto && !binanceQuote;
 
   const handleLeftClick = () => {
     if (typeof window !== 'undefined' && (window as any).openDetailSheet) {
@@ -226,18 +251,33 @@ function InstrumentRow({ item, quote, onTrade }: InstrumentRowProps) {
       <div className="instr-row__left" onClick={handleLeftClick} style={{ cursor: 'pointer' }}>
         <div className="instr-row__name-line">
           <span className="instr-row__name">{item.name}</span>
-          <span className="exchange-badge">{getExchangeBadge(item.segment)}</span>
+          <span className="exchange-badge" style={isCrypto ? { background: '#F0A500', color: '#fff' } : {}}>
+            {isCrypto ? 'BINANCE' : getExchangeBadge(item.segment)}
+          </span>
         </div>
         {item.contractDate && (
           <div className="instr-row__date">{item.contractDate}</div>
         )}
+        {isCrypto && (
+          <div className="instr-row__date" style={{ color: '#6B7280', fontSize: '0.7rem' }}>
+            {item.binanceSymbol}
+          </div>
+        )}
       </div>
       <div className="instr-row__right" onClick={handleRightClick} style={{ cursor: 'pointer' }}>
-        <div className="instr-row__ltp">LTP: {ltp.toFixed(2)}</div>
-        <div className="instr-row__abs-change">{absoluteChange.toFixed(2)}</div>
-        <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
-          {percentChange.toFixed(2)}%
-        </div>
+        {isLoading ? (
+          <div className="instr-row__ltp" style={{ color: '#9CA3AF' }}>Loading…</div>
+        ) : (
+          <>
+            <div className="instr-row__ltp">
+              {isCrypto ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `LTP: ${ltp.toFixed(2)}`}
+            </div>
+            <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
+            <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
+              {percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -339,6 +379,11 @@ export default function WatchlistPage() {
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
   const { quotes } = useKiteQuotes(kiteSymbols, 5000);
+
+  const binanceSymbols = watchlistItems
+    .map(i => i.binanceSymbol)
+    .filter((s): s is string => !!s);
+  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 5000);
 
   useEffect(() => {
     window.__kiteQuotes = quotes;
@@ -519,7 +564,15 @@ export default function WatchlistPage() {
             </div>
           </div>
           <div className="watchlist-cards-container">
-            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => <InstrumentRow key={item.symbol} item={item} quote={quotes[item.kiteSymbol]} onTrade={openTradeSheet} />)}
+            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
+              <InstrumentRow
+                key={item.symbol}
+                item={item}
+                quote={quotes[item.kiteSymbol]}
+                binanceQuote={item.binanceSymbol ? binanceQuotes[item.binanceSymbol] : undefined}
+                onTrade={openTradeSheet}
+              />
+            ))}
             <div id="watchlistMobileContainer"></div>
           </div>
         </div>
