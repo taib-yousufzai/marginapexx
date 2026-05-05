@@ -393,7 +393,7 @@ export default function Page() {
                             const changePercent = market.change > 0 ? `+${market.change}%` : `${market.change}%`;
                             const formattedPrice = market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 });
                             return (
-                              <div className="market-rectangle" key={i} onClick={() => router.push('/watchlist')}>
+                              <div className="market-rectangle" key={i} onClick={() => router.push(`/watchlist?symbol=${encodeURIComponent(market.name)}`)}>
                                 <div className="market-rect-header">
                                   <i className={market.icon}></i>
                                   <span className="market-rect-name">{market.name}</span>

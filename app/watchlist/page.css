@@ -2446,19 +2446,36 @@ body.dark .instrument-delete-btn:hover {
    RESPONSIVE — DESKTOP (≥1024px)
    ============================================= */
 @media (min-width: 1024px) {
-    /* Shell: full desktop width with sidebar offset */
+    /* Shell: centered column even on desktop */
     .mobile-app {
-        max-width: 100%;
+        max-width: 500px;
         width: 100%;
-        height: auto;
-        min-height: 100dvh;
-        margin: 0;
-        padding-left: var(--sidebar-width, 80px);
+        height: 100dvh;
+        margin: 0 auto;
+        padding-left: 0; /* Let it center naturally */
     }
 
-    /* Instrument grid: 3-column layout */
+    /* Side-by-side layout for sidebar + mobile app column */
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    /* Sidebar positioning fix to stay on the left of the screen */
+    .footer-section {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 1001;
+    }
+
+    /* Instrument grid: keep single column for mobile app look, or 2-column if container is wide enough */
     .watchlist-card-list {
-        grid-template-columns: repeat(3, 1fr);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
 }
 
@@ -2520,15 +2537,68 @@ body.dark .instrument-delete-btn:hover {
 
 /* ── Instrument Row (new layout) ── */
 .instr-row {
+  position: relative;
+  overflow: hidden;
   background: #FFFFFF;
   border-radius: 16px;
-  padding: 12px 14px;
   border: 1px solid #EEF2F8;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  min-height: 72px;
+  display: flex;
+  align-items: stretch;
+}
+
+.watchlist-card {
+  /* Alias for legacy script targeting */
+}
+
+/* Container for the content that moves during swipe */
+.wc-content {
+  position: relative;
+  z-index: 2;
+  background: #FFFFFF;
+  width: 100%;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  transition: transform 0.3s ease;
+}
+
+/* Background actions revealed on swipe */
+.wc-swipe-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  display: flex;
+  z-index: 1;
+}
+
+.wc-action-btn {
+  flex: 1;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   cursor: pointer;
+  font-size: 1.1rem;
+}
+
+.delete-btn {
+  background: #DC2626;
+  border-top-right-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+.wc-checkbox-wrapper {
+  display: none; /* Hidden by default, shown in selection mode */
+  align-items: center;
+  margin-right: 12px;
 }
 
 .instr-row__left {

@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
@@ -360,10 +360,9 @@ function EmptyState() {
   );
 }
 
-// ── WatchlistPage Component ──────────────────────────────────────────────────
-
-export default function WatchlistPage() {
+function WatchlistContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   useAuth();
   const { placeOrder, loading: placingOrder, error: placeOrderError } = useOrderEntry();
 
@@ -428,6 +427,34 @@ export default function WatchlistPage() {
     if (saved === 'dark') document.body.classList.add('dark');
     else document.body.classList.remove('dark');
   }, []);
+
+  // Handle deep linking from other screens (e.g. Home)
+  const deepLinkSymbol = searchParams.get('symbol');
+  useEffect(() => {
+    if (deepLinkSymbol && watchlistItems.length > 0) {
+      const query = deepLinkSymbol.toUpperCase();
+      // Find item that matches name or symbol
+      const item = watchlistItems.find(i => 
+        i.symbol.toUpperCase() === query || 
+        i.name.toUpperCase().includes(query) ||
+        (i.kiteSymbol && i.kiteSymbol.toUpperCase().includes(query))
+      );
+
+      if (item) {
+        // Switch to the appropriate tab if needed
+        const itemTab = getTabForItem(item);
+        if (itemTab !== activeTab) {
+          setActiveTab(itemTab);
+        }
+
+        // Auto-open the trade sheet
+        const timer = setTimeout(() => {
+          openTradeSheet(item);
+        }, 500); // Wait a bit for render
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [deepLinkSymbol, watchlistItems]);
 
   useEffect(() => {
     const raw = localStorage.getItem(WATCHLIST_KEY);
@@ -657,7 +684,7 @@ export default function WatchlistPage() {
               <span>Basket</span>
             </div>
           </div>
-          <div className="watchlist-cards-container">
+          <div className="watchlist-card-list">
             {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
               <InstrumentRow
                 key={item.symbol}
@@ -1253,10 +1280,12 @@ function buildInlineScript(): string {
             clearTimeout(longPressTimer);
             currentX = e.touches[0].clientX;
             var diff = currentX - startX;
+            var content = card.querySelector('.wc-content');
+            if (!content) return;
             if (diff < -50) {
-              card.style.transform = 'translateX(-80px)';
+              content.style.transform = 'translateX(-80px)';
             } else if (diff > 0) {
-              card.style.transform = 'translateX(0)';
+              content.style.transform = 'translateX(0)';
             }
           }, { passive: true });
 
@@ -1303,6 +1332,14 @@ function buildInlineScript(): string {
       attachSwipeHandlers();
     })();
   `;
+}
+
+export default function WatchlistPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist...</div>}>
+      <WatchlistContent />
+    </Suspense>
+  );
 }
 
 
