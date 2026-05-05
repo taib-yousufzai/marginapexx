@@ -149,8 +149,8 @@ export function validatePayRequest(
  */
 export function computeBalance(transactions: Array<{ type: string; amount: number }>): number {
   return transactions.reduce((balance, txn) => {
-    if (txn.type === 'DEPOSIT') return balance + txn.amount;
-    if (txn.type === 'WITHDRAWAL') return balance - txn.amount;
+    if (txn.type === 'DEPOSIT' || txn.type === 'PNL_CREDIT') return balance + txn.amount;
+    if (txn.type === 'WITHDRAWAL' || txn.type === 'PNL_DEBIT') return balance - txn.amount;
     return balance;
   }, 0);
 }

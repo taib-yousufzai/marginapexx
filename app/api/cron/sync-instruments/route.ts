@@ -23,9 +23,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Fetch the NSE instruments CSV from Zerodha
+    // 2. Fetch ALL instruments CSV from Zerodha
     console.log('[Sync Instruments] Fetching from Zerodha...');
-    const res = await fetch('https://api.kite.trade/instruments/NSE');
+    const res = await fetch('https://api.kite.trade/instruments');
     if (!res.ok) {
       throw new Error(`Failed to fetch instruments: ${res.statusText}`);
     }
@@ -43,10 +43,13 @@ export async function GET(request: Request) {
       console.warn('[Sync Instruments] CSV Parsing errors:', parsed.errors[0]);
     }
 
-    // 4. Filter for Equity instruments only and map to our schema
-    const instruments = parsed.data
-      .filter((row: any) => row.instrument_type === 'EQ' && row.segment === 'NSE')
-      .map((row: any) => ({
+    // 4. Map instruments and find front-month futures
+    const finalInstruments: any[] = [];
+    
+    // a. Add standard NSE Equities
+    const nseEquities = parsed.data.filter((row: any) => row.instrument_type === 'EQ' && row.segment === 'NSE');
+    for (const row of nseEquities as any[]) {
+      finalInstruments.push({
         id: `NSE:${row.tradingsymbol}`,
         instrument_token: parseInt(row.instrument_token, 10),
         tradingsymbol: row.tradingsymbol,
@@ -54,16 +57,50 @@ export async function GET(request: Request) {
         exchange: row.exchange,
         instrument_type: row.instrument_type,
         segment: row.segment,
-      }));
+      });
+    }
 
-    console.log(`[Sync Instruments] Found ${instruments.length} NSE EQ instruments.`);
+    // b. Group futures by exchange+name to find the earliest expiry (front-month)
+    // We strictly filter for monthly contracts (they contain JAN, FEB, etc. in their tradingsymbol)
+    const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const futures = parsed.data.filter((row: any) => 
+      (row.segment === 'MCX-FUT' || row.segment === 'CDS-FUT') && 
+      (row.instrument_type === 'FUT' || row.instrument_type === 'FUTCOM' || row.instrument_type === 'FUTCUR') &&
+      MONTHS.some(m => row.tradingsymbol.includes(m))
+    );
+    
+    const groups: Record<string, any[]> = {};
+    for (const row of futures as any[]) {
+      const key = `${row.exchange}:${row.name}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    }
+
+    // Create pseudo-instruments for the generic name mapped to the front-month contract
+    for (const [groupKey, contracts] of Object.entries(groups)) {
+      // Sort by expiry ascending
+      contracts.sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
+      const frontMonth = contracts[0];
+      
+      finalInstruments.push({
+        id: groupKey, // e.g. MCX:CRUDEOIL
+        instrument_token: parseInt(frontMonth.instrument_token, 10),
+        tradingsymbol: frontMonth.tradingsymbol, // e.g. CRUDEOIL24NOVFUT
+        name: frontMonth.name,
+        exchange: frontMonth.exchange,
+        instrument_type: 'MAPPED_FUT',
+        segment: frontMonth.segment,
+      });
+    }
+
+    console.log(`[Sync Instruments] Found ${nseEquities.length} NSE EQ and mapped ${Object.keys(groups).length} futures.`);
 
     // 5. Bulk Upsert to Supabase
-    if (instruments.length > 0) {
-      // Chunk upserts in case of Supabase limits (usually 10k is fine, but 1000 is safer)
+    if (finalInstruments.length > 0) {
+      // Chunk upserts in case of Supabase limits
       const chunkSize = 1000;
-      for (let i = 0; i < instruments.length; i += chunkSize) {
-        const chunk = instruments.slice(i, i + chunkSize);
+      for (let i = 0; i < finalInstruments.length; i += chunkSize) {
+        const chunk = finalInstruments.slice(i, i + chunkSize);
         const { error } = await supabase
           .from('instruments')
           .upsert(chunk, { onConflict: 'id' });
@@ -77,7 +114,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      count: instruments.length,
+      count: finalInstruments.length,
       message: 'Instruments synced successfully',
     });
   } catch (error: any) {

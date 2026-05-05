@@ -293,6 +293,29 @@ export default function WatchlistPage() {
   const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
   const scriptMountedRef = useRef(false);
 
+  // Available Balance State
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function fetchBalance() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/pay/balance', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const { balance } = await res.json();
+          setAvailableBalance(balance);
+        }
+      } catch (err) {
+        console.error('Failed to fetch available balance', err);
+      }
+    }
+    fetchBalance();
+  }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');
     if (saved === 'dark') document.body.classList.add('dark');
@@ -610,7 +633,7 @@ export default function WatchlistPage() {
               </div>
             </div>
             <div className="ts-margin-card">
-              <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">--</span></div>
+              <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">{availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Carry Charges</span><span className="ts-mv carry">₹ 0.00</span></div>
             </div>
@@ -714,7 +737,7 @@ export default function WatchlistPage() {
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Items</span><span id="basketTotalItems" className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>0</span></div>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Value</span><span id="basketTotalValue" className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>₹0.00</span></div>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Required Margin</span><span id="basketReqMargin" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹0.00</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span><span id="basketAvailBalance" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>₹4,50,000.00</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span><span id="basketAvailBalance" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
             <button 

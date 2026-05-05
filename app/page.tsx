@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 import Footer from '@/components/Footer';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
@@ -15,7 +16,7 @@ const KITE_INSTRUMENTS_ROW1 = [
   'NSE:NIFTY 50',
   'BSE:SENSEX',
   'NSE:NIFTY BANK',
-  'NSE:USDINR',
+  'CDS:USDINR',
 ];
 const KITE_INSTRUMENTS_ROW2 = [
   'MCX:CRUDEOIL',
@@ -69,13 +70,28 @@ const commodityInstruments = [
   { name: "NG MINI", icon: "fas fa-fire", sub: "Mini NG" }
 ];
 
-const expiryIndexes = [
-  { name: "NIFTY", fullName: "NIFTY 50", expiryDate: "28 Mar 2026", lotSize: 50, icon: "fas fa-chart-line" },
-  { name: "BANK NIFTY", fullName: "BANK NIFTY", expiryDate: "28 Mar 2026", lotSize: 25, icon: "fas fa-building" },
-  { name: "SENSEX", fullName: "SENSEX", expiryDate: "28 Mar 2026", lotSize: 15, icon: "fas fa-chart-simple" },
-  { name: "BANKEX", fullName: "BANKEX", expiryDate: "28 Mar 2026", lotSize: 20, icon: "fas fa-university" },
-  { name: "FIN NIFTY", fullName: "FINNIFTY", expiryDate: "28 Mar 2026", lotSize: 40, icon: "fas fa-chart-pie" },
-  { name: "MIDCAP NIFTY", fullName: "MIDCAP NIFTY", expiryDate: "28 Mar 2026", lotSize: 75, icon: "fas fa-chart-bar" }
+const getNextExpiryDate = (dayOfWeek: number) => {
+  const today = new Date();
+  const todayDay = today.getDay();
+  let daysUntil = dayOfWeek - todayDay;
+  if (daysUntil < 0) daysUntil += 7; // Next week
+  
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + daysUntil);
+  
+  return {
+    dateStr: targetDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    isToday: daysUntil === 0
+  };
+};
+
+const getExpiryIndexes = () => [
+  { name: "NIFTY", fullName: "NIFTY 50", expiry: getNextExpiryDate(4), lotSize: 50, icon: "fas fa-chart-line" },
+  { name: "BANK NIFTY", fullName: "BANK NIFTY", expiry: getNextExpiryDate(3), lotSize: 15, icon: "fas fa-building" }, // Updated Bank Nifty lot size is 15
+  { name: "SENSEX", fullName: "SENSEX", expiry: getNextExpiryDate(5), lotSize: 10, icon: "fas fa-chart-simple" }, // Updated Sensex lot size is 10
+  { name: "BANKEX", fullName: "BANKEX", expiry: getNextExpiryDate(5), lotSize: 15, icon: "fas fa-university" },
+  { name: "FIN NIFTY", fullName: "FINNIFTY", expiry: getNextExpiryDate(2), lotSize: 40, icon: "fas fa-chart-pie" }, // Updated Finnifty lot size is 40
+  { name: "MIDCAP NIFTY", fullName: "MIDCAP NIFTY", expiry: getNextExpiryDate(1), lotSize: 75, icon: "fas fa-chart-bar" } // Updated Midcap lot size is 75
 ];
 
 export default function Page() {
@@ -111,6 +127,22 @@ export default function Page() {
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [infoState, setInfoState] = useState<{ title: string, content: string } | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (data) setNotifications(data);
+    };
+    fetchNotifications();
+  }, [supabase]);
 
   // Live prices from Kite — only active after Kite OAuth login
   const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
@@ -182,41 +214,25 @@ export default function Page() {
     router.push('/funds');
   };
 
-  const handleNavNotification = () => showToast("🔔 New: Margin updates & trading reminders", 2000);
-  const handleNavSettings = () => { window.location.href = '/profile'; };
+  const handleNavNotification = () => setIsNotifDrawerOpen(true);
+  const handleNavSettings = () => { router.push('/profile'); };
 
   const handleWhatsAppCommunity = () => {
-    setInfoState({
-      title: "🎯 WHATSAPP COMMUNITY",
-      content: "✅ Free daily trading tips\n✅ Live market updates\n✅ Expert insights\n✅ Signal alerts\n\nClick to receive invite link (Demo)"
-    });
+    const link = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_LINK || 'https://chat.whatsapp.com/';
+    window.open(link, '_blank');
   };
 
   const handleWhatsAppSupport = () => {
-    setInfoState({
-      title: "📞 24/7 WHATSAPP SUPPORT",
-      content: "Get instant help anytime on WhatsApp.\n\nClick to chat with our support team."
-    });
+    const number = process.env.NEXT_PUBLIC_SUPPORT_NUMBER || '+1234567890';
+    window.open(`https://wa.me/${number.replace(/[^0-9]/g, '')}`, '_blank');
   };
 
   const redirectToMarginSettings = () => {
-    window.location.href = '/margin-settings';
+    router.push('/margin-settings');
   };
 
   const handleLearningCardClick = (item: { name: string; action: string; icon: string; iconClass: string; badge: string; id: number }) => {
-    const messages: Record<string, string> = {
-      algo: "🤖 TRY OUR ALGO: Automated trading strategies — start free trial!",
-      ai: "🧠 AI TRADING: Machine learning predictions — get beta access!",
-      indicator: "📊 Purchase Indicator: Advanced signals — starts at $49/mo",
-      course: "📚 Trading Course: Complete masterclass",
-      classes: "🎓 Trading Classes: Live weekly sessions",
-      books: "📖 Books: Download free e-books"
-    };
-    const msg = messages[item.action] || `✨ ${item.name}`;
-    setInfoState({
-      title: `🔹 ${item.name.toUpperCase()}`,
-      content: msg
-    });
+    router.push(`/learning/${item.action}`);
   };
 
   const instruments = activeCategory === 'equity' ? equityInstruments : commodityInstruments;
@@ -276,10 +292,7 @@ export default function Page() {
                   <div className="instruments-row">
                     {instruments.map((inst, i) => (
                       <div className="circle-instrument" key={i} onClick={() => {
-                        setInfoState({
-                          title: `📈 OPTION CHAIN: ${inst.name}`,
-                          content: `Expiry: ${new Date().toLocaleDateString()}\nCALL OI: 1,24,500 | PUT OI: 98,200`
-                        });
+                        router.push(`/option-chain?symbol=${encodeURIComponent(inst.name)}`);
                       }}>
                         <div className="circle-icon"><i className={inst.icon}></i></div>
                         <div className="circle-label">{inst.name}</div>
@@ -291,12 +304,24 @@ export default function Page() {
               </div>
 
               {/* Expiry Today */}
-              <div className="expiry-block" onClick={() => { setIsExpiryDrawerOpen(true); showToast("📅 Upcoming expiries — tap arrow to open option chain", 1500); }}>
+              <div className="expiry-block" onClick={() => { setIsExpiryDrawerOpen(true); showToast("📅 Select an expiry to view Option Chain", 1500); }}>
                 <div className="expiry-left">
                   <div className="expiry-icon"><i className="fas fa-calendar-day"></i></div>
                   <div className="expiry-text">
                     <h4>EXPIRY TODAY</h4>
-                    <p>Weekly &amp; Monthly contracts</p>
+                    <p>
+                      {(() => {
+                        const day = new Date().getDay();
+                        switch(day) {
+                          case 1: return "MIDCPNIFTY";
+                          case 2: return "FINNIFTY";
+                          case 3: return "BANKNIFTY";
+                          case 4: return "NIFTY 50";
+                          case 5: return "SENSEX & BANKEX";
+                          default: return "No Expiry Today";
+                        }
+                      })()}
+                    </p>
                   </div>
                 </div>
                 <div className="expiry-arrow"><i className="fas fa-arrow-right"></i></div>
@@ -332,8 +357,8 @@ export default function Page() {
                   </div>
                 )}
 
-                {/* Not connected — prompt to connect */}
-                {!kiteLoading && !kiteConnected && (
+                {/* Not connected and no quotes — prompt to connect */}
+                {!kiteLoading && !kiteConnected && Object.keys(quotes).length === 0 && (
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
@@ -358,8 +383,8 @@ export default function Page() {
                   </div>
                 )}
 
-                {/* Live data rows */}
-                {!kiteLoading && kiteConnected && (
+                {/* Data rows (either live or fallback) */}
+                {!kiteLoading && Object.keys(quotes).length > 0 && (
                   <div className="markets-two-rows">
                     {[marketRow1, marketRow2].map((row, rowIdx) => (
                       <div className="market-row-scroll" key={`market-row-${rowIdx}`}>
@@ -368,7 +393,7 @@ export default function Page() {
                             const changePercent = market.change > 0 ? `+${market.change}%` : `${market.change}%`;
                             const formattedPrice = market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 });
                             return (
-                              <div className="market-rectangle" key={i} onClick={() => showToast(`📊 ${market.name} : ${formattedPrice} (${changePercent})`, 1500)}>
+                              <div className="market-rectangle" key={i} onClick={() => router.push('/watchlist')}>
                                 <div className="market-rect-header">
                                   <i className={market.icon}></i>
                                   <span className="market-rect-name">{market.name}</span>
@@ -437,21 +462,52 @@ export default function Page() {
               <div className="expiry-sheet-close" onClick={() => setIsExpiryDrawerOpen(false)}><i className="fas fa-times"></i></div>
             </div>
             <div id="expiryListContainer">
-              {expiryIndexes.map((item, i) => (
+              {getExpiryIndexes().map((item, i) => (
                 <div className="expiry-list-item" key={i} onClick={() => {
                   setIsExpiryDrawerOpen(false);
-                  setInfoState({
-                    title: `📊 OPTION CHAIN: ${item.fullName}`,
-                    content: `Expiry: ${item.expiryDate}\nStrike range: ATM +- 500\nCall OI: 2.4L | Put OI: 1.9L`
-                  });
+                  router.push(`/option-chain?symbol=${encodeURIComponent(item.name)}`);
                 }}>
                   <div className="expiry-info">
                     <h4><i className={item.icon} style={{ marginRight: '6px' }}></i> {item.name}</h4>
-                    <p>📅 Expiry: {item.expiryDate} • Lot: {item.lotSize}</p>
+                    <p>
+                      📅 Expiry: {item.expiry.isToday ? <span style={{color:'#C62E2E', fontWeight:'bold'}}>Today</span> : item.expiry.dateStr} • Lot: {item.lotSize}
+                    </p>
                   </div>
                   <div className="expiry-arrow-btn"><i className="fas fa-arrow-right"></i></div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications Drawer */}
+        <div className={`expiry-half-drawer-overlay ${isNotifDrawerOpen ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setIsNotifDrawerOpen(false); }}>
+          <div className="expiry-half-sheet" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+            <div className="expiry-sheet-header" style={{ position: 'sticky', top: 0, background: 'var(--card-bg)', zIndex: 10 }}>
+              <h3><i className="fas fa-bell"></i> Notifications</h3>
+              <div className="expiry-sheet-close" onClick={() => setIsNotifDrawerOpen(false)}><i className="fas fa-times"></i></div>
+            </div>
+            <div style={{ padding: '0 0 20px 0' }}>
+              {notifications.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 20px' }}>
+                  <i className="fas fa-bell-slash" style={{ fontSize: '2rem', marginBottom: 10 }}></i>
+                  <p>No new notifications</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div key={n.id} style={{ 
+                    padding: '16px', 
+                    borderBottom: '1px solid var(--border-card)',
+                    background: n.read ? 'transparent' : 'rgba(5, 150, 105, 0.05)'
+                  }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{n.title}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{n.message}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 8 }}>
+                      {new Date(n.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

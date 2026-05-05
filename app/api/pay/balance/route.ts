@@ -62,12 +62,13 @@ export async function GET(request: Request): Promise<Response> {
     }
     const user = userData.user;
 
-    // Step 2: Query transactions table for all rows belonging to this user
+    // Step 2: Query transactions table for all APPROVED rows belonging to this user
     // Validates: Requirements 4.2
     const { data: transactions, error: txnError } = await adminClient
       .from('transactions')
       .select('type, amount')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .eq('status', 'APPROVED');
 
     if (txnError) {
       console.error('[GET /api/pay/balance] transactions fetch error:', txnError.message);

@@ -63,7 +63,8 @@ export function useKiteQuotes(
       });
 
       if (response.status === 401 || response.status === 403) {
-        setConnected(false);
+        // Only set error/loading if we don't have existing quotes
+        // We still want to preserve any quotes we might have fetched before
         setLoading(false);
         return;
       }
@@ -103,7 +104,7 @@ export function useKiteQuotes(
       }
 
       setQuotes(mapped);
-      setConnected(true);
+      // We don't setConnected(true) here because the response might be fallback data
       setError(null);
     } catch (err) {
       setError('Network error fetching quotes');
@@ -121,15 +122,9 @@ export function useKiteQuotes(
 
       try {
         const status = await kiteStatus();
-        if (!status.connected) {
-          setConnected(false);
-          setLoading(false);
-          return;
-        }
+        setConnected(status.connected);
       } catch {
         setConnected(false);
-        setLoading(false);
-        return;
       }
 
       if (cancelled) return;

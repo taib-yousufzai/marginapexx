@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { getAdminClient } from '@/lib/adminClient';
 
 export interface KiteQuote {
   instrument_token: number;
@@ -38,6 +39,44 @@ export interface KiteQuote {
   };
 }
 
+async function getFallbackQuotes(instruments: string[]) {
+  try {
+    const admin = getAdminClient();
+    const { data, error } = await admin
+      .from('market_quotes')
+      .select('*')
+      .in('id', instruments);
+      
+    if (error) {
+      console.error('Error fetching fallback quotes:', error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) return null;
+    
+    const mappedData: Record<string, Partial<KiteQuote>> = {};
+    for (const row of data) {
+      mappedData[row.id] = {
+        timestamp: row.quote_timestamp,
+        last_price: Number(row.last_price),
+        volume: Number(row.volume),
+        ohlc: {
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+        },
+        net_change: Number(row.last_price) - Number(row.close),
+      };
+    }
+    
+    return { data: mappedData };
+  } catch (err) {
+    console.error('Fallback query failed:', err);
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const apiKey = process.env.KITE_API_KEY;
   if (!apiKey) {
@@ -55,10 +94,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  if (!accessToken) {
-    return NextResponse.json({ error: 'Not authenticated with Kite' }, { status: 401 });
-  }
-
   // Get instruments from query string, e.g. ?instruments=NSE:NIFTY+50&instruments=BSE:SENSEX
   const { searchParams } = request.nextUrl;
   const instruments = searchParams.getAll('instruments');
@@ -67,10 +102,46 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'No instruments specified' }, { status: 400 });
   }
 
+  if (!accessToken) {
+    console.log('[Kite Quotes] No access token, falling back to database...');
+    const fallback = await getFallbackQuotes(instruments);
+    if (fallback) {
+      return NextResponse.json(fallback);
+    }
+    return NextResponse.json({ error: 'Not authenticated with Kite' }, { status: 401 });
+  }
+
   try {
-    // Build query string — Kite accepts repeated i= params
+    // 1. Fetch any mappings from our database for the requested generic instruments
+    const admin = getAdminClient();
+    const { data: mappings } = await admin
+      .from('instruments')
+      .select('id, tradingsymbol, exchange')
+      .in('id', instruments);
+      
+    // 2. Build the exact instrument keys required by Kite Connect
+    const realToRequestedMap: Record<string, string> = {};
+    const kiteRequestInstruments: string[] = [];
+
+    const mappedRecords = mappings || [];
+    
+    for (const reqId of instruments) {
+       const mapped = mappedRecords.find(m => m.id === reqId);
+       if (mapped && mapped.exchange) {
+           // For mapped pseudo-instruments, ask Kite for the true expiring symbol
+           const kiteId = `${mapped.exchange}:${mapped.tradingsymbol}`;
+           realToRequestedMap[kiteId] = reqId;
+           kiteRequestInstruments.push(kiteId);
+       } else {
+           // Standard instrument, ask Kite directly
+           realToRequestedMap[reqId] = reqId;
+           kiteRequestInstruments.push(reqId);
+       }
+    }
+
+    // 3. Build query string with the EXACT kite strings
     const params = new URLSearchParams();
-    instruments.forEach(inst => params.append('i', inst));
+    kiteRequestInstruments.forEach(inst => params.append('i', inst));
 
     const response = await fetch(`https://api.kite.trade/quote?${params.toString()}`, {
       headers: {
@@ -85,6 +156,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const body = await response.text();
       console.error('Kite quote API error:', response.status, body);
 
+      console.log('[Kite Quotes] API failed, falling back to database...');
+      const fallback = await getFallbackQuotes(kiteRequestInstruments);
+      if (fallback && fallback.data) {
+        // Map fallback keys back to requested generic names
+        const mappedFallback: Record<string, KiteQuote> = {};
+        for (const [kiteId, quote] of Object.entries(fallback.data)) {
+           const reqId = realToRequestedMap[kiteId];
+           if (reqId && quote) {
+              mappedFallback[reqId] = quote as KiteQuote;
+           }
+        }
+        return NextResponse.json({ data: mappedFallback });
+      }
+
       if (response.status === 403) {
         return NextResponse.json({ error: 'Kite session expired. Please reconnect.' }, { status: 403 });
       }
@@ -93,9 +178,25 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const data = await response.json() as { data: Record<string, KiteQuote> };
+    
+    // 4. Map the true Kite response keys back to the requested generic names
+    const mappedResponseData: Record<string, KiteQuote> = {};
+    for (const [kiteId, quote] of Object.entries(data.data || {})) {
+       const reqId = realToRequestedMap[kiteId];
+       if (reqId) {
+          mappedResponseData[reqId] = quote;
+       }
+    }
+    
+    data.data = mappedResponseData;
     return NextResponse.json(data);
   } catch (err) {
     console.error('Kite quotes fetch error:', err);
+    console.log('[Kite Quotes] Fetch exception, falling back to database...');
+    const fallback = await getFallbackQuotes(instruments);
+    if (fallback) {
+      return NextResponse.json(fallback);
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

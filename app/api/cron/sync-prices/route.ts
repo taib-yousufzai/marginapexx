@@ -33,12 +33,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Fetch list of instruments to sync from database
+    // 3. Fetch list of instruments to sync from database (NSE equities + mapped futures)
     const { data: instruments, error: instError } = await supabaseAdmin
       .from('instruments')
-      .select('id, tradingsymbol')
-      .eq('segment', 'NSE')
-      .eq('instrument_type', 'EQ');
+      .select('id, tradingsymbol, exchange')
+      .or('and(segment.eq.NSE,instrument_type.eq.EQ),instrument_type.eq.MAPPED_FUT');
 
     if (instError) throw instError;
     if (!instruments || instruments.length === 0) {
@@ -53,9 +52,9 @@ export async function GET(request: Request) {
     
     for (let i = 0; i < instruments.length; i += chunkSize) {
       const chunk = instruments.slice(i, i + chunkSize);
-      // Format: i=NSE:INFY&i=NSE:RELIANCE
+      // Format: i=NSE:INFY&i=MCX:CRUDEOIL24NOVFUT
       const queryParams = chunk
-        .map((inst) => `i=${encodeURIComponent(`NSE:${inst.tradingsymbol}`)}`)
+        .map((inst) => `i=${encodeURIComponent(`${inst.exchange || 'NSE'}:${inst.tradingsymbol}`)}`)
         .join('&');
 
       const url = `https://api.kite.trade/quote?${queryParams}`;
