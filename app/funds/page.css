@@ -219,10 +219,22 @@ body.dark .balance-card {
   color: #006400;
   font-size: 1.2rem;
   opacity: 0;
+  transition: opacity 0.2s;
 }
 
 .method-item.active .method-check {
   opacity: 1;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .submit-funds-btn {
@@ -347,7 +359,7 @@ body.dark .balance-card {
   opacity: 1;
 }
 
-@keyframes fadeInUp {
+@keyframes toastFadeInUp {
   from {
     opacity: 0;
     transform: translate(-50%, 20px);

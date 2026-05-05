@@ -41,6 +41,8 @@ export default function FundsPage() {
   const [activeAccount, setActiveAccount] = useState<ActiveAccountResponse | null>(null);
   const [activeAccountLoading, setActiveAccountLoading] = useState<boolean>(false);
   const [activeAccountError, setActiveAccountError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'BANK_TRANSFER' | null>(null);
+  const [showMethodSelector, setShowMethodSelector] = useState<boolean>(false);
 
   // Submission state
   const [utr, setUtr] = useState<string>('');
@@ -157,6 +159,8 @@ export default function FundsPage() {
     setActiveTab(tab);
     setSubmitted(false);
     setSubmitError(null);
+    setShowMethodSelector(false);
+    setPaymentMethod(null);
   };
 
   const handleProceedToPay = async () => {
@@ -186,6 +190,7 @@ export default function FundsPage() {
       const account: ActiveAccountResponse = await accountRes.json();
       setActiveAccount(account);
       setActiveAccountLoading(false);
+      setShowMethodSelector(true);
     } catch {
       setActiveAccountError('Network error. Please try again.');
       setActiveAccountLoading(false);
@@ -419,127 +424,150 @@ export default function FundsPage() {
                         UTR: {utr}
                       </div>
                     </div>
-                  ) : activeAccount ? (
-                    <div style={{
-                      background: 'var(--icon-bg)',
-                      border: '1px solid var(--border-card)',
-                      borderRadius: '12px',
-                      padding: '20px',
-                      marginBottom: '16px',
-                    }}>
-                      <div style={{ textAlign: 'center', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-                        {activeAccount.upi_id ? (
-                          <div style={{ padding: '16px', background: 'white', borderRadius: '12px', display: 'inline-block' }}>
-                            <QRCode 
-                              value={`upi://pay?pa=${activeAccount.upi_id}&pn=${encodeURIComponent(activeAccount.account_holder)}&am=${amount}&cu=INR`}
-                              size={200}
+                  ) : showMethodSelector ? (
+                    <div className="method-selector">
+                      <h4 style={{ fontSize: '0.85rem', marginBottom: '12px', color: 'var(--text-primary)' }}>Select Payment Method</h4>
+                      
+                      <div 
+                        className={`method-item ${paymentMethod === 'UPI' ? 'active' : ''}`}
+                        onClick={() => setPaymentMethod('UPI')}
+                      >
+                        <div className="method-icon"><i className="fas fa-mobile-alt"></i></div>
+                        <div className="method-info">
+                          <h4>UPI Payment</h4>
+                          <p>PhonePe, GPay, Paytm & others</p>
+                        </div>
+                        <i className="fas fa-check-circle method-check"></i>
+                      </div>
+
+                      <div 
+                        className={`method-item ${paymentMethod === 'BANK_TRANSFER' ? 'active' : ''}`}
+                        onClick={() => setPaymentMethod('BANK_TRANSFER')}
+                      >
+                        <div className="method-icon"><i className="fas fa-university"></i></div>
+                        <div className="method-info">
+                          <h4>Bank Transfer</h4>
+                          <p>IMPS, NEFT, RTGS</p>
+                        </div>
+                        <i className="fas fa-check-circle method-check"></i>
+                      </div>
+
+                      {paymentMethod && (
+                        <div style={{ marginTop: '20px', animation: 'fadeInUp 0.3s ease' }}>
+                          {paymentMethod === 'UPI' && (
+                            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                              <div style={{ padding: '16px', background: 'white', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
+                                <QRCode 
+                                  value={`upi://pay?pa=${activeAccount?.upi_id}&pn=${encodeURIComponent(activeAccount?.account_holder || '')}&am=${amount}&cu=INR`}
+                                  size={160}
+                                />
+                              </div>
+                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.upi_id || '', 'UPI ID')}>
+                                <div><strong>UPI ID</strong> <span>{activeAccount?.upi_id}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                              
+                              <button 
+                                className="submit-funds-btn"
+                                style={{ background: '#673ab7', marginBottom: '16px' }}
+                                onClick={() => {
+                                  const upiUrl = `upi://pay?pa=${activeAccount?.upi_id}&pn=${encodeURIComponent(activeAccount?.account_holder || '')}&am=${amount}&cu=INR`;
+                                  window.location.href = upiUrl;
+                                }}
+                              >
+                                <i className="fas fa-external-link-alt"></i>
+                                Pay via UPI App
+                              </button>
+                            </div>
+                          )}
+
+                          {paymentMethod === 'BANK_TRANSFER' && (
+                            <div style={{ marginBottom: '20px' }}>
+                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.account_holder || '', 'Account Holder')}>
+                                <div><strong>Account Holder</strong> <span>{activeAccount?.account_holder}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.account_no || '', 'Account Number')}>
+                                <div><strong>Account Number</strong> <span>{activeAccount?.account_no}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.bank_name || '', 'Bank Name')}>
+                                <div><strong>Bank Name</strong> <span>{activeAccount?.bank_name}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.ifsc || '', 'IFSC Code')}>
+                                <div><strong>IFSC Code</strong> <span>{activeAccount?.ifsc}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ marginBottom: '16px' }}>
+                            <label>12-Digit UTR / Reference Number <span style={{ color: '#c0392b' }}>*</span></label>
+                            <input
+                              type="text"
+                              value={utr}
+                              onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                              placeholder="e.g. 123456789012"
+                              style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--border-card)',
+                                background: 'var(--main-bg)',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.9rem',
+                                boxSizing: 'border-box',
+                                outline: 'none',
+                              }}
                             />
                           </div>
-                        ) : activeAccount.qr_image_url ? (
-                          <img
-                            src={activeAccount.qr_image_url}
-                            alt="Payment QR Code"
-                            style={{ maxWidth: '200px', width: '100%', borderRadius: '8px', border: '1px solid var(--border-card)' }}
-                          />
-                        ) : null}
-                      </div>
-                      <div style={{ marginBottom: '20px' }}>
-                        {activeAccount.upi_id && (
-                          <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.upi_id, 'UPI ID')}>
-                            <div><strong>UPI ID</strong> <span>{activeAccount.upi_id}</span></div>
-                            <i className="fas fa-copy copy-icon"></i>
-                          </div>
-                        )}
-                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.account_holder, 'Account Holder')}>
-                          <div><strong>Account Holder</strong> <span>{activeAccount.account_holder}</span></div>
-                          <i className="fas fa-copy copy-icon"></i>
-                        </div>
-                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.account_no, 'Account Number')}>
-                          <div><strong>Account Number</strong> <span>{activeAccount.account_no}</span></div>
-                          <i className="fas fa-copy copy-icon"></i>
-                        </div>
-                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.bank_name, 'Bank Name')}>
-                          <div><strong>Bank Name</strong> <span>{activeAccount.bank_name}</span></div>
-                          <i className="fas fa-copy copy-icon"></i>
-                        </div>
-                        <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.ifsc, 'IFSC Code')}>
-                          <div><strong>IFSC Code</strong> <span>{activeAccount.ifsc}</span></div>
-                          <i className="fas fa-copy copy-icon"></i>
-                        </div>
-                      </div>
 
-                      <div style={{ marginBottom: '16px' }}>
-                        <label>12-Digit UTR / Reference Number <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional)</span></label>
-                        <input
-                          type="text"
-                          value={utr}
-                          onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                          placeholder="e.g. 123456789012"
-                          style={{
-                            width: '100%',
-                            padding: '12px 16px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--border-card)',
-                            background: 'var(--main-bg)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.9rem',
-                            boxSizing: 'border-box',
-                            outline: 'none',
-                          }}
-                        />
-                        {utr.length > 0 && utr.length < 12 && (
-                          <p style={{ color: '#c0392b', fontSize: '0.75rem', marginTop: '4px' }}>Must be exactly 12 digits.</p>
-                        )}
-                      </div>
-
-                      <div style={{ marginBottom: '20px' }}>
-                        <label>Upload Payment Screenshot <span style={{ color: '#c0392b' }}>*</span></label>
-                        <div style={{
-                          border: '2px dashed var(--border-card)',
-                          borderRadius: '12px',
-                          padding: '20px',
-                          textAlign: 'center',
-                          background: 'var(--main-bg)',
-                          cursor: 'pointer',
-                          position: 'relative'
-                        }} onClick={() => document.getElementById('screenshot-upload')?.click()}>
-                          {screenshotPreview ? (
-                            <div style={{ position: 'relative' }}>
-                              <img src={screenshotPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} />
-                              <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click to change image</div>
+                          <div style={{ marginBottom: '20px' }}>
+                            <label>Upload Payment Screenshot <span style={{ color: '#c0392b' }}>*</span></label>
+                            <div style={{
+                              border: '2px dashed var(--border-card)',
+                              borderRadius: '12px',
+                              padding: '20px',
+                              textAlign: 'center',
+                              background: 'var(--main-bg)',
+                              cursor: 'pointer',
+                            }} onClick={() => document.getElementById('screenshot-upload')?.click()}>
+                              {screenshotPreview ? (
+                                <img src={screenshotPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '8px' }} />
+                              ) : (
+                                <>
+                                  <i className="fas fa-cloud-upload-alt" style={{ fontSize: '1.5rem', color: 'var(--text-secondary)', marginBottom: '4px' }}></i>
+                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>Click to upload proof</div>
+                                </>
+                              )}
+                              <input 
+                                id="screenshot-upload"
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleFileChange} 
+                                style={{ display: 'none' }}
+                              />
                             </div>
-                          ) : (
-                            <>
-                              <i className="fas fa-cloud-upload-alt" style={{ fontSize: '2rem', color: 'var(--text-secondary)', marginBottom: '8px' }}></i>
-                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>Click to upload proof</div>
-                              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>JPG, PNG or PDF (Max 5MB)</div>
-                            </>
-                          )}
-                          <input 
-                            id="screenshot-upload"
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleFileChange} 
-                            style={{ display: 'none' }}
-                          />
-                        </div>
-                      </div>
+                          </div>
 
-                      {submitError && (
-                        <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
-                          ❌ {submitError}
-                        </p>
+                          {submitError && (
+                            <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
+                              ❌ {submitError}
+                            </p>
+                          )}
+                          
+                          <button
+                            className="submit-funds-btn"
+                            onClick={handleConfirmDeposit}
+                            disabled={!screenshot || !utr || utr.length !== 12 || submitting}
+                            style={{ opacity: (!screenshot || !utr || utr.length !== 12 || submitting) ? 0.6 : 1 }}
+                          >
+                            <i className="fas fa-check"></i>
+                            {submitting ? 'Submitting…' : 'Confirm Deposit'}
+                          </button>
+                        </div>
                       )}
-                      
-                      <button
-                        className="submit-funds-btn"
-                        onClick={handleConfirmDeposit}
-                        disabled={!screenshot || submitting}
-                        style={{ opacity: (!screenshot || submitting) ? 0.6 : 1, cursor: (!screenshot || submitting) ? 'not-allowed' : 'pointer' }}
-                      >
-                        <i className="fas fa-check"></i>
-                        {submitting ? (uploading ? 'Uploading Proof…' : 'Submitting…') : 'Confirm Deposit'}
-                      </button>
                     </div>
                   ) : (
                     <>
@@ -719,7 +747,7 @@ export default function FundsPage() {
           fontSize: '0.9rem',
           fontWeight: 600,
           boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-          animation: 'fadeInUp 0.3s ease',
+          animation: 'toastFadeInUp 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
