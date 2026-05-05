@@ -5,6 +5,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
+import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import './page.css';
 
@@ -12,7 +13,8 @@ interface WatchlistItem {
   name: string;
   symbol: string;
   kiteSymbol: string;
-  binanceSymbol?: string;  // e.g. 'BTCUSDT' — for crypto items
+  binanceSymbol?: string;  // e.g. 'BTCUSDT' — crypto (Binance)
+  comexSymbol?: string;  // e.g. 'GC=F'    — COMEX USD price (Yahoo Finance proxy, paired with kiteSymbol for MCX)
   price: number;
   change: string;
   segment: string;
@@ -27,6 +29,8 @@ interface WatchlistItem {
 declare global {
   interface Window {
     __kiteQuotes: Record<string, QuoteData>;
+    __binanceQuotes: Record<string, BinanceQuoteData>;
+    __comexQuotes: Record<string, ComexQuoteData>;
     __watchlistItems: WatchlistItem[];
     __renderWatchlist: () => void;
     __addToWatchlistCallback: (item: WatchlistItem) => void;
@@ -45,7 +49,7 @@ function loadWatchlistFromStorage(): WatchlistItem[] {
 }
 
 function saveWatchlistToStorage(items: WatchlistItem[]) {
-  try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(items)); } catch {}
+  try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(items)); } catch { }
 }
 
 // ── Default Crypto Items (Binance) ──────────────────────────────────────────
@@ -59,6 +63,26 @@ const DEFAULT_CRYPTO_ITEMS: WatchlistItem[] = [
   { name: 'Dogecoin', symbol: 'DOGE', kiteSymbol: '', binanceSymbol: 'DOGEUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
   { name: 'Cardano', symbol: 'ADA', kiteSymbol: '', binanceSymbol: 'ADAUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
   { name: 'Polygon', symbol: 'MATIC', kiteSymbol: '', binanceSymbol: 'MATICUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+];
+
+// ── Default Forex Items (Zerodha CDS segment — INR pairs) ──────────────────
+// Update expiry month as contracts roll (format: CDS:XYZINR26MONFUT)
+
+const DEFAULT_FOREX_ITEMS: WatchlistItem[] = [
+  { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26MAYFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26MAYFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26MAYFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'JPY/INR', symbol: 'JPYINR_FUT', kiteSymbol: 'CDS:JPYINR26MAYFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+];
+
+// ── Default COMEX Items (MCX ₹ via Kite + COMEX $ via Yahoo proxy) ──────────────
+// Rows with both kiteSymbol + comexSymbol show a ₹⇄$ toggle pill
+
+const DEFAULT_COMEX_ITEMS: WatchlistItem[] = [
+  { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULYFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26MAYFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'May 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JUNFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
 ];
 
 function getDefaultWatchlistItems(): WatchlistItem[] {
@@ -103,6 +127,8 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
       close: 74230.15
     },
     ...DEFAULT_CRYPTO_ITEMS,
+    ...DEFAULT_FOREX_ITEMS,
+    ...DEFAULT_COMEX_ITEMS,
   ];
 }
 
@@ -112,40 +138,42 @@ export type TabLabel =
   | 'WATCHLIST'
   | 'INDEX-FUT' | 'INDEX-OPT'
   | 'STOCK-FUT' | 'STOCK-OPT'
-  | 'MCX-FUT'   | 'MCX-OPT'
-  | 'NSF-EQ'    | 'CRYPTO'
-  | 'FOREX'     | 'COI';
+  | 'MCX-FUT' | 'MCX-OPT'
+  | 'NSF-EQ' | 'CRYPTO'
+  | 'FOREX' | 'COI';
 
 export const TAB_LABELS: TabLabel[] = [
   'WATCHLIST',
   'INDEX-FUT', 'INDEX-OPT',
   'STOCK-FUT', 'STOCK-OPT',
-  'MCX-FUT',   'MCX-OPT',
-  'NSF-EQ',    'CRYPTO',
-  'FOREX',     'COI',
+  'MCX-FUT', 'MCX-OPT',
+  'NSF-EQ', 'CRYPTO',
+  'FOREX', 'COI',
 ];
 
 // ── Segment → Tab Mapping ────────────────────────────────────────────────────
 
 export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
-  'NSE - Futures':       'INDEX-FUT',
-  'BSE - Futures':       'INDEX-FUT',
-  'NSE - Options':       'INDEX-OPT',
-  'BSE - Options':       'INDEX-OPT',
+  'NSE - Futures': 'INDEX-FUT',
+  'BSE - Futures': 'INDEX-FUT',
+  'NSE - Options': 'INDEX-OPT',
+  'BSE - Options': 'INDEX-OPT',
   'NSE - Stock Futures': 'STOCK-FUT',
   'BSE - Stock Futures': 'STOCK-FUT',
   'NSE - Stock Options': 'STOCK-OPT',
   'BSE - Stock Options': 'STOCK-OPT',
-  'MCX - Futures':       'MCX-FUT',
-  'MCX - Options':       'MCX-OPT',
-  'NSE - Equity':        'NSF-EQ',
-  'BSE - Equity':        'NSF-EQ',
-  'Crypto':              'CRYPTO',
-  'CRYPTO':              'CRYPTO',
-  'Forex':               'FOREX',
-  'FOREX':               'FOREX',
-  'CDS - Futures':       'FOREX',
-  'CDS - Options':       'FOREX',
+  'MCX - Futures': 'MCX-FUT',
+  'MCX - Options': 'MCX-OPT',
+  'NSE - Equity': 'NSF-EQ',
+  'BSE - Equity': 'NSF-EQ',
+  'Crypto': 'CRYPTO',
+  'CRYPTO': 'CRYPTO',
+  'Forex': 'FOREX',
+  'FOREX': 'FOREX',
+  'CDS - Futures': 'FOREX',
+  'CDS - Options': 'FOREX',
+  'COMEX - Futures': 'COI',
+  'COMEX - Options': 'COI',
 };
 
 // ── Pure Helper Functions ────────────────────────────────────────────────────
@@ -220,21 +248,33 @@ interface InstrumentRowProps {
   item: WatchlistItem;
   quote?: QuoteData;
   binanceQuote?: BinanceQuoteData;
+  comexQuote?: ComexQuoteData;
   onTrade: (item: WatchlistItem) => void;
 }
 
-function InstrumentRow({ item, quote, binanceQuote, onTrade }: InstrumentRowProps) {
-  // Crypto: use Binance data. Everything else: use Kite data.
+function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade }: InstrumentRowProps) {
+  const [priceView, setPriceView] = useState<'kite' | 'comex'>('kite');
+
   const isCrypto = !!item.binanceSymbol;
-  const ltp = isCrypto
-    ? (binanceQuote?.lastPrice ?? 0)
-    : (quote?.lastPrice ?? item.price);
-  const prevClose = isCrypto
-    ? (binanceQuote?.close ?? 0)
-    : item.close;
+  const hasDualView = !!item.kiteSymbol && !!item.comexSymbol;
+  const showComex = hasDualView && priceView === 'comex';
+
+  let ltp = 0;
+  let prevClose = 0;
+  if (isCrypto) {
+    ltp = binanceQuote?.lastPrice ?? 0;
+    prevClose = binanceQuote?.close ?? 0;
+  } else if (showComex) {
+    ltp = comexQuote?.lastPrice ?? 0;
+    prevClose = comexQuote?.close ?? 0;
+  } else {
+    ltp = quote?.lastPrice ?? item.price;
+    prevClose = item.close;
+  }
+
   const absoluteChange = ltp - prevClose;
   const percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
-  const isLoading = isCrypto && !binanceQuote;
+  const isLoading = isCrypto ? !binanceQuote : (showComex && !comexQuote);
 
   const handleLeftClick = () => {
     if (typeof window !== 'undefined' && (window as any).openDetailSheet) {
@@ -247,37 +287,60 @@ function InstrumentRow({ item, quote, binanceQuote, onTrade }: InstrumentRowProp
   };
 
   return (
-    <div className="instr-row">
-      <div className="instr-row__left" onClick={handleLeftClick} style={{ cursor: 'pointer' }}>
-        <div className="instr-row__name-line">
-          <span className="instr-row__name">{item.name}</span>
-          <span className="exchange-badge" style={isCrypto ? { background: '#F0A500', color: '#fff' } : {}}>
-            {isCrypto ? 'BINANCE' : getExchangeBadge(item.segment)}
-          </span>
-        </div>
-        {item.contractDate && (
-          <div className="instr-row__date">{item.contractDate}</div>
-        )}
-        {isCrypto && (
-          <div className="instr-row__date" style={{ color: '#6B7280', fontSize: '0.7rem' }}>
-            {item.binanceSymbol}
-          </div>
-        )}
+    <div className="instr-row watchlist-card" data-symbol={item.symbol}>
+      <div className="wc-swipe-actions">
+        <button className="wc-action-btn delete-btn" onClick={(e) => { e.stopPropagation(); (window as any).removeFromWatchlist?.(item.symbol); }}>
+          <i className="fas fa-trash-alt"></i>
+        </button>
       </div>
-      <div className="instr-row__right" onClick={handleRightClick} style={{ cursor: 'pointer' }}>
-        {isLoading ? (
-          <div className="instr-row__ltp" style={{ color: '#9CA3AF' }}>Loading…</div>
-        ) : (
-          <>
-            <div className="instr-row__ltp">
-              {isCrypto ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `LTP: ${ltp.toFixed(2)}`}
+      <div className="wc-content instr-row__content">
+        <div className="instr-row__left" onClick={handleLeftClick} style={{ cursor: 'pointer' }}>
+          <div className="instr-row__name-line">
+            <span className="instr-row__name">{item.name}</span>
+            <span className="exchange-badge" style={
+              isCrypto ? { background: '#F0A500', color: '#fff' } :
+                showComex ? { background: '#4A148C', color: '#fff' } : {}
+            }>
+              {isCrypto ? 'BINANCE' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
+            </span>
+          </div>
+          {item.contractDate && (
+            <div className="instr-row__date">{item.contractDate}</div>
+          )}
+          {isCrypto && (
+            <div className="instr-row__date" style={{ color: '#6B7280', fontSize: '0.7rem' }}>{item.binanceSymbol}</div>
+          )}
+          {hasDualView && (
+            <div
+              onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
+              style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
+            >
+              {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
             </div>
-            <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
-            <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
-              {percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%
-            </div>
-          </>
-        )}
+          )}
+        </div>
+        <div className="instr-row__right" onClick={handleRightClick} style={{ cursor: 'pointer' }}>
+          {isLoading ? (
+            <div className="instr-row__ltp" style={{ color: '#9CA3AF' }}>Loading…</div>
+          ) : (
+            <>
+              <div className="instr-row__ltp">
+                {isCrypto
+                  ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : showComex
+                    ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `LTP: ${ltp.toFixed(2)}`}
+              </div>
+              <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
+              <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
+                {percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%
+              </div>
+            </>
+          )}
+        </div>
+        <div className="wc-checkbox-wrapper" style={{ display: 'none' }}>
+          <input type="checkbox" className="wc-checkbox" onClick={(e) => e.stopPropagation()} />
+        </div>
       </div>
     </div>
   );
@@ -322,6 +385,10 @@ export default function WatchlistPage() {
     }, 3500);
   };
 
+  useEffect(() => {
+    (window as any).showToast = showToast;
+  }, [showToast]);
+
   // Trade Sheet State
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
   const [orderQty, setOrderQty] = useState<number>(25);
@@ -365,16 +432,36 @@ export default function WatchlistPage() {
   useEffect(() => {
     const raw = localStorage.getItem(WATCHLIST_KEY);
 
-      // Key doesn't exist = first time user → populate defaults
-      if (raw === null) {
-        const defaults = getDefaultWatchlistItems();
-        setWatchlistItems(defaults);
-        saveWatchlistToStorage(defaults);
+    if (raw === null) {
+      const defaults = getDefaultWatchlistItems();
+      setWatchlistItems(defaults);
+      saveWatchlistToStorage(defaults);
+    } else {
+      let loaded = loadWatchlistFromStorage();
+
+      // MIGRATION: Update legacy items to new segments/symbols
+      let migrated = false;
+      const updated = loaded.map(item => {
+        // Upgrade legacy Forex (Frankfurter) to new CDS pairs
+        if ((item.category === 'FOREX' || item.segment === 'Forex') && !item.kiteSymbol.startsWith('CDS:')) {
+          const match = DEFAULT_FOREX_ITEMS.find(d => d.name === item.name || d.symbol === item.symbol);
+          if (match) { migrated = true; return { ...match }; }
+        }
+        // Upgrade legacy COMEX to dual-source MCX pairs
+        if (item.category === 'COI' && (!item.kiteSymbol || !item.kiteSymbol.startsWith('MCX:'))) {
+          const match = DEFAULT_COMEX_ITEMS.find(d => d.name === item.name || d.name.includes(item.name) || item.name.includes(d.name));
+          if (match) { migrated = true; return { ...match }; }
+        }
+        return item;
+      });
+
+      if (migrated) {
+        setWatchlistItems(updated);
+        saveWatchlistToStorage(updated);
       } else {
-        // Key exists (even if empty array) = user has interacted with watchlist
-        const loaded = loadWatchlistFromStorage();
         setWatchlistItems(loaded);
       }
+    }
   }, []);
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
@@ -385,13 +472,20 @@ export default function WatchlistPage() {
     .filter((s): s is string => !!s);
   const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 5000);
 
+  const comexSymbols = watchlistItems
+    .map(i => i.comexSymbol)
+    .filter((s): s is string => !!s);
+  const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 30_000);
+
   useEffect(() => {
     window.__kiteQuotes = quotes;
+    window.__binanceQuotes = binanceQuotes;
+    window.__comexQuotes = comexQuotes;
     window.__watchlistItems = watchlistItems;
-    if (scriptMountedRef.current && typeof window.__renderWatchlist === 'function') {
-      window.__renderWatchlist();
+    if (scriptMountedRef.current && typeof (window as any).attachSwipeHandlers === 'function') {
+      (window as any).attachSwipeHandlers();
     }
-  }, [quotes, watchlistItems]);
+  }, [quotes, binanceQuotes, comexQuotes, watchlistItems]);
 
   useEffect(() => {
     window.__addToWatchlistCallback = (item: WatchlistItem) => {
@@ -411,15 +505,15 @@ export default function WatchlistPage() {
     };
     // Expose React handlers to window for legacy scripts
     (window as any).__reactOpenTradeSheet = (symbol: string) => {
-      const item = window.__watchlistItems?.find(i => i.symbol === symbol) 
-                || watchlistItems.find(i => i.symbol === symbol);
+      const item = window.__watchlistItems?.find(i => i.symbol === symbol)
+        || watchlistItems.find(i => i.symbol === symbol);
       if (item) {
         openTradeSheet(item);
       }
     };
     (window as any).__reactOpenDetailSheet = (symbol: string) => {
-      const item = window.__watchlistItems?.find(i => i.symbol === symbol) 
-                || watchlistItems.find(i => i.symbol === symbol);
+      const item = window.__watchlistItems?.find(i => i.symbol === symbol)
+        || watchlistItems.find(i => i.symbol === symbol);
       if (item) {
         setSelectedItem(item);
       }
@@ -488,19 +582,19 @@ export default function WatchlistPage() {
 
   const currentQuote = selectedItem ? quotes[selectedItem.kiteSymbol] : null;
   const currentLtp = currentQuote?.lastPrice ?? selectedItem?.price ?? 0;
-  
+
   const isCrypto = selectedItem?.segment?.includes('Crypto') ?? false;
   const formatPrice = (price: number) => {
     if (isCrypto) return `$${price.toFixed(2)}`;
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-  
+
   const ltpStr = currentLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 });
   const bidPrice = currentLtp - (currentLtp * 0.001);
   const askPrice = currentLtp + (currentLtp * 0.001);
 
-  const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice 
-    ? orderQty * parseFloat(limitPrice) 
+  const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice
+    ? orderQty * parseFloat(limitPrice)
     : orderQty * currentLtp;
 
   useEffect(() => {
@@ -570,6 +664,7 @@ export default function WatchlistPage() {
                 item={item}
                 quote={quotes[item.kiteSymbol]}
                 binanceQuote={item.binanceSymbol ? binanceQuotes[item.binanceSymbol] : undefined}
+                comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
                 onTrade={openTradeSheet}
               />
             ))}
@@ -613,12 +708,12 @@ export default function WatchlistPage() {
               <div className="ts-qty-lot-row">
                 <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
                 <div className="ts-toggle-switch" id="qtyLotToggle">
-                  <button 
-                    className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`} 
+                  <button
+                    className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
                     onClick={() => setOrderUnit('qty')}
                   >QTY</button>
-                  <button 
-                    className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`} 
+                  <button
+                    className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
                     onClick={() => setOrderUnit('lot')}
                   >LOT</button>
                 </div>
@@ -648,9 +743,9 @@ export default function WatchlistPage() {
               <div className="ts-section-label">Order Type</div>
               <div className="ts-pill-group" id="orderTypeContainer">
                 {(['MARKET', 'LIMIT', 'SL-M', 'GTT'] as OrderType[]).map(type => (
-                  <button 
+                  <button
                     key={type}
-                    className={`ts-pill ${orderType === type ? 'active' : ''}`} 
+                    className={`ts-pill ${orderType === type ? 'active' : ''}`}
                     onClick={() => setOrderType(type)}
                   >{type}</button>
                 ))}
@@ -658,12 +753,12 @@ export default function WatchlistPage() {
             </div>
             <div className="ts-section-card" id="priceInputCard" style={{ display: orderType === 'LIMIT' ? 'block' : 'none' }}>
               <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input 
-                type="number" 
-                id="tradePriceInput" 
-                placeholder="0.00" 
-                className="price-input" 
-                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} 
+              <input
+                type="number"
+                id="tradePriceInput"
+                placeholder="0.00"
+                className="price-input"
+                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
                 value={limitPrice}
                 onChange={(e) => setLimitPrice(e.target.value)}
               />
@@ -675,12 +770,12 @@ export default function WatchlistPage() {
             <div className="ts-section-card">
               <div className="ts-section-label">Product Type</div>
               <div className="ts-pill-group" id="productTypeContainer">
-                <button 
-                  className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`} 
+                <button
+                  className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`}
                   onClick={() => setProductType('INTRADAY')}
                 >INTRADAY</button>
-                <button 
-                  className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`} 
+                <button
+                  className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`}
                   onClick={() => setProductType('CARRY')}
                 >CARRY</button>
               </div>
@@ -696,17 +791,17 @@ export default function WatchlistPage() {
       </div>
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
-        <button 
-          className="ts-btn ts-btn-buy" 
-          id="sheetBuyBtn" 
+        <button
+          className="ts-btn ts-btn-buy"
+          id="sheetBuyBtn"
           disabled={placingOrder}
           onClick={() => handlePlaceOrder('BUY')}
         >
           {placingOrder ? 'PLACING...' : 'BUY'}
         </button>
-        <button 
-          className="ts-btn ts-btn-sell" 
-          id="sheetSellBtn" 
+        <button
+          className="ts-btn ts-btn-sell"
+          id="sheetSellBtn"
           disabled={placingOrder}
           onClick={() => handlePlaceOrder('SELL')}
         >
@@ -761,15 +856,15 @@ export default function WatchlistPage() {
               <div id="detailContractDate" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>28 Mar 2025</div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                id="detailBuyBtn" 
+              <button
+                id="detailBuyBtn"
                 style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
                 onClick={() => openTradeSheet(selectedItem!)}
               >
                 <i className="fas fa-arrow-up"></i> BUY
               </button>
-              <button 
-                id="detailSellBtn" 
+              <button
+                id="detailSellBtn"
                 style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
                 onClick={() => openTradeSheet(selectedItem!)}
               >
@@ -793,8 +888,8 @@ export default function WatchlistPage() {
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span><span id="basketAvailBalance" style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-            <button 
-              id="basketExecuteBtn" 
+            <button
+              id="basketExecuteBtn"
               style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0 }}
               onClick={() => {
                 if (typeof window !== 'undefined' && (window as any).showToast) {
@@ -842,26 +937,17 @@ export default function WatchlistPage() {
           opacity: toast.visible ? 1 : 0,
           visibility: toast.visible ? 'visible' : 'hidden',
           transition: 'opacity 0.3s ease, visibility 0.3s ease',
-          pointerEvents: 'none',
         }}
       >
         {toast.msg}
       </div>
 
-      {/* Legacy inline-script toast (kept for "add to watchlist" etc) */}
-      <div id="toastMessageMobile" className="mobile-toast" style={{ opacity: 0, visibility: 'hidden' }}></div>
-
-      <div id="multiSelectBar" style={{ display: 'none', position: 'absolute', bottom: '70px', left: '16px', right: '16px', zIndex: 100 }}>
-        <div className="multi-select-bar" style={{ background: '#FFF', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: '1px solid #E8ECF0' }}>
-          <div className="multi-select-row top-row" style={{ padding: '8px 16px', borderBottom: '1px solid #E8ECF0' }}>
-            <span className="selected-count" id="selectedCount" style={{ marginLeft: 0, background: '#E9F6EF', color: '#006400', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '800' }}>0 in basket</span>
-          </div>
-          <div className="multi-select-row bottom-row" style={{ padding: '10px 16px', background: '#F8FAFF' }}>
-            <div className="delete-actions" style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button className="exit-selection-btn" id="exitSelectionBtn" style={{ flex: 1, background: '#F0F2F5', color: '#5B677E', border: 'none', borderRadius: '30px', padding: '10px', fontWeight: '600', cursor: 'pointer' }}><i className="fas fa-times"></i> Cancel</button>
-              <button className="basket-create-btn disabled" id="createBasketBtn" style={{ background: '#2C8E5A', color: '#fff', border: 'none', borderRadius: '30px', padding: '10px 18px', fontSize: '0.9rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', flex: 2, justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(44,142,90,0.2)' }}><i className="fas fa-shopping-basket"></i> View Basket</button>
-            </div>
-          </div>
+      <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: '#fff', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
+        <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F3F4F6' }}>
+          <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#111827' }}>0 in basket</span>
+        </div>
+        <div className="multi-select-row bottom-row" style={{ padding: '10px 16px' }}>
+          <button id="exitSelectionBtn" style={{ width: '100%', background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700' }}>Exit Selection</button>
         </div>
       </div>
 
@@ -870,8 +956,353 @@ export default function WatchlistPage() {
   );
 }
 
+
 function buildInlineScript(): string {
   return `
-var tradingSegments=[{name:'INDEX - FUTURE',icon:'fa-chart-line',instruments:[{name:'NIFTY FUT',symbol:'NIFTY_FUT',kiteSymbol:'NSE:NIFTY 50',price:22456.80,change:'+0.45%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:22350,high:22580,low:22320,close:22456.80},{name:'SENSEX FUT',symbol:'SENSEX_FUT',kiteSymbol:'BSE:SENSEX',price:74230.15,change:'+0.32%',segment:'BSE - Futures',contractDate:'28 Mar 2025',open:73950,high:74500,low:73800,close:74230.15},{name:'BANKNIFTY FUT',symbol:'BANKNIFTY_FUT',kiteSymbol:'NSE:NIFTY BANK',price:48210.50,change:'-0.21%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:48350,high:48500,low:48100,close:48210.50},{name:'FINNIFTY FUT',symbol:'FINNIFTY_FUT',kiteSymbol:'NSE:NIFTY FIN SERVICE',price:21234.90,change:'+0.67%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:21080,high:21350,low:21050,close:21234.90},{name:'MIDCAP NIFTY FUT',symbol:'MIDCP_FUT',kiteSymbol:'NSE:NIFTY MIDCAP 50',price:11820.45,change:'+0.88%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:11700,high:11880,low:11680,close:11820.45}]},{name:'INDEX - OPTIONS',icon:'fa-chart-gantt',subCategories:[{name:'NIFTY Options',instruments:[{name:'NIFTY 22500 CE',symbol:'NIFTY22500CE',kiteSymbol:'',price:125.40,change:'+2.3%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:122,high:128.50,low:121,close:125.40},{name:'NIFTY 22400 PE',symbol:'NIFTY22400PE',kiteSymbol:'',price:78.20,change:'-1.2%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:79.50,high:80,low:77.50,close:78.20}]},{name:'SENSEX Options',instruments:[{name:'SENSEX 74500 CE',symbol:'SENSEX745CE',kiteSymbol:'',price:210.30,change:'+0.9%',segment:'BSE - Options',contractDate:'28 Mar 2025',open:208,high:212.50,low:207.50,close:210.30}]},{name:'BANKEX Options',instruments:[{name:'BANKEX 52000 CE',symbol:'BANKEX520CE',kiteSymbol:'',price:310.75,change:'+1.1%',segment:'BSE - Options',contractDate:'28 Mar 2025',open:307,high:314,low:306.50,close:310.75}]},{name:'BANKNIFTY Options',instruments:[{name:'BANKNIFTY 48500 CE',symbol:'BN48500CE',kiteSymbol:'',price:215.60,change:'-0.4%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:216.50,high:218,low:214,close:215.60},{name:'BANKNIFTY 48000 PE',symbol:'BN48000PE',kiteSymbol:'',price:140.25,change:'+0.7%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:139,high:142,low:138.50,close:140.25}]},{name:'FINNIFTY Options',instruments:[{name:'FINNIFTY 21500 CE',symbol:'FIN21500CE',kiteSymbol:'',price:92.50,change:'+1.5%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:91,high:94,low:90.50,close:92.50}]},{name:'MID CAP NIFTY Options',instruments:[{name:'MIDCPNIFTY 11800 CE',symbol:'MIDCP118CE',kiteSymbol:'',price:65.30,change:'+2.1%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:63.80,high:66.50,low:63.50,close:65.30}]}]},{name:'STOCKS - FUTURE',icon:'fa-building',instruments:[{name:'RELIANCE FUT',symbol:'RELIANCE_FUT',kiteSymbol:'NSE:RELIANCE',price:2856.40,change:'+0.75%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:2835,high:2870,low:2830,close:2856.40},{name:'TCS FUT',symbol:'TCS_FUT',kiteSymbol:'NSE:TCS',price:3987.20,change:'-0.33%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:4000,high:4015,low:3975,close:3987.20},{name:'HDFCBANK FUT',symbol:'HDFCBANK_FUT',kiteSymbol:'NSE:HDFCBANK',price:1680.90,change:'+0.22%',segment:'NSE - Futures',contractDate:'28 Mar 2025',open:1675,high:1688,low:1672,close:1680.90}]},{name:'STOCKS - OPTIONS',icon:'fa-chart-simple',instruments:[{name:'RELIANCE 2900 CE',symbol:'RELI2900CE',kiteSymbol:'',price:34.70,change:'+5.2%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:33,high:36,low:32.80,close:34.70},{name:'TCS 4000 CE',symbol:'TCS4000CE',kiteSymbol:'',price:48.90,change:'-1.1%',segment:'NSE - Options',contractDate:'28 Mar 2025',open:49.50,high:50,low:48.50,close:48.90}]},{name:'MCX - FUTURE',icon:'fa-coins',instruments:[{name:'GOLD FUT',symbol:'GOLD_FUT',kiteSymbol:'MCX:GOLD25APRFUT',price:62340,change:'+0.28%',segment:'MCX - Futures',contractDate:'30 Apr 2025',open:62150,high:62450,low:62100,close:62340},{name:'SILVER FUT',symbol:'SILVER_FUT',kiteSymbol:'MCX:SILVER25MAYFUT',price:75230,change:'-0.15%',segment:'MCX - Futures',contractDate:'30 Apr 2025',open:75350,high:75450,low:75100,close:75230},{name:'CRUDEOIL FUT',symbol:'CRUDEOIL_FUT',kiteSymbol:'MCX:CRUDEOIL25APRFUT',price:6120.50,change:'+1.2%',segment:'MCX - Futures',contractDate:'30 Apr 2025',open:6045,high:6140,low:6040,close:6120.50}]},{name:'MCX - OPTIONS',icon:'fa-chart-line',instruments:[{name:'GOLD 62500 CE',symbol:'GOLD62500CE',kiteSymbol:'',price:820,change:'+0.9%',segment:'MCX - Options',contractDate:'30 Apr 2025',open:812,high:828,low:810,close:820}]},{name:'NSE - EQ',icon:'fa-chart-simple',instruments:[{name:'RELIANCE EQ',symbol:'RELIANCE',kiteSymbol:'NSE:RELIANCE',price:2845.30,change:'+0.68%',segment:'NSE - Equity',contractDate:'Cash Segment',open:2825,high:2858,low:2820,close:2845.30},{name:'HDFC BANK EQ',symbol:'HDFCBANK',kiteSymbol:'NSE:HDFCBANK',price:1672.85,change:'-0.12%',segment:'NSE - Equity',contractDate:'Cash Segment',open:1675,high:1680,low:1670,close:1672.85},{name:'INFY EQ',symbol:'INFY',kiteSymbol:'NSE:INFY',price:1598.40,change:'+1.03%',segment:'NSE - Equity',contractDate:'Cash Segment',open:1580,high:1605,low:1578,close:1598.40},{name:'TCS EQ',symbol:'TCS',kiteSymbol:'NSE:TCS',price:3982.50,change:'-0.22%',segment:'NSE - Equity',contractDate:'Cash Segment',open:3990,high:3995,low:3975,close:3982.50}]},{name:'CRYPTO',icon:'fa-bitcoin',instruments:[{name:'BTC/USDT',symbol:'BTCUSDT',kiteSymbol:'',price:68450.20,change:'+2.1%',segment:'Crypto - Futures',contractDate:'Perpetual',open:67000,high:69000,low:66800,close:68450.20},{name:'ETH/USDT',symbol:'ETHUSDT',kiteSymbol:'',price:3420.80,change:'+1.4%',segment:'Crypto - Futures',contractDate:'Perpetual',open:3370,high:3450,low:3360,close:3420.80},{name:'SOL/USDT',symbol:'SOLUSDT',kiteSymbol:'',price:182.30,change:'-0.7%',segment:'Crypto - Futures',contractDate:'Perpetual',open:183.50,high:184,low:181,close:182.30}]},{name:'FOREX',icon:'fa-globe',instruments:[{name:'EUR/USD',symbol:'EURUSD',kiteSymbol:'',price:1.0852,change:'+0.05%',segment:'Forex',contractDate:'Spot',open:1.0845,high:1.0860,low:1.0840,close:1.0852},{name:'GBP/USD',symbol:'GBPUSD',kiteSymbol:'',price:1.2734,change:'-0.02%',segment:'Forex',contractDate:'Spot',open:1.2738,high:1.2745,low:1.2725,close:1.2734},{name:'USD/JPY',symbol:'USDJPY',kiteSymbol:'',price:150.82,change:'+0.12%',segment:'Forex',contractDate:'Spot',open:150.60,high:151,low:150.50,close:150.82}]},{name:'COMEX',icon:'fa-gem',instruments:[{name:'Gold COMEX',symbol:'GC_F',kiteSymbol:'',price:2356.80,change:'+0.34%',segment:'COMEX - Futures',contractDate:'28 Apr 2025',open:2348,high:2362,low:2345,close:2356.80},{name:'Silver COMEX',symbol:'SI_F',kiteSymbol:'',price:28.45,change:'-0.22%',segment:'COMEX - Futures',contractDate:'28 Apr 2025',open:28.52,high:28.60,low:28.40,close:28.45},{name:'Copper',symbol:'HG_F',kiteSymbol:'',price:4.52,change:'+0.65%',segment:'COMEX - Futures',contractDate:'28 Apr 2025',open:4.49,high:4.55,low:4.48,close:4.52}]}];function getAllScripts(){var scripts=[];function traverse(node){if(node.instruments)node.instruments.forEach(function(inst){scripts.push(Object.assign({},inst,{category:node.name}));});if(node.subCategories)node.subCategories.forEach(function(sub){if(sub.instruments)sub.instruments.forEach(function(inst){scripts.push(Object.assign({},inst,{category:node.name+' > '+sub.name}));});});}tradingSegments.forEach(function(seg){traverse(seg);});return scripts;}var allScriptsDB=getAllScripts();var watchlistItems=(window.__watchlistItems&&window.__watchlistItems.length>0)?window.__watchlistItems.slice():[];var basketLegs=[];var selectionMode=false;var currentTradeScript=null;var longPressTimer=null;var toastTimeout=null;var watchlistContainer=document.getElementById('watchlistMobileContainer');var watchlistCounter=document.getElementById('mobileWatchlistCounter');var multiSelectBar=document.getElementById('multiSelectBar');var selectedCountSpan=document.getElementById('selectedCount');var searchInput=document.getElementById('globalSearchInput');var clearSearchBtn=document.getElementById('clearSearchBtn');var searchResultsArea=document.getElementById('searchResultsArea');var searchResultsList=document.getElementById('searchResultsList');var searchResultCount=document.getElementById('searchResultCount');var tradeSheet=document.getElementById('tradeSheet');var tradeSheetOverlay=document.getElementById('tradeSheetOverlay');var detailSheet=document.getElementById('detailSheet');var detailSheetOverlay=document.getElementById('detailSheetOverlay');var folderDrawer=document.getElementById('scriptsFolderDrawer');var overlay=document.getElementById('drawerOverlay');var toastEl=document.getElementById('toastMessageMobile');function showToast(msg,isError){if(toastTimeout)clearTimeout(toastTimeout);toastEl.textContent=msg;toastEl.style.background=isError?'#C62E2E':'#2C8E5A';toastEl.style.opacity='1';toastEl.style.visibility='visible';toastTimeout=setTimeout(function(){toastEl.style.opacity='0';toastEl.style.visibility='hidden';},2000);}function formatPrice(price,isCrypto){var numPrice=typeof price==='number'?price:parseFloat(price);if(isCrypto)return'$'+numPrice.toFixed(2);return'₹'+numPrice.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}function getLiveData(item){if(item.kiteSymbol&&window.__kiteQuotes&&window.__kiteQuotes[item.kiteSymbol]){var q=window.__kiteQuotes[item.kiteSymbol];return{price:q.lastPrice,change:(q.changePercent>=0?'+':'')+q.changePercent.toFixed(2)+'%',open:q.open,high:q.high,low:q.low,close:q.close};}return{price:item.price,change:item.change,open:item.open,high:item.high,low:item.low,close:item.close};}function generateBidAsk(price){var spread=price*0.001;return{bid:price-spread,ask:price+spread};}function escapeHtml(str){if(!str)return'';return str.replace(/[&<>]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[m];});}function addToWatchlist(item){if(typeof window.__addToWatchlistCallback==='function'){window.__addToWatchlistCallback(item);showToast('Added to watchlist',false);}else{if(watchlistItems.some(function(i){return i.symbol===item.symbol;}))return;watchlistItems.push(item);renderWatchlist();showToast('Added to watchlist',false);}}function removeFromWatchlist(symbol){if(typeof window.__removeFromWatchlistCallback==='function'){window.__removeFromWatchlistCallback(symbol);}else{watchlistItems=watchlistItems.filter(function(i){return i.symbol!==symbol;});renderWatchlist();}}function renderWatchlist(){if(!watchlistContainer)return;watchlistCounter.textContent=watchlistItems.length+' items';if(watchlistItems.length===0){watchlistContainer.innerHTML='<div style="text-align:center;padding:40px 20px;color:#9CA3AF;"><i class="fas fa-chart-line" style="font-size:3rem;margin-bottom:12px;opacity:0.3;"></i><div style="font-size:0.9rem;font-weight:600;">Your watchlist is empty</div><div style="font-size:0.75rem;margin-top:6px;">Add scripts from the library to start tracking</div></div>';return;}var html='';watchlistItems.forEach(function(item){var liveData=getLiveData(item);var isNegative=liveData.change.indexOf('-')===0;var isCrypto=item.segment&&item.segment.indexOf('Crypto')>=0;var priceStr=formatPrice(liveData.price,isCrypto);var changeClass=isNegative?'negative':'positive';html+='<div class="watchlist-card" data-symbol="'+escapeHtml(item.symbol)+'">';html+='<div class="wc-swipe-actions"><button class="wc-action-btn delete-btn" onclick="removeFromWatchlist(\\''+escapeHtml(item.symbol)+'\\')"><i class="fas fa-trash-alt"></i></button></div>';html+='<div class="wc-content">';html+='<div class="wc-left" onclick="openDetailSheet(\\''+escapeHtml(item.symbol)+'\\')">';html+='<div class="wc-name">'+escapeHtml(item.name)+'</div>';html+='<div class="wc-segment">'+escapeHtml(item.segment)+'</div>';html+='</div>';html+='<div class="wc-right" onclick="openTradeSheet(\\''+escapeHtml(item.symbol)+'\\')">';html+='<div class="wc-price">'+priceStr+'</div>';html+='<div class="wc-change '+changeClass+'">'+escapeHtml(liveData.change)+'</div>';html+='</div>';html+='<div class="wc-checkbox-wrapper" style="display:none;"><input type="checkbox" class="wc-checkbox"></div>';html+='</div>';html+='</div>';});watchlistContainer.innerHTML=html;attachSwipeHandlers();}function attachSwipeHandlers(){var cards=document.querySelectorAll('.watchlist-card');cards.forEach(function(card){var startX=0,currentX=0,isDragging=false;card.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;currentX=startX;isDragging=true;longPressTimer=setTimeout(function(){if(!selectionMode){enterSelectionMode();card.querySelector('.wc-checkbox').checked=true;updateSelectionUI();}},500);});card.addEventListener('touchmove',function(e){if(!isDragging)return;clearTimeout(longPressTimer);currentX=e.touches[0].clientX;var diff=currentX-startX;if(diff<-50){card.style.transform='translateX(-80px)';}else if(diff>0){card.style.transform='translateX(0)';}});card.addEventListener('touchend',function(){clearTimeout(longPressTimer);isDragging=false;});});}function enterSelectionMode(){selectionMode=true;multiSelectBar.style.display='block';document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el){el.style.display='flex';});}function exitSelectionMode(){selectionMode=false;multiSelectBar.style.display='none';document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el){el.style.display='none';});document.querySelectorAll('.wc-checkbox').forEach(function(cb){cb.checked=false;});}function updateSelectionUI(){var checked=document.querySelectorAll('.wc-checkbox:checked').length;selectedCountSpan.textContent=checked+' in basket';}function openTradeSheet(symbol){var item=window.__watchlistItems.find(function(i){return i.symbol===symbol;}) || allScriptsDB.find(function(s){return s.symbol===symbol;});if(!item)return;if(typeof window.__reactOpenTradeSheet==='function') window.__reactOpenTradeSheet(symbol);currentTradeScript=item;var liveData=getLiveData(item);var bidAsk=generateBidAsk(liveData.price);var isCrypto=item.segment&&item.segment.indexOf('Crypto')>=0;document.getElementById('sheetScriptName').textContent=item.name;document.getElementById('sheetSegment').textContent=item.segment;document.getElementById('sheetCmpValue').textContent=formatPrice(liveData.price,isCrypto);document.getElementById('sheetChange').textContent=liveData.change;document.getElementById('sheetBid').textContent=formatPrice(bidAsk.bid,isCrypto);document.getElementById('sheetAsk').textContent=formatPrice(bidAsk.ask,isCrypto);tradeSheet.classList.add('open');tradeSheetOverlay.classList.add('active');}function openDetailSheet(symbol){var item=window.__watchlistItems.find(function(i){return i.symbol===symbol;}) || allScriptsDB.find(function(s){return s.symbol===symbol;});if(!item)return;if(typeof window.__reactOpenDetailSheet==='function') window.__reactOpenDetailSheet(symbol);var liveData=getLiveData(item);var bidAsk=generateBidAsk(liveData.price);var isCrypto=item.segment&&item.segment.indexOf('Crypto')>=0;document.getElementById('detailScriptName').textContent=item.name;document.getElementById('detailSegment').textContent=item.segment;document.getElementById('detailCmpValue').textContent=formatPrice(liveData.price,isCrypto);document.getElementById('detailChange').textContent=liveData.change;document.getElementById('detailBid').textContent=formatPrice(bidAsk.bid,isCrypto);document.getElementById('detailAsk').textContent=formatPrice(bidAsk.ask,isCrypto);document.getElementById('detailOpen').textContent=formatPrice(liveData.open,isCrypto);document.getElementById('detailHigh').textContent=formatPrice(liveData.high,isCrypto);document.getElementById('detailLow').textContent=formatPrice(liveData.low,isCrypto);document.getElementById('detailClose').textContent=formatPrice(liveData.close,isCrypto);document.getElementById('detailContractDate').textContent=item.contractDate;detailSheet.classList.add('open');detailSheetOverlay.classList.add('active');}function renderFolderTree(){var folderTreeMobile=document.getElementById('folderTreeMobile');if(!folderTreeMobile)return;var html='';tradingSegments.forEach(function(seg){html+='<div class="folder-item">';html+='<div class="folder-header"><i class="fas '+seg.icon+'"></i> '+escapeHtml(seg.name)+'</div>';if(seg.instruments){seg.instruments.forEach(function(inst){html+='<div class="script-item"><span>'+escapeHtml(inst.name)+'</span><button class="add-script-btn" onclick="addToWatchlist('+JSON.stringify(inst).replace(/"/g,'&quot;')+')"><i class="fas fa-plus"></i> Add</button></div>';});}if(seg.subCategories){seg.subCategories.forEach(function(sub){html+='<div class="subfolder-item"><div class="subfolder-header">'+escapeHtml(sub.name)+'</div>';sub.instruments.forEach(function(inst){html+='<div class="script-item"><span>'+escapeHtml(inst.name)+'</span><button class="add-script-btn" onclick="addToWatchlist('+JSON.stringify(inst).replace(/"/g,'&quot;')+')"><i class="fas fa-plus"></i> Add</button></div>';});html+='</div>';});}html+='</div>';});folderTreeMobile.innerHTML=html;}searchInput.addEventListener('input',function(){var query=this.value.trim().toLowerCase();if(query.length===0){searchResultsArea.style.display='none';clearSearchBtn.style.display='none';return;}clearSearchBtn.style.display='block';var results=allScriptsDB.filter(function(s){return s.name.toLowerCase().indexOf(query)>=0||s.symbol.toLowerCase().indexOf(query)>=0;});searchResultCount.textContent=results.length+' results';var html='';results.slice(0,50).forEach(function(item){var isCrypto=item.segment&&item.segment.indexOf('Crypto')>=0;html+='<div class="search-result-item"><div class="sri-left"><div class="sri-name">'+escapeHtml(item.name)+'</div><div class="sri-segment">'+escapeHtml(item.segment)+'</div></div><div class="sri-right"><div class="sri-price">'+formatPrice(item.price,isCrypto)+'</div><button class="add-script-btn" onclick="addToWatchlist('+JSON.stringify(item).replace(/"/g,'&quot;')+')"><i class="fas fa-plus"></i></button></div></div>';});searchResultsList.innerHTML=html;searchResultsArea.style.display='block';});clearSearchBtn.addEventListener('click',function(){searchInput.value='';searchResultsArea.style.display='none';this.style.display='none';});document.getElementById('openFolderMobileBtn').addEventListener('click',function(){folderDrawer.classList.add('open');overlay.classList.add('active');renderFolderTree();});document.getElementById('closeFolderDrawerBtn').addEventListener('click',function(){folderDrawer.classList.remove('open');overlay.classList.remove('active');});overlay.addEventListener('click',function(){folderDrawer.classList.remove('open');this.classList.remove('active');});document.getElementById('sheetBackBtn').addEventListener('click',function(){tradeSheet.classList.remove('open');tradeSheetOverlay.classList.remove('active');});tradeSheetOverlay.addEventListener('click',function(){tradeSheet.classList.remove('open');this.classList.remove('active');});detailSheetOverlay.addEventListener('click',function(){detailSheet.classList.remove('open');this.classList.remove('active');});document.getElementById('exitSelectionBtn').addEventListener('click',exitSelectionMode);document.getElementById('basketModeBtn').addEventListener('click',function(){document.getElementById('basketSheet').classList.add('open');document.getElementById('basketSheetOverlay').classList.add('active');});document.getElementById('basketSheetOverlay').addEventListener('click',function(){document.getElementById('basketSheet').classList.remove('open');this.classList.remove('active');});window.__renderWatchlist=renderWatchlist;window.openTradeSheet=openTradeSheet;window.openDetailSheet=openDetailSheet;window.addToWatchlist=addToWatchlist;window.removeFromWatchlist=removeFromWatchlist;renderWatchlist();
+    (function() {
+      var tradingSegments = [
+        {
+          name: 'INDEX - FUTURE',
+          icon: 'fa-chart-line',
+          instruments: [
+            { name: 'NIFTY FUT', symbol: 'NIFTY_FUT', kiteSymbol: 'NSE:NIFTY 50', price: 22456.80, change: '+0.45%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 22350, high: 22580, low: 22320, close: 22456.80 },
+            { name: 'SENSEX FUT', symbol: 'SENSEX_FUT', kiteSymbol: 'BSE:SENSEX', price: 74230.15, change: '+0.32%', segment: 'BSE - Futures', contractDate: '28 Mar 2025', open: 73950, high: 74500, low: 73800, close: 74230.15 },
+            { name: 'BANKNIFTY FUT', symbol: 'BANKNIFTY_FUT', kiteSymbol: 'NSE:NIFTY BANK', price: 48210.50, change: '-0.21%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 48350, high: 48500, low: 48100, close: 48210.50 },
+            { name: 'FINNIFTY FUT', symbol: 'FINNIFTY_FUT', kiteSymbol: 'NSE:NIFTY FIN SERVICE', price: 21234.90, change: '+0.67%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 21080, high: 21350, low: 21050, close: 21234.90 },
+            { name: 'MIDCAP NIFTY FUT', symbol: 'MIDCP_FUT', kiteSymbol: 'NSE:NIFTY MIDCAP 50', price: 11820.45, change: '+0.88%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 11700, high: 11880, low: 11680, close: 11820.45 }
+          ]
+        },
+        {
+          name: 'INDEX - OPTIONS',
+          icon: 'fa-chart-gantt',
+          subCategories: [
+            {
+              name: 'NIFTY Options',
+              instruments: [
+                { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
+                { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 }
+              ]
+            },
+            {
+              name: 'SENSEX Options',
+              instruments: [
+                { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 }
+              ]
+            },
+            {
+              name: 'BANKEX Options',
+              instruments: [
+                { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', kiteSymbol: '', price: 310.75, change: '+1.1%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 307, high: 314, low: 306.50, close: 310.75 }
+              ]
+            },
+            {
+              name: 'BANKNIFTY Options',
+              instruments: [
+                { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
+                { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 }
+              ]
+            },
+            {
+              name: 'FINNIFTY Options',
+              instruments: [
+                { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 }
+              ]
+            },
+            {
+              name: 'MID CAP NIFTY Options',
+              instruments: [
+                { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 }
+              ]
+            }
+          ]
+        },
+        {
+          name: 'STOCKS - FUTURE',
+          icon: 'fa-building',
+          instruments: [
+            { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', kiteSymbol: 'NSE:RELIANCE', price: 2856.40, change: '+0.75%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 2835, high: 2870, low: 2830, close: 2856.40 },
+            { name: 'TCS FUT', symbol: 'TCS_FUT', kiteSymbol: 'NSE:TCS', price: 3987.20, change: '-0.33%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 4000, high: 4015, low: 3975, close: 3987.20 },
+            { name: 'HDFCBANK FUT', symbol: 'HDFCBANK_FUT', kiteSymbol: 'NSE:HDFCBANK', price: 1680.90, change: '+0.22%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 1675, high: 1688, low: 1672, close: 1680.90 }
+          ]
+        },
+        {
+          name: 'MCX - FUTURE',
+          icon: 'fa-coins',
+          instruments: [
+            { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+            { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULYFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+            { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26MAYFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'May 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 }
+          ]
+        },
+        {
+          name: 'CRYPTO',
+          icon: 'fa-bitcoin',
+          instruments: [
+            { name: 'BTC/USDT', symbol: 'BTCUSDT', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 68450.20, change: '+2.1%', segment: 'Crypto', contractDate: 'Perpetual', open: 67000, high: 69000, low: 66800, close: 68450.20 },
+            { name: 'ETH/USDT', symbol: 'ETHUSDT', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 3420.80, change: '+1.4%', segment: 'Crypto', contractDate: 'Perpetual', open: 3370, high: 3450, low: 3360, close: 3420.80 },
+            { name: 'SOL/USDT', symbol: 'SOLUSDT', kiteSymbol: '', binanceSymbol: 'SOLUSDT', price: 182.30, change: '-0.7%', segment: 'Crypto', contractDate: 'Perpetual', open: 183.50, high: 184, low: 181, close: 182.30 }
+          ]
+        },
+        {
+          name: 'FOREX',
+          icon: 'fa-globe',
+          instruments: [
+            { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26MAYFUT', price: 83.45, change: '+0.05%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 83.40, high: 83.50, low: 83.35, close: 83.45 },
+            { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26MAYFUT', price: 90.12, change: '-0.02%', segment: 'CDS - Futures', contractDate: 'May 2026', open:90.15, high: 90.25, low: 90.05, close: 90.12 }
+          ]
+        },
+        {
+          name: 'COMEX',
+          icon: 'fa-gem',
+          instruments: [
+            { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+            { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULYFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 }
+          ]
+        }
+      ];
+
+      function getAllScripts() {
+        var scripts = [];
+        function traverse(node) {
+          if (node.instruments) node.instruments.forEach(function(inst) { scripts.push(Object.assign({}, inst, { category: node.name })); });
+          if (node.subCategories) node.subCategories.forEach(function(sub) {
+            if (sub.instruments) sub.instruments.forEach(function(inst) { scripts.push(Object.assign({}, inst, { category: node.name + ' > ' + sub.name })); });
+          });
+        }
+        tradingSegments.forEach(function(seg) { traverse(seg); });
+        return scripts;
+      }
+
+      var allScriptsDB = getAllScripts();
+      var watchlistItems = (window.__watchlistItems && window.__watchlistItems.length > 0) ? window.__watchlistItems.slice() : [];
+      var selectionMode = false;
+      var longPressTimer = null;
+
+      var watchlistContainer = document.getElementById('watchlistMobileContainer');
+      var watchlistCounter = document.getElementById('mobileWatchlistCounter');
+      var multiSelectBar = document.getElementById('multiSelectBar');
+      var selectedCountSpan = document.getElementById('selectedCount');
+      var searchInput = document.getElementById('globalSearchInput');
+      var clearSearchBtn = document.getElementById('clearSearchBtn');
+      var searchResultsArea = document.getElementById('searchResultsArea');
+      var searchResultsList = document.getElementById('searchResultsList');
+      var searchResultCount = document.getElementById('searchResultCount');
+      var folderDrawer = document.getElementById('scriptsFolderDrawer');
+      var overlay = document.getElementById('drawerOverlay');
+
+      function formatPrice(price, isCrypto) {
+        var numPrice = typeof price === 'number' ? price : parseFloat(price);
+        if (isCrypto) return '$' + numPrice.toFixed(2);
+        return '₹' + numPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]; });
+      }
+
+      function addToWatchlist(item) {
+        if (typeof window.__addToWatchlistCallback === 'function') {
+          window.__addToWatchlistCallback(item);
+          if (window.showToast) window.showToast('Added to watchlist', false);
+        }
+      }
+
+      function removeFromWatchlist(symbol) {
+        if (typeof window.__removeFromWatchlistCallback === 'function') {
+          window.__removeFromWatchlistCallback(symbol);
+          if (window.showToast) window.showToast('Removed from watchlist', false);
+        }
+      }
+
+      function openDetailSheet(symbol) {
+        if (typeof window.__reactOpenDetailSheet === 'function') {
+          window.__reactOpenDetailSheet(symbol);
+          var sheet = document.getElementById('detailSheet');
+          var overlay = document.getElementById('detailSheetOverlay');
+          if (sheet) sheet.classList.add('open');
+          if (overlay) overlay.classList.add('active');
+        }
+      }
+
+      function openTradeSheet(symbol) {
+        if (typeof window.__reactOpenTradeSheet === 'function') {
+          window.__reactOpenTradeSheet(symbol);
+        }
+      }
+
+      function renderFolderTree() {
+        var folderTreeMobile = document.getElementById('folderTreeMobile');
+        if (!folderTreeMobile) return;
+        var html = '';
+        tradingSegments.forEach(function(seg) {
+          html += '<div class="folder-item">';
+          html += '<div class="folder-header"><i class="fas ' + seg.icon + '"></i> ' + escapeHtml(seg.name) + '</div>';
+          if (seg.instruments) {
+            seg.instruments.forEach(function(inst) {
+              html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button></div>';
+            });
+          }
+          if (seg.subCategories) {
+            seg.subCategories.forEach(function(sub) {
+              html += '<div class="subfolder-item"><div class="subfolder-header">' + escapeHtml(sub.name) + '</div>';
+              sub.instruments.forEach(function(inst) {
+                html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button></div>';
+              });
+              html += '</div>';
+            });
+          }
+          html += '</div>';
+        });
+        folderTreeMobile.innerHTML = html;
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          var query = this.value.trim().toLowerCase();
+          if (query.length === 0) {
+            searchResultsArea.style.display = 'none';
+            clearSearchBtn.style.display = 'none';
+            return;
+          }
+          clearSearchBtn.style.display = 'block';
+          var results = allScriptsDB.filter(function(s) { return s.name.toLowerCase().indexOf(query) >= 0 || s.symbol.toLowerCase().indexOf(query) >= 0; });
+          searchResultCount.textContent = results.length + ' results';
+          var html = '';
+          results.slice(0, 50).forEach(function(item) {
+            var isCrypto = item.segment && item.segment.indexOf('Crypto') >= 0;
+            html += '<div class="search-result-item"><div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-segment">' + escapeHtml(item.segment) + '</div></div><div class="sri-right"><div class="sri-price">' + formatPrice(item.price, isCrypto) + '</div><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>+</button></div></div>';
+          });
+          searchResultsList.innerHTML = html;
+          searchResultsArea.style.display = 'block';
+        });
+      }
+
+      if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+          searchInput.value = '';
+          searchResultsArea.style.display = 'none';
+          this.style.display = 'none';
+        });
+      }
+
+      var openFolderBtn = document.getElementById('openFolderMobileBtn');
+      if (openFolderBtn) {
+        openFolderBtn.addEventListener('click', function() {
+          folderDrawer.classList.add('open');
+          overlay.classList.add('active');
+          renderFolderTree();
+        });
+      }
+
+      var closeFolderBtn = document.getElementById('closeFolderDrawerBtn');
+      if (closeFolderBtn) {
+        closeFolderBtn.addEventListener('click', function() {
+          folderDrawer.classList.remove('open');
+          overlay.classList.remove('active');
+        });
+      }
+
+      if (overlay) {
+        overlay.addEventListener('click', function() {
+          folderDrawer.classList.remove('open');
+          this.classList.remove('active');
+        });
+      }
+
+      var exitSelectionBtn = document.getElementById('exitSelectionBtn');
+      if (exitSelectionBtn) {
+        exitSelectionBtn.addEventListener('click', function() {
+          exitSelectionMode();
+        });
+      }
+
+      var basketModeBtn = document.getElementById('basketModeBtn');
+      if (basketModeBtn) {
+        basketModeBtn.addEventListener('click', function() {
+          var sheet = document.getElementById('basketSheet');
+          var overlay = document.getElementById('basketSheetOverlay');
+          if (sheet) sheet.classList.add('open');
+          if (overlay) overlay.classList.add('active');
+        });
+      }
+
+      function attachSwipeHandlers() {
+        var cards = document.querySelectorAll('.watchlist-card');
+        cards.forEach(function(card) {
+          if (card.getAttribute('data-swipe-attached')) return;
+          card.setAttribute('data-swipe-attached', 'true');
+          
+          var startX = 0, currentX = 0, isDragging = false;
+          card.addEventListener('touchstart', function(e) {
+            startX = e.touches[0].clientX;
+            currentX = startX;
+            isDragging = true;
+            longPressTimer = setTimeout(function() {
+              if (!selectionMode) {
+                enterSelectionMode();
+                var cb = card.querySelector('.wc-checkbox');
+                if (cb) cb.checked = true;
+                updateSelectionUI();
+              }
+            }, 500);
+          }, { passive: true });
+
+          card.addEventListener('touchmove', function(e) {
+            if (!isDragging) return;
+            clearTimeout(longPressTimer);
+            currentX = e.touches[0].clientX;
+            var diff = currentX - startX;
+            if (diff < -50) {
+              card.style.transform = 'translateX(-80px)';
+            } else if (diff > 0) {
+              card.style.transform = 'translateX(0)';
+            }
+          }, { passive: true });
+
+          card.addEventListener('touchend', function() {
+            clearTimeout(longPressTimer);
+            isDragging = false;
+          });
+        });
+      }
+
+      function enterSelectionMode() {
+        selectionMode = true;
+        if (multiSelectBar) multiSelectBar.style.display = 'block';
+        document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
+          el.style.display = 'flex';
+        });
+      }
+
+      function exitSelectionMode() {
+        selectionMode = false;
+        if (multiSelectBar) multiSelectBar.style.display = 'none';
+        document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
+          el.style.display = 'none';
+        });
+        document.querySelectorAll('.wc-checkbox').forEach(function(cb) {
+          cb.checked = false;
+        });
+      }
+
+      function updateSelectionUI() {
+        var checked = document.querySelectorAll('.wc-checkbox:checked').length;
+        if (selectedCountSpan) selectedCountSpan.textContent = checked + ' in basket';
+      }
+
+      window.__renderWatchlist = function() { /* Now handled by React */ };
+      window.attachSwipeHandlers = attachSwipeHandlers;
+      window.enterSelectionMode = enterSelectionMode;
+      window.exitSelectionMode = exitSelectionMode;
+      window.openDetailSheet = openDetailSheet;
+      window.openTradeSheet = openTradeSheet;
+      window.addToWatchlist = addToWatchlist;
+      window.removeFromWatchlist = removeFromWatchlist;
+      
+      attachSwipeHandlers();
+    })();
   `;
 }
+
+
