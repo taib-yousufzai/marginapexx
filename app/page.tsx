@@ -30,7 +30,7 @@ const KITE_INSTRUMENTS_ROW2 = [
 // Maps Kite instrument key → display config
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'NSE:NIFTY 50': { name: 'NIFTY 50', icon: 'fas fa-chart-line' },
-  'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-simple' },
+  'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
   'NSE:USDINR': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
   'MCX:CRUDEOIL': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
@@ -52,7 +52,7 @@ const learningData = [
 
 const equityInstruments = [
   { name: "NIFTY", icon: "fas fa-chart-line", sub: "50 Stocks" },
-  { name: "SENSEX", icon: "fas fa-chart-simple", sub: "30 Stocks" },
+  { name: "SENSEX", icon: "fas fa-chart-area", sub: "30 Stocks" },
   { name: "BANKNIFTY", icon: "fas fa-building", sub: "Banking" },
   { name: "BANKEX", icon: "fas fa-university", sub: "Bank Index" },
   { name: "FINNIFTY", icon: "fas fa-chart-pie", sub: "Financial" },
@@ -88,7 +88,7 @@ const getNextExpiryDate = (dayOfWeek: number) => {
 const getExpiryIndexes = () => [
   { name: "NIFTY", fullName: "NIFTY 50", expiry: getNextExpiryDate(4), lotSize: 50, icon: "fas fa-chart-line" },
   { name: "BANK NIFTY", fullName: "BANK NIFTY", expiry: getNextExpiryDate(3), lotSize: 15, icon: "fas fa-building" }, // Updated Bank Nifty lot size is 15
-  { name: "SENSEX", fullName: "SENSEX", expiry: getNextExpiryDate(5), lotSize: 10, icon: "fas fa-chart-simple" }, // Updated Sensex lot size is 10
+  { name: "SENSEX", fullName: "SENSEX", expiry: getNextExpiryDate(5), lotSize: 10, icon: "fas fa-chart-area" }, // Updated Sensex lot size is 10
   { name: "BANKEX", fullName: "BANKEX", expiry: getNextExpiryDate(5), lotSize: 15, icon: "fas fa-university" },
   { name: "FIN NIFTY", fullName: "FINNIFTY", expiry: getNextExpiryDate(2), lotSize: 40, icon: "fas fa-chart-pie" }, // Updated Finnifty lot size is 40
   { name: "MIDCAP NIFTY", fullName: "MIDCAP NIFTY", expiry: getNextExpiryDate(1), lotSize: 75, icon: "fas fa-chart-bar" } // Updated Midcap lot size is 75

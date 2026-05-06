@@ -22,3 +22,8 @@ export async function kiteStatus(): Promise<{ connected: boolean; userName?: str
   const res = await fetch('/api/kite/status', { cache: 'no-store', headers });
   return res.json();
 }
+
+export async function kiteLogin(): Promise<void> {
+  // In this project, the login URL is typically /api/kite/login or a direct Zerodha redirect
+  window.location.href = '/api/kite/login';
+}

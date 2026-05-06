@@ -52,19 +52,33 @@ export function useKiteQuotes(
   const instrumentsKey = instruments.join(',');
 
   const fetchQuotes = useCallback(async () => {
-    if (instruments.length === 0) return;
+    if (instruments.length === 0) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const params = new URLSearchParams();
-      instruments.forEach(inst => params.append('instruments', inst));
-
-      const response = await fetch(`/api/kite/quotes?${params.toString()}`, {
-        cache: 'no-store',
-      });
+      let response: Response;
+      
+      // Use POST if we have many instruments to avoid URL length limits
+      if (instruments.length > 50) {
+        response = await fetch('/api/kite/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instruments }),
+          cache: 'no-store',
+        });
+      } else {
+        const params = new URLSearchParams();
+        instruments.forEach(inst => params.append('instruments', inst));
+        response = await fetch(`/api/kite/quotes?${params.toString()}`, {
+          cache: 'no-store',
+        });
+      }
 
       if (response.status === 401 || response.status === 403) {
-        // Only set error/loading if we don't have existing quotes
-        // We still want to preserve any quotes we might have fetched before
+        console.warn('[useKiteQuotes] Session expired or unauthorized');
+        setConnected(false);
         setLoading(false);
         return;
       }
@@ -86,27 +100,45 @@ export function useKiteQuotes(
       };
 
       const mapped: Record<string, QuoteData> = {};
-      for (const [key, quote] of Object.entries(data.data)) {
-        const changePercent = quote.ohlc.close > 0
-          ? ((quote.last_price - quote.ohlc.close) / quote.ohlc.close) * 100
+      const returnedData = data.data || {};
+      
+      const returnedKeys = Object.keys(returnedData);
+      if (returnedKeys.length > 0) {
+        console.log(`[useKiteQuotes] Received ${returnedKeys.length} quotes. Sample key: ${returnedKeys[0]}`);
+      }
+
+      for (const [key, quote] of Object.entries(returnedData)) {
+        if (!quote) continue;
+
+        const close = quote.ohlc?.close || 0;
+        const changePercent = close > 0
+          ? ((quote.last_price - close) / close) * 100
           : 0;
 
-        mapped[key] = {
+        const quoteData: QuoteData = {
           lastPrice: quote.last_price,
           change: quote.net_change,
           changePercent: parseFloat(changePercent.toFixed(2)),
-          open: quote.ohlc.open,
-          high: quote.ohlc.high,
-          low: quote.ohlc.low,
-          close: quote.ohlc.close,
-          volume: quote.volume,
+          open: quote.ohlc?.open || 0,
+          high: quote.ohlc?.high || 0,
+          low: quote.ohlc?.low || 0,
+          close: close,
+          volume: quote.volume || 0,
         };
+
+        mapped[key] = quoteData;
+        
+        // Also map by tradingsymbol as a fallback if the key is different
+        if ((quote as any).tradingsymbol) {
+          mapped[(quote as any).tradingsymbol] = quoteData;
+        }
       }
 
       setQuotes(mapped);
-      // We don't setConnected(true) here because the response might be fallback data
+      setConnected(true);
       setError(null);
     } catch (err) {
+      console.error('[useKiteQuotes] Error:', err);
       setError('Network error fetching quotes');
     } finally {
       setLoading(false);

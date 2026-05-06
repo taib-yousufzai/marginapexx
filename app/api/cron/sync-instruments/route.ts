@@ -46,11 +46,14 @@ export async function GET(request: Request) {
     // 4. Map instruments and find front-month futures
     const finalInstruments: any[] = [];
     
-    // a. Add standard NSE Equities
-    const nseEquities = parsed.data.filter((row: any) => row.instrument_type === 'EQ' && row.segment === 'NSE');
+    // a. Add standard NSE Equities and Indices
+    const nseEquities = parsed.data.filter((row: any) => 
+      (row.instrument_type === 'EQ' && row.segment === 'NSE') || 
+      (row.segment === 'INDICES')
+    );
     for (const row of nseEquities as any[]) {
       finalInstruments.push({
-        id: `NSE:${row.tradingsymbol}`,
+        id: `${row.exchange}:${row.tradingsymbol}`,
         instrument_token: parseInt(row.instrument_token, 10),
         tradingsymbol: row.tradingsymbol,
         name: row.name,
@@ -61,10 +64,9 @@ export async function GET(request: Request) {
     }
 
     // b. Group futures by exchange+name to find the earliest expiry (front-month)
-    // We strictly filter for monthly contracts (they contain JAN, FEB, etc. in their tradingsymbol)
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     const futures = parsed.data.filter((row: any) => 
-      (row.segment === 'MCX-FUT' || row.segment === 'CDS-FUT') && 
+      (row.segment === 'MCX-FUT' || row.segment === 'CDS-FUT' || row.segment === 'NFO-FUT') && 
       (row.instrument_type === 'FUT' || row.instrument_type === 'FUTCOM' || row.instrument_type === 'FUTCUR') &&
       MONTHS.some(m => row.tradingsymbol.includes(m))
     );
@@ -76,24 +78,91 @@ export async function GET(request: Request) {
       groups[key].push(row);
     }
 
-    // Create pseudo-instruments for the generic name mapped to the front-month contract
     for (const [groupKey, contracts] of Object.entries(groups)) {
-      // Sort by expiry ascending
       contracts.sort((a, b) => new Date(a.expiry).getTime() - new Date(b.expiry).getTime());
       const frontMonth = contracts[0];
       
       finalInstruments.push({
-        id: groupKey, // e.g. MCX:CRUDEOIL
+        id: groupKey, 
         instrument_token: parseInt(frontMonth.instrument_token, 10),
-        tradingsymbol: frontMonth.tradingsymbol, // e.g. CRUDEOIL24NOVFUT
+        tradingsymbol: frontMonth.tradingsymbol,
         name: frontMonth.name,
         exchange: frontMonth.exchange,
         instrument_type: 'MAPPED_FUT',
         segment: frontMonth.segment,
+        expiry: frontMonth.expiry,
       });
     }
 
-    console.log(`[Sync Instruments] Found ${nseEquities.length} NSE EQ and mapped ${Object.keys(groups).length} futures.`);
+    // c. Add Options (NFO, BFO, MCX-OPT, CDS-OPT)
+    const ALLOWED_NAMES = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS'];
+    
+    const options = parsed.data.filter((row: any) => {
+      const isOption = row.instrument_type === 'CE' || row.instrument_type === 'PE';
+      if (!isOption) return false;
+
+      // Handle both possible header names
+      const symbol = row.tradingsymbol || row.trading_symbol || '';
+      return ALLOWED_NAMES.some(n => symbol.startsWith(n));
+    });
+
+    for (const row of options as any[]) {
+      const symbol = (row.tradingsymbol || row.trading_symbol || '').toUpperCase();
+      let underlying = '';
+      
+      // Strict prefix matching
+      if (symbol.startsWith('BANKNIFTY')) underlying = 'BANKNIFTY';
+      else if (symbol.startsWith('FINNIFTY')) underlying = 'FINNIFTY';
+      else if (symbol.startsWith('MIDCPNIFTY')) underlying = 'MIDCPNIFTY';
+      else if (symbol.startsWith('NIFTY')) underlying = 'NIFTY';
+      else if (symbol.startsWith('BANKEX')) underlying = 'BANKEX';
+      else if (symbol.startsWith('SENSEX')) underlying = 'SENSEX';
+      else if (symbol.startsWith('CRUDEOIL')) underlying = 'CRUDEOIL';
+      else if (symbol.startsWith('GOLD')) underlying = 'GOLD';
+      else if (symbol.startsWith('SILVER')) underlying = 'SILVER';
+      else if (symbol.startsWith('NATURALGAS')) underlying = 'NATURALGAS';
+
+      if (!underlying) continue;
+
+      finalInstruments.push({
+        id: `${row.exchange}:${symbol}`,
+        instrument_token: parseInt(row.instrument_token, 10),
+        tradingsymbol: symbol,
+        name: row.name || underlying,
+        exchange: row.exchange,
+        instrument_type: row.instrument_type,
+        segment: row.segment,
+        expiry: row.expiry,
+        strike_price: parseFloat(row.strike || row.strike_price || '0'),
+        option_type: row.instrument_type,
+        underlying_symbol: underlying,
+      });
+    }
+
+    // d. Explicitly ensure major Spot Indices are present with Correct IDs
+    const spotIndices = [
+        { id: 'NSE:NIFTY BANK', symbol: 'NIFTY BANK', name: 'BANKNIFTY', token: 260105, exchange: 'NSE' },
+        { id: 'NSE:NIFTY 50', symbol: 'NIFTY 50', name: 'NIFTY', token: 256265, exchange: 'NSE' },
+        { id: 'NSE:NIFTY FIN SERVICE', symbol: 'NIFTY FIN SERVICE', name: 'FINNIFTY', token: 257801, exchange: 'NSE' },
+        { id: 'NSE:NIFTY MID SELECT', symbol: 'NIFTY MID SELECT', name: 'MIDCPNIFTY', token: 288009, exchange: 'NSE' },
+        { id: 'BSE:SENSEX', symbol: 'SENSEX', name: 'SENSEX', token: 265, exchange: 'BSE' },
+        { id: 'BSE:BANKEX', symbol: 'BANKEX', name: 'BANKEX', token: 271, exchange: 'BSE' },
+    ];
+
+    for (const s of spotIndices) {
+        finalInstruments.push({
+            id: s.id,
+            instrument_token: s.token,
+            tradingsymbol: s.symbol,
+            name: s.name,
+            exchange: s.exchange,
+            instrument_type: 'INDEX',
+            segment: 'INDICES',
+            underlying_symbol: s.name 
+        });
+    }
+
+    console.log(`[Sync Instruments] Found ${nseEquities.length} EQ/Indices, ${Object.keys(groups).length} Futures, and ${options.length} Options.`);
 
     // 5. Bulk Upsert to Supabase
     if (finalInstruments.length > 0) {
@@ -115,6 +184,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       count: finalInstruments.length,
+      counts: {
+        equities: nseEquities.length,
+        futures: Object.keys(groups).length,
+        options: options.length
+      },
       message: 'Instruments synced successfully',
     });
   } catch (error: any) {
