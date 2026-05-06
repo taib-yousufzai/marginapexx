@@ -52,7 +52,7 @@ body.dark .balance-card {
 }
 
 /* Category Toggle Switcher (Home style) */
-.category-toggle-wrapper {
+.funds-toggle-wrapper {
   display: inline-flex;
   position: relative;
   background: var(--chip-bg);
@@ -63,7 +63,7 @@ body.dark .balance-card {
   width: 100%;
 }
 
-.category-toggle-slider {
+.funds-toggle-slider {
   position: absolute;
   top: 4px;
   left: 4px;
@@ -75,15 +75,15 @@ body.dark .balance-card {
   z-index: 1;
 }
 
-body.dark .category-toggle-slider {
+body.dark .funds-toggle-slider {
   background: #008000;
 }
 
-.category-toggle-slider.slide-right {
+.funds-toggle-slider.slide-right {
   transform: translateX(100%);
 }
 
-.cat-btn {
+.funds-cat-btn {
   position: relative;
   z-index: 2;
   flex: 1;
@@ -99,7 +99,7 @@ body.dark .category-toggle-slider {
   transition: color 0.3s ease;
 }
 
-.cat-btn.active {
+.funds-cat-btn.active {
   color: #FFFFFF;
 }
 
@@ -265,7 +265,11 @@ body.dark .category-toggle-slider {
     opacity: 0;
     transform: translateY(10px);
   }
-  to { opacity: 1; transform: translateY(0); }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ===== WHATSAPP SUPPORT BUTTON ===== */
@@ -461,6 +465,7 @@ body.dark .category-toggle-slider {
     opacity: 0;
     transform: translate(-50%, 20px);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0);
@@ -1049,8 +1054,15 @@ body.dark .margin-footer {
 }
 
 @keyframes bounceIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .account-selector-box {
@@ -1349,20 +1361,132 @@ body.dark .upi-logo-text {
 }
 
 /* Direct Method Buttons */
-.method-choice-grid { margin-bottom: 24px; }
-.method-btn-direct { background: var(--card-alt-bg); border: 1px solid var(--border-card); padding: 24px 12px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-primary); font-weight: 800; font-size: 0.9rem; outline: none; }
-.method-btn-direct i { font-size: 2rem; color: #006400; background: var(--icon-bg); width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; border-radius: 16px; transition: all 0.3s; }
-.method-btn-direct:hover:not(:disabled) { border-color: #006400; background: rgba(0, 100, 0, 0.03); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0, 100, 0, 0.05); }
-.method-btn-direct:hover:not(:disabled) i { background: #006400; color: white; }
-.method-btn-direct:disabled { opacity: 0.4; cursor: not-allowed; }
-.method-btn-direct:active:not(:disabled) { transform: scale(0.96); }
+.method-choice-grid {
+  margin-bottom: 24px;
+}
+
+.method-btn-direct {
+  background: var(--card-alt-bg);
+  border: 1px solid var(--border-card);
+  padding: 24px 12px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.method-btn-direct i {
+  font-size: 2rem;
+  color: #006400;
+  background: var(--icon-bg);
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  transition: all 0.3s;
+}
+
+.method-btn-direct:hover:not(:disabled) {
+  border-color: #006400;
+  background: rgba(0, 100, 0, 0.03);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 100, 0, 0.05);
+}
+
+.method-btn-direct:hover:not(:disabled) i {
+  background: #006400;
+  color: white;
+}
+
+.method-btn-direct:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.method-btn-direct:active:not(:disabled) {
+  transform: scale(0.96);
+}
 
 /* Add Account Overlay */
-.add-account-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--container-bg); z-index: 1000; padding: 20px; display: flex; flex-direction: column; overflow-y: auto; }
-.add-account-overlay .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border-card); }
-.add-account-overlay h4 { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); }
-.add-account-overlay .close-btn { background: var(--icon-bg); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-primary); cursor: pointer; }
-.add-account-overlay .form-group { margin-bottom: 20px; }
-.add-account-overlay label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-.add-account-overlay input { width: 100%; padding: 16px; background: var(--icon-bg); border: 1px solid var(--border-card); borderRadius: 16px; color: var(--text-primary); font-weight: 600; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
-.add-account-overlay input:focus { border-color: #006400; }
+.add-account-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--container-bg);
+  z-index: 1000;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.add-account-overlay .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-card);
+}
+
+.add-account-overlay h4 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.add-account-overlay .close-btn {
+  background: var(--icon-bg);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.add-account-overlay .form-group {
+  margin-bottom: 20px;
+}
+
+.add-account-overlay label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.add-account-overlay input {
+  width: 100%;
+  padding: 16px;
+  background: var(--icon-bg);
+  border: 1px solid var(--border-card);
+  borderRadius: 16px;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.add-account-overlay input:focus {
+  border-color: #006400;
+}

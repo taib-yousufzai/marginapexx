@@ -700,7 +700,7 @@ function WatchlistContent() {
         </div>
       </div>
 
-      <div id="tradeSheetOverlay" className="trade-sheet-overlay"></div>
+      <div id="tradeSheetOverlay" className="trade-sheet-overlay" onClick={closeTradeSheet}></div>
       <div id="tradeSheet" className="trade-sheet">
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div className="ts-header">
@@ -836,7 +836,7 @@ function WatchlistContent() {
         </button>
       </div>
 
-      <div id="detailSheetOverlay" className="trade-sheet-overlay"></div>
+      <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
       <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div style={{ padding: '0' }}>
@@ -902,7 +902,7 @@ function WatchlistContent() {
         </div>
       </div>
 
-      <div id="basketSheetOverlay" className="trade-sheet-overlay"></div>
+      <div id="basketSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('basketSheet'); const overlay = document.getElementById('basketSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
       <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div style={{ padding: '24px 20px 20px 20px' }}>

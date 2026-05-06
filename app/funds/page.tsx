@@ -328,7 +328,7 @@ export default function FundsPage() {
 
       <div className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="main-content screen">
-          <div className="content-padded" style={{ paddingTop: '20px', paddingBottom: '120px' }}>
+          <div className="content-padded" style={{ paddingTop: '20px' }}>
 
             <div className="balance-card" style={{ marginBottom: '24px' }}>
               <p className="balance-label">Total Current Balance</p>
@@ -339,10 +339,10 @@ export default function FundsPage() {
               <div className="balance-chip"><i className="fas fa-shield-check"></i> 100% Encrypted & Secure</div>
             </div>
 
-            <div className="category-toggle-wrapper" style={{ marginBottom: '24px' }}>
-              <div className={`category-toggle-slider ${activeTab === 'withdraw' ? 'slide-right' : ''}`}></div>
-              <div className={`cat-btn ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => handleTabChange('deposit')}>DEPOSIT</div>
-              <div className={`cat-btn ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => handleTabChange('withdraw')}>WITHDRAW</div>
+            <div className="funds-toggle-wrapper" style={{ marginBottom: '24px' }}>
+              <div className={`funds-toggle-slider ${activeTab === 'withdraw' ? 'slide-right' : ''}`}></div>
+              <div className={`funds-cat-btn ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => handleTabChange('deposit')}>DEPOSIT</div>
+              <div className={`funds-cat-btn ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => handleTabChange('withdraw')}>WITHDRAW</div>
             </div>
 
             <div className="payment-box">
