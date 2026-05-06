@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,40 +20,51 @@ type ActiveAccountResponse = {
   qr_image_url: string;
 };
 
+type SavedAccount = {
+  id: string;
+  account_name: string;
+  account_no: string;
+  ifsc: string;
+  bank_name?: string;
+  upi_id?: string;
+  is_primary: boolean;
+};
+
 export default function FundsPage() {
   const router = useRouter();
   useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
-  const [amount, setAmount] = useState<string>('500');
+  const [depositStep, setDepositStep] = useState<1 | 2 | 3>(1);
+  const [amount, setAmount] = useState<string>('1000');
 
-  // Balance state — initialise from cache for instant display
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance'));
   const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
 
-  // Withdrawal bank detail state
   const [accountName, setAccountName] = useState<string>('');
+  const [bankName, setBankName] = useState<string>('');
   const [accountNo, setAccountNo] = useState<string>('');
   const [ifsc, setIfsc] = useState<string>('');
   const [upi, setUpi] = useState<string>('');
 
-  // Active account state (for deposit flow)
   const [activeAccount, setActiveAccount] = useState<ActiveAccountResponse | null>(null);
   const [activeAccountLoading, setActiveAccountLoading] = useState<boolean>(false);
   const [activeAccountError, setActiveAccountError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'BANK_TRANSFER' | null>(null);
-  const [showMethodSelector, setShowMethodSelector] = useState<boolean>(false);
 
-  // Submission state
+  const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [isAddingAccount, setIsAddingAccount] = useState<boolean>(false);
+  const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState<boolean>(false);
+
   const [utr, setUtr] = useState<string>('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Toast state for feedback
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -63,14 +74,42 @@ export default function FundsPage() {
     setTimeout(() => setToast(null), 2000);
   };
 
+  const handleWhatsAppSupport = () => {
+    const number = process.env.NEXT_PUBLIC_SUPPORT_NUMBER || '+1234567890';
+    window.open(`https://wa.me/${number.replace(/[^0-9]/g, '')}`, '_blank');
+  };
+
   useEffect(() => {
     let cancelled = false;
     getSession().then((session) => {
       if (cancelled) return;
-      if (session) fetchBalance(session.access_token);
+      if (session) {
+        fetchBalance(session.access_token);
+        fetchSavedAccounts(session.access_token);
+      }
     });
     return () => { cancelled = true; };
   }, []);
+
+  const fetchSavedAccounts = async (accessToken: string) => {
+    setAccountsLoading(true);
+    try {
+      const res = await fetch('/api/pay/bank-accounts', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        const data: SavedAccount[] = await res.json();
+        setSavedAccounts(data);
+        const primary = data.find(a => a.is_primary);
+        if (primary) setSelectedAccountId(primary.id);
+        else if (data.length > 0) setSelectedAccountId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch bank accounts:', err);
+    } finally {
+      setAccountsLoading(false);
+    }
+  };
 
   const fetchBalance = async (accessToken: string) => {
     setBalanceLoading(true);
@@ -86,88 +125,33 @@ export default function FundsPage() {
         pageCache.set('funds:balance', bal);
       } else {
         setBalanceError('Failed to load balance');
-        if (balance === null) setBalance(null);
       }
     } catch {
       setBalanceError('Failed to load balance');
-      if (balance === null) setBalance(null);
     } finally {
       setBalanceLoading(false);
     }
   };
 
-  // Realtime balance and request updates
-  useEffect(() => {
-    let channel: any;
-    let isMounted = true;
-
-    const setupRealtime = async () => {
-      const session = await getSession();
-      if (!session || !isMounted) return;
-
-      const userId = session.user.id;
-
-      // Consolidate into a single channel for this user's funds
-      channel = supabase
-        .channel(`user_funds_realtime_${userId}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
-          () => {
-            if (isMounted) fetchBalance(session.access_token);
-          }
-        )
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'pay_requests', filter: `user_id=eq.${userId}` },
-          (payload) => {
-            if (!isMounted) return;
-            if (payload.new && payload.new.status !== 'PENDING') {
-              if (payload.new.status === 'APPROVED') {
-                fetchBalance(session.access_token);
-              }
-              setSubmitted(false);
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    setupRealtime();
-
-    return () => {
-      isMounted = false;
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Parse "?tab=withdraw" flag
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('tab') === 'withdraw') {
-      setActiveTab('withdraw');
-    }
-
-    const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
-    if (savedTheme) {
-      document.body.className = savedTheme;
-    }
-  }, []);
-
-  // Reset submitted/error state when switching tabs
   const handleTabChange = (tab: 'deposit' | 'withdraw') => {
     setActiveTab(tab);
+    setDepositStep(1);
     setSubmitted(false);
     setSubmitError(null);
-    setShowMethodSelector(false);
     setPaymentMethod(null);
+    setAmount('1000');
   };
 
-  const handleProceedToPay = async () => {
+  const handleProceedToPay = async (method: 'UPI' | 'BANK_TRANSFER') => {
     setSubmitError(null);
     setActiveAccountError(null);
+    setPaymentMethod(method);
+    
     const numAmount = Number(amount);
-    if (!amount || isNaN(numAmount) || numAmount < 1000) return;
+    if (!amount || isNaN(numAmount) || numAmount < 1000) {
+      setToast({ message: 'Minimum deposit is ₹1,000', type: 'error' });
+      return;
+    }
 
     setActiveAccountLoading(true);
     try {
@@ -177,37 +161,22 @@ export default function FundsPage() {
         return;
       }
 
-      // Step 1: Fetch active account
       const accountRes = await fetch('/api/pay/active-account', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (!accountRes.ok) {
         const accountData = await accountRes.json();
-        setActiveAccountError(accountData.error ?? 'Failed to fetch payment account. Please try again.');
+        setActiveAccountError(accountData.error ?? 'Failed to fetch payment account.');
         setActiveAccountLoading(false);
         return;
       }
       const account: ActiveAccountResponse = await accountRes.json();
       setActiveAccount(account);
       setActiveAccountLoading(false);
-      setShowMethodSelector(true);
+      setDepositStep(2);
     } catch {
       setActiveAccountError('Network error. Please try again.');
       setActiveAccountLoading(false);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setToast({ message: 'File too large. Max 5MB allowed.', type: 'error' });
-        return;
-      }
-      setScreenshot(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setScreenshotPreview(reader.result as string);
-      reader.readAsDataURL(file);
     }
   };
 
@@ -216,44 +185,34 @@ export default function FundsPage() {
     const numAmount = Number(amount);
     if (!amount || isNaN(numAmount) || numAmount < 1000) return;
     if (!activeAccount) return;
-    
     if (utr && !/^\d{12}$/.test(utr)) {
-      setSubmitError('Invalid UTR: Must be exactly 12 digits if provided');
+      setSubmitError('Invalid UTR: Must be exactly 12 digits');
       return;
     }
-
     if (!screenshot) {
       setSubmitError('Payment screenshot is required');
       return;
     }
 
     setSubmitting(true);
-    setUploading(true);
     try {
       const session = await getSession();
-      if (!session) {
-        router.replace('/login');
-        return;
-      }
+      if (!session) return;
 
-      // Step 1: Upload screenshot to Supabase Storage
       const fileExt = screenshot.name.split('.').pop();
       const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
       const filePath = `payments/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('payments')
         .upload(filePath, screenshot);
 
-      if (uploadError) {
-        throw new Error('Failed to upload screenshot. Please ensure the "payments" bucket exists.');
-      }
+      if (uploadError) throw new Error('Failed to upload screenshot.');
 
       const { data: { publicUrl } } = supabase.storage
         .from('payments')
         .getPublicUrl(filePath);
 
-      // Step 2: Submit deposit request with screenshot_url
       const res = await fetch('/api/pay/request', {
         method: 'POST',
         headers: {
@@ -271,32 +230,64 @@ export default function FundsPage() {
       if (res.status === 201) {
         setSubmitted(true);
         setScreenshot(null);
-        setScreenshotPreview(null);
       } else {
         const data = await res.json();
-        setSubmitError(data.error ?? 'Something went wrong. Please try again.');
+        setSubmitError(data.error ?? 'Something went wrong.');
       }
     } catch (err: any) {
-      setSubmitError(err.message || 'Network error. Please try again.');
+      setSubmitError(err.message || 'Network error.');
     } finally {
       setSubmitting(false);
-      setUploading(false);
+    }
+  };
+
+  const handleSaveAccount = async () => {
+    if (!accountName || !accountNo || !ifsc || !bankName) {
+      setToast({ message: 'Please fill all required fields', type: 'error' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const session = await getSession();
+      if (!session) return;
+      const res = await fetch('/api/pay/bank-accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          account_name: accountName,
+          bank_name: bankName,
+          account_no: accountNo,
+          ifsc,
+          upi_id: upi || undefined,
+          is_primary: savedAccounts.length === 0
+        }),
+      });
+      if (res.ok) {
+        const newAcc = await res.json();
+        setSavedAccounts([newAcc, ...savedAccounts]);
+        setSelectedAccountId(newAcc.id);
+        setIsAddingAccount(false);
+        setAccountName(''); setBankName(''); setAccountNo(''); setIfsc(''); setUpi('');
+        setToast({ message: 'Bank account saved!', type: 'success' });
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleWithdraw = async () => {
-    setSubmitError(null);
     const numAmount = Number(amount);
     if (!amount || isNaN(numAmount) || numAmount <= 0) return;
-    if (!accountName || !accountNo || !ifsc) return;
+    const acc = savedAccounts.find(a => a.id === selectedAccountId);
+    if (!acc) return;
 
     setSubmitting(true);
     try {
       const session = await getSession();
-      if (!session) {
-        router.replace('/login');
-        return;
-      }
+      if (!session) return;
       const res = await fetch('/api/pay/request', {
         method: 'POST',
         headers: {
@@ -306,459 +297,292 @@ export default function FundsPage() {
         body: JSON.stringify({
           type: 'WITHDRAWAL',
           amount: numAmount,
-          account_name: accountName,
-          account_no: accountNo,
-          ifsc,
-          upi: upi || undefined,
+          account_name: acc.account_name,
+          account_no: acc.account_no,
+          ifsc: acc.ifsc,
+          upi: acc.upi_id || undefined,
         }),
       });
       if (res.status === 201) {
         setSubmitted(true);
+        setToast({ message: 'Withdrawal request submitted!', type: 'success' });
       } else {
         const data = await res.json();
-        setSubmitError(data.error ?? 'Something went wrong. Please try again.');
+        setSubmitError(data.error ?? 'Something went wrong.');
       }
-    } catch {
-      setSubmitError('Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const numAmount = Number(amount);
-  const amountInvalid = !amount || isNaN(numAmount) || numAmount <= 0;
-  const depositBelowMin = !amountInvalid && numAmount < 1000;
-  const depositDisabled = submitting || submitted || amountInvalid || depositBelowMin;
-  const withdrawDisabled = submitting || submitted || amountInvalid || !accountName || !accountNo || !ifsc;
+  const withdrawDisabled = submitting || submitted || !amount || isNaN(numAmount) || numAmount <= 0 || !selectedAccountId;
 
   return (
     <div className="app-container funds-shell">
-      {/* Top Navbar */}
       <div className="nav-bar-full">
         <Link href="/" className="nav-icon-btn"><i className="fas fa-arrow-left"></i></Link>
         <div className="nav-app-name">Manage <span style={{ color: '#006400', marginLeft: '4px' }}>Funds</span></div>
-        <div style={{ width: '40px' }}></div> {/* Spacer for centering */}
+        <div style={{ width: '40px' }}></div>
       </div>
 
       <div className="main-scroll-wrapper" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="main-content screen">
           <div className="content-padded" style={{ paddingTop: '20px', paddingBottom: '120px' }}>
 
-            {/* Balance Overview Card */}
-            <div className="balance-card">
+            <div className="balance-card" style={{ marginBottom: '24px' }}>
               <p className="balance-label">Total Current Balance</p>
               <h1 className="balance-amount">
-                {balanceLoading
-                  ? <span style={{ fontSize: '1.2rem', opacity: 0.7 }}>Loading…</span>
-                  : `₹${balance?.toFixed(2) ?? '0.00'}`
-                }
+                {balanceLoading ? <span style={{ fontSize: '1.2rem', opacity: 0.7 }}>Loading…</span> : `₹${balance?.toFixed(2) ?? '0.00'}`}
               </h1>
-              {balanceError && (
-                <p style={{ fontSize: '0.7rem', color: 'rgba(255,100,100,0.9)', marginBottom: '8px' }}>
-                  {balanceError}
-                </p>
-              )}
-              <div className="balance-chip"><i className="fas fa-shield-check"></i> 100% Encrypted &amp; Secure</div>
+              {balanceError && <p style={{ fontSize: '0.7rem', color: '#ff6464', marginBottom: '8px' }}>{balanceError}</p>}
+              <div className="balance-chip"><i className="fas fa-shield-check"></i> 100% Encrypted & Secure</div>
             </div>
 
-            {/* Deposit / Withdraw Tabs */}
-            <div className="funds-tabs">
-              <div className={`fund-tab ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => handleTabChange('deposit')}>Deposit</div>
-              <div className={`fund-tab ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => handleTabChange('withdraw')}>Withdraw</div>
+            <div className="category-toggle-wrapper" style={{ marginBottom: '24px' }}>
+              <div className={`category-toggle-slider ${activeTab === 'withdraw' ? 'slide-right' : ''}`}></div>
+              <div className={`cat-btn ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => handleTabChange('deposit')}>DEPOSIT</div>
+              <div className={`cat-btn ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => handleTabChange('withdraw')}>WITHDRAW</div>
             </div>
 
-            {/* Main Interactive Form */}
             <div className="payment-box">
-              <label>Amount (INR)</label>
-              <div className="amount-input-wrapper">
-                <span className="currency-symbol">₹</span>
-                <input
-                  type="number"
-                  className="amount-input"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-
-              {amountInvalid && amount !== '' && (
-                <p style={{ color: '#c0392b', fontSize: '0.75rem', marginTop: '-10px', marginBottom: '10px' }}>
-                  Please enter a valid positive amount.
-                </p>
-              )}
-
-              <div className="quick-amounts">
-                {[500, 1000, 5000, 10000].map(val => (
-                  <div key={val} className="quick-btn" onClick={() => setAmount(val.toString())}>+₹{val}</div>
-                ))}
-              </div>
-
-              {/* Deposit Tab Content */}
               {activeTab === 'deposit' && (
-                <>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '-8px', marginBottom: '12px' }}>
-                    Minimum deposit: ₹1,000
-                  </p>
-
-                  {depositBelowMin && (
-                    <p style={{ color: '#c0392b', fontSize: '0.75rem', marginTop: '-8px', marginBottom: '10px' }}>
-                      Minimum deposit is ₹1,000
-                    </p>
+                <div className="deposit-container">
+                  {!submitted && (
+                    <div className="deposit-stepper" style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+                      {[1, 2, 3].map(s => (
+                        <div key={s} style={{ flex: 1, height: '4px', background: depositStep >= s ? '#006400' : 'var(--border-card)', borderRadius: '2px' }} />
+                      ))}
+                    </div>
                   )}
 
-                  {submitted && activeAccount ? (
-                    <div style={{
-                      background: 'var(--icon-bg)',
-                      border: '1px solid #006400',
-                      borderRadius: '12px',
-                      padding: '20px',
-                      marginBottom: '16px',
-                    }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <i className="fas fa-check-circle" style={{ color: '#006400', fontSize: '1.5rem', marginRight: '8px' }}></i>
-                        <span style={{ color: '#006400', fontWeight: 700, fontSize: '1rem' }}>
-                          Request submitted — pending admin approval
-                        </span>
+                  {depositStep === 1 && !submitted && (
+                    <div className="step-1-area fadeInUp">
+                      <label>Amount (INR)</label>
+                      <div className="amount-input-wrapper">
+                        <span className="currency-symbol">₹</span>
+                        <input type="number" className="amount-input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
                       </div>
-                      <div style={{ marginTop: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                        UTR: {utr}
+                      <div className="quick-amounts">
+                        {[1000, 2000, 5000, 10000].map(val => (
+                          <div key={val} className="quick-btn" onClick={() => setAmount(val.toString())}>+₹{val}</div>
+                        ))}
+                      </div>
+
+                      <div className="method-choice-title" style={{ marginTop: '24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', textAlign: 'center', letterSpacing: '0.5px' }}>CHOOSE PAYMENT METHOD</div>
+                      <div className="method-choice-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <button className="method-btn-direct" disabled={numAmount < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('UPI')}>
+                          <i className="fas fa-qrcode"></i>
+                          <span>Pay via UPI</span>
+                        </button>
+                        <button className="method-btn-direct" disabled={numAmount < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('BANK_TRANSFER')}>
+                          <i className="fas fa-university"></i>
+                          <span>Bank Transfer</span>
+                        </button>
+                      </div>
+                      {numAmount < 1000 && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center', fontWeight: 600 }}>Minimum deposit is ₹1,000</p>}
+                      {activeAccountError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{activeAccountError}</p>}
+                    </div>
+                  )}
+
+                  {depositStep === 2 && !submitted && activeAccount && (
+                    <div className="step-2-area fadeInUp">
+                      <div className="section-title" style={{fontSize: '0.8rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)'}}>
+                        PAYMENT DETAILS ({paymentMethod === 'UPI' ? 'UPI' : 'BANK'})
+                      </div>
+                      <div className="payment-details-card">
+                        {paymentMethod === 'UPI' ? (
+                          <div className="upi-payment-info" style={{textAlign:'center'}}>
+                            <div className="qr-container" style={{background:'white', padding:'15px', borderRadius:'20px', display:'inline-block', marginBottom:'20px'}}>
+                              <QRCode value={`upi://pay?pa=${activeAccount.upi_id}&pn=MarginApex&am=${amount}&cu=INR`} size={160} />
+                            </div>
+                            <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.upi_id, 'UPI ID')}>
+                              <div><strong>UPI ID</strong><span>{activeAccount.upi_id}</span></div>
+                              <i className="fas fa-copy copy-icon"></i>
+                            </div>
+                            <a href={`upi://pay?pa=${activeAccount.upi_id}&pn=MarginApex&am=${amount}&cu=INR`} className="submit-funds-btn" style={{marginTop:'16px', background:'#006400'}}>
+                              <i className="fas fa-mobile-android"></i> Open UPI App
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="bank-payment-info">
+                            {[
+                              { label: 'Beneficiary', value: activeAccount.account_holder },
+                              { label: 'Account No', value: activeAccount.account_no },
+                              { label: 'IFSC Code', value: activeAccount.ifsc },
+                              { label: 'Bank Name', value: activeAccount.bank_name }
+                            ].map((item, idx) => (
+                              <div key={idx} className="copyable-row" onClick={() => copyToClipboard(item.value, item.label)}>
+                                <div><strong>{item.label}</strong><span>{item.value}</span></div>
+                                <i className="fas fa-copy copy-icon"></i>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <button className="submit-funds-btn" style={{marginTop: '24px'}} onClick={() => setDepositStep(3)}>
+                          I Have Paid <i className="fas fa-chevron-right"></i>
+                        </button>
+                        <button className="back-link" onClick={() => setDepositStep(1)} style={{display:'block', width:'100%', textAlign:'center', marginTop:'16px', background:'none', border:'none', color:'var(--text-muted)', fontSize:'0.8rem', cursor:'pointer'}}>
+                          <i className="fas fa-arrow-left"></i> Change Amount / Method
+                        </button>
                       </div>
                     </div>
-                  ) : showMethodSelector ? (
-                    <div className="method-selector">
-                      <h4 style={{ fontSize: '0.85rem', marginBottom: '12px', color: 'var(--text-primary)' }}>Select Payment Method</h4>
-                      
-                      <div 
-                        className={`method-item ${paymentMethod === 'UPI' ? 'active' : ''}`}
-                        onClick={() => setPaymentMethod('UPI')}
-                      >
-                        <div className="method-icon"><i className="fas fa-mobile-alt"></i></div>
-                        <div className="method-info">
-                          <h4>UPI Payment</h4>
-                          <p>PhonePe, GPay, Paytm & others</p>
-                        </div>
-                        <i className="fas fa-check-circle method-check"></i>
+                  )}
+
+                  {depositStep === 3 && !submitted && (
+                    <div className="step-3-area fadeInUp">
+                      <div className="section-title" style={{fontSize: '0.8rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)'}}>VERIFY TRANSACTION</div>
+                      <div className="input-group" style={{marginBottom: '20px'}}>
+                        <label>12-DIGIT UTR NUMBER</label>
+                        <input type="text" className="amount-input" style={{fontSize: '1.2rem', padding: '15px', background: 'var(--icon-bg)', borderRadius: '12px'}} maxLength={12} placeholder="Enter UTR / Ref No" value={utr} onChange={(e) => setUtr(e.target.value.replace(/[^0-9]/g, ''))} />
                       </div>
-
-                      <div 
-                        className={`method-item ${paymentMethod === 'BANK_TRANSFER' ? 'active' : ''}`}
-                        onClick={() => setPaymentMethod('BANK_TRANSFER')}
-                      >
-                        <div className="method-icon"><i className="fas fa-university"></i></div>
-                        <div className="method-info">
-                          <h4>Bank Transfer</h4>
-                          <p>IMPS, NEFT, RTGS</p>
+                      <div className="upload-group" style={{marginBottom: '24px'}}>
+                        <label>PAYMENT SCREENSHOT</label>
+                        <div className="screenshot-dropzone" style={{border: '2px dashed var(--border-card)', borderRadius: '16px', padding: '30px', textAlign: 'center', cursor: 'pointer'}} onClick={() => fileInputRef.current?.click()}>
+                          {screenshot ? <span><i className="fas fa-file-image"></i> {screenshot.name}</span> : <span><i className="fas fa-cloud-upload"></i> Upload Screenshot</span>}
                         </div>
-                        <i className="fas fa-check-circle method-check"></i>
+                        <input type="file" ref={fileInputRef} style={{display:'none'}} accept="image/*" onChange={(e) => setScreenshot(e.target.files?.[0] || null)} />
                       </div>
-
-                      {paymentMethod && (
-                        <div style={{ marginTop: '20px', animation: 'fadeInUp 0.3s ease' }}>
-                          {paymentMethod === 'UPI' && (
-                            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                              <div style={{ padding: '16px', background: 'white', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
-                                <QRCode 
-                                  value={`upi://pay?pa=${activeAccount?.upi_id}&pn=${encodeURIComponent(activeAccount?.account_holder || '')}&am=${amount}&cu=INR`}
-                                  size={160}
-                                />
-                              </div>
-                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.upi_id || '', 'UPI ID')}>
-                                <div><strong>UPI ID</strong> <span>{activeAccount?.upi_id}</span></div>
-                                <i className="fas fa-copy copy-icon"></i>
-                              </div>
-                              
-                              <button 
-                                className="submit-funds-btn"
-                                style={{ background: '#673ab7', marginBottom: '16px' }}
-                                onClick={() => {
-                                  const upiUrl = `upi://pay?pa=${activeAccount?.upi_id}&pn=${encodeURIComponent(activeAccount?.account_holder || '')}&am=${amount}&cu=INR`;
-                                  window.location.href = upiUrl;
-                                }}
-                              >
-                                <i className="fas fa-external-link-alt"></i>
-                                Pay via UPI App
-                              </button>
-                            </div>
-                          )}
-
-                          {paymentMethod === 'BANK_TRANSFER' && (
-                            <div style={{ marginBottom: '20px' }}>
-                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.account_holder || '', 'Account Holder')}>
-                                <div><strong>Account Holder</strong> <span>{activeAccount?.account_holder}</span></div>
-                                <i className="fas fa-copy copy-icon"></i>
-                              </div>
-                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.account_no || '', 'Account Number')}>
-                                <div><strong>Account Number</strong> <span>{activeAccount?.account_no}</span></div>
-                                <i className="fas fa-copy copy-icon"></i>
-                              </div>
-                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.bank_name || '', 'Bank Name')}>
-                                <div><strong>Bank Name</strong> <span>{activeAccount?.bank_name}</span></div>
-                                <i className="fas fa-copy copy-icon"></i>
-                              </div>
-                              <div className="copyable-row" onClick={() => copyToClipboard(activeAccount?.ifsc || '', 'IFSC Code')}>
-                                <div><strong>IFSC Code</strong> <span>{activeAccount?.ifsc}</span></div>
-                                <i className="fas fa-copy copy-icon"></i>
-                              </div>
-                            </div>
-                          )}
-
-                          <div style={{ marginBottom: '16px' }}>
-                            <label>12-Digit UTR / Reference Number <span style={{ color: '#c0392b' }}>*</span></label>
-                            <input
-                              type="text"
-                              value={utr}
-                              onChange={(e) => setUtr(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                              placeholder="e.g. 123456789012"
-                              style={{
-                                width: '100%',
-                                padding: '12px 16px',
-                                borderRadius: '12px',
-                                border: '1px solid var(--border-card)',
-                                background: 'var(--main-bg)',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.9rem',
-                                boxSizing: 'border-box',
-                                outline: 'none',
-                              }}
-                            />
-                          </div>
-
-                          <div style={{ marginBottom: '20px' }}>
-                            <label>Upload Payment Screenshot <span style={{ color: '#c0392b' }}>*</span></label>
-                            <div style={{
-                              border: '2px dashed var(--border-card)',
-                              borderRadius: '12px',
-                              padding: '20px',
-                              textAlign: 'center',
-                              background: 'var(--main-bg)',
-                              cursor: 'pointer',
-                            }} onClick={() => document.getElementById('screenshot-upload')?.click()}>
-                              {screenshotPreview ? (
-                                <img src={screenshotPreview} alt="Preview" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '8px' }} />
-                              ) : (
-                                <>
-                                  <i className="fas fa-cloud-upload-alt" style={{ fontSize: '1.5rem', color: 'var(--text-secondary)', marginBottom: '4px' }}></i>
-                                  <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>Click to upload proof</div>
-                                </>
-                              )}
-                              <input 
-                                id="screenshot-upload"
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handleFileChange} 
-                                style={{ display: 'none' }}
-                              />
-                            </div>
-                          </div>
-
-                          {submitError && (
-                            <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
-                              ❌ {submitError}
-                            </p>
-                          )}
-                          
-                          <button
-                            className="submit-funds-btn"
-                            onClick={handleConfirmDeposit}
-                            disabled={!screenshot || !utr || utr.length !== 12 || submitting}
-                            style={{ opacity: (!screenshot || !utr || utr.length !== 12 || submitting) ? 0.6 : 1 }}
-                          >
-                            <i className="fas fa-check"></i>
-                            {submitting ? 'Submitting…' : 'Confirm Deposit'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {activeAccountError && (
-                        <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
-                          ❌ {activeAccountError}
-                        </p>
-                      )}
-                      {submitError && (
-                        <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
-                          ❌ {submitError}
-                        </p>
-                      )}
-                      <button
-                        className="submit-funds-btn"
-                        onClick={handleProceedToPay}
-                        disabled={depositDisabled}
-                        style={{ opacity: depositDisabled ? 0.6 : 1, cursor: depositDisabled ? 'not-allowed' : 'pointer' }}
-                      >
-                        <i className="fas fa-qrcode"></i>
-                        {activeAccountLoading ? 'Fetching details…' : 'Proceed to Pay'}
+                      <button className="submit-funds-btn" disabled={utr.length !== 12 || !screenshot || submitting} onClick={handleConfirmDeposit}>
+                        {submitting ? 'Processing...' : 'Submit Deposit Request'}
                       </button>
-                    </>
+                    </div>
                   )}
-                </>
+
+                  {submitted && (
+                    <div className="success-area fadeInUp" style={{textAlign:'center', padding:'20px 0'}}>
+                      <div style={{fontSize:'3rem', color:'#006400', marginBottom:'16px'}}><i className="fas fa-check-circle"></i></div>
+                      <h3 style={{fontWeight:800, marginBottom:'8px'}}>Request Submitted</h3>
+                      <p style={{fontSize:'0.85rem', color:'var(--text-secondary)', marginBottom:'24px'}}>Your request for ₹{amount} is pending verification. Funds usually reflect within 60 mins.</p>
+                      <button className="submit-funds-btn" onClick={() => handleTabChange('deposit')}>Done</button>
+                    </div>
+                  )}
+                </div>
               )}
 
-              {/* Withdraw Tab Content */}
               {activeTab === 'withdraw' && (
-                <>
-                  <div style={{ marginBottom: '16px' }}>
-                    <label>Account Name <span style={{ color: '#c0392b' }}>*</span></label>
-                    <input
-                      type="text"
-                      value={accountName}
-                      onChange={(e) => setAccountName(e.target.value)}
-                      placeholder="Enter account holder name"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-card)',
-                        background: 'var(--icon-bg)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.9rem',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                    {!accountName && (
-                      <p style={{ color: '#c0392b', fontSize: '0.72rem', marginTop: '4px' }}>Account name is required.</p>
-                    )}
+                <div className="withdraw-container fadeInUp">
+                  <div className="margin-available-box">
+                    <div className="margin-header"><span className="margin-label">AVAILABLE FOR WITHDRAWAL</span></div>
+                    <div className="margin-value">₹{balance?.toLocaleString('en-IN') || '0'}</div>
+                    <div className="margin-footer"><i className="fas fa-shield-check"></i> 100% Secure Withdrawal</div>
                   </div>
 
-                  <div style={{ marginBottom: '16px' }}>
-                    <label>Account Number <span style={{ color: '#c0392b' }}>*</span></label>
-                    <input
-                      type="text"
-                      value={accountNo}
-                      onChange={(e) => setAccountNo(e.target.value)}
-                      placeholder="Enter account number"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-card)',
-                        background: 'var(--icon-bg)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.9rem',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                    {!accountNo && (
-                      <p style={{ color: '#c0392b', fontSize: '0.72rem', marginTop: '4px' }}>Account number is required.</p>
-                    )}
+                  <label>Withdrawal Amount</label>
+                  <div className="amount-input-wrapper">
+                    <span className="currency-symbol">₹</span>
+                    <input type="number" className="amount-input" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
                   </div>
 
-                  <div style={{ marginBottom: '16px' }}>
-                    <label>IFSC Code <span style={{ color: '#c0392b' }}>*</span></label>
-                    <input
-                      type="text"
-                      value={ifsc}
-                      onChange={(e) => setIfsc(e.target.value)}
-                      placeholder="e.g. SBIN0001234"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-card)',
-                        background: 'var(--icon-bg)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.9rem',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                    {!ifsc && (
-                      <p style={{ color: '#c0392b', fontSize: '0.72rem', marginTop: '4px' }}>IFSC code is required.</p>
-                    )}
+                  <div className="withdrawal-breakdown-card">
+                    <div className="breakdown-row"><span>Payout Amount</span><span>₹{amount || '0'}</span></div>
+                    <div className="breakdown-row"><span>Processing Fee</span><span style={{color:'#006400'}}>FREE</span></div>
+                    <div className="breakdown-divider"></div>
+                    <div className="breakdown-row"><strong>Total Payout</strong><strong style={{color:'#006400'}}>₹{amount || '0'}</strong></div>
                   </div>
 
-                  <div style={{ marginBottom: '20px' }}>
-                    <label>UPI ID <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(optional)</span></label>
-                    <input
-                      type="text"
-                      value={upi}
-                      onChange={(e) => setUpi(e.target.value)}
-                      placeholder="e.g. name@upi"
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-card)',
-                        background: 'var(--icon-bg)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.9rem',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-
-                  {submitted ? (
-                    <div style={{
-                      background: 'rgba(0,100,0,0.1)',
-                      border: '1px solid #006400',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      textAlign: 'center',
-                      color: '#006400',
-                      fontWeight: 700,
-                      marginBottom: '16px',
-                    }}>
-                      <i className="fas fa-check-circle" style={{ marginRight: '8px' }}></i>
-                      Request submitted — pending admin approval
+                  <div className="bank-selector-section" style={{marginBottom: '24px'}}>
+                    <label>Destination Account</label>
+                    <div className="bank-selector-card" onClick={() => setIsAccountDrawerOpen(true)}>
+                      <div className="bank-card-icon"><i className="fas fa-university"></i></div>
+                      <div className="bank-card-info">
+                        {selectedAccountId ? (
+                          <>
+                            <div className="bank-name-main">{savedAccounts.find(a => a.id === selectedAccountId)?.bank_name || 'Bank Account'}</div>
+                            <div className="bank-acc-no">{savedAccounts.find(a => a.id === selectedAccountId)?.account_no}</div>
+                          </>
+                        ) : <div className="bank-placeholder">Select Account</div>}
+                      </div>
+                      <i className="fas fa-chevron-right"></i>
                     </div>
-                  ) : (
-                    <>
-                      {submitError && (
-                        <p style={{ color: '#c0392b', fontSize: '0.8rem', marginBottom: '12px', fontWeight: 600 }}>
-                          ❌ {submitError}
-                        </p>
-                      )}
-                      <button
-                        className="submit-funds-btn"
-                        onClick={handleWithdraw}
-                        disabled={withdrawDisabled}
-                        style={{ opacity: withdrawDisabled ? 0.6 : 1, cursor: withdrawDisabled ? 'not-allowed' : 'pointer' }}
-                      >
-                        <i className="fas fa-paper-plane"></i>
-                        {submitting ? 'Submitting…' : 'Request Withdrawal'}
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
+                  </div>
 
+                  <button className="submit-funds-btn" disabled={withdrawDisabled} onClick={handleWithdraw}>
+                    {submitting ? 'Processing...' : 'Withdraw Funds'}
+                  </button>
+                </div>
+              )}
             </div>
 
+            <div className="whatsapp-community" onClick={handleWhatsAppSupport} style={{ marginTop: '24px' }}>
+              <div className="whatsapp-inner">
+                <div className="whatsapp-icon"><i className="fab fa-whatsapp"></i></div>
+                <div className="whatsapp-content">
+                  <div className="whatsapp-headline">Facing any issue? Contact Support</div>
+                  <div className="whatsapp-sub"><i className="fas fa-headset"></i> Get help on WhatsApp</div>
+                </div>
+                <div className="whatsapp-arrow"><i className="fas fa-chevron-right"></i></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Toast Notification */}
+      {/* Account Drawer */}
+      <div className={`expiry-half-drawer-overlay ${isAccountDrawerOpen ? 'active' : ''}`} onClick={() => setIsAccountDrawerOpen(false)}>
+        <div className="expiry-half-sheet" onClick={(e) => e.stopPropagation()}>
+          <div className="expiry-sheet-header"><h3>Select Bank Account</h3><div className="expiry-sheet-close" onClick={() => setIsAccountDrawerOpen(false)}><i className="fas fa-times"></i></div></div>
+          <div className="accounts-list">
+            {savedAccounts.map(acc => (
+              <div key={acc.id} className={`account-item ${selectedAccountId === acc.id ? 'active' : ''}`} onClick={() => { setSelectedAccountId(acc.id); setIsAccountDrawerOpen(false); }}>
+                <div className="acc-icon"><i className="fas fa-university"></i></div>
+                <div className="acc-details"><div className="acc-name">{acc.account_name}</div><div className="acc-no">{acc.account_no} • {acc.ifsc}</div></div>
+                {selectedAccountId === acc.id && <i className="fas fa-check-circle"></i>}
+              </div>
+            ))}
+            <div className="add-account-btn" onClick={() => { setIsAddingAccount(true); setIsAccountDrawerOpen(false); }}><i className="fas fa-plus"></i> Add New Account</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Account Overlay - REFACTORED */}
+      {isAddingAccount && (
+        <div className="add-account-overlay fadeInUp">
+          <div className="modal-header">
+            <h4>Add New Bank Account</h4>
+            <button className="close-btn" onClick={() => setIsAddingAccount(false)}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div className="form-group">
+            <label>Bank Name</label>
+            <input type="text" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. HDFC Bank, SBI, etc." />
+          </div>
+
+          <div className="form-group">
+            <label>Account Holder Name</label>
+            <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Full name as per bank record" />
+          </div>
+          
+          <div className="form-group">
+            <label>Account Number</label>
+            <input type="text" value={accountNo} onChange={(e) => setAccountNo(e.target.value)} placeholder="000000000000" />
+          </div>
+          
+          <div className="form-group">
+            <label>IFSC Code</label>
+            <input type="text" value={ifsc} onChange={(e) => setIfsc(e.target.value)} placeholder="e.g. SBIN0001234" />
+          </div>
+          
+          <div className="form-group">
+            <label>UPI ID (Optional)</label>
+            <input type="text" value={upi} onChange={(e) => setUpi(e.target.value)} placeholder="name@upi" />
+          </div>
+          
+          <button className="submit-funds-btn" onClick={handleSaveAccount} disabled={submitting} style={{ marginTop: 'auto' }}>
+            {submitting ? 'Saving...' : 'Save & Use Account'}
+          </button>
+        </div>
+      )}
+
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '100px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: toast.type === 'success' ? '#006400' : '#c0392b',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: '50px',
-          zIndex: 1000,
-          fontSize: '0.9rem',
-          fontWeight: 600,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-          animation: 'toastFadeInUp 0.3s ease',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          whiteSpace: 'nowrap'
-        }}>
+        <div className="toast-notification fadeInUp" style={{position:'fixed', bottom:'100px', left:'50%', transform:'translateX(-50%)', background: toast.type === 'success' ? '#006400' : '#c0392b', color:'white', padding:'12px 24px', borderRadius:'50px', zIndex:1000, boxShadow:'0 8px 24px rgba(0,0,0,0.3)', display:'flex', alignItems:'center', gap:'8px'}}>
           <i className={`fas ${toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
           {toast.message}
         </div>
       )}
 
-      {/* Footer Navigation Overlay */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
         <Footer activeTab="home" hideDrawer={true} />
       </div>
