@@ -5,7 +5,8 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
-html, body {
+html,
+body {
   min-height: 100dvh;
   margin: 0;
   padding: 0;
@@ -26,6 +27,7 @@ body {
     align-items: flex-start;
     justify-content: flex-start;
   }
+
   .app-container,
   .mobile-app,
   .history-root,
@@ -91,7 +93,7 @@ body {
   --whatsapp-bg: linear-gradient(135deg, #006400, #0A5F52);
   --gold-silver-gradient: linear-gradient(135deg, #E8E8E8 0%, #D4AF37 30%, #FFD700 50%, #F0C040 70%, #C0C0C0 100%);
   --expiry-drawer-bg: #FFFFFF;
-  --expiry-drawer-overlay: rgba(0,0,0,0.5);
+  --expiry-drawer-overlay: rgba(0, 0, 0, 0.5);
   --footer-nav-height: 65px;
   --sidebar-width: 0px;
 }
@@ -366,12 +368,14 @@ body.dark .nav-app-name span {
   justify-content: center;
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
   transition: visibility 0.2s, opacity 0.2s;
 }
 
 .expiry-half-drawer-overlay.active {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .expiry-half-sheet {
@@ -382,22 +386,14 @@ body.dark .nav-app-name span {
   padding: 20px 20px 30px;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-  max-height: 70vh;
-  overflow-y: auto;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-}
-
-.expiry-half-drawer-overlay.active .expiry-half-sheet {
-  transform: translateY(0);
-}
-
-.expiry-sheet-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
   border-bottom: 2px solid var(--border-card);
   padding-bottom: 12px;
+}
+
+.expiry-half-drawer-overlay.active .expiry-half-sheet,
+.expiry-half-sheet.open {
+  transform: translateY(0);
 }
 
 .expiry-sheet-header h3 {
@@ -462,4 +458,3 @@ body.dark .nav-app-name span {
   justify-content: center;
   color: var(--footer-active);
 }
-

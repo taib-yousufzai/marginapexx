@@ -39,7 +39,12 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
   // Scroll to ATM only once per expiry change
   React.useEffect(() => {
     if (atmRef.current && !hasScrolled) {
-      atmRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Small delay to ensure rendering completes
+      setTimeout(() => {
+        if (atmRef.current) {
+          atmRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
       setHasScrolled(true);
     }
   }, [atmStrike?.strike, hasScrolled]);
@@ -54,89 +59,60 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
     return quotes[id] || null;
   };
 
-  const isITM = (strike: number, type: 'CE' | 'PE') => {
-    if (spotPrice <= 0) return false;
-    if (type === 'CE') return strike < spotPrice;
-    return strike > spotPrice;
-  };
-
-  const formatVolume = (v: number) => {
-    if (!v || v <= 0) return '0';
-    if (v >= 10000000) return (v / 10000000).toFixed(2) + ' Cr';
-    if (v >= 100000) return (v / 100000).toFixed(2) + ' L';
-    if (v >= 1000) return (v / 1000).toFixed(1) + ' K';
-    return v.toString();
-  };
-
   return (
     <div className="oc-container">
-      <div className="oc-header">
-        <div className="oc-h-cell desktop-only">VOL</div>
-        <div className="oc-h-cell">CALLS</div>
-        <div className="oc-h-cell strike-label">STRIKE</div>
-        <div className="oc-h-cell">PUTS</div>
-        <div className="oc-h-cell desktop-only">VOL</div>
+      <div className="oc-header-titles">
+        <div className="oc-col-title">CALLS (CE)</div>
+        <div className="oc-col-title center">STRIKE</div>
+        <div className="oc-col-title right">PUTS (PE)</div>
       </div>
       
-      <div className="oc-rows">
+      <div className="oc-rows-container">
         {strikes.map((s) => {
           const ceQuote = getQuote(s.ce?.id);
           const peQuote = getQuote(s.pe?.id);
           
-          const isCeITM = isITM(s.strike, 'CE');
-          const isPeITM = isITM(s.strike, 'PE');
-
+          const isAtm = s.strike === atmStrike?.strike;
+          
           return (
-            <div 
-              key={s.strike} 
-              ref={s.strike === atmStrike?.strike ? atmRef : null}
-              className="oc-row"
-            >
-              {/* Call Volume (Desktop Only) */}
-              <div className={`oc-cell vol-cell desktop-only ${isCeITM ? 'itm' : ''}`}>
-                <span className="vol-val">{ceQuote ? formatVolume(ceQuote.volume) : '---'}</span>
-              </div>
-
-              {/* Call Data */}
+            <React.Fragment key={s.strike}>
+              
               <div 
-                className={`oc-cell call-side ${isCeITM ? 'itm' : ''}`}
-                onClick={() => s.ce && onTrade(s.ce.symbol, 'BUY')}
+                ref={isAtm ? atmRef : null}
+                className="oc-data-row"
               >
-                <div className="oc-val-grp">
-                  <span className={`oc-price ${ceQuote && ceQuote.changePercent < 0 ? 'neg' : 'pos'}`}>
+                {/* Calls side */}
+                <div 
+                  className="oc-side call-side"
+                  onClick={() => s.ce && onTrade(s.ce.symbol, 'BUY')}
+                >
+                  <div className="oc-price">
                     {ceQuote ? ceQuote.lastPrice.toFixed(2) : '---'}
-                  </span>
-                  <span className="oc-pct">
-                    {ceQuote ? `${ceQuote.changePercent > 0 ? '+' : ''}${ceQuote.changePercent}%` : ''}
-                  </span>
+                  </div>
+                  <div className={`oc-change ${ceQuote && ceQuote.changePercent < 0 ? 'neg' : 'pos'}`}>
+                    {ceQuote ? `${ceQuote.changePercent > 0 ? '+' : ''}${ceQuote.changePercent.toFixed(2)}` : ''}
+                  </div>
                 </div>
-              </div>
 
-              {/* Strike Price */}
-              <div className="oc-cell strike-side">
-                <span className="strike-val">{s.strike}</span>
-              </div>
+                {/* Strike Price */}
+                <div className="oc-center-strike">
+                  <div className="strike-pill">{s.strike.toLocaleString('en-IN')}</div>
+                </div>
 
-              {/* Put Data */}
-              <div 
-                className={`oc-cell put-side ${isPeITM ? 'itm' : ''}`}
-                onClick={() => s.pe && onTrade(s.pe.symbol, 'BUY')}
-              >
-                <div className="oc-val-grp">
-                  <span className={`oc-price ${peQuote && peQuote.changePercent < 0 ? 'neg' : 'pos'}`}>
+                {/* Puts side */}
+                <div 
+                  className="oc-side put-side"
+                  onClick={() => s.pe && onTrade(s.pe.symbol, 'BUY')}
+                >
+                  <div className="oc-price">
                     {peQuote ? peQuote.lastPrice.toFixed(2) : '---'}
-                  </span>
-                  <span className="oc-pct">
-                    {peQuote ? `${peQuote.changePercent > 0 ? '+' : ''}${peQuote.changePercent}%` : ''}
-                  </span>
+                  </div>
+                  <div className={`oc-change ${peQuote && peQuote.changePercent < 0 ? 'neg' : 'pos'}`}>
+                    {peQuote ? `${peQuote.changePercent > 0 ? '+' : ''}${peQuote.changePercent.toFixed(2)}` : ''}
+                  </div>
                 </div>
               </div>
-
-              {/* Put Volume (Desktop Only) */}
-              <div className={`oc-cell vol-cell desktop-only ${isPeITM ? 'itm' : ''}`}>
-                <span className="vol-val">{peQuote ? formatVolume(peQuote.volume) : '---'}</span>
-              </div>
-            </div>
+            </React.Fragment>
           );
         })}
       </div>
@@ -146,102 +122,105 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
           display: flex;
           flex-direction: column;
           width: 100%;
-          background: var(--card-bg);
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border-light);
         }
 
-        .oc-header {
-          display: grid;
-          grid-template-columns: 1fr 90px 1fr;
-          background: var(--card-alt-bg);
-          border-bottom: 1px solid var(--border-light);
-          padding: 14px 0;
+        .oc-header-titles {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 16px 16px 16px;
           position: sticky;
           top: 0;
+          background: var(--bg-body);
           z-index: 10;
         }
 
-        .oc-h-cell {
+        .oc-col-title {
           font-size: 0.65rem;
           font-weight: 800;
           color: var(--text-muted);
-          text-align: center;
-          letter-spacing: 1.5px;
+          letter-spacing: 1px;
+          flex: 1;
         }
 
-        .strike-label {
-          color: #C62E2E;
-        }
+        .oc-col-title.center { text-align: center; }
+        .oc-col-title.right { text-align: right; }
 
-        .oc-rows {
+        .oc-rows-container {
           display: flex;
           flex-direction: column;
+          gap: 12px;
         }
 
-        .oc-row {
-          display: grid;
-          grid-template-columns: 1fr 90px 1fr;
-          border-bottom: 1px solid var(--border-light);
-          min-height: 58px;
-          transition: background 0.15s ease;
-        }
-
-        .oc-cell {
+        .oc-data-row {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          padding: 8px 16px;
+          background: var(--card-alt-bg);
+          border-radius: 40px;
+          padding: 12px 24px;
+          transition: transform 0.1s;
+          border: 1px solid var(--border-light);
+        }
+
+        .oc-data-row:active {
+          transform: scale(0.98);
+        }
+
+        .oc-side {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
           cursor: pointer;
         }
 
-        .desktop-only { display: none; }
+        .call-side { align-items: flex-start; }
+        .put-side { align-items: flex-end; text-align: right; }
 
-        @media (min-width: 1024px) {
-          .oc-header, .oc-row {
-            grid-template-columns: 80px 1fr 100px 1fr 80px;
-          }
-          .desktop-only { display: flex; }
-          .vol-cell {
-            justify-content: center;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-          }
-          .vol-val {
-              font-family: 'JetBrains Mono', monospace;
-              opacity: 0.8;
-          }
-        }
-
-        .call-side { justify-content: flex-end; text-align: right; }
-        .put-side { justify-content: flex-start; text-align: left; }
-
-        .strike-side {
-          justify-content: center;
-          background: var(--card-alt-bg);
-          border-left: 1px solid var(--border-light);
-          border-right: 1px solid var(--border-light);
-        }
-
-        .strike-val {
+        .oc-price {
           font-weight: 800;
-          font-size: 0.9rem;
+          font-size: 1.1rem;
+          color: var(--text-primary);
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .oc-change {
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .pos { color: #22c55e; }
+        .neg { color: #ef4444; }
+
+        .oc-center-strike {
+          flex: 0 0 auto;
+          display: flex;
+          justify-content: center;
+        }
+
+        .strike-pill {
+          background: var(--bg-body);
+          color: var(--text-primary);
+          padding: 6px 16px;
+          border-radius: 20px;
+          font-weight: 800;
+          font-size: 0.95rem;
+          border: 1px solid var(--border-card);
+        }
+
+        .oc-price {
+          font-weight: 800;
+          font-size: 1.1rem;
           color: var(--text-primary);
         }
-
-        .itm { background: rgba(44, 142, 90, 0.04); }
-        :global(body.dark) .itm { background: rgba(74, 222, 128, 0.06); }
-
-        .oc-val-grp { display: flex; flex-direction: column; gap: 2px; }
-        .oc-price { font-weight: 700; font-size: 0.95rem; font-family: 'JetBrains Mono', monospace; }
-        .oc-pct { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); }
-
-        .pos { color: var(--positive-text); }
-        .neg { color: var(--negative-text); }
-
-        .oc-row:hover { background: var(--card-alt-bg); }
+        :global(body.dark) .strike-pill {
+          background: #121212;
+          border-color: #252525;
+        }
+        :global(body.dark) .oc-data-row {
+          background: #1c1c1c;
+          border-color: #2a2a2a;
+        }
       `}</style>
     </div>
   );

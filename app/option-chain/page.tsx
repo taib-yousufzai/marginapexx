@@ -39,10 +39,17 @@ function OptionChainContent() {
       try {
         const url = `/api/market/option-chain?symbol=${normalizedSymbol}${selectedExpiry ? `&expiry=${selectedExpiry}` : ''}`;
         const res = await fetch(url);
-        const json = await res.json();
-        if (json.success) {
-          setData(json);
-          if (!selectedExpiry) setSelectedExpiry(json.expiry);
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          if (json.success) {
+            setData(json);
+            if (!selectedExpiry) setSelectedExpiry(json.expiry);
+          } else {
+            console.error('API returned success: false', json);
+          }
+        } catch (parseError) {
+          console.error('Failed to parse option chain JSON. Response:', text.substring(0, 200));
         }
       } catch (err) {
         console.error('Failed to fetch option chain', err);
@@ -89,12 +96,10 @@ function OptionChainContent() {
   const spotChange = underlyingId ? quotes[underlyingId]?.changePercent || 0 : 0;
 
   const handleTrade = (instrSymbol: string, side: 'BUY' | 'SELL') => {
-    // Find the strike and type from instrument symbol
     const strikeMatch = data?.strikes.find(s => s.ce?.symbol === instrSymbol || s.pe?.symbol === instrSymbol);
     if (strikeMatch) {
         const type = strikeMatch.ce?.symbol === instrSymbol ? 'CE' : 'PE';
         setSelectedContract({ symbol: instrSymbol, type, strike: strikeMatch.strike });
-        // Set default quantity based on index
         const defaultQty = symbol === 'NIFTY' ? 50 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
         setOrderQty(defaultQty);
     }
@@ -140,81 +145,72 @@ function OptionChainContent() {
 
   return (
     <div className="oc-app-container">
-      <header className="app-header">
-        <div className="header-wrapper">
-            <div className="header-top">
-            <div className="logo-area">
-                <button onClick={() => router.back()} className="back-btn">
-                <i className="fas fa-chevron-left"></i>
-                </button>
-                <div className="title-grp">
-                <span className="logo-text">{symbol}</span>
-                <div className="status-row">
-                    <span className="sub-tag">Option Chain</span>
-                    <div className={`status-indicator ${connected ? 'online' : 'offline'}`} title={connected ? 'Kite Live' : 'Kite Disconnected'}></div>
-                    {connected && (
-                        <span className="quote-count">
-                            {Object.keys(quotes).length > 0 ? `${Object.keys(quotes).length} live` : 'Connecting...'}
-                        </span>
-                    )}
-                </div>
-                </div>
+      <header className="app-header premium-header">
+        <div className="header-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Left Side */}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div className="premium-back-btn" onClick={() => router.back()}>
+              <i className="fas fa-chevron-left" style={{ fontSize: '1rem' }}></i>
             </div>
+            <div>
+              <div className="premium-symbol-name">{symbol}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                <span className="premium-badge">OPTION CHAIN</span>
+                {connected ? (
+                  <div className="pulsing-dot connected"></div>
+                ) : (
+                  <>
+                    <div className="pulsing-dot connecting"></div>
+                    <span className="connecting-text">Connecting...</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
 
-            {!connected && !quotesLoading && (
-                <button className="kite-reconnect-btn" onClick={handleKiteLogin}>
-                    <i className="fas fa-link"></i> Connect Kite
-                </button>
-            )}
-
-            <div className="spot-area">
-                <div className="today-badge">
-                    {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase()}
-                </div>
-                <span className="spot-label">SPOT PRICE</span>
-                <div className="spot-vals">
-                <span className="spot-price">{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</span>
-                <span className={`spot-chg ${spotChange >= 0 ? 'pos' : 'neg'}`}>
-                    {spotChange >= 0 ? '+' : ''}{spotChange.toFixed(2)}%
-                </span>
-                </div>
+          {/* Right Side */}
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            <div className="premium-expiry-badge">
+              {(() => {
+                const now = new Date();
+                return `${now.getDate()} ${now.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}`;
+              })()}
             </div>
-            </div>
+            <div className="premium-spot-label" style={{ marginTop: selectedExpiry ? '4px' : '0' }}>SPOT PRICE</div>
+            <div className="premium-spot-price">{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</div>
+            <div className={`premium-spot-change ${spotChange >= 0 ? 'pos' : 'neg'}`}>{spotChange >= 0 ? '+' : ''}{spotChange.toFixed(2)}%</div>
+          </div>
         </div>
       </header>
 
       <main className="main-content">
         <div className="content-wrapper">
-            <div className="expiry-strip">
+          <div className="expiry-strip">
             <div className="strip-scroll">
-                {data?.expiries.map(exp => {
-                    // Use splitting to avoid timezone shifts from local interpretation
-                    const [year, monthNum, dayNum] = exp.split('-').map(Number);
-                    const dateObj = new Date(year, monthNum - 1, dayNum);
-                    
-                    const day = dateObj.getDate();
-                    const month = dateObj.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
-                    return (
-                        <button 
-                            key={exp}
-                            className={`expiry-tab ${selectedExpiry === exp ? 'active' : ''}`}
-                            onClick={() => setSelectedExpiry(exp)}
-                        >
-                            <span className="tab-day">{day}</span>
-                            <span className="tab-month">{month}</span>
-                        </button>
-                    );
-                })}
+              {data?.expiries.map((exp, idx) => {
+                  const [year, monthNum, dayNum] = exp.split('-').map(Number);
+                  const dateObj = new Date(year, monthNum - 1, dayNum);
+                  const day = dateObj.getDate();
+                  const month = dateObj.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
+                  return (
+                      <button 
+                          key={exp}
+                          className={`expiry-pill ${selectedExpiry === exp ? 'active' : ''}`}
+                          onClick={() => setSelectedExpiry(exp)}
+                      >
+                          <div className="day">{day}</div>
+                          <div className="month">{month}</div>
+                      </button>
+                  );
+              })}
             </div>
-            </div>
+          </div>
 
-            <div className="oc-table-wrapper">
+          <div className="oc-table-wrapper">
             {loading ? (
                 <div className="loading-state">
-                <div className="pulse-logo">
-                    <i className="fas fa-circle-notch fa-spin"></i>
-                </div>
-                <p>Gathering strikes...</p>
+                  <div className="red-spinner"></div>
+                  <p>Gathering strikes...</p>
                 </div>
             ) : (
                 <>
@@ -226,94 +222,113 @@ function OptionChainContent() {
                         </div>
                     ) : (
                         <>
-                          {/* Order Entry Drawer */}
-      <div className={`expiry-half-drawer-overlay ${selectedContract ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setSelectedContract(null); }}>
-        <div className={`expiry-half-sheet order-sheet ${selectedContract ? 'open' : ''}`}>
-          <div className="expiry-sheet-header">
-            <div className="order-title">
-              <span className={`type-badge ${selectedContract?.type}`}>{selectedContract?.type}</span>
-              <div className="order-name-grp">
-                <h3>{selectedContract?.strike} {selectedContract?.type}</h3>
-                <p>{selectedContract?.symbol}</p>
-              </div>
-            </div>
-            <div className="expiry-sheet-close" onClick={() => setSelectedContract(null)}><i className="fas fa-times"></i></div>
-          </div>
-          
-          <div className="order-sheet-content">
-            <div className="order-price-row">
-              <div className="price-label">LTP</div>
-              <div className="price-val">
-                ₹{selectedContract && data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id ? 
-                  (quotes[data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id]?.lastPrice || 0).toFixed(2) : '0.00'}
-              </div>
-            </div>
+                          {/* Single combined popup */}
+                          <div className={`expiry-half-drawer-overlay ${selectedContract ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setSelectedContract(null); }}>
+                            <div className={`expiry-half-sheet detail-sheet ${selectedContract ? 'open' : ''}`}>
+                              {selectedContract && (() => {
+                                const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
+                                const quote = kiteId ? quotes[kiteId] : null;
+                                const ltp = quote ? quote.lastPrice : 0;
+                                const chgPct = quote ? quote.changePercent : 0;
+                                const bid = ltp > 0 ? ltp - 0.20 : 0;
+                                const ask = ltp > 0 ? ltp + 0.20 : 0;
+                                return (
+                                  <>
+                                    {/* Header with back arrow — watchlist style */}
+                                    <div className="os-sheet-header">
+                                      <button className="os-back-btn" onClick={() => setSelectedContract(null)}>
+                                        <i className="fas fa-chevron-left"></i>
+                                      </button>
+                                      <div className="os-sheet-left">
+                                        <div className="os-sheet-name">{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                                        <span className="os-sheet-segment">{selectedContract.symbol}</span>
+                                      </div>
+                                      <div className="os-sheet-right">
+                                        <div className="os-cmp-label">CMP</div>
+                                        <div className="os-cmp-val">{ltp > 0 ? `₹${ltp.toFixed(2)}` : '---'}</div>
+                                        <div className={`os-cmp-chg ${chgPct < 0 ? 'neg' : 'pos'}`}>{chgPct > 0 ? '+' : ''}{chgPct.toFixed(2)}%</div>
+                                      </div>
+                                    </div>
 
-            <div className="order-input-section">
-                <div className="input-group">
-                    <label>Quantity</label>
-                    <div className="qty-stepper">
-                        <button onClick={() => setOrderQty(Math.max(1, orderQty - 1))}><i className="fas fa-minus"></i></button>
-                        <input type="number" value={orderQty} onChange={(e) => setOrderQty(parseInt(e.target.value) || 0)} />
-                        <button onClick={() => setOrderQty(orderQty + 1)}><i className="fas fa-plus"></i></button>
-                    </div>
-                </div>
+                                    {/* BID / ASK */}
+                                    <div className="os-bidask">
+                                      <div className="os-ba-col">
+                                        <div className="os-ba-label">BID</div>
+                                        <div className="os-ba-val pos">{bid > 0 ? bid.toFixed(2) : '---'}</div>
+                                      </div>
+                                      <div className="os-ba-divider"></div>
+                                      <div className="os-ba-col">
+                                        <div className="os-ba-label">ASK</div>
+                                        <div className="os-ba-val neg">{ask > 0 ? ask.toFixed(2) : '---'}</div>
+                                      </div>
+                                    </div>
 
-                <div className="input-group">
-                    <label>Order Type</label>
-                    <div className="pill-group">
-                        {['MARKET', 'LIMIT'].map(t => (
-                            <button key={t} className={orderType === t ? 'active' : ''} onClick={() => setOrderType(t as OrderType)}>{t}</button>
-                        ))}
-                    </div>
-                </div>
+                                    {/* Quantity */}
+                                    <div className="os-qty-section">
+                                      <div className="os-qty-label">QUANTITY</div>
+                                      <div className="os-qty-control">
+                                        <button className="os-qty-btn" onClick={() => setOrderQty(q => Math.max(1, q - 1))}><i className="fas fa-minus"></i></button>
+                                        <input className="os-qty-input" type="number" value={orderQty} onChange={e => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))} />
+                                        <button className="os-qty-btn" onClick={() => setOrderQty(q => q + 1)}><i className="fas fa-plus"></i></button>
+                                      </div>
+                                    </div>
 
-                {orderType === 'LIMIT' && (
-                    <div className="input-group">
-                        <label>Limit Price</label>
-                        <input className="price-input" type="number" value={limitPrice} onChange={(e) => setLimitPrice(e.target.value)} placeholder="0.00" />
-                    </div>
-                )}
+                                    {/* Order Type */}
+                                    <div className="os-type-section">
+                                      <div className="os-section-lbl"><i className="fas fa-layer-group"></i> ORDER TYPE</div>
+                                      <div className="os-type-btns">
+                                        {(['MARKET', 'LIMIT'] as OrderType[]).map(t => (
+                                          <button key={t} className={`os-type-btn${orderType === t ? ' active' : ''}`} onClick={() => setOrderType(t)}>{t}</button>
+                                        ))}
+                                      </div>
+                                      {orderType === 'LIMIT' && (
+                                        <input className="os-price-input" type="number" placeholder="Limit Price (₹)" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} />
+                                      )}
+                                    </div>
 
-                <div className="input-group">
-                    <label>Product</label>
-                    <div className="pill-group">
-                        {['INTRADAY', 'CARRY'].map(t => (
-                            <button key={t} className={productType === t ? 'active' : ''} onClick={() => setProductType(t as ProductType)}>{t}</button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+                                    {/* Product Type */}
+                                    <div className="os-type-section">
+                                      <div className="os-section-lbl"><i className="fas fa-clock"></i> PRODUCT TYPE</div>
+                                      <div className="os-type-btns">
+                                        {(['INTRADAY', 'CARRY'] as ProductType[]).map(p => (
+                                          <button key={p} className={`os-type-btn${productType === p ? ' active' : ''}`} onClick={() => setProductType(p)}>{p}</button>
+                                        ))}
+                                      </div>
+                                    </div>
 
-            <div className="order-actions">
-                <button className="buy-btn" onClick={() => handlePlaceOrder('BUY')} disabled={placingOrder}>
-                    {placingOrder ? <i className="fas fa-spinner fa-spin"></i> : 'BUY'}
-                </button>
-                <button className="sell-btn" onClick={() => handlePlaceOrder('SELL')} disabled={placingOrder}>
-                    {placingOrder ? <i className="fas fa-spinner fa-spin"></i> : 'SELL'}
-                </button>
-            </div>
-          </div>
-        </div>
-      </div>
+                                    {/* BUY / SELL */}
+                                    <div className="os-actions">
+                                      <button className="os-btn-buy" onClick={() => { handlePlaceOrder('BUY'); setSelectedContract(null); }} disabled={placingOrder}>
+                                        {placingOrder ? <i className="fas fa-circle-notch fa-spin"></i> : <><i className="fas fa-arrow-up"></i> BUY</>}
+                                      </button>
+                                      <button className="os-btn-sell" onClick={() => { handlePlaceOrder('SELL'); setSelectedContract(null); }} disabled={placingOrder}>
+                                        {placingOrder ? <i className="fas fa-circle-notch fa-spin"></i> : <><i className="fas fa-arrow-down"></i> SELL</>}
+                                      </button>
+                                    </div>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
 
-      {/* Toast Notification */}
-      {showToast && (
-        <div className={`toast-msg ${showToast.isError ? 'error' : ''}`}>
-          {showToast.msg}
-        </div>
-      )}
-                        <OptionChainTable 
-                        strikes={data?.strikes || []} 
-                        quotes={quotes}
-                        spotPrice={spotPrice}
-                        onTrade={handleTrade}
-                        />
+                          {/* Toast Notification */}
+                          {showToast && (
+                            <div className={`toast-msg ${showToast.isError ? 'error' : ''}`}>
+                              {showToast.msg}
+                            </div>
+                          )}
+                          
+                          <OptionChainTable 
+                            strikes={data?.strikes || []} 
+                            quotes={quotes}
+                            spotPrice={spotPrice}
+                            onTrade={handleTrade}
+                          />
                         </>
                     )}
                 </>
             )}
-            </div>
+          </div>
         </div>
       </main>
 
@@ -335,9 +350,8 @@ function OptionChainContent() {
         }
 
         .app-header {
-          background: var(--container-bg);
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--border-light);
+          background: var(--bg-body);
+          padding: 16px 20px 8px 20px;
           flex-shrink: 0;
           z-index: 30;
         }
@@ -346,152 +360,101 @@ function OptionChainContent() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          margin-bottom: 24px;
         }
 
-        .logo-area {
+        .header-left {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 16px;
         }
 
-        .back-btn {
-          background: var(--card-alt-bg);
-          border: 1px solid var(--border-light);
-          width: 38px;
-          height: 38px;
+        .back-icon {
+          color: var(--text-primary);
+          font-size: 1.1rem;
+          cursor: pointer;
+        }
+
+        .user-profile {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+        }
+
+        .avatar-img {
+          width: 34px;
+          height: 34px;
+          background: #2A2A2A;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 0.9rem;
+          color: #A0A0A0;
+          border: none;
+        }
+
+        .user-name {
+          font-weight: 800;
+          font-size: 1.05rem;
+          color: #4ade80;
+          letter-spacing: 0.5px;
+        }
+
+        .header-actions i {
+          font-size: 1.2rem;
           color: var(--text-primary);
           cursor: pointer;
-          transition: all 0.2s;
         }
-        .back-btn:active { transform: scale(0.92); }
 
-        .title-grp {
+        .index-info-area {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-bottom: 8px;
+        }
+
+        .index-title-col {
           display: flex;
           flex-direction: column;
         }
 
-        .logo-text {
-          font-weight: 800;
-          font-size: 1.2rem;
-          color: var(--text-primary);
-          line-height: 1.1;
-          letter-spacing: -0.5px;
-        }
-
-        .status-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 2px;
-        }
-
-        .sub-tag {
+        .index-label {
           font-size: 0.65rem;
-          font-weight: 800;
-          color: #C62E2E;
-          text-transform: uppercase;
+          font-weight: 700;
+          color: var(--text-muted);
           letter-spacing: 1px;
+          margin-bottom: 4px;
         }
 
-        .status-indicator {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(0,0,0,0.2);
-        }
-        .status-indicator.online { 
-            background: #22c55e; 
-            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
-            animation: pulse-green 2s infinite;
-        }
-        .status-indicator.offline { 
-            background: #ef4444; 
-            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        .index-name {
+          font-weight: 800;
+          font-size: 2.2rem;
+          color: var(--text-primary);
+          line-height: 1;
+          margin: 0;
+          letter-spacing: -1px;
         }
 
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
-
-        .quote-count {
-            font-size: 0.6rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            background: var(--card-alt-bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 1px solid var(--border-light);
-        }
-
-        .kite-reconnect-btn {
-            background: rgba(198, 46, 46, 0.1);
-            color: #C62E2E;
-            border: 1px solid rgba(198, 46, 46, 0.2);
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .kite-reconnect-btn:hover {
-            background: #C62E2E;
-            color: white;
-        }
-
-        .spot-area {
+        .index-price-col {
           text-align: right;
         }
 
-        .spot-label {
-          font-size: 0.6rem;
-          font-weight: 900;
-          color: var(--text-muted);
-          display: block;
-          letter-spacing: 1px;
-        }
-
-        .spot-vals {
-          display: flex;
-          flex-direction: column;
-          margin-top: 2px;
-        }
-
-        .spot-price {
+        .index-price-val {
           font-weight: 800;
-          font-size: 1.05rem;
+          font-size: 1.5rem;
           color: var(--text-primary);
           font-family: 'JetBrains Mono', monospace;
+          line-height: 1.2;
         }
 
-        .spot-chg {
-          font-size: 0.75rem;
+        .index-price-chg {
+          font-size: 0.8rem;
           font-weight: 700;
         }
-
-        .pos { color: var(--positive-text); }
-        .neg { color: var(--negative-text); }
-
-        .today-badge {
-            font-size: 0.6rem;
-            font-weight: 800;
-            color: white;
-            background: #22c55e;
-            padding: 1px 6px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 4px;
-            letter-spacing: 0.5px;
-        }
+        .pos { color: #22c55e; }
+        .neg { color: #ef4444; }
 
         .main-content {
           flex: 1;
@@ -503,14 +466,13 @@ function OptionChainContent() {
         .main-content::-webkit-scrollbar { display: none; }
 
         .expiry-strip {
-          background: var(--container-bg);
-          padding: 14px 20px;
-          border-bottom: 1px solid var(--border-light);
+          padding: 8px 20px 16px 20px;
           overflow-x: auto;
           scrollbar-width: none;
           position: sticky;
           top: 0;
           z-index: 20;
+          background: var(--bg-body);
         }
         .expiry-strip::-webkit-scrollbar { display: none; }
 
@@ -519,46 +481,174 @@ function OptionChainContent() {
           gap: 12px;
         }
 
-        .expiry-tab {
+        /* PREMIUM UI ELEMENTS */
+        .premium-header {
+          padding: 16px 20px;
+          background: var(--card-bg);
+          border-bottom: 1px solid var(--border-light);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        body.dark .premium-header {
+          background: #1c1c1c;
+          border-bottom: 1px solid #2a2a2a;
+        }
+
+        .premium-back-btn {
+          width: 42px;
+          height: 42px;
+          background: var(--icon-bg);
+          border: 1px solid var(--border-light);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+        }
+        .premium-back-btn:active {
+          transform: scale(0.95);
+          background: var(--border-light);
+        }
+
+        .premium-symbol-name {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          text-transform: uppercase;
+          line-height: 1.1;
+          letter-spacing: -0.5px;
+        }
+
+        .premium-spot-label {
+          font-size: 0.6rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          letter-spacing: 1px;
+        }
+
+        .connecting-text {
+          color: var(--text-secondary);
+          font-size: 0.65rem;
+          font-weight: 600;
+        }
+
+        .premium-badge {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .pulsing-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+        .pulsing-dot.connected {
+          background: #4ade80;
+          box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+          animation: pulse-green 2s infinite;
+        }
+        .pulsing-dot.connecting {
+          background: #eab308;
+          box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+          animation: pulse-yellow 1.5s infinite;
+        }
+
+        @keyframes pulse-green {
+          0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        @keyframes pulse-yellow {
+          0% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(234, 179, 8, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+
+        .premium-expiry-badge {
+          background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+          color: #000;
+          font-size: 0.6rem;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 6px;
+          box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+
+        .premium-spot-price {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          line-height: 1;
+        }
+        
+        .premium-spot-change {
+          font-size: 0.8rem;
+          font-weight: 800;
+        }
+        .premium-spot-change.pos { color: #22c55e; }
+        .premium-spot-change.neg { color: #ef4444; }
+
+        .expiry-pill {
+          width: calc((100vw - 64px) / 3);
+          max-width: 150px;
+          height: 48px;
+          padding: 2px 4px;
+          background: var(--card-bg);
+          border: 1px solid var(--border-light);
+          box-shadow: var(--shadow-sm);
+          border-radius: 9999px; /* Capsule shape */
+          font-size: 0.9rem;
+          font-weight: 800;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 10px 18px;
-          background: var(--card-alt-bg);
-          border: 1px solid var(--border-light);
-          border-radius: 16px;
-          min-width: 65px;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+          justify-content: center;
+          gap: 0px;
+          flex-shrink: 0;
         }
 
-        .expiry-tab.active {
-          background: #C62E2E;
-          border-color: #C62E2E;
+        .expiry-pill .day {
+          font-size: 1.05rem;
+          line-height: 1.1;
+          font-weight: 900;
+          color: var(--text-primary);
+          transition: color 0.3s ease;
+        }
+
+        .expiry-pill .month {
+          font-size: 0.6rem;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+
+        .expiry-pill.active {
+          background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+          border-color: rgba(239, 68, 68, 0.5);
+          color: white;
+          box-shadow: 0 8px 20px -4px rgba(239, 68, 68, 0.4), inset 0 2px 4px rgba(255,255,255,0.2);
           transform: translateY(-2px);
-          box-shadow: 0 8px 16px rgba(198, 46, 46, 0.2);
         }
 
-        .tab-day {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-        .tab-month {
-            font-size: 0.6rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-        .expiry-tab.active .tab-day,
-        .expiry-tab.active .tab-month {
-            color: white;
+        .expiry-pill.active .day {
+          color: white;
         }
 
         .oc-table-wrapper {
           flex: 1;
-          background: var(--card-bg);
-          padding-bottom: 20px;
+          padding: 0 20px 80px 20px;
         }
 
         .loading-state, .no-data-state {
@@ -570,16 +660,27 @@ function OptionChainContent() {
             text-align: center;
         }
 
-        .pulse-logo {
-            font-size: 2.5rem;
-            color: #C62E2E;
-            margin-bottom: 20px;
+        .red-spinner {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent 0%, transparent 40%, #ef4444 100%);
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), black calc(100% - 4px));
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         .loading-state p {
-            font-weight: 700;
+            font-weight: 800;
             color: var(--text-primary);
+            font-size: 1.1rem;
             margin: 0;
+            letter-spacing: 0.5px;
         }
 
         .no-data-state i {
@@ -599,150 +700,297 @@ function OptionChainContent() {
             font-weight: 500;
         }
 
-        .order-sheet {
+        .detail-sheet {
             background: var(--card-bg);
-            border-top-left-radius: 30px;
-            border-top-right-radius: 30px;
-            padding: 24px;
-            max-height: 85vh;
-            overflow-y: auto;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            padding: 0 0 0;
             position: fixed;
             bottom: -100%;
             left: 0;
+            right: 0;
             width: 100%;
+            max-width: 100%;
+            margin-bottom: 0 !important;
+            border-bottom: none !important;
             z-index: 1001;
             transition: bottom 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
         }
 
-        .order-sheet.open {
+        .detail-sheet.open {
             bottom: 0;
         }
 
-        .order-title {
+        /* ── Order Sheet — watchlist style ── */
+        .os-handle { display: flex; justify-content: center; padding: 10px 0 6px; }
+        .os-handle-bar { width: 40px; height: 4px; background: var(--border-card); border-radius: 4px; }
+
+        .os-sheet-header { padding: 14px 16px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; }
+        .os-back-btn { background: var(--icon-bg); border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 0.9rem; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .os-sheet-left { flex: 1; }
+        .os-sheet-name { font-size: 1rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+        .os-sheet-segment { display: inline-block; font-size: 0.6rem; font-weight: 600; color: #C62E2E; background: #FEF0F0; padding: 3px 10px; border-radius: 20px; }
+        .os-sheet-right { text-align: right; }
+        .os-cmp-label { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; }
+        .os-cmp-val { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
+        .os-cmp-chg { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 30px; display: inline-block; margin-top: 2px; }
+        .os-cmp-chg.pos { color: #2C8E5A; background: #E9F6EF; }
+        .os-cmp-chg.neg { color: #C62E2E; background: #FEF0F0; }
+
+        .os-bidask { background: var(--card-alt-bg); margin: 10px 16px; padding: 10px 16px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .os-ba-col { flex: 1; text-align: center; }
+        .os-ba-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px; }
+        .os-ba-val { font-size: 1rem; font-weight: 700; }
+        .os-ba-val.pos { color: #2C8E5A; }
+        .os-ba-val.neg { color: #C62E2E; }
+        .os-ba-divider { width: 1px; height: 32px; background: var(--border-light); margin: 0 8px; }
+
+        .os-actions { padding: 4px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; }
+        .os-btn-buy, .os-btn-sell { flex: 1; padding: 14px; border: none; border-radius: 40px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; transition: 0.15s; }
+        .os-btn-buy { background: #2C8E5A; color: white; }
+        .os-btn-sell { background: #C62E2E; color: white; }
+        .os-btn-buy:active, .os-btn-sell:active { transform: scale(0.97); }
+        .os-btn-buy:disabled, .os-btn-sell:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* ── Quantity + Order/Product type — watchlist style ── */
+        .os-qty-section { background: var(--card-alt-bg); padding: 10px 14px; border-radius: 18px; margin: 0 16px 12px; }
+        .os-qty-label { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+        .os-qty-control { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); border-radius: 40px; padding: 3px; border: 1px solid var(--border-light); }
+        .os-qty-btn { width: 38px; height: 38px; background: var(--icon-bg); border: none; border-radius: 30px; font-size: 1rem; font-weight: 600; color: #C62E2E; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .os-qty-btn:active { opacity: 0.7; }
+        .os-qty-input { flex: 1; text-align: center; font-size: 1rem; font-weight: 700; border: none; outline: none; background: transparent; color: var(--text-primary); font-family: inherit; }
+
+        .os-type-section { background: var(--card-alt-bg); padding: 10px 14px; border-radius: 18px; margin: 0 16px 12px; }
+        .os-section-lbl { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .os-type-btns { display: flex; gap: 8px; }
+        .os-type-btn { flex: 1; padding: 8px; border: 1px solid var(--border-light); background: var(--card-bg); border-radius: 30px; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; color: var(--text-secondary); font-family: inherit; transition: 0.15s; }
+        .os-type-btn.active { background: #C62E2E; color: white; border-color: #C62E2E; }
+        .os-price-input { width: 100%; margin-top: 10px; padding: 10px; border-radius: 30px; border: 1px solid var(--border-light); font-size: 0.85rem; background: var(--card-bg); color: var(--text-primary); outline: none; font-family: inherit; box-sizing: border-box; }
+        .oc-order-fullpage { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--container-bg); z-index: 2001; display: flex; flex-direction: column; overflow-y: auto; animation: oc-slide-in 0.3s ease; }
+        @keyframes oc-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        .oc-order-header { padding: 14px 18px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; background: var(--container-bg); position: sticky; top: 0; z-index: 10; }
+        .oc-back-icon { background: var(--icon-bg); border: none; width: 36px; height: 36px; border-radius: 30px; font-size: 1rem; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px; }
+        .oc-order-script-info { flex: 1; }
+        .oc-order-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+        .oc-order-segment { font-size: 0.65rem; color: #C62E2E; background: #FEF0F0; padding: 3px 10px; border-radius: 20px; display: inline-block; }
+        .oc-order-right { text-align: right; }
+        .oc-order-cmp { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
+        .oc-order-chg { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 30px; display: inline-block; margin-top: 2px; }
+        .oc-order-chg.pos { color: #2C8E5A; background: #E9F6EF; }
+        .oc-order-chg.neg { color: #C62E2E; background: #FEF0F0; }
+        .oc-order-bidask-mini { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+        .oc-ba-mini { font-size: 0.6rem; background: var(--card-alt-bg); padding: 3px 8px; border-radius: 20px; display: flex; gap: 4px; }
+        .oc-ba-mini-lbl { color: var(--text-muted); }
+
+        .oc-order-content { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+        .oc-order-section { background: var(--card-alt-bg); padding: 10px 14px; border-radius: 18px; }
+        .oc-order-section-lbl { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; }
+        .oc-qty-control { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); border-radius: 40px; padding: 3px; border: 1px solid var(--border-light); }
+        .oc-qty-btn { width: 38px; height: 38px; background: var(--icon-bg); border: none; border-radius: 30px; font-size: 1rem; font-weight: 600; color: #C62E2E; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .oc-qty-input { flex: 1; text-align: center; font-size: 1rem; font-weight: 700; border: none; outline: none; background: transparent; color: var(--text-primary); font-family: inherit; }
+        .oc-type-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .oc-type-btn { flex: 1; min-width: 70px; padding: 8px; border: 1px solid var(--border-light); background: var(--card-bg); border-radius: 30px; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; color: var(--text-secondary); font-family: inherit; }
+        .oc-type-btn.active { background: #C62E2E; color: white; border-color: #C62E2E; }
+        .oc-price-input { width: 100%; margin-top: 10px; padding: 10px; border-radius: 30px; border: 1px solid var(--border-light); font-size: 0.85rem; background: var(--card-bg); color: var(--text-primary); outline: none; font-family: inherit; box-sizing: border-box; }
+        .oc-order-actions { display: flex; gap: 12px; margin-top: 4px; }
+        .oc-confirm-buy, .oc-confirm-sell { flex: 1; padding: 14px; border: none; border-radius: 40px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; transition: 0.15s; color: white; }
+        .oc-confirm-buy { background: #2C8E5A; }
+        .oc-confirm-sell { background: #C62E2E; }
+        .oc-confirm-buy:active, .oc-confirm-sell:active { transform: scale(0.97); }
+        .oc-confirm-buy:disabled, .oc-confirm-sell:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .detail-header {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        .type-badge {
-            font-size: 0.7rem;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 6px;
-            color: white;
-        }
-        .type-badge.CE { background: #2c8e5a; }
-        .type-badge.PE { background: #c62e2e; }
-
-        .order-name-grp h3 { font-size: 1.1rem; margin: 0; color: var(--text-primary); }
-        .order-name-grp p { font-size: 0.65rem; color: var(--text-secondary); margin: 0; }
-
-        .order-sheet-content {
-            padding: 20px 0 10px;
-        }
-
-        .order-price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .detail-back-btn {
             background: var(--card-alt-bg);
-            padding: 12px 16px;
-            border-radius: 12px;
+            border: 1px solid var(--border-card);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .detail-title-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .detail-title-area h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .detail-tag {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #c62e2e;
+        }
+
+        .detail-price-area {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .cmp-label {
+            font-size: 0.55rem;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .cmp-val {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .cmp-chg {
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .detail-box {
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            background: transparent;
+            padding: 16px;
             margin-bottom: 20px;
         }
-        .price-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
-        .price-val { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
 
-        .input-group {
-            margin-bottom: 16px;
+        .bid-ask-box {
+            display: flex;
+            align-items: center;
         }
-        .input-group label {
-            display: block;
+
+        .ba-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ba-label {
             font-size: 0.65rem;
             font-weight: 800;
             color: var(--text-muted);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .qty-stepper {
+        .ba-val {
+            font-size: 1.1rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ba-divider {
+            width: 1px;
+            height: 40px;
+            background: var(--border-card);
+        }
+
+        .detail-section-title {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .ohlc-box {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ohlc-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ohlc-label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .ohlc-val {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .date-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+        }
+
+        .date-left {
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text-muted);
             display: flex;
             align-items: center;
-            background: var(--card-alt-bg);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border-card);
-        }
-        .qty-stepper button {
-            background: none;
-            border: none;
-            padding: 12px 20px;
-            color: var(--text-primary);
-            cursor: pointer;
-        }
-        .qty-stepper input {
-            flex: 1;
-            background: none;
-            border: none;
-            text-align: center;
-            font-weight: 800;
-            font-size: 1.1rem;
-            color: var(--text-primary);
-            width: 60px;
-        }
-
-        .pill-group {
-            display: flex;
             gap: 8px;
         }
-        .pill-group button {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid var(--border-card);
-            background: var(--card-bg);
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-        .pill-group button.active {
-            background: var(--chip-active-bg);
-            color: var(--chip-active-text);
-            border-color: var(--chip-active-bg);
-        }
 
-        .price-input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border-card);
-            background: var(--card-alt-bg);
+        .date-right {
+            font-size: 0.85rem;
             font-weight: 800;
-            font-size: 1.1rem;
             color: var(--text-primary);
         }
 
-        .order-actions {
+        .detail-actions {
             display: flex;
-            gap: 12px;
-            margin-top: 24px;
+            gap: 16px;
+            margin-top: 8px;
         }
-        .buy-btn, .sell-btn {
+
+        .btn-buy, .btn-sell {
             flex: 1;
             padding: 16px;
-            border-radius: 16px;
+            border-radius: 30px;
             border: none;
-            font-weight: 800;
             font-size: 1rem;
+            font-weight: 800;
             color: white;
             cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
             transition: transform 0.1s;
         }
-        .buy-btn { background: #2c8e5a; box-shadow: 0 4px 12px rgba(44, 142, 90, 0.3); }
-        .sell-btn { background: #c62e2e; box-shadow: 0 4px 12px rgba(198, 46, 46, 0.3); }
-        .buy-btn:active, .sell-btn:active { transform: scale(0.96); }
+
+        .btn-buy { background: #1B8751; box-shadow: 0 4px 12px rgba(27, 135, 81, 0.3); }
+        .btn-sell { background: #C62E2E; box-shadow: 0 4px 12px rgba(198, 46, 46, 0.3); }
+        .btn-buy:active, .btn-sell:active { transform: scale(0.96); }
 
         .toast-msg {
             position: fixed;
@@ -760,6 +1008,9 @@ function OptionChainContent() {
             white-space: nowrap;
         }
         .toast-msg.error { background: #c62e2e; }
+        
+        :global(body.dark) .user-name { color: #4ade80; }
+        :global(body.dark) .index-price-chg.pos { color: #4ade80; }
       `}</style>
       <Footer activeTab="home" />
     </div>
