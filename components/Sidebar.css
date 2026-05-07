@@ -1,0 +1,249 @@
+.desktop-sidebar {
+  width: 260px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #edf2f7;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.desktop-sidebar.collapsed {
+  width: 80px;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid #f7fafc;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.logo-text {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #1a202c;
+  letter-spacing: -0.5px;
+}
+
+.logo-text span {
+  color: #10b981;
+}
+
+.collapse-btn {
+  background: #f7fafc;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #718096;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.collapse-btn:hover {
+  background: #edf2f7;
+  color: #2d3748;
+}
+
+/* Sidebar Nav */
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: #edf2f7;
+  border-radius: 10px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: #718096;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.sidebar-item:hover {
+  background: #f7fafc;
+  color: #2d3748;
+}
+
+.sidebar-item.active {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+}
+
+.sidebar-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-label {
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.desktop-sidebar.collapsed .sidebar-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.active-indicator {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 20px;
+  background: #10b981;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 16px 12px;
+  border-top: 1px solid #edf2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: #718096;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-action-btn:hover {
+  background: #f7fafc;
+  color: #2d3748;
+}
+
+.sidebar-action-btn.logout:hover {
+  background: #fff5f5;
+  color: #e53e3e;
+}
+
+/* ===== DARK MODE ===== */
+body.dark .desktop-sidebar {
+  background: #1a1b1e;
+  border-right-color: #2c2e33;
+}
+
+body.dark .sidebar-header {
+  border-bottom-color: #2c2e33;
+}
+
+body.dark .logo-text {
+  color: #e6edf3;
+}
+
+body.dark .collapse-btn {
+  background: #25262b;
+  color: #909296;
+}
+
+body.dark .collapse-btn:hover {
+  background: #2c2e33;
+  color: #c1c2c5;
+}
+
+body.dark .sidebar-item {
+  color: #909296;
+}
+
+body.dark .sidebar-item:hover {
+  background: #25262b;
+  color: #c1c2c5;
+}
+
+body.dark .sidebar-item.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+body.dark .sidebar-footer {
+  border-top-color: #2c2e33;
+}
+
+body.dark .sidebar-action-btn {
+  color: #909296;
+}
+
+body.dark .sidebar-action-btn:hover {
+  background: #25262b;
+  color: #c1c2c5;
+}
+
+body.dark .sidebar-action-btn.logout:hover {
+  background: rgba(229, 62, 62, 0.1);
+  color: #ff6b6b;
+}
+
+@media (max-width: 1023px) {
+  .desktop-sidebar {
+    display: none;
+  }
+}

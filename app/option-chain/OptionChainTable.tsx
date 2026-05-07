@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { QuoteData } from '@/hooks/useKiteQuotes';
+import { calculateGreeks, calculateIV } from '@/lib/greeks';
 
 interface StrikeData {
   strike: number;
@@ -21,10 +22,11 @@ interface OptionChainTableProps {
   strikes: StrikeData[];
   quotes: Record<string, QuoteData>;
   spotPrice: number;
+  expiryDate: string | null;
   onTrade: (symbol: string, side: 'BUY' | 'SELL') => void;
 }
 
-export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }: OptionChainTableProps) {
+export default function OptionChainTable({ strikes, quotes, spotPrice, expiryDate, onTrade }: OptionChainTableProps) {
   const atmRef = React.useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = React.useState(false);
 
@@ -68,14 +70,28 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
     return v.toString();
   };
 
+  const T = React.useMemo(() => {
+    if (!expiryDate) return 0;
+    // Set expiry time to market close (3:30 PM) for more accuracy
+    const exp = new Date(expiryDate);
+    exp.setHours(15, 30, 0, 0);
+    const now = new Date();
+    const diff = exp.getTime() - now.getTime();
+    return Math.max(0, diff / (1000 * 60 * 60 * 24 * 365));
+  }, [expiryDate]);
+
   return (
     <div className="oc-container">
       <div className="oc-header">
+        <div className="oc-h-cell desktop-only">DELTA</div>
+        <div className="oc-h-cell desktop-only">IV</div>
         <div className="oc-h-cell desktop-only">VOL</div>
         <div className="oc-h-cell">CALLS</div>
         <div className="oc-h-cell strike-label">STRIKE</div>
         <div className="oc-h-cell">PUTS</div>
         <div className="oc-h-cell desktop-only">VOL</div>
+        <div className="oc-h-cell desktop-only">IV</div>
+        <div className="oc-h-cell desktop-only">DELTA</div>
       </div>
       
       <div className="oc-rows">
@@ -86,12 +102,35 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
           const isCeITM = isITM(s.strike, 'CE');
           const isPeITM = isITM(s.strike, 'PE');
 
+          // Greeks Calculation
+          let ceIV = 0, ceDelta = 0;
+          let peIV = 0, peDelta = 0;
+
+          if (spotPrice > 0 && T > 0) {
+            if (ceQuote && ceQuote.lastPrice > 0) {
+              ceIV = calculateIV(ceQuote.lastPrice, spotPrice, s.strike, T, 0.1, 'CE');
+              ceDelta = calculateGreeks(spotPrice, s.strike, T, 0.1, ceIV, 'CE').delta;
+            }
+            if (peQuote && peQuote.lastPrice > 0) {
+              peIV = calculateIV(peQuote.lastPrice, spotPrice, s.strike, T, 0.1, 'PE');
+              peDelta = calculateGreeks(spotPrice, s.strike, T, 0.1, peIV, 'PE').delta;
+            }
+          }
+
           return (
             <div 
               key={s.strike} 
               ref={s.strike === atmStrike?.strike ? atmRef : null}
               className="oc-row"
             >
+              {/* Call Greeks (Desktop Only) */}
+              <div className={`oc-cell greek-cell desktop-only ${isCeITM ? 'itm' : ''}`}>
+                <span>{ceDelta !== 0 ? ceDelta.toFixed(2) : '---'}</span>
+              </div>
+              <div className={`oc-cell greek-cell desktop-only ${isCeITM ? 'itm' : ''}`}>
+                <span>{ceIV !== 0 ? (ceIV * 100).toFixed(1) : '---'}</span>
+              </div>
+
               {/* Call Volume (Desktop Only) */}
               <div className={`oc-cell vol-cell desktop-only ${isCeITM ? 'itm' : ''}`}>
                 <span className="vol-val">{ceQuote ? formatVolume(ceQuote.volume) : '---'}</span>
@@ -135,6 +174,14 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
               {/* Put Volume (Desktop Only) */}
               <div className={`oc-cell vol-cell desktop-only ${isPeITM ? 'itm' : ''}`}>
                 <span className="vol-val">{peQuote ? formatVolume(peQuote.volume) : '---'}</span>
+              </div>
+
+              {/* Put Greeks (Desktop Only) */}
+              <div className={`oc-cell greek-cell desktop-only ${isPeITM ? 'itm' : ''}`}>
+                <span>{peIV !== 0 ? (peIV * 100).toFixed(1) : '---'}</span>
+              </div>
+              <div className={`oc-cell greek-cell desktop-only ${isPeITM ? 'itm' : ''}`}>
+                <span>{peDelta !== 0 ? Math.abs(peDelta).toFixed(2) : '---'}</span>
               </div>
             </div>
           );
@@ -200,14 +247,19 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade }
 
         @media (min-width: 1024px) {
           .oc-header, .oc-row {
-            grid-template-columns: 80px 1fr 100px 1fr 80px;
+            grid-template-columns: 70px 70px 80px 1fr 100px 1fr 80px 70px 70px;
           }
           .desktop-only { display: flex; }
-          .vol-cell {
+          .vol-cell, .greek-cell {
             justify-content: center;
             font-size: 0.75rem;
             color: var(--text-secondary);
             font-weight: 500;
+          }
+          .greek-cell {
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
           }
           .vol-val {
               font-family: 'JetBrains Mono', monospace;

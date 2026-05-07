@@ -79,21 +79,21 @@ export async function POST(
   const lookupId = profile?.parent_id ?? user.id;
   const { data: segSetting } = await admin
     .from('segment_settings')
-    .select('exit_buffer')
+    .select('exit_buffer, profit_hold_sec, loss_hold_sec')
     .eq('user_id', lookupId)
     .eq('segment', pos.settlement ?? '')
     .eq('side', pos.side)
     .maybeSingle();
 
   const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
+  const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
+  const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
   // Fetch LTP from Kite
   const kiteLtp = pos.symbol ? await fetchKiteLtp(pos.symbol) : null;
   const baseLtp = kiteLtp ?? Number(pos.ltp ?? pos.entry_price);
 
   // Exit price: opposite buffer to entry
-  // BUY position exits as SELL → markdown
-  // SELL position exits as BUY → markup
   let exitPrice: number;
   if (pos.side === 'BUY') {
     exitPrice = baseLtp * (1 - exitBuffer);
@@ -101,6 +101,20 @@ export async function POST(
     exitPrice = baseLtp * (1 + exitBuffer);
   }
   exitPrice = Math.round(exitPrice * 100) / 100;
+
+  // ─── Anti-Scalping Check ───
+  const pnlValue = pos.side === 'BUY'
+    ? (exitPrice - Number(pos.entry_price)) * Number(pos.qty_open)
+    : (Number(pos.entry_price) - exitPrice) * Number(pos.qty_open);
+
+  const durationSec = Math.floor((Date.now() - new Date(pos.entry_time).getTime()) / 1000);
+  const requiredHold = pnlValue >= 0 ? profitHoldSec : lossHoldSec;
+
+  if (durationSec < requiredHold) {
+    return NextResponse.json({
+      error: `Anti-Scalping: Minimum hold time of ${requiredHold}s required for this trade. Elapsed: ${durationSec}s.`,
+    }, { status: 403 });
+  }
 
   // Call the atomic RPC
   const { data: pnl, error: rpcErr } = await admin.rpc('close_position', {

@@ -96,18 +96,6 @@ body {
   --sidebar-width: 0px;
 }
 
-@media (min-width: 1024px) {
-  :root {
-    --footer-nav-height: 0px;
-    --sidebar-width: 80px;
-  }
-
-  body {
-    justify-content: flex-start;
-    align-items: flex-start;
-  }
-}
-
 /* DARK THEME */
 body.dark {
   --bg-body: #121212;
@@ -462,4 +450,60 @@ body.dark .nav-app-name span {
   justify-content: center;
   color: var(--footer-active);
 }
-
+
+@media (min-width: 1024px) {
+  :root {
+    --footer-nav-height: 0px !important;
+    --sidebar-width: 260px !important;
+  }
+
+  body {
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    overflow: hidden;
+  }
+
+  /* Global desktop layout structure */
+  .desktop-layout {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-body);
+  }
+
+  .main-viewport {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    background: var(--bg-body);
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 0 !important; /* Sidebar is outside app-container in new layout */
+    height: 100vh !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main-scroll-wrapper {
+    padding-bottom: 40px !important;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .desktop-only {
+    display: none !important;
+  }
+}

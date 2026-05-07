@@ -1,214 +1,303 @@
 'use client';
-import { useState, useEffect } from 'react';
-import Footer from '@/components/Footer';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import Sidebar from '@/components/Sidebar';
+import Footer from '@/components/Footer';
+import { supabase } from '@/lib/supabaseClient';
 import './page.css';
 
+interface HistoryItem {
+  id: string;
+  scriptName: string;
+  type: 'BUY' | 'SELL';
+  orderType: string;
+  qty: number;
+  price: number;
+  entryPrice?: number;
+  exitPrice?: number;
+  pnl: number;
+  date: string;
+  exitDate?: string;
+  status: string;
+  brokerage: number;
+}
+
 export default function HistoryPage() {
-    useAuth();
-    const [currentTab, setCurrentTab] = useState('position');
-    const [fromDate, setFromDate] = useState('2026-03-23');
-    const [toDate, setToDate] = useState('2026-03-30');
+  useAuth();
+  const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const saved = localStorage.getItem('marginApexTheme');
-        if (saved === 'dark') document.body.classList.add('dark');
-        else document.body.classList.remove('dark');
-    }, []);
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-    const samplePositions = [
-        { id: 1, scriptName: "NIFTY FUT", scriptSymbol: "NIFTY_FUT", type: "BUY", qty: 75, entryPrice: 22456.80, exitPrice: 22650.25, pnl: 14508.75, entryDate: "2026-03-28", exitDate: "2026-03-28", orderType: "Market", brokerage: 20 },
-        { id: 2, scriptName: "RELIANCE FUT", scriptSymbol: "RELIANCE_FUT", type: "SELL", qty: 250, entryPrice: 2856.40, exitPrice: 2830.15, pnl: 6562.50, entryDate: "2026-03-28", exitDate: "2026-03-28", orderType: "Limit", brokerage: 20 },
-        { id: 3, scriptName: "BTC/USDT", scriptSymbol: "BTCUSDT", type: "BUY", qty: 0.05, entryPrice: 68450.20, exitPrice: 69120.50, pnl: 33.52, entryDate: "2026-03-27", exitDate: "2026-03-27", orderType: "Market", brokerage: 20 },
-        { id: 4, scriptName: "BANKNIFTY FUT", scriptSymbol: "BANKNIFTY_FUT", type: "BUY", qty: 25, entryPrice: 48210.50, exitPrice: 47890.25, pnl: -8006.25, entryDate: "2026-03-27", exitDate: "2026-03-27", orderType: "Market", brokerage: 20 },
-        { id: 5, scriptName: "INFY EQ", scriptSymbol: "INFY", type: "SELL", qty: 50, entryPrice: 1598.40, exitPrice: 1612.80, pnl: -720.00, entryDate: "2026-03-26", exitDate: "2026-03-26", orderType: "Limit", brokerage: 20 },
-        { id: 6, scriptName: "GOLD FUT", scriptSymbol: "GOLD_FUT", type: "BUY", qty: 10, entryPrice: 62340.00, exitPrice: 62850.75, pnl: 5107.50, entryDate: "2026-03-26", exitDate: "2026-03-26", orderType: "Market", brokerage: 20 },
-        { id: 7, scriptName: "HDFCBANK FUT", scriptSymbol: "HDFCBANK_FUT", type: "SELL", qty: 550, entryPrice: 1680.90, exitPrice: 1672.30, pnl: 4730.00, entryDate: "2026-03-25", exitDate: "2026-03-25", orderType: "SL-M", brokerage: 20 },
-        { id: 8, scriptName: "ETH/USDT", scriptSymbol: "ETHUSDT", type: "BUY", qty: 0.5, entryPrice: 3420.80, exitPrice: 3380.25, pnl: -20.28, entryDate: "2026-03-25", exitDate: "2026-03-25", orderType: "Market", brokerage: 20 },
-        { id: 9, scriptName: "TCS EQ", scriptSymbol: "TCS", type: "BUY", qty: 20, entryPrice: 3982.50, exitPrice: 4012.30, pnl: 596.00, entryDate: "2026-03-24", exitDate: "2026-03-24", orderType: "Limit", brokerage: 20 }
-    ];
+        // Fetch both orders and positions history
+        const [ordersRes, posRes] = await Promise.all([
+          fetch('/api/orders?status=executed,rejected,cancelled', {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          }),
+          fetch('/api/positions?status=closed', {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          })
+        ]);
 
-    const sampleOrders = [
-        { id: 101, scriptName: "NIFTY FUT", scriptSymbol: "NIFTY_FUT", type: "BUY", qty: 75, price: 22456.80, date: "2026-03-28 10:15 AM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 102, scriptName: "NIFTY FUT", scriptSymbol: "NIFTY_FUT", type: "SELL", qty: 75, price: 22650.25, date: "2026-03-28 11:30 AM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 103, scriptName: "RELIANCE FUT", scriptSymbol: "RELIANCE_FUT", type: "SELL", qty: 250, price: 2856.40, date: "2026-03-28 09:45 AM", orderType: "Limit", status: "executed", brokerage: 20 },
-        { id: 104, scriptName: "RELIANCE FUT", scriptSymbol: "RELIANCE_FUT", type: "BUY", qty: 250, price: 2830.15, date: "2026-03-28 02:15 PM", orderType: "Limit", status: "executed", brokerage: 20 },
-        { id: 105, scriptName: "BTC/USDT", scriptSymbol: "BTCUSDT", type: "BUY", qty: 0.05, price: 68450.20, date: "2026-03-27 10:30 AM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 106, scriptName: "BTC/USDT", scriptSymbol: "BTCUSDT", type: "SELL", qty: 0.05, price: 69120.50, date: "2026-03-27 03:45 PM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 107, scriptName: "BANKNIFTY FUT", scriptSymbol: "BANKNIFTY_FUT", type: "BUY", qty: 25, price: 48210.50, date: "2026-03-27 09:15 AM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 108, scriptName: "BANKNIFTY FUT", scriptSymbol: "BANKNIFTY_FUT", type: "SELL", qty: 25, price: 47890.25, date: "2026-03-27 01:30 PM", orderType: "Market", status: "executed", brokerage: 20 },
-        { id: 109, scriptName: "INFY EQ", scriptSymbol: "INFY", type: "SELL", qty: 50, price: 1598.40, date: "2026-03-26 11:20 AM", orderType: "Limit", status: "executed", brokerage: 20 },
-        { id: 110, scriptName: "INFY EQ", scriptSymbol: "INFY", type: "BUY", qty: 50, price: 1612.80, date: "2026-03-26 02:45 PM", orderType: "Limit", status: "executed", brokerage: 20 },
-        { id: 111, scriptName: "GOLD FUT", scriptSymbol: "GOLD_FUT", type: "BUY", qty: 10, price: 62340.00, date: "2026-03-26 10:00 AM", orderType: "Market", status: "pending", brokerage: 20 }
-    ];
+        const ordersData = await ordersRes.json();
+        const posData = await posRes.json();
 
-    const formatPrice = (p: number | string) => {
-        const n = typeof p === 'number' ? p : parseFloat(p as string);
-        return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-    };
+        const formattedOrders = (ordersData.orders || []).map((o: any) => ({
+          id: o.id,
+          scriptName: o.symbol,
+          type: o.side,
+          orderType: o.order_type,
+          qty: o.qty,
+          price: o.fill_price || 0,
+          pnl: 0,
+          date: new Date(o.created_at).toLocaleString(),
+          status: o.status,
+          brokerage: 20
+        }));
 
-    const filterData = (items: any[], field: string) => {
-        return items.filter(i => {
-            let itemDate = i[field];
-            if (field === 'date') itemDate = itemDate.split(' ')[0];
-            if (fromDate && itemDate < fromDate) return false;
-            if (toDate && itemDate > toDate) return false;
-            return true;
-        });
-    };
+        const formattedPos = (posData.positions || []).map((p: any) => ({
+          id: p.id,
+          scriptName: p.symbol,
+          type: p.side,
+          orderType: 'INTRADAY',
+          qty: p.qty_total,
+          price: p.exit_price || 0,
+          entryPrice: p.entry_price,
+          exitPrice: p.exit_price,
+          pnl: p.pnl || 0,
+          date: new Date(p.created_at).toLocaleString(),
+          exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
+          status: 'closed',
+          brokerage: 40
+        }));
 
-    const filteredData = currentTab === 'position'
-        ? filterData(samplePositions, 'exitDate')
-        : filterData(sampleOrders, 'date');
+        setHistoryData([...formattedOrders, ...formattedPos]);
+      } catch (err) {
+        console.error('Failed to fetch history:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistory();
+  }, []);
 
-    const calculateSummary = () => {
-        let gp = 0, gl = 0, b = 0, n = 0;
-        if (currentTab === 'position') {
-            gp = filteredData.filter(p => p.pnl > 0).reduce((s, p) => s + p.pnl, 0);
-            gl = Math.abs(filteredData.filter(p => p.pnl < 0).reduce((s, p) => s + p.pnl, 0));
-            b = filteredData.reduce((s, p) => s + p.brokerage, 0);
-            n = filteredData.reduce((s, p) => s + p.pnl, 0) - b;
-        } else {
-            const ex = filteredData.filter(o => o.status === 'executed');
-            const bv = ex.filter(o => o.type === 'BUY').reduce((s, o) => s + (o.price * o.qty), 0);
-            const sv = ex.filter(o => o.type === 'SELL').reduce((s, o) => s + (o.price * o.qty), 0);
-            const eP = sv - bv;
-            gp = eP > 0 ? eP : 0;
-            gl = eP < 0 ? Math.abs(eP) : 0;
-            b = ex.reduce((s, o) => s + o.brokerage, 0);
-            n = eP - b;
-        }
-        return { gp, gl, b, n };
-    };
+  const filteredData = useMemo(() => {
+    const base = historyData.filter(item => {
+      if (currentTab === 'position') return item.status === 'closed';
+      return item.status !== 'closed';
+    });
+    // Add date filtering logic if needed
+    return base;
+  }, [historyData, currentTab]);
 
-    const summary = calculateSummary();
+  const summary = useMemo(() => {
+    const posHistory = historyData.filter(h => h.status === 'closed');
+    const gp = posHistory.filter(h => h.pnl > 0).reduce((acc, h) => acc + h.pnl, 0);
+    const gl = posHistory.filter(h => h.pnl < 0).reduce((acc, h) => acc + Math.abs(h.pnl), 0);
+    const b = historyData.reduce((acc, h) => acc + h.brokerage, 0);
+    return { gp, gl, b, n: gp - gl - b };
+  }, [historyData]);
 
-    return (
-        <div className="history-root">
-            <div className="app-header">
-                <div className="header-top">
-                    <div className="logo-area">
-                        <div className="logo-text">Trade History</div>
-                    </div>
-                    <div className="header-buttons">
-                        <button
-                            className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
-                            onClick={() => setCurrentTab('position')}
-                        >
-                            Position History
-                        </button>
-                        <button
-                            className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
-                            onClick={() => setCurrentTab('order')}
-                        >
-                            Order History
-                        </button>
-                    </div>
+  const formatPrice = (val: number) => {
+    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+  };
+
+  return (
+    <div className="desktop-layout">
+      <Sidebar />
+      
+      <main className="main-viewport">
+        <div className="app-container">
+          <div className="history-root">
+            {/* ── Header (Mobile Only) ── */}
+            <div className="app-header mobile-only">
+              <div className="header-top">
+                <div className="logo-area">
+                  <div className="logo-text">Trade History</div>
                 </div>
-                <div className="date-filter-row">
-                    <div className="filter-group">
-                        <i className="fas fa-calendar-alt"></i>
-                        <input
-                            type="date"
-                            className="date-input-compact"
-                            value={fromDate}
-                            onChange={(e) => setFromDate(e.target.value)}
-                        />
-                    </div>
-                    <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
-                    <div className="filter-group">
-                        <i className="fas fa-calendar-alt"></i>
-                        <input
-                            type="date"
-                            className="date-input-compact"
-                            value={toDate}
-                            onChange={(e) => setToDate(e.target.value)}
-                        />
-                    </div>
-                    <div className="filter-buttons">
-                        <button className="filter-btn apply">Apply</button>
-                        <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
-                    </div>
+                <div className="header-buttons">
+                  <button
+                    className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('position')}
+                  >
+                    Position History
+                  </button>
+                  <button
+                    className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('order')}
+                  >
+                    Order History
+                  </button>
                 </div>
+              </div>
+              <div className="date-filter-row">
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt"></i>
+                  <input
+                    type="date"
+                    className="date-input-compact"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </div>
+                <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt"></i>
+                  <input
+                    type="date"
+                    className="date-input-compact"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+                </div>
+                <div className="filter-buttons">
+                  <button className="filter-btn apply">Apply</button>
+                  <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Desktop Page Header ── */}
+            <div className="desktop-only" style={{ padding: '20px 24px 0 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div>
+                  <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Trade History</h1>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>Historical execution logs & performance</p>
+                </div>
+                <div className="header-buttons" style={{ display: 'flex', gap: 10, background: 'var(--bg-card)', padding: 4, borderRadius: 12, border: '1px solid var(--border-color)' }}>
+                  <button
+                    className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('position')}
+                    style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                  >
+                    Position History
+                  </button>
+                  <button
+                    className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('order')}
+                    style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                  >
+                    Order History
+                  </button>
+                </div>
+              </div>
+
+              <div className="date-filter-row" style={{ background: 'var(--bg-card)', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 15 }}>
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt" style={{ color: 'var(--text-secondary)' }}></i>
+                  <input
+                    type="date"
+                    className="date-input-compact"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                  />
+                </div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>to</span>
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt" style={{ color: 'var(--text-secondary)' }}></i>
+                  <input
+                    type="date"
+                    className="date-input-compact"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                  />
+                </div>
+                <div className="filter-buttons" style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
+                  <button className="filter-btn apply" style={{ padding: '8px 24px' }}>Apply Filter</button>
+                  <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }} style={{ padding: '8px 16px' }}>Reset</button>
+                </div>
+              </div>
             </div>
 
             <div className="main-content">
-                <div className="history-list">
-                    {filteredData.length === 0 ? (
-                        <div className="empty-history">
-                            <i className={currentTab === 'position' ? "fas fa-folder-open" : "fas fa-list-ul"}></i>
-                            <p>No history found</p>
+              <div className="history-list">
+                {filteredData.length === 0 ? (
+                  <div className="empty-history">
+                    <i className={currentTab === 'position' ? "fas fa-folder-open" : "fas fa-list-ul"}></i>
+                    <p>No history found</p>
+                  </div>
+                ) : (
+                  filteredData.map((item) => {
+                    const isPositive = item.pnl >= 0;
+                    const pnlPercent = item.entryPrice ? ((item.pnl / (item.entryPrice * item.qty)) * 100).toFixed(2) : "0.00";
+
+                    return (
+                      <div key={item.id} className="history-card">
+                        <div className="history-card-header">
+                          <div className="script-info">
+                            <span className="script-name">{item.scriptName}</span>
+                            <span className={`order-type-badge ${item.type.toLowerCase()}`}>{item.type}</span>
+                            <span style={{ fontSize: '0.55rem', color: '#9AA4BF' }}>{item.orderType}</span>
+                            {currentTab === 'order' && (
+                              <span className={`order-type-badge ${item.status === 'executed' ? 'completed' : 'pending'}`}>
+                                {item.status}
+                              </span>
+                            )}
+                          </div>
+                          <div className={currentTab === 'position' ? `pnl ${isPositive ? 'positive' : 'negative'}` : 'price-value'}>
+                            {currentTab === 'position'
+                              ? `${isPositive ? '+' : ''}${formatPrice(Math.abs(item.pnl))} (${isPositive ? '+' : ''}${pnlPercent}%)`
+                              : formatPrice(item.price)}
+                          </div>
                         </div>
-                    ) : (
-                        filteredData.map((item) => {                            const isPositive = item.pnl >= 0;
-                            const pnlPercent = item.entryPrice ? ((item.pnl / (item.entryPrice * item.qty)) * 100).toFixed(2) : "0.00";
+                        <div className="history-card-details">
+                          <span className="detail-item"><i className="fas fa-layer-group"></i> {item.qty}</span>
+                          {currentTab === 'position' ? (
+                            <>
+                              <span className="detail-item"><i className="fas fa-arrow-right"></i> {formatPrice(item.entryPrice || 0)}</span>
+                              <span className="detail-item"><i className="fas fa-arrow-left"></i> {formatPrice(item.exitPrice || 0)}</span>
+                              <span className="detail-item"><i className="far fa-calendar"></i> {item.exitDate}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="detail-item"><i className="fas fa-clock"></i> {item.orderType}</span>
+                              <span className="detail-item"><i className="far fa-calendar"></i> {item.date.split(' ')[0]}</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="history-card-details" style={{ marginTop: '4px' }}>
+                          <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
+                          {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
 
-                            return (
-                                <div key={item.id} className="history-card">
-                                    <div className="history-card-header">
-                                        <div className="script-info">
-                                            <span className="script-name">{item.scriptName}</span>
-                                            <span className={`order-type-badge ${item.type.toLowerCase()}`}>{item.type}</span>
-                                            <span style={{ fontSize: '0.55rem', color: '#9AA4BF' }}>{item.orderType}</span>
-                                            {currentTab === 'order' && (
-                                                <span className={`order-type-badge ${item.status === 'executed' ? 'completed' : 'pending'}`}>
-                                                    {item.status}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className={currentTab === 'position' ? `pnl ${isPositive ? 'positive' : 'negative'}` : 'price-value'}>
-                                            {currentTab === 'position'
-                                                ? `${isPositive ? '+' : ''}${formatPrice(Math.abs(item.pnl))} (${isPositive ? '+' : ''}${pnlPercent}%)`
-                                                : formatPrice(item.price)}
-                                        </div>
-                                    </div>
-                                    <div className="history-card-details">
-                                        <span className="detail-item"><i className="fas fa-layer-group"></i> {item.qty}</span>
-                                        {currentTab === 'position' ? (
-                                            <>
-                                                <span className="detail-item"><i className="fas fa-arrow-right"></i> {formatPrice(item.entryPrice)}</span>
-                                                <span className="detail-item"><i className="fas fa-arrow-left"></i> {formatPrice(item.exitPrice)}</span>
-                                                <span className="detail-item"><i className="far fa-calendar"></i> {item.exitDate}</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="detail-item"><i className="fas fa-clock"></i> {item.orderType}</span>
-                                                <span className="detail-item"><i className="far fa-calendar"></i> {item.date.split(' ')[0]}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                    <div className="history-card-details" style={{ marginTop: '4px' }}>
-                                        <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
-                                        {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
+              {/* Summary sticky at bottom of scroll - no gap */}
+              <div className="history-footer">
+                <div className="footer-row">
+                  <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>
+                  <span className={`footer-value ${summary.gp - summary.gl >= 0 ? 'net-profit' : 'net-loss'}`}>
+                    {formatPrice(summary.gp - summary.gl)}
+                  </span>
                 </div>
-
-                {/* Summary sticky at bottom of scroll - no gap */}
-                <div className="history-footer">
-                    <div className="footer-row">
-                        <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>
-                        <span className={`footer-value ${summary.gp - summary.gl >= 0 ? 'net-profit' : 'net-loss'}`}>
-                            {formatPrice(summary.gp - summary.gl)}
-                        </span>
-                    </div>
-                    <div className="footer-row">
-                        <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
-                        <span className="footer-value">{formatPrice(summary.b)}</span>
-                    </div>
-                    <div className="footer-row">
-                        <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
-                        <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
-                            {formatPrice(summary.n)}
-                        </span>
-                    </div>
+                <div className="footer-row">
+                  <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
+                  <span className="footer-value">{formatPrice(summary.b)}</span>
                 </div>
+                <div className="footer-row">
+                  <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
+                  <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
+                    {formatPrice(summary.n)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <Footer activeTab="history" />
+          </div>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

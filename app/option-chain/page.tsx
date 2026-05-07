@@ -7,6 +7,7 @@ import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import OptionChainTable from './OptionChainTable';
 import { kiteLogin } from '@/lib/kiteClient';
 import Footer from '@/components/Footer';
+import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
 
 function OptionChainContent() {
   const router = useRouter();
@@ -19,6 +20,7 @@ function OptionChainContent() {
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
+  const [triggerPrice, setTriggerPrice] = useState('');
   const [showToast, setShowToast] = useState<{ msg: string, isError: boolean } | null>(null);
 
   const [data, setData] = useState<{
@@ -28,6 +30,7 @@ function OptionChainContent() {
   } | null>(null);
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
 
   // Normalization for MIDCAP
   const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
@@ -140,48 +143,27 @@ function OptionChainContent() {
 
   return (
     <div className="oc-app-container">
-      <header className="app-header">
-        <div className="header-wrapper">
-            <div className="header-top">
-            <div className="logo-area">
-                <button onClick={() => router.back()} className="back-btn">
-                <i className="fas fa-chevron-left"></i>
-                </button>
-                <div className="title-grp">
-                <span className="logo-text">{symbol}</span>
-                <div className="status-row">
-                    <span className="sub-tag">Option Chain</span>
-                    <div className={`status-indicator ${connected ? 'online' : 'offline'}`} title={connected ? 'Kite Live' : 'Kite Disconnected'}></div>
-                    {connected && (
-                        <span className="quote-count">
-                            {Object.keys(quotes).length > 0 ? `${Object.keys(quotes).length} live` : 'Connecting...'}
-                        </span>
-                    )}
-                </div>
-                </div>
-            </div>
-
-            {!connected && !quotesLoading && (
-                <button className="kite-reconnect-btn" onClick={handleKiteLogin}>
-                    <i className="fas fa-link"></i> Connect Kite
-                </button>
-            )}
-
-            <div className="spot-area">
-                <div className="today-badge">
-                    {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase()}
-                </div>
-                <span className="spot-label">SPOT PRICE</span>
-                <div className="spot-vals">
-                <span className="spot-price">{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</span>
-                <span className={`spot-chg ${spotChange >= 0 ? 'pos' : 'neg'}`}>
-                    {spotChange >= 0 ? '+' : ''}{spotChange.toFixed(2)}%
-                </span>
-                </div>
-            </div>
-            </div>
+      <div className="nav-bar-full">
+        <div className="nav-group">
+          <button className="back-btn" onClick={() => router.back()} style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-light)', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', cursor: 'pointer' }}>
+            <i className="fas fa-arrow-left"></i>
+          </button>
         </div>
-      </header>
+        <div className="title-grp" style={{ textAlign: 'center' }}>
+          <div className="nav-app-name" style={{ margin: 0 }}>{symbol}</div>
+          <div className="status-row" style={{ justifyContent: 'center' }}>
+            <span className="sub-tag">Option Chain</span>
+            <div className={`status-indicator ${connected ? 'online' : 'offline'}`} title={connected ? 'Kite Live' : 'Kite Disconnected'}></div>
+          </div>
+        </div>
+        <div className="nav-group">
+          <div className="library-btn" onClick={() => setIsSegmentsOpen(true)} style={{ cursor: 'pointer', background: 'rgba(198,46,46,0.1)', color: '#C62E2E', border: '1px solid rgba(198,46,46,0.2)', padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+            <i className="fas fa-folder"></i>
+            <span>Library</span>
+          </div>
+          <div className="nav-icon-btn" onClick={() => router.push('/profile')}><i className="fas fa-user-cog"></i></div>
+        </div>
+      </div>
 
       <main className="main-content">
         <div className="content-wrapper">
@@ -261,17 +243,31 @@ function OptionChainContent() {
 
                 <div className="input-group">
                     <label>Order Type</label>
-                    <div className="pill-group">
-                        {['MARKET', 'LIMIT'].map(t => (
-                            <button key={t} className={orderType === t ? 'active' : ''} onClick={() => setOrderType(t as OrderType)}>{t}</button>
+                    <div className="pill-group" style={{ flexWrap: 'wrap' }}>
+                        {['MARKET', 'LIMIT', 'SL', 'SLM', 'GTT'].map(t => (
+                            <button 
+                                key={t} 
+                                className={orderType === t ? 'active' : ''} 
+                                onClick={() => setOrderType(t as OrderType)}
+                                style={{ minWidth: '60px', flex: '1 0 30%' }}
+                            >
+                                {t}
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                {orderType === 'LIMIT' && (
+                {(orderType === 'LIMIT' || orderType === 'SL') && (
                     <div className="input-group">
-                        <label>Limit Price</label>
+                        <label>Price</label>
                         <input className="price-input" type="number" value={limitPrice} onChange={(e) => setLimitPrice(e.target.value)} placeholder="0.00" />
+                    </div>
+                )}
+
+                {(orderType === 'SL' || orderType === 'SLM' || orderType === 'GTT') && (
+                    <div className="input-group">
+                        <label>Trigger Price</label>
+                        <input className="price-input" type="number" value={triggerPrice} onChange={(e) => setTriggerPrice(e.target.value)} placeholder="0.00" />
                     </div>
                 )}
 
@@ -307,6 +303,7 @@ function OptionChainContent() {
                         strikes={data?.strikes || []} 
                         quotes={quotes}
                         spotPrice={spotPrice}
+                        expiryDate={selectedExpiry}
                         onTrade={handleTrade}
                         />
                         </>
@@ -315,6 +312,21 @@ function OptionChainContent() {
             )}
             </div>
         </div>
+      <TradingSegmentsDrawer 
+        isOpen={isSegmentsOpen} 
+        onClose={() => setIsSegmentsOpen(false)}
+        onSelect={(item) => {
+            if (item.segment.includes('Options')) {
+                // For options, we might want to switch the index
+                const newSymbol = item.name.split(' ')[0];
+                router.push(`/option-chain?symbol=${newSymbol}`);
+                setIsSegmentsOpen(false);
+            } else {
+                setShowToast({ msg: `Added ${item.name} to Watchlist (Demo)`, isError: false });
+                setTimeout(() => setShowToast(null), 2000);
+            }
+        }}
+      />
       </main>
 
       <style jsx>{`
@@ -433,20 +445,34 @@ function OptionChainContent() {
             background: rgba(198, 46, 46, 0.1);
             color: #C62E2E;
             border: 1px solid rgba(198, 46, 46, 0.2);
-            padding: 8px 14px;
-            border-radius: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             font-size: 0.75rem;
-            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
         }
-        .kite-reconnect-btn:hover {
-            background: #C62E2E;
-            color: white;
+
+        .library-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--card-alt-bg);
+            padding: 8px 12px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            cursor: pointer;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s;
         }
+        .library-btn:active { transform: scale(0.95); }
+        .library-btn i:first-child { color: #C62E2E; }
+        .library-btn i:last-child { color: var(--text-muted); font-size: 0.6rem; }
 
         .spot-area {
           text-align: right;

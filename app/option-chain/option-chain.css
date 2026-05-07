@@ -263,6 +263,59 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
 @media (max-width: 500px) {
   .option-chain-container { max-width: 100% !important; width: 100vw !important; }
 }
+
+@media (min-width: 1024px) {
+  .option-chain-container {
+    padding-left: var(--sidebar-width, 80px);
+  }
+
+  .oc-list {
+    padding: 24px 40px;
+  }
+
+  /* ── Side-Panel Trade Sheet for Desktop ── */
+  .trade-sheet {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    width: 450px !important;
+    height: 100vh !important;
+    max-width: 450px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    transform: translateX(100%);
+    z-index: 2000 !important;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.2) !important;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: var(--container-bg) !important;
+  }
+
+  .trade-sheet.open {
+    transform: translateX(0) !important;
+  }
+
+  .trade-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+  }
+
+  .trade-sheet-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 @media (min-width: 501px) {
   .oc-list { padding: 0 24px; }
   .oc-info-card { margin: 20px 24px; }
