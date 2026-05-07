@@ -5,20 +5,20 @@
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
 }
 
-html, body {
+html,
+body {
   min-height: 100dvh;
   margin: 0;
   padding: 0;
   width: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-body, #F0F2F5);
 }
 
 body {
-  font-family: 'Inter', sans-serif;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background: var(--bg-body, #F0F2F5);
-  min-height: 100dvh;
 }
 
 @media (max-width: 500px) {
@@ -26,6 +26,7 @@ body {
     align-items: flex-start;
     justify-content: flex-start;
   }
+
   .app-container,
   .mobile-app,
   .history-root,
@@ -91,9 +92,21 @@ body {
   --whatsapp-bg: linear-gradient(135deg, #006400, #0A5F52);
   --gold-silver-gradient: linear-gradient(135deg, #E8E8E8 0%, #D4AF37 30%, #FFD700 50%, #F0C040 70%, #C0C0C0 100%);
   --expiry-drawer-bg: #FFFFFF;
-  --expiry-drawer-overlay: rgba(0,0,0,0.5);
+  --expiry-drawer-overlay: rgba(0, 0, 0, 0.5);
   --footer-nav-height: 65px;
   --sidebar-width: 0px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --footer-nav-height: 0px;
+    --sidebar-width: 260px;
+  }
+
+  body {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
 }
 
 /* DARK THEME */
@@ -354,12 +367,14 @@ body.dark .nav-app-name span {
   justify-content: center;
   visibility: hidden;
   opacity: 0;
+  pointer-events: none;
   transition: visibility 0.2s, opacity 0.2s;
 }
 
 .expiry-half-drawer-overlay.active {
   visibility: visible;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .expiry-half-sheet {
@@ -375,7 +390,8 @@ body.dark .nav-app-name span {
   box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
 }
 
-.expiry-half-drawer-overlay.active .expiry-half-sheet {
+.expiry-half-drawer-overlay.active .expiry-half-sheet,
+.expiry-half-sheet.open {
   transform: translateY(0);
 }
 
@@ -452,14 +468,7 @@ body.dark .nav-app-name span {
 }
 
 @media (min-width: 1024px) {
-  :root {
-    --footer-nav-height: 0px !important;
-    --sidebar-width: 260px !important;
-  }
-
   body {
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
     overflow: hidden;
   }
 
@@ -470,6 +479,12 @@ body.dark .nav-app-name span {
     height: 100vh;
     overflow: hidden;
     background: var(--bg-body);
+  }
+
+  .sidebar-container {
+    width: 260px;
+    height: 100vh;
+    flex-shrink: 0;
   }
 
   .main-viewport {
@@ -485,8 +500,9 @@ body.dark .nav-app-name span {
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 !important;
-    padding-left: 0 !important; /* Sidebar is outside app-container in new layout */
-    height: 100vh !important;
+    padding-left: 0 !important;
+    height: auto !important;
+    min-height: 100vh !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     display: flex;

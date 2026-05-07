@@ -260,6 +260,94 @@ function EmptyState() {
   );
 }
 
+// ── Trading Segments Data ────────────────────────────────────────────────────
+
+interface TradingInstrument {
+  name: string; symbol: string; kiteSymbol: string; price: number; change: string;
+  segment: string; contractDate: string; open: number; high: number; low: number; close: number;
+  binanceSymbol?: string; comexSymbol?: string;
+}
+interface TradingSubCategory { name: string; instruments: TradingInstrument[]; }
+interface TradingSegment { name: string; icon: string; instruments?: TradingInstrument[]; subCategories?: TradingSubCategory[]; }
+
+const TRADING_SEGMENTS: TradingSegment[] = [
+  {
+    name: 'INDEX - FUTURE', icon: 'fa-chart-line',
+    instruments: [
+      { name: 'NIFTY FUT', symbol: 'NIFTY_FUT', kiteSymbol: 'NSE:NIFTY 50', price: 22456.80, change: '+0.45%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 22350, high: 22580, low: 22320, close: 22456.80 },
+      { name: 'SENSEX FUT', symbol: 'SENSEX_FUT', kiteSymbol: 'BSE:SENSEX', price: 74230.15, change: '+0.32%', segment: 'BSE - Futures', contractDate: '28 Mar 2025', open: 73950, high: 74500, low: 73800, close: 74230.15 },
+      { name: 'BANKNIFTY FUT', symbol: 'BANKNIFTY_FUT', kiteSymbol: 'NSE:NIFTY BANK', price: 48210.50, change: '-0.21%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 48350, high: 48500, low: 48100, close: 48210.50 },
+      { name: 'FINNIFTY FUT', symbol: 'FINNIFTY_FUT', kiteSymbol: 'NSE:NIFTY FIN SERVICE', price: 21234.90, change: '+0.67%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 21080, high: 21350, low: 21050, close: 21234.90 },
+      { name: 'MIDCAP NIFTY FUT', symbol: 'MIDCP_FUT', kiteSymbol: 'NSE:NIFTY MIDCAP 50', price: 11820.45, change: '+0.88%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 11700, high: 11880, low: 11680, close: 11820.45 },
+    ]
+  },
+  {
+    name: 'INDEX - OPTIONS', icon: 'fa-chart-gantt',
+    subCategories: [
+      { name: 'NIFTY Options', instruments: [
+        { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
+        { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 },
+      ]},
+      { name: 'SENSEX Options', instruments: [
+        { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 },
+      ]},
+      { name: 'BANKEX Options', instruments: [
+        { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', kiteSymbol: '', price: 310.75, change: '+1.1%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 307, high: 314, low: 306.50, close: 310.75 },
+      ]},
+      { name: 'BANKNIFTY Options', instruments: [
+        { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
+        { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 },
+      ]},
+      { name: 'FINNIFTY Options', instruments: [
+        { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 },
+      ]},
+      { name: 'MID CAP NIFTY Options', instruments: [
+        { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 },
+      ]},
+    ]
+  },
+  {
+    name: 'STOCKS - FUTURE', icon: 'fa-building',
+    instruments: [
+      { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', kiteSymbol: 'NSE:RELIANCE', price: 2856.40, change: '+0.75%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 2835, high: 2870, low: 2830, close: 2856.40 },
+      { name: 'TCS FUT', symbol: 'TCS_FUT', kiteSymbol: 'NSE:TCS', price: 3987.20, change: '-0.33%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 4000, high: 4015, low: 3975, close: 3987.20 },
+      { name: 'HDFCBANK FUT', symbol: 'HDFCBANK_FUT', kiteSymbol: 'NSE:HDFCBANK', price: 1680.90, change: '+0.22%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 1675, high: 1688, low: 1672, close: 1680.90 },
+    ]
+  },
+  {
+    name: 'MCX - FUTURE', icon: 'fa-coins',
+    instruments: [
+      { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+      { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULYFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+      { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26MAYFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'May 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 },
+    ]
+  },
+  {
+    name: 'CRYPTO', icon: 'fa-bitcoin',
+    instruments: [
+      { name: 'BTC/USDT', symbol: 'BTCUSDT', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 68450.20, change: '+2.1%', segment: 'Crypto', contractDate: 'Perpetual', open: 67000, high: 69000, low: 66800, close: 68450.20 },
+      { name: 'ETH/USDT', symbol: 'ETHUSDT', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 3420.80, change: '+1.4%', segment: 'Crypto', contractDate: 'Perpetual', open: 3370, high: 3450, low: 3360, close: 3420.80 },
+      { name: 'SOL/USDT', symbol: 'SOLUSDT', kiteSymbol: '', binanceSymbol: 'SOLUSDT', price: 182.30, change: '-0.7%', segment: 'Crypto', contractDate: 'Perpetual', open: 183.50, high: 184, low: 181, close: 182.30 },
+    ]
+  },
+  {
+    name: 'FOREX', icon: 'fa-globe',
+    instruments: [
+      { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26MAYFUT', price: 83.45, change: '+0.05%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 83.40, high: 83.50, low: 83.35, close: 83.45 },
+      { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26MAYFUT', price: 90.12, change: '-0.02%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 90.15, high: 90.25, low: 90.05, close: 90.12 },
+      { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26MAYFUT', price: 107.30, change: '+0.08%', segment: 'CDS - Futures', contractDate: 'May 2026', open: 107.10, high: 107.50, low: 107.00, close: 107.30 },
+    ]
+  },
+  {
+    name: 'COMEX', icon: 'fa-gem',
+    instruments: [
+      { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+      { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULYFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+      { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26MAYFUT', comexSymbol: 'CL=F', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'May 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 },
+    ]
+  },
+];
+
 function WatchlistContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -269,6 +357,8 @@ function WatchlistContent() {
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
   const [searchText, setSearchText] = useState<string>('');
+  const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
+  const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
@@ -315,8 +405,13 @@ function WatchlistContent() {
           headers: { Authorization: `Bearer ${session.access_token}` }
         });
         if (res.ok) {
-          const { balance } = await res.json();
-          setAvailableBalance(balance);
+          const text = await res.text();
+          try {
+            const { balance } = JSON.parse(text);
+            setAvailableBalance(balance);
+          } catch (e) {
+            console.error('Failed to parse balance JSON:', text.substring(0, 100));
+          }
         }
       } catch (err) {
         console.error('Failed to fetch available balance', err);
@@ -480,9 +575,6 @@ function WatchlistContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
-    const quote = quotes[selectedItem.kiteSymbol];
-    const currentLtp = quote?.lastPrice ?? selectedItem.price;
-
     const result = await placeOrder({
       symbol: selectedItem.symbol,
       kite_instrument: selectedItem.kiteSymbol || selectedItem.symbol,
@@ -491,7 +583,7 @@ function WatchlistContent() {
       order_type: orderType,
       product_type: productType,
       qty: orderQty,
-      lots: orderUnit === 'lot' ? orderQty : 0, // Simplified for now
+      lots: orderUnit === 'lot' ? orderQty : 0,
       client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentLtp
     });
 
@@ -512,20 +604,13 @@ function WatchlistContent() {
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const ltpStr = currentLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 });
-  const bidPrice = currentLtp - (currentLtp * 0.001);
-  const askPrice = currentLtp + (currentLtp * 0.001);
-
-  const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice
-    ? orderQty * parseFloat(limitPrice)
-    : orderQty * currentLtp;
-
   return (
     <div className="desktop-layout">
       <Sidebar />
       
       <main className="main-viewport">
         <div className="app-container">
+          {/* Mobile Header */}
           <div className="nav-bar-full mobile-only">
             <div className="nav-icon-btn"><i className="fas fa-bell"></i></div>
             <div className="nav-app-name">Watch<span style={{ color: '#006400' }}>list</span></div>
@@ -539,6 +624,21 @@ function WatchlistContent() {
             </div>
           </div>
 
+          {/* Desktop Header */}
+          <div className="app-header desktop-only">
+            <div className="header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px' }}>
+              <div className="logo-area">
+                <div className="logo-text" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>Watchlist</div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <div className="folder-btn" onClick={() => setIsSegmentsOpen(true)} style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-light)', padding: '8px 16px', borderRadius: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <i className="fas fa-folder" style={{ color: '#C62E2E' }}></i>
+                  <span>Library</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
 
           <div className="search-wrapper" style={{ margin: '10px 16px' }}>
@@ -548,31 +648,15 @@ function WatchlistContent() {
           </div>
 
           <div className="main-content">
-            <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
-              <div className="section-subtitle">
-                <i className="fas fa-search"></i> SEARCH RESULTS <span style={{ fontSize: '0.6rem', marginLeft: 'auto' }} id="searchResultCount"></span>
-              </div>
-              <div id="searchResultsList"></div>
-            </div>
-
             <div className="watchlist-section">
               <div className="watchlist-header">
                 <div className="watchlist-title-section">
                   <div className="watchlist-title"><i className="fas fa-chart-line"></i> MY WATCHLIST</div>
-                  <div className="watchlist-count" id="mobileWatchlistCounter">0 items</div>
+                  <div className="watchlist-count">{filteredItems.length} items</div>
                 </div>
                 <div className="action-hint">Swipe | Hold to select | Tap to trade</div>
               </div>
-              <div 
-                style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
-                onClick={() => setIsSegmentsOpen(true)}
-              >
-                <span className="add-hint"><i className="fas fa-plus-circle"></i> Add scripts to watchlist from Scripts Library</span>
-                <div className="folder-btn basket-btn" id="basketModeBtn" style={{ background: '#E9F6EF', color: '#006400', border: '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  <i className="fas fa-shopping-basket" style={{ color: '#006400' }}></i>
-                  <span>Basket</span>
-                </div>
-              </div>
+              
               <div className="watchlist-card-list">
                 {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
                   <InstrumentRow
@@ -587,43 +671,110 @@ function WatchlistContent() {
               </div>
             </div>
 
-            <div className={`pos-toast${toast.visible ? ' show' : ''}`} style={{
-              position: 'fixed',
-              bottom: '80px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: toast.isError ? '#C62E2E' : '#006400',
-              color: '#fff',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              fontWeight: '600',
-              fontFamily: 'Inter, sans-serif',
-              zIndex: 99999,
-              whiteSpace: 'nowrap',
-              maxWidth: '90vw',
-              overflowX: 'hidden',
-              textOverflow: 'ellipsis',
-              boxShadow: '0 6px 24px rgba(0,0,0,0.22)',
-              opacity: toast.visible ? 1 : 0,
-              visibility: toast.visible ? 'visible' : 'hidden',
-              transition: 'opacity 0.3s ease, visibility 0.3s ease',
-            }}>
-              {toast.msg}
-            </div>
-
-            <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: '#fff', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
-              <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F3F4F6' }}>
-                <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#111827' }}>0 in basket</span>
-              </div>
-              <div className="multi-select-row bottom-row" style={{ padding: '10px 16px' }}>
-                <button id="exitSelectionBtn" style={{ width: '100%', background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700' }}>Exit Selection</button>
-              </div>
-            </div>
-
             <Footer activeTab="watchlist" />
           </div>
         </div>
       </main>
+
+      {/* Overlays and Sheets (Common) */}
+      <div id="tradeSheetOverlay" className="trade-sheet-overlay" onClick={closeTradeSheet}></div>
+      <div id="tradeSheet" className="trade-sheet">
+        <div className="sheet-handle"><div className="handle-bar"></div></div>
+        {selectedItem && (
+          <div className="ts-content" style={{ padding: '0 20px 20px' }}>
+            <div className="ts-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <div className="ts-symbol" style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{selectedItem.name}</div>
+                <div className="ts-exchange" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{selectedItem.segment}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div className="ts-ltp" style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{formatPrice(currentLtp)}</div>
+                <div className={`ts-chg ${quotes[selectedItem.kiteSymbol]?.changePercent < 0 ? 'neg' : 'pos'}`} style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                  {quotes[selectedItem.kiteSymbol]?.changePercent > 0 ? '+' : ''}{quotes[selectedItem.kiteSymbol]?.changePercent?.toFixed(2)}%
+                </div>
+              </div>
+            </div>
+
+            <div className="ts-order-options" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="ts-row">
+                <div className="ts-label">Quantity</div>
+                <div className="ts-qty-selector" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button className="qty-btn" onClick={() => setOrderQty(q => Math.max(1, q - 1))}>-</button>
+                  <input type="number" className="qty-input" value={orderQty} onChange={e => setOrderQty(parseInt(e.target.value) || 1)} style={{ width: '60px', textAlign: 'center', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '4px' }} />
+                  <button className="qty-btn" onClick={() => setOrderQty(q => q + 1)}>+</button>
+                </div>
+              </div>
+
+              <div className="ts-row">
+                <div className="ts-label">Order Type</div>
+                <div className="pill-group" style={{ display: 'flex', gap: '8px' }}>
+                  {['MARKET', 'LIMIT', 'SL', 'SLM'].map(t => (
+                    <button key={t} className={`pill-btn ${orderType === t ? 'active' : ''}`} onClick={() => setOrderType(t as OrderType)} style={{ flex: 1, padding: '6px', borderRadius: '8px', border: '1px solid var(--border-light)', background: orderType === t ? 'var(--text-primary)' : 'transparent', color: orderType === t ? 'var(--container-bg)' : 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>{t}</button>
+                  ))}
+                </div>
+              </div>
+
+              {orderType === 'LIMIT' && (
+                <div className="ts-row">
+                  <div className="ts-label">Price</div>
+                  <input type="number" className="price-input" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} placeholder={currentLtp.toString()} style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-light)' }} />
+                </div>
+              )}
+
+              <div className="ts-row">
+                <div className="ts-label">Product</div>
+                <div className="pill-group" style={{ display: 'flex', gap: '8px' }}>
+                  {['INTRADAY', 'CARRY'].map(p => (
+                    <button key={p} className={`pill-btn ${productType === p ? 'active' : ''}`} onClick={() => setProductType(p as ProductType)} style={{ flex: 1, padding: '6px', borderRadius: '8px', border: '1px solid var(--border-light)', background: productType === p ? 'var(--text-primary)' : 'transparent', color: productType === p ? 'var(--container-bg)' : 'var(--text-primary)', fontSize: '0.75rem', fontWeight: 700 }}>{p}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="ts-footer" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button className="ts-btn ts-btn-buy" onClick={() => handlePlaceOrder('BUY')} disabled={placingOrder} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#2C8E5A', color: 'white', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>{placingOrder ? '...' : 'BUY'}</button>
+              <button className="ts-btn ts-btn-sell" onClick={() => handlePlaceOrder('SELL')} disabled={placingOrder} style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#C62E2E', color: 'white', fontWeight: 800, fontSize: '1rem', cursor: 'pointer' }}>{placingOrder ? '...' : 'SELL'}</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div
+        className={`pos-toast${toast.visible ? ' show' : ''}`}
+        style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toast.isError ? '#C62E2E' : '#2C8E5A',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: '40px',
+          fontWeight: '600',
+          zIndex: 9999,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          opacity: toast.visible ? 1 : 0,
+          visibility: toast.visible ? 'visible' : 'hidden',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {toast.msg}
+      </div>
+
+      <TradingSegmentsDrawer 
+        isOpen={isSegmentsOpen} 
+        onClose={() => setIsSegmentsOpen(false)}
+        onSelect={(item) => {
+          setWatchlistItems(prev => {
+            if (prev.some(i => i.symbol === item.symbol)) return prev;
+            const next = [...prev, item as WatchlistItem];
+            saveWatchlistToStorage(next);
+            return next;
+          });
+          setIsSegmentsOpen(false);
+          showToast(`Added ${item.name} to Watchlist`, false);
+        }}
+      />
     </div>
   );
 }
