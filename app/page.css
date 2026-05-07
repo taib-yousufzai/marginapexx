@@ -98,23 +98,31 @@ body.dark {
   --expiry-drawer-bg: #1E1E1E;
 }
 
-/* Container already styled in globals.css as .order-app */
-.order-app {
+.order-app,
+.mobile-app,
+.app-container {
   max-width: 500px;
   margin: 0 auto;
-  background: #FFFFFF;
-  height: 100dvh;
+  background: var(--bg-body);
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-  width: 100vw;
-  padding-bottom: 0;
-  /* Ensuring no gap */
+  width: 100%;
 }
 
-/* ===== WHATSAPP COMMUNITY BUTTON ===== */
-.whatsapp-community {
+@media (min-width: 1024px) {
+  .order-app,
+  .mobile-app,
+  .app-container {
+    max-width: 100% !important;
+    padding-left: var(--sidebar-width, 80px);
+  }
+}
+
+/* ===== WHATSAPP BUTTONS ===== */
+.whatsapp-community,
+.whatsapp-support {
   background: var(--whatsapp-bg);
   border-radius: 32px;
   margin-bottom: 20px;
@@ -123,11 +131,13 @@ body.dark {
   box-shadow: 0 8px 24px rgba(15, 80, 50, 0.5);
 }
 
-.whatsapp-community:last-child {
+.whatsapp-community:last-child,
+.whatsapp-support:last-child {
   margin-bottom: 0;
 }
 
-.whatsapp-community:active {
+.whatsapp-community:active,
+.whatsapp-support:active {
   transform: scale(0.98);
 }
 
@@ -959,12 +969,20 @@ body.dark .circle-icon {
       "margin learning"
       "options learning"
       "expiry learning"
-      "markets learning";
+      "markets learning"
+      "support learning";
   }
 
   .whatsapp-community {
     grid-area: whatsapp;
     max-width: 100%;
+    box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3);
+  }
+
+  .whatsapp-support {
+    grid-area: support;
+    max-width: 100%;
+    margin-top: 0 !important;
     box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3);
   }
 
@@ -1001,31 +1019,30 @@ body.dark .circle-icon {
   /* Unpack horizontal scrolls into wrapping grids */
   .scrollable-instruments,
   .market-row-scroll {
-    overflow-x: visible;
-    white-space: normal;
+    overflow-x: visible !important;
+    white-space: normal !important;
+    width: 100% !important;
   }
 
   .instruments-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 16px;
-    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+    gap: 16px !important;
+    width: 100% !important;
   }
 
-  .circle-instrument {
-    width: 100%;
+  .section-header span {
+    display: none !important;
+  }
+  .section-header::after {
+    display: none !important;
   }
 
   .market-row-blocks {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
-    width: 100%;
-  }
-
-  .market-rectangle {
-    width: 100%;
-    min-width: 0;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+    gap: 16px !important;
+    width: 100% !important;
   }
 
   .toast-msg {

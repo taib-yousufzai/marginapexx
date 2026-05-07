@@ -141,6 +141,7 @@ export default function LoginPage() {
                 autoCapitalize="none"
                 spellCheck={false}
                 disabled={isLoading}
+                suppressHydrationWarning
               />
             </div>
             {usernameError && (
@@ -167,6 +168,7 @@ export default function LoginPage() {
                 onChange={handlePasswordChange}
                 autoComplete="current-password"
                 disabled={isLoading}
+                suppressHydrationWarning
               />
               {/* Password visibility toggle (Requirement 2.3) */}
               <button

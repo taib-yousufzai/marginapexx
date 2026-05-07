@@ -117,7 +117,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price } = body;
+  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price } = body;
 
   // 3. Basic field validation
   if (!symbol || !side || !qty || !segment) {
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq('side', side)
     .maybeSingle();
 
-  // 7. Validate lot / qty limits
+  // 7. Validate lot / qty limits & Strike Range
   if (segSetting) {
     if (!segSetting.trade_allowed) {
       return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
@@ -175,6 +175,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({
         error: `Order exceeds maximum allowed quantity of ${maxQty} units`,
       }, { status: 400 });
+    }
+
+    // Strike Range Enforcement for Options
+    if (segment.includes('OPT') && segSetting.strike_range > 0) {
+      const strikePrice = parseFloat(symbol.match(/\d+/)?.[0] || '0');
+      if (strikePrice > 0) {
+        // Fetch current spot price for range check
+        const underlyingId = segment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
+        const spot = await fetchKiteLtp(underlyingId);
+        
+        if (spot) {
+          const diff = Math.abs(strikePrice - spot);
+          if (diff > segSetting.strike_range) {
+            return NextResponse.json({
+              error: `Strike price ${strikePrice} is outside the allowed range of ${segSetting.strike_range} from spot (${spot.toFixed(2)})`,
+            }, { status: 403 });
+          }
+        }
+      }
     }
   }
 
@@ -200,7 +219,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Required margin = exposure / leverage
   const leverage      = segSetting?.intraday_leverage ?? 1;
-  const exposure      = qty * client_price;
+  const exposure      = qty * (order_type === 'LIMIT' || order_type === 'SL' ? client_price : client_price); // simplification
   const requiredMargin = exposure / leverage;
 
   if (balance < requiredMargin) {
@@ -219,16 +238,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // 10. Compute fill price (LTP ± buffer from segment_settings)
-  const entryBuffer = segSetting?.entry_buffer ?? 0.003;
-  const exitBuffer  = segSetting?.exit_buffer  ?? 0.0017;
   let fillPrice: number;
+  const isImmediate = ['MARKET', 'SLM'].includes(order_type ?? 'MARKET');
 
-  if (side === 'BUY') {
-    // Buys fill at a slight markup (platform spread revenue)
-    fillPrice = baseLtp * (1 + entryBuffer);
+  if (order_type === 'LIMIT' || order_type === 'SL') {
+    fillPrice = client_price;
   } else {
-    // Sells fill at a slight markdown
-    fillPrice = baseLtp * (1 - exitBuffer);
+    const entryBuffer = segSetting?.entry_buffer ?? 0.003;
+    const exitBuffer  = segSetting?.exit_buffer  ?? 0.0017;
+    if (side === 'BUY') {
+      fillPrice = baseLtp * (1 + entryBuffer);
+    } else {
+      fillPrice = baseLtp * (1 - exitBuffer);
+    }
   }
 
   fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp
@@ -247,6 +269,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     p_ltp:          baseLtp,
     p_fill_price:   fillPrice,
     p_info:         null,
+    p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null
   });
 
   if (rpcErr) {
@@ -256,9 +279,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const response: PlaceOrderResponse = {
     order_id:   orderId as string,
-    status:     'EXECUTED',
+    status:     isImmediate ? 'EXECUTED' : 'PENDING',
     fill_price: fillPrice,
-    message:    `${side} order executed at ₹${fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+    message:    isImmediate 
+      ? `${side} order executed at ₹${fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+      : `${side} ${order_type} order placed (Pending) at ₹${fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
   };
 
   return NextResponse.json(response, { status: 201 });

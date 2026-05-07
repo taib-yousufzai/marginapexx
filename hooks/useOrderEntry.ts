@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 export type OrderSide = 'BUY' | 'SELL';
-export type OrderType = 'MARKET' | 'LIMIT' | 'SL-M' | 'GTT';
+export type OrderType = 'MARKET' | 'LIMIT' | 'SL' | 'SLM' | 'GTT';
 export type ProductType = 'INTRADAY' | 'CARRY';
 
 export interface OrderEntryState {
@@ -63,8 +63,43 @@ export function useOrderEntry() {
     }
   }, []);
 
+  const closePosition = useCallback(async (positionId: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        throw new Error('You must be logged in to close a position.');
+      }
+
+      const response = await fetch(`/api/positions/${positionId}/close`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to close position');
+      }
+
+      return { success: true, ...result };
+    } catch (err: any) {
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     placeOrder,
+    closePosition,
     loading,
     error,
     setError

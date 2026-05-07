@@ -55,9 +55,10 @@ export default function InstallPrompt() {
     <div
       style={{
         position: 'fixed',
-        bottom: '130px', /* above footer (~70px) + account pill (~35px) + gap */
-        left: '50%',
-        transform: 'translateX(-50%)',
+        bottom: 'var(--prompt-bottom, 130px)',
+        left: 'var(--prompt-left, 50%)',
+        right: 'var(--prompt-right, auto)',
+        transform: 'var(--prompt-transform, translateX(-50%))',
         width: 'calc(100% - 32px)',
         maxWidth: '440px',
         background: 'linear-gradient(135deg, #0f0f0f 0%, #1c1c1c 100%)',
@@ -77,8 +78,24 @@ export default function InstallPrompt() {
     >
       <style>{`
         @keyframes slideUpPrompt {
-          from { transform: translate(-50%, 30px); opacity: 0; }
-          to   { transform: translate(-50%, 0);     opacity: 1; }
+          from { transform: var(--prompt-transform-start, translate(-50%, 30px)); opacity: 0; }
+          to   { transform: var(--prompt-transform, translate(-50%, 0));     opacity: 1; }
+        }
+        :root {
+          --prompt-bottom: 130px;
+          --prompt-left: 50%;
+          --prompt-right: auto;
+          --prompt-transform: translateX(-50%);
+          --prompt-transform-start: translate(-50%, 30px);
+        }
+        @media (min-width: 1024px) {
+          :root {
+            --prompt-bottom: 30px;
+            --prompt-left: auto;
+            --prompt-right: 30px;
+            --prompt-transform: none;
+            --prompt-transform-start: translateY(30px);
+          }
         }
       `}</style>
 

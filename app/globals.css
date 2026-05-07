@@ -11,15 +11,14 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-body, #F0F2F5);
 }
 
 body {
-  font-family: 'Inter', sans-serif;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  background: var(--bg-body, #F0F2F5);
-  min-height: 100dvh;
 }
 
 @media (max-width: 500px) {
@@ -101,7 +100,7 @@ body {
 @media (min-width: 1024px) {
   :root {
     --footer-nav-height: 0px;
-    --sidebar-width: 80px;
+    --sidebar-width: 260px;
   }
 
   body {
@@ -387,11 +386,23 @@ body.dark .nav-app-name span {
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
   margin-bottom: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
 }
 
 .expiry-half-drawer-overlay.active .expiry-half-sheet,
 .expiry-half-sheet.open {
   transform: translateY(0);
+}
+
+.expiry-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border-card);
+  padding-bottom: 12px;
 }
 
 .expiry-sheet-header h3 {
@@ -456,7 +467,6 @@ body.dark .nav-app-name span {
   justify-content: center;
   color: var(--footer-active);
 }
-
 
 /* ══════════════════════════════════════════
    EXPIRY WATCHLIST SHEET  (new design)
@@ -709,4 +719,60 @@ body.dark .ew-arrow {
 body.dark .ew-arrow--today {
   background: #C62E2E;
   color: #ffffff;
+}
+
+@media (min-width: 1024px) {
+  body {
+    overflow: hidden;
+  }
+
+  .desktop-layout {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-body);
+  }
+
+  .sidebar-container {
+    width: 260px;
+    height: 100vh;
+    flex-shrink: 0;
+  }
+
+  .main-viewport {
+    flex: 1;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    background: var(--bg-body);
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding-left: 0 !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main-scroll-wrapper {
+    padding-bottom: 40px !important;
+  }
+
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .desktop-only {
+    display: none !important;
+  }
 }

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import './Footer.css';
 
 interface FooterProps {
-  activeTab: 'home' | 'watchlist' | 'order' | 'position' | 'history';
+  activeTab: 'home' | 'watchlist' | 'order' | 'position' | 'history' | 'profile';
   hideDrawer?: boolean;
 }
 

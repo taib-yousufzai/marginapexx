@@ -3,9 +3,9 @@
  */
 
 export type OrderSide        = 'BUY' | 'SELL';
-export type OrderType        = 'MARKET' | 'LIMIT' | 'SLM' | 'GTT';
+export type OrderType        = 'MARKET' | 'LIMIT' | 'SL' | 'SLM' | 'GTT';
 export type ProductType      = 'INTRADAY' | 'CARRY';
-export type OrderStatus      = 'PENDING' | 'EXECUTED' | 'CANCELLED' | 'REJECTED';
+export type OrderStatus      = 'PENDING' | 'EXECUTED' | 'CANCELLED' | 'REJECTED' | 'TRIGGERED';
 
 // ─── Request (client → POST /api/orders) ─────────────────────────────────────
 export interface PlaceOrderRequest {
@@ -27,6 +27,8 @@ export interface PlaceOrderRequest {
    * fails. Server always prefers its own Kite quote fetch.
    */
   client_price: number;
+  /** Optional trigger price for SL, SLM, GTT orders */
+  trigger_price?: number;
 }
 
 // ─── Response (POST /api/orders) ─────────────────────────────────────────────

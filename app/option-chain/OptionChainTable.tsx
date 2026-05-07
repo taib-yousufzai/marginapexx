@@ -27,7 +27,9 @@ interface OptionChainTableProps {
 
 export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, priceMode = 'LTP' }: OptionChainTableProps) {
   const atmRef = React.useRef<HTMLDivElement>(null);
+  const tableHeaderRef = React.useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = React.useState(false);
+  const [subheadFloating, setSubheadFloating] = React.useState(false);
 
   const atmStrike = React.useMemo(() => {
     if (spotPrice <= 0 || strikes.length === 0) return null;
@@ -49,22 +51,35 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
     setHasScrolled(false);
   }, [strikes]);
 
+  // Detect when CALLS/STRIKE/PUTS header scrolls out of view
+  React.useEffect(() => {
+    const scrollEl = tableHeaderRef.current?.closest('.main-content') as HTMLElement | null;
+    if (!scrollEl) return;
+    const onScroll = () => {
+      if (!tableHeaderRef.current) return;
+      const rect = tableHeaderRef.current.getBoundingClientRect();
+      setSubheadFloating(rect.bottom <= 58);
+    };
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    return () => scrollEl.removeEventListener('scroll', onScroll);
+  }, []);
+
   const getQuote = (id?: string) => (id ? quotes[id] || null : null);
 
   return (
     <div className="oct-wrap">
-      {/* Outer rounded rectangle */}
+      {/* Single outer container */}
       <div className="oct-table">
 
-        {/* ── Header row ── */}
-        <div className="oct-head">
+        {/* ── Header row (scrolls away) ── */}
+        <div className="oct-head" ref={tableHeaderRef}>
           <div className="oct-head-calls">{priceMode === 'LTP' ? 'CALL LTP' : 'CALLS'}</div>
           <div className="oct-head-strike">STRIKE</div>
           <div className="oct-head-puts">{priceMode === 'LTP' ? 'PUT LTP' : 'PUTS'}</div>
         </div>
 
-        {/* ── Sub-header: BID ASK | ₹ | BID ASK ── */}
-        <div className="oct-subhead">
+        {/* ── Sub-header: sticky ── */}
+        <div className={`oct-subhead${subheadFloating ? ' floating' : ''}`}>
           <div className="oct-sub-calls">
             {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>LTP</span>}
           </div>
@@ -135,7 +150,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             );
           })}
         </div>
-      </div>
+      </div>{/* oct-table */}
 
       <style jsx>{`
         .oct-wrap {
@@ -143,7 +158,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 0 0 80px 0;
         }
 
-        /* ── Outer rounded rectangle ── */
+        /* ── Single outer container ── */
         .oct-table {
           width: 100%;
           background: #fff;
@@ -202,21 +217,41 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #ffffff;
         }
 
-        /* ── Sub-header ── */
+        /* ── Sticky sub-header ── */
         .oct-subhead {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
           font-size: 0.72rem;
           font-weight: 700;
-          border-bottom: 1px solid #e8eaf0;
           font-family: 'Inter', sans-serif;
           position: sticky;
-          top: 0;
-          z-index: 10;
+          top: 58px;
+          z-index: 20;
+          border-bottom: 1px solid #e8eaf0;
+          transition: border-radius 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        /* When header scrolled away — round top corners */
+        .oct-subhead.floating {
+          border-radius: 20px 20px 0 0;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+          overflow: hidden;
+        }
+
+        .oct-subhead.floating .oct-sub-calls {
+          border-radius: 20px 0 0 0;
+        }
+
+        .oct-subhead.floating .oct-sub-puts {
+          border-radius: 0 20px 0 0;
         }
 
         :global(body.dark) .oct-subhead {
           border-bottom-color: #252525;
+        }
+
+        :global(body.dark) .oct-subhead.floating {
+          box-shadow: 0 4px 16px rgba(0,0,0,0.5);
         }
 
         .oct-sub-calls {
