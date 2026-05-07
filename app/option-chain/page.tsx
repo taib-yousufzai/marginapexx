@@ -13,6 +13,19 @@ function OptionChainContent() {
   const searchParams = useSearchParams();
   const symbol = (searchParams.get('symbol') || 'NIFTY').toUpperCase();
   
+  const [isDark, setIsDark] = React.useState(false);
+
+  React.useEffect(() => {
+    const check = () => setIsDark(document.body.classList.contains('dark'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => { setMounted(true); }, []);
+  
   const { placeOrder, loading: placingOrder, error: orderError, setError: setOrderError } = useOrderEntry();
   const [selectedContract, setSelectedContract] = useState<{ symbol: string, type: 'CE' | 'PE', strike: number } | null>(null);
   const [orderQty, setOrderQty] = useState(25);
@@ -143,66 +156,90 @@ function OptionChainContent() {
     }
   };
 
+  const [priceMode, setPriceMode] = useState<'BA' | 'LTP'>('BA');
+
   return (
-    <div className="oc-app-container">
+    <div className={`oc-app-container${mounted && isDark ? ' dark' : ''}`}>
       <header className="app-header premium-header">
-        <div className="header-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {/* Left Side */}
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div className="premium-back-btn" onClick={() => router.back()}>
-              <i className="fas fa-chevron-left" style={{ fontSize: '1rem' }}></i>
-            </div>
-            <div>
-              <div className="premium-symbol-name">{symbol}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                <span className="premium-badge">OPTION CHAIN</span>
-                {connected ? (
-                  <div className="pulsing-dot connected"></div>
-                ) : (
-                  <>
-                    <div className="pulsing-dot connecting"></div>
-                    <span className="connecting-text">Connecting...</span>
-                  </>
-                )}
+        <div className="header-wrapper">
+          <div className="oc-capsule-header">
+            {/* Left: back btn + symbol info */}
+            <div className="oc-capsule-left">
+              <div className="premium-back-btn" onClick={() => router.back()}>
+                <i className="fas fa-arrow-left" style={{ fontSize: '0.9rem' }}></i>
+              </div>
+              <div className="oc-capsule-info">
+                <div className="premium-symbol-name">{symbol}</div>
+                <div className="oc-capsule-sub">
+                  <span className="premium-badge">OPTION CHAIN</span>
+                  {connected ? (
+                    <div className="pulsing-dot connected"></div>
+                  ) : (
+                    <>
+                      <div className="pulsing-dot connecting"></div>
+                      <span className="connecting-text">Connecting...</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Side */}
-          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-            <div className="premium-expiry-badge">
-              {(() => {
-                const now = new Date();
-                return `${now.getDate()} ${now.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}`;
-              })()}
+            {/* Right: B/A + LTP toggle */}
+            <div className="oc-capsule-right">
+              <div className="oc-mode-toggle">
+                <button
+                  className={`oc-mode-btn${priceMode === 'BA' ? ' active' : ''}`}
+                  onClick={() => setPriceMode('BA')}
+                >B/A</button>
+                <button
+                  className={`oc-mode-btn${priceMode === 'LTP' ? ' active' : ''}`}
+                  onClick={() => setPriceMode('LTP')}
+                >LTP</button>
+              </div>
             </div>
-            <div className="premium-spot-label" style={{ marginTop: selectedExpiry ? '4px' : '0' }}>SPOT PRICE</div>
-            <div className="premium-spot-price">{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}</div>
-            <div className={`premium-spot-change ${spotChange >= 0 ? 'pos' : 'neg'}`}>{spotChange >= 0 ? '+' : ''}{spotChange.toFixed(2)}%</div>
           </div>
         </div>
       </header>
 
       <main className="main-content">
         <div className="content-wrapper">
+          {/* Expiry Strip — capsule container with spot + dates */}
           <div className="expiry-strip">
-            <div className="strip-scroll">
-              {data?.expiries.map((exp, idx) => {
-                  const [year, monthNum, dayNum] = exp.split('-').map(Number);
-                  const dateObj = new Date(year, monthNum - 1, dayNum);
-                  const day = dateObj.getDate();
-                  const month = dateObj.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase();
-                  return (
-                      <button 
-                          key={exp}
-                          className={`expiry-pill ${selectedExpiry === exp ? 'active' : ''}`}
-                          onClick={() => setSelectedExpiry(exp)}
+            <div className="expiry-capsule-bar">
+              {/* Spot Price — inner capsule like dates */}
+              <div className="expiry-spot-inner-capsule">
+                <div className="expiry-spot-pill">
+                  <span className="expiry-spot-label">Spot</span>
+                  <span className="expiry-spot-val">
+                    ₹{spotPrice > 0 ? spotPrice.toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '---'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="expiry-divider"></div>
+
+              {/* Date pills — inner capsule like B/A toggle */}
+              <div className="expiry-dates-inner-capsule">
+                <div className="expiry-dates-scroll">
+                  {data?.expiries.map((exp) => {
+                    const [year, monthNum, dayNum] = exp.split('-').map(Number);
+                    const dateObj = new Date(year, monthNum - 1, dayNum);
+                    const day = dateObj.getDate();
+                    const month = dateObj.toLocaleDateString('en-IN', { month: 'short' });
+                    const yr = String(year).slice(2);
+                    return (
+                      <button
+                        key={exp}
+                        className={`expiry-date-btn${selectedExpiry === exp ? ' active' : ''}`}
+                        onClick={() => setSelectedExpiry(exp)}
                       >
-                          <div className="day">{day}</div>
-                          <div className="month">{month}</div>
+                        {day} {month} {yr}
                       </button>
-                  );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -323,6 +360,7 @@ function OptionChainContent() {
                             quotes={quotes}
                             spotPrice={spotPrice}
                             onTrade={handleTrade}
+                            priceMode={priceMode}
                           />
                         </>
                     )}
@@ -351,7 +389,7 @@ function OptionChainContent() {
 
         .app-header {
           background: var(--bg-body);
-          padding: 16px 20px 8px 20px;
+          padding: 12px 10px 0 10px;
           flex-shrink: 0;
           z-index: 30;
         }
@@ -445,7 +483,7 @@ function OptionChainContent() {
           font-weight: 800;
           font-size: 1.5rem;
           color: var(--text-primary);
-          font-family: 'JetBrains Mono', monospace;
+          font-family: 'Inter', sans-serif;
           line-height: 1.2;
         }
 
@@ -466,39 +504,236 @@ function OptionChainContent() {
         .main-content::-webkit-scrollbar { display: none; }
 
         .expiry-strip {
-          padding: 8px 20px 16px 20px;
-          overflow-x: auto;
-          scrollbar-width: none;
+          padding: 4px 10px 10px 10px;
           position: sticky;
           top: 0;
           z-index: 20;
           background: var(--bg-body);
         }
-        .expiry-strip::-webkit-scrollbar { display: none; }
 
-        .strip-scroll {
+        /* ── Capsule bar: Spot + Dates ── */
+        .expiry-capsule-bar {
           display: flex;
-          gap: 12px;
+          align-items: center;
+          background: #fff;
+          border: 1px solid #e8eaf0;
+          border-radius: 9999px;
+          padding: 5px 5px 5px 14px;
+          gap: 0;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          min-width: 0;
+        }
+
+        .dark .expiry-capsule-bar {
+          background: #1e1e1e;
+          border-color: #2a2a2a;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Spot price section — always visible, never scrolls */
+        .expiry-spot-inner-capsule {
+          flex-shrink: 0;
+          background: transparent;
+          border-radius: 9999px;
+          padding: 0;
+        }
+
+        .expiry-spot-pill {
+          display: flex;
+          align-items: baseline;
+          gap: 5px;
+          flex-shrink: 0;
+          padding: 5px 14px 5px 4px;
+        }
+
+        .expiry-spot-label {
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #555;
+        }
+
+        .expiry-spot-val {
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: #C62E2E;
+        }
+
+        .dark .expiry-spot-label { color: #888; }
+        .dark .expiry-spot-val { color: #C62E2E; }
+
+        /* Vertical divider — always visible */
+        .expiry-divider {
+          width: 1px;
+          height: 28px;
+          background: #e8eaf0;
+          margin: 0 8px;
+          flex-shrink: 0;
+        }
+
+        .dark .expiry-divider {
+          background: #333;
+        }
+
+        /* Scrollable dates area — only this part scrolls */
+        .expiry-dates-inner-capsule {
+          width: fit-content;
+          max-width: 100%;
+          min-width: 0;
+          margin-left: auto;
+          background: #f0f2f5;
+          border: 1px solid #e8eaf0;
+          border-radius: 9999px;
+          padding: 3px;
+          overflow: hidden;
+        }
+
+        .dark .expiry-dates-inner-capsule {
+          background: #2a2a2a;
+          border-color: #3a3a3a;
+        }
+
+        .expiry-dates-scroll {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+        .expiry-dates-scroll::-webkit-scrollbar { display: none; }
+
+        /* Individual date button */
+        .expiry-date-btn {
+          flex-shrink: 0;
+          padding: 7px 16px;
+          border-radius: 9999px;
+          font-size: 0.8rem;
+          font-weight: 700;
+          border: none;
+          cursor: pointer;
+          background: transparent;
+          color: #1a1a1a;
+          transition: all 0.2s ease;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+
+        .expiry-date-btn.active {
+          background: #C62E2E;
+          color: #fff;
+          box-shadow: 0 3px 10px rgba(198, 46, 46, 0.35);
+        }
+
+        .dark .expiry-date-btn {
+          color: #aaa;
+        }
+
+        .dark .expiry-date-btn.active {
+          background: #C62E2E;
+          color: #fff;
         }
 
         /* PREMIUM UI ELEMENTS */
         .premium-header {
-          padding: 16px 20px;
-          background: var(--card-bg);
-          border-bottom: 1px solid var(--border-light);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          padding: 12px 10px 8px 10px;
+          background: var(--bg-body);
         }
 
-        body.dark .premium-header {
-          background: #1c1c1c;
-          border-bottom: 1px solid #2a2a2a;
+        /* ── Capsule Header ── */
+        .oc-capsule-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #fff;
+          border: 1px solid #e8eaf0;
+          border-radius: 9999px;
+          padding: 10px 14px 10px 10px;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .dark .oc-capsule-header {
+          background: #1e1e1e;
+          border-color: #2a2a2a;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.4);
+        }
+
+        .oc-capsule-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .oc-capsule-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        .oc-capsule-sub {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .oc-capsule-right {
+          display: flex;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        /* ── B/A + LTP Toggle ── */
+        .oc-mode-toggle {
+          display: flex;
+          align-items: center;
+          background: #f0f2f5;
+          border-radius: 9999px;
+          padding: 3px;
+          gap: 2px;
+          border: 1px solid #e8eaf0;
+        }
+
+        .dark .oc-mode-toggle {
+          background: #2a2a2a;
+          border-color: #3a3a3a;
+        }
+
+        .oc-mode-btn {
+          padding: 6px 16px;
+          border-radius: 9999px;
+          font-size: 0.75rem;
+          font-weight: 800;
+          border: none;
+          cursor: pointer;
+          background: transparent;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          letter-spacing: 0.3px;
+          font-family: inherit;
+        }
+
+        .oc-mode-btn.active {
+          background: #C62E2E;
+          color: #fff;
+          box-shadow: 0 2px 8px rgba(198, 46, 46, 0.35);
+        }
+
+        .dark .oc-mode-btn {
+          color: #666;
+        }
+
+        .dark .oc-mode-btn.active {
+          background: #C62E2E;
+          color: #fff;
         }
 
         .premium-back-btn {
           width: 42px;
           height: 42px;
-          background: var(--icon-bg);
-          border: 1px solid var(--border-light);
+          background: var(--icon-bg, #f0f2f5);
+          border: 1px solid #e8eaf0;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -510,13 +745,18 @@ function OptionChainContent() {
         }
         .premium-back-btn:active {
           transform: scale(0.95);
-          background: var(--border-light);
+        }
+
+        .dark .premium-back-btn {
+          background: #2a2a2a;
+          border-color: #3a3a3a;
+          color: #e0e0e0;
         }
 
         .premium-symbol-name {
           font-size: 1.5rem;
           font-weight: 800;
-          color: var(--text-primary);
+          color: #C62E2E;
           text-transform: uppercase;
           line-height: 1.1;
           letter-spacing: -0.5px;
@@ -530,20 +770,31 @@ function OptionChainContent() {
         }
 
         .connecting-text {
-          color: var(--text-secondary);
+          color: #9ca3af;
           font-size: 0.65rem;
           font-weight: 600;
         }
 
+        .dark .connecting-text {
+          color: #666;
+        }
+
         .premium-badge {
-          background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
-          padding: 2px 8px;
+          background: rgba(34, 197, 94, 0.12);
+          color: #16a34a;
+          padding: 3px 10px;
           border-radius: 12px;
           font-size: 0.65rem;
-          font-weight: 800;
+          font-weight: 700;
           letter-spacing: 0.5px;
-          border: 1px solid rgba(239, 68, 68, 0.2);
+          border: 1px solid rgba(34, 197, 94, 0.25);
+          white-space: nowrap;
+        }
+
+        .dark .premium-badge {
+          background: rgba(34, 197, 94, 0.12);
+          color: #4ade80;
+          border-color: rgba(34, 197, 94, 0.25);
         }
 
         .pulsing-dot {
@@ -597,58 +848,9 @@ function OptionChainContent() {
         .premium-spot-change.pos { color: #22c55e; }
         .premium-spot-change.neg { color: #ef4444; }
 
-        .expiry-pill {
-          width: calc((100vw - 64px) / 3);
-          max-width: 150px;
-          height: 48px;
-          padding: 2px 4px;
-          background: var(--card-bg);
-          border: 1px solid var(--border-light);
-          box-shadow: var(--shadow-sm);
-          border-radius: 9999px; /* Capsule shape */
-          font-size: 0.9rem;
-          font-weight: 800;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 0px;
-          flex-shrink: 0;
-        }
-
-        .expiry-pill .day {
-          font-size: 1.05rem;
-          line-height: 1.1;
-          font-weight: 900;
-          color: var(--text-primary);
-          transition: color 0.3s ease;
-        }
-
-        .expiry-pill .month {
-          font-size: 0.6rem;
-          font-weight: 800;
-          letter-spacing: 0.5px;
-          text-transform: uppercase;
-        }
-
-        .expiry-pill.active {
-          background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-          border-color: rgba(239, 68, 68, 0.5);
-          color: white;
-          box-shadow: 0 8px 20px -4px rgba(239, 68, 68, 0.4), inset 0 2px 4px rgba(255,255,255,0.2);
-          transform: translateY(-2px);
-        }
-
-        .expiry-pill.active .day {
-          color: white;
-        }
-
         .oc-table-wrapper {
           flex: 1;
-          padding: 0 20px 80px 20px;
+          padding: 0 10px 80px 10px;
         }
 
         .loading-state, .no-data-state {
@@ -864,7 +1066,7 @@ function OptionChainContent() {
             font-weight: 800;
             color: var(--text-primary);
             line-height: 1;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
         }
 
         .cmp-chg {
@@ -902,7 +1104,7 @@ function OptionChainContent() {
         .ba-val {
             font-size: 1.1rem;
             font-weight: 800;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
         }
 
         .ba-divider {
@@ -941,7 +1143,7 @@ function OptionChainContent() {
             font-size: 0.85rem;
             font-weight: 800;
             color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Inter', sans-serif;
         }
 
         .date-box {

@@ -228,12 +228,13 @@ interface SegmentTabBarProps {
 
 function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
   return (
-    <div className="seg-tab-bar">
+    <div className="seg-tab-bar" suppressHydrationWarning>
       {TAB_LABELS.map(label => (
         <button
           key={label}
           className={`seg-tab${activeTab === label ? ' seg-tab--active' : ''}`}
           onClick={() => onTabChange(label)}
+          suppressHydrationWarning
         >
           {label}
         </button>
@@ -751,7 +752,7 @@ function WatchlistContent() {
         <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
-          <input type="text" className="search-input" id="globalSearchInput" placeholder="Search instrument" autoComplete="off" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          <input type="text" className="search-input" id="globalSearchInput" placeholder="Search instrument" autoComplete="off" value={searchText} onChange={(e) => setSearchText(e.target.value)} suppressHydrationWarning />
           <i className="fas fa-trash clear-search" id="clearSearchBtn" onClick={() => setSearchText('')}></i>
         </div>
       </div>

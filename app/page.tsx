@@ -80,18 +80,18 @@ const getNextExpiryDate = (dayOfWeek: number) => {
   targetDate.setDate(today.getDate() + daysUntil);
   
   return {
-    dateStr: targetDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    dateStr: targetDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
     isToday: daysUntil === 0
   };
 };
 
 const getExpiryIndexes = () => [
-  { name: "NIFTY", fullName: "NIFTY 50", expiry: getNextExpiryDate(4), lotSize: 50, icon: "fas fa-chart-line" },
-  { name: "BANK NIFTY", fullName: "BANK NIFTY", expiry: getNextExpiryDate(3), lotSize: 15, icon: "fas fa-building" }, // Updated Bank Nifty lot size is 15
-  { name: "SENSEX", fullName: "SENSEX", expiry: getNextExpiryDate(5), lotSize: 10, icon: "fas fa-chart-area" }, // Updated Sensex lot size is 10
-  { name: "BANKEX", fullName: "BANKEX", expiry: getNextExpiryDate(5), lotSize: 15, icon: "fas fa-university" },
-  { name: "FIN NIFTY", fullName: "FINNIFTY", expiry: getNextExpiryDate(2), lotSize: 40, icon: "fas fa-chart-pie" }, // Updated Finnifty lot size is 40
-  { name: "MIDCAP NIFTY", fullName: "MIDCAP NIFTY", expiry: getNextExpiryDate(1), lotSize: 75, icon: "fas fa-chart-bar" } // Updated Midcap lot size is 75
+  { name: "NIFTY",       fullName: "NIFTY 50",     shortCode: "N50",  expiry: getNextExpiryDate(4), lotSize: 50  },
+  { name: "BANKNIFTY",   fullName: "BANK NIFTY",   shortCode: "BNF",  expiry: getNextExpiryDate(3), lotSize: 15  },
+  { name: "FINNIFTY",    fullName: "FIN NIFTY",    shortCode: "FIN",  expiry: getNextExpiryDate(2), lotSize: 40  },
+  { name: "SENSEX",      fullName: "SENSEX",       shortCode: "SEN",  expiry: getNextExpiryDate(5), lotSize: 10  },
+  { name: "MIDCAP",      fullName: "MIDCAP NIFTY", shortCode: "MID",  expiry: getNextExpiryDate(1), lotSize: 75  },
+  { name: "BANKEX",      fullName: "BANKEX",       shortCode: "BKX",  expiry: getNextExpiryDate(5), lotSize: 15  },
 ];
 
 export default function Page() {
@@ -456,24 +456,53 @@ export default function Page() {
 
         {/* Expiry Drawer */}
         <div className={`expiry-half-drawer-overlay ${isExpiryDrawerOpen ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setIsExpiryDrawerOpen(false); }}>
-          <div className="expiry-half-sheet">
-            <div className="expiry-sheet-header">
-              <h3><i className="fas fa-calendar-alt"></i> Upcoming Expiries</h3>
-              <div className="expiry-sheet-close" onClick={() => setIsExpiryDrawerOpen(false)}><i className="fas fa-times"></i></div>
+          <div className="expiry-half-sheet ew-sheet">
+            {/* drag handle */}
+            <div className="ew-handle"></div>
+
+            {/* Header */}
+            <div className="ew-header">
+              <div className="ew-header-left">
+                <div className="ew-cal-icon"><i className="fas fa-calendar-check"></i></div>
+                <span className="ew-title">Expiry watchlist</span>
+              </div>
+              <button className="ew-close" onClick={() => setIsExpiryDrawerOpen(false)}>✕</button>
             </div>
-            <div id="expiryListContainer">
+
+            {/* List */}
+            <div className="ew-list">
               {getExpiryIndexes().map((item, i) => (
-                <div className="expiry-list-item" key={i} onClick={() => {
-                  setIsExpiryDrawerOpen(false);
-                  router.push(`/option-chain?symbol=${encodeURIComponent(item.name)}`);
-                }}>
-                  <div className="expiry-info">
-                    <h4><i className={item.icon} style={{ marginRight: '6px' }}></i> {item.name}</h4>
-                    <p>
-                      📅 Expiry: {item.expiry.isToday ? <span style={{color:'#C62E2E', fontWeight:'bold'}}>Today</span> : item.expiry.dateStr} • Lot: {item.lotSize}
-                    </p>
+                <div
+                  key={i}
+                  className={`ew-item${item.expiry.isToday ? ' ew-item--today' : ''}`}
+                  onClick={() => {
+                    setIsExpiryDrawerOpen(false);
+                    router.push(`/option-chain?symbol=${encodeURIComponent(item.name)}`);
+                  }}
+                >
+                  {/* EXPIRES TODAY banner */}
+                  {item.expiry.isToday && (
+                    <div className="ew-today-banner">
+                      <span>⚡ EXPIRES TODAY</span>
+                    </div>
+                  )}
+
+                  {/* Short code badge */}
+                  <div className="ew-code">{item.shortCode}</div>
+
+                  {/* Info */}
+                  <div className="ew-info">
+                    <div className="ew-name">{item.fullName}</div>
+                    <div className="ew-meta">
+                      <span className="ew-date-pill">{item.expiry.dateStr}</span>
+                      <span className="ew-lot">Lot: {item.lotSize}</span>
+                    </div>
                   </div>
-                  <div className="expiry-arrow-btn"><i className="fas fa-arrow-right"></i></div>
+
+                  {/* Arrow */}
+                  <div className={`ew-arrow${item.expiry.isToday ? ' ew-arrow--today' : ''}`}>
+                    <i className="fas fa-chevron-right"></i>
+                  </div>
                 </div>
               ))}
             </div>

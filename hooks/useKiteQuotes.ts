@@ -28,6 +28,8 @@ export interface QuoteData {
   low: number;
   close: number;
   volume: number;
+  bid: number;
+  ask: number;
 }
 
 interface UseKiteQuotesResult {
