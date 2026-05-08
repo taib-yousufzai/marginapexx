@@ -250,9 +250,10 @@ interface InstrumentRowProps {
   binanceQuote?: BinanceQuoteData;
   comexQuote?: ComexQuoteData;
   onTrade: (item: WatchlistItem) => void;
+  onDetail: (item: WatchlistItem) => void;
 }
 
-function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade }: InstrumentRowProps) {
+function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetail }: InstrumentRowProps) {
   const [priceView, setPriceView] = useState<'kite' | 'comex'>('kite');
 
   const isCrypto = !!item.binanceSymbol;
@@ -277,13 +278,11 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade }: Instr
   const isLoading = isCrypto ? !binanceQuote : (showComex && !comexQuote);
 
   const handleLeftClick = () => {
-    if (typeof window !== 'undefined' && (window as any).openDetailSheet) {
-      (window as any).openDetailSheet(item.symbol);
-    }
+    onDetail(item);
   };
 
   const handleRightClick = () => {
-    onTrade(item);
+    onDetail(item);
   };
 
   return (
@@ -627,17 +626,74 @@ function WatchlistContent() {
     };
     // Expose React handlers to window for legacy scripts
     (window as any).__reactOpenTradeSheet = (symbol: string) => {
-      const item = window.__watchlistItems?.find(i => i.symbol === symbol)
+      let item: WatchlistItem | undefined = window.__watchlistItems?.find((i: WatchlistItem) => i.symbol === symbol)
         || watchlistItems.find(i => i.symbol === symbol);
-      if (item) {
-        openTradeSheet(item);
+
+      if (!item) {
+        for (const seg of TRADING_SEGMENTS) {
+          const insts = [
+            ...(seg.instruments || []),
+            ...(seg.subCategories?.flatMap(s => s.instruments) || [])
+          ];
+          const found = insts.find(i => i.symbol === symbol);
+          if (found) {
+            item = {
+              name: found.name,
+              symbol: found.symbol,
+              kiteSymbol: found.kiteSymbol,
+              price: found.price,
+              change: found.change,
+              segment: found.segment,
+              contractDate: found.contractDate,
+              open: found.open,
+              high: found.high,
+              low: found.low,
+              close: found.close,
+              binanceSymbol: found.binanceSymbol,
+              comexSymbol: found.comexSymbol,
+            } as WatchlistItem;
+            break;
+          }
+        }
       }
+
+      if (item) openTradeSheet(item);
     };
     (window as any).__reactOpenDetailSheet = (symbol: string) => {
-      const item = window.__watchlistItems?.find(i => i.symbol === symbol)
+      // Search in user watchlist first
+      let item: WatchlistItem | undefined = window.__watchlistItems?.find((i: WatchlistItem) => i.symbol === symbol)
         || watchlistItems.find(i => i.symbol === symbol);
+
+      if (!item) {
+        for (const seg of TRADING_SEGMENTS) {
+          const insts = [
+            ...(seg.instruments || []),
+            ...(seg.subCategories?.flatMap(s => s.instruments) || [])
+          ];
+          const found = insts.find(i => i.symbol === symbol);
+          if (found) {
+            item = {
+              name: found.name,
+              symbol: found.symbol,
+              kiteSymbol: found.kiteSymbol,
+              price: found.price,
+              change: found.change,
+              segment: found.segment,
+              contractDate: found.contractDate,
+              open: found.open,
+              high: found.high,
+              low: found.low,
+              close: found.close,
+              binanceSymbol: found.binanceSymbol,
+              comexSymbol: found.comexSymbol,
+            } as WatchlistItem;
+            break;
+          }
+        }
+      }
+
       if (item) {
-        setSelectedItem(item);
+        openDetailSheet(item);
       }
     };
   }, [watchlistItems]);
@@ -674,6 +730,20 @@ function WatchlistContent() {
     if (overlay) overlay.classList.remove('active');
     if (footer) footer.classList.remove('visible');
     setSelectedItem(null);
+  };
+
+  const openDetailSheet = (item: WatchlistItem) => {
+    setSelectedItem(item);
+    // Close trade sheet if open
+    const tradeSheet = document.getElementById('tradeSheet');
+    const tradeOverlay = document.getElementById('tradeSheetOverlay');
+    if (tradeSheet) tradeSheet.classList.remove('open');
+    if (tradeOverlay) tradeOverlay.classList.remove('active');
+    // Open detail sheet
+    const detailSheet = document.getElementById('detailSheet');
+    const detailOverlay = document.getElementById('detailSheetOverlay');
+    if (detailSheet) detailSheet.classList.add('open');
+    if (detailOverlay) detailOverlay.classList.add('active');
   };
 
   const handlePlaceOrder = async (side: OrderSide) => {
@@ -734,7 +804,7 @@ function WatchlistContent() {
   }, []);
 
   return (
-    <div className="mobile-app">
+    <div className="mobile-app" suppressHydrationWarning>
       <div className="app-header">
         <div className="header-top">
           <div className="logo-area">
@@ -788,6 +858,7 @@ function WatchlistContent() {
                 binanceQuote={item.binanceSymbol ? binanceQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
                 onTrade={openTradeSheet}
+                onDetail={openDetailSheet}
               />
             ))}
             <div id="watchlistMobileContainer"></div>
@@ -936,67 +1007,69 @@ function WatchlistContent() {
       <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
       <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
-        <div style={{ padding: '0' }}>
-          <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#E5E7EB', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
-                <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: '#4B5563' }}></i>
-              </button>
-              <div>
-                <div id="detailScriptName" style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.15' }}>BANKNIFTY 48500 CE</div>
-                <span id="detailSegment" style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>NSE - Options</span>
+        {selectedItem && (() => {
+          const q = quotes[selectedItem.kiteSymbol];
+          const ltp = q?.lastPrice ?? selectedItem.price;
+          const bid = q?.bid ?? (ltp * 0.999);
+          const ask = q?.ask ?? (ltp * 1.001);
+          const chgPct = q ? q.changePercent : 0;
+          const fmt = (v: number) => `₹${v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          return (
+            <div style={{ padding: '0' }}>
+              <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#E5E7EB', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
+                    <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: '#4B5563' }}></i>
+                  </button>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.15' }}>{selectedItem.name}</div>
+                    <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedItem.segment}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '0.47rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
+                  <div style={{ fontSize: '0.935rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.1' }}>{fmt(ltp)}</div>
+                  <span className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
+                </div>
+              </div>
+              <div style={{ height: '1px', background: '#F0F2F8', margin: '0 0 8px', width: '100%' }}></div>
+              <div style={{ padding: '0 12px 10px 12px' }}>
+                <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>BID</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>{fmt(bid)}</div>
+                  </div>
+                  <div style={{ width: '1px', background: '#E2E8F0', height: '24px' }}></div>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>ASK</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>{fmt(ask)}</div>
+                  </div>
+                </div>
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={{ fontSize: '0.62rem', fontWeight: '700', color: '#5B677E', marginBottom: '6px' }}>PRICE SUMMARY</div>
+                  <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.open)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.high)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt(selectedItem.low)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B' }}>{fmt(selectedItem.close)}</div></div>
+                  </div>
+                </div>
+                <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem)}>
+                    <i className="fas fa-arrow-up"></i> BUY
+                  </button>
+                  <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem)}>
+                    <i className="fas fa-arrow-down"></i> SELL
+                  </button>
+                </div>
               </div>
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.47rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
-              <div id="detailCmpValue" style={{ fontSize: '0.935rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.1' }}>₹215.60</div>
-              <span id="detailChange" className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1' }}>-0.4%</span>
-            </div>
-          </div>
-          <div style={{ height: '1px', background: '#F0F2F8', margin: '0 0 8px', width: '100%' }}></div>
-          <div style={{ padding: '0 12px 10px 12px' }}>
-            <div id="detailBidAskCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>BID</div>
-                <div id="detailBid" style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>₹215.38</div>
-              </div>
-              <div id="detailBidAskDivider" style={{ width: '1px', background: '#E2E8F0', height: '24px' }}></div>
-              <div style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>ASK</div>
-                <div id="detailAsk" style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>₹215.82</div>
-              </div>
-            </div>
-            <div style={{ marginBottom: '8px' }}>
-              <div style={{ fontSize: '0.62rem', fontWeight: '700', color: '#5B677E', marginBottom: '6px' }}>PRICE SUMMARY</div>
-              <div id="detailOhlcCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>OPEN</div><div id="detailOpen" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>₹216.50</div></div>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>HIGH</div><div id="detailHigh" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>₹218.00</div></div>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>LOW</div><div id="detailLow" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>₹214.00</div></div>
-                <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>CLOSE</div><div id="detailClose" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B' }}>₹215.60</div></div>
-              </div>
-            </div>
-            <div id="detailContractCard" style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
-              <div id="detailContractDate" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>28 Mar 2025</div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                id="detailBuyBtn"
-                style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-                onClick={() => openTradeSheet(selectedItem!)}
-              >
-                <i className="fas fa-arrow-up"></i> BUY
-              </button>
-              <button
-                id="detailSellBtn"
-                style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-                onClick={() => openTradeSheet(selectedItem!)}
-              >
-                <i className="fas fa-arrow-down"></i> SELL
-              </button>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       <div id="basketSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('basketSheet'); const overlay = document.getElementById('basketSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
@@ -1032,7 +1105,7 @@ function WatchlistContent() {
       <div id="scriptsFolderDrawer" className={`folder-drawer${isFolderDrawerOpen ? ' open' : ''}`}>
         <div className="drawer-header">
           <h3><i className="fas fa-folder"></i> Trading Segments</h3>
-          <button className="close-drawer" onClick={() => setIsFolderDrawerOpen(false)}><i className="fas fa-times"></i></button>
+          <button className="close-drawer" onClick={() => setIsFolderDrawerOpen(false)} suppressHydrationWarning><i className="fas fa-times"></i></button>
         </div>
         <div className="folder-tree-scroll">
           {TRADING_SEGMENTS.map((seg) => {

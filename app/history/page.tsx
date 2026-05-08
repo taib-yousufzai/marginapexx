@@ -157,22 +157,28 @@ export default function HistoryPage() {
               <div className="date-filter-row">
                 <div className="filter-group">
                   <i className="fas fa-calendar-alt"></i>
-                  <input
-                    type="date"
-                    className="date-input-compact"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
+                  <div className="date-input-wrapper">
+                    <input
+                      type="date"
+                      className="date-input-compact"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                    {!fromDate && <span className="date-placeholder">mm/dd/yyyy</span>}
+                  </div>
                 </div>
                 <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
                 <div className="filter-group">
                   <i className="fas fa-calendar-alt"></i>
-                  <input
-                    type="date"
-                    className="date-input-compact"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
+                  <div className="date-input-wrapper">
+                    <input
+                      type="date"
+                      className="date-input-compact"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                    />
+                    {!toDate && <span className="date-placeholder">mm/dd/yyyy</span>}
+                  </div>
                 </div>
                 <div className="filter-buttons">
                   <button className="filter-btn apply">Apply</button>
@@ -289,32 +295,32 @@ export default function HistoryPage() {
                   })
                 )}
               </div>
-
-              {/* Summary inside scroll - above footer nav */}
-              <div className="history-footer">
-                <div className="footer-row">
-                  <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>
-                  <span className={`footer-value ${summary.gp - summary.gl >= 0 ? 'net-profit' : 'net-loss'}`}>
-                    {formatPrice(summary.gp - summary.gl)}
-                  </span>
-                </div>
-                <div className="footer-row">
-                  <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
-                  <span className="footer-value">{formatPrice(summary.b)}</span>
-                </div>
-                <div className="footer-row">
-                  <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
-                  <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
-                    {formatPrice(summary.n)}
-                  </span>
-                </div>
-              </div>
             </div>
 
             <Footer activeTab="history" />
           </div>
         </div>
       </main>
+
+      {/* Summary fixed above footer nav - outside app-container so overflow:clip doesn't trap it */}
+      <div className="history-footer mobile-only">
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>
+          <span className={`footer-value ${summary.gp - summary.gl >= 0 ? 'net-profit' : 'net-loss'}`}>
+            {formatPrice(summary.gp - summary.gl)}
+          </span>
+        </div>
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
+          <span className="footer-value">{formatPrice(summary.b)}</span>
+        </div>
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
+          <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
+            {formatPrice(summary.n)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
