@@ -5,6 +5,9 @@
     width: 100%;
     background: var(--bg-body, #F0F2F5);
     align-self: stretch;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100dvh;
 }
 
 /* ── Header ── */
@@ -95,6 +98,19 @@ body.dark .rp-chip-btn.active {
     background: #FFFFFF;
     border-color: #FFFFFF;
     color: #1A1A1A;
+}
+
+body.dark .rp-root {
+    background: #121212;
+}
+
+body.dark .rp-header {
+    background: #1e1e1e;
+    border-bottom-color: #2a2a2a;
+}
+
+html:has(body.dark) {
+    background: #121212;
 }
 
 .rp-date-custom {
@@ -321,6 +337,11 @@ body.dark .rp-pnl-val.neg { color: #F87171; }
 
 /* ── Responsive ── */
 @media (min-width: 501px) {
+    .rp-root {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
     .rp-content { padding: 20px 32px 40px; }
     .rp-stats-grid { grid-template-columns: repeat(4, 1fr); }
     .rp-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

@@ -67,15 +67,19 @@ export default function ReportsPage() {
     const [loading, setLoading]     = useState(true);
     const [error, setError]         = useState<string | null>(null);
 
-    const today     = new Date().toISOString().split('T')[0];
-    const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const [fromDate, setFromDate] = useState(thirtyAgo);
-    const [toDate,   setToDate]   = useState(today);
+    const [fromDate, setFromDate] = useState('');
+    const [toDate,   setToDate]   = useState('');
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
         if (saved === 'dark') document.body.classList.add('dark');
         else document.body.classList.remove('dark');
+
+        // Set default dates on client only (avoids SSR hydration mismatch)
+        const today     = new Date().toISOString().split('T')[0];
+        const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setFromDate(thirtyAgo);
+        setToDate(today);
     }, []);
 
     const fetchData = useCallback(async () => {
@@ -160,12 +164,13 @@ export default function ReportsPage() {
                         { label: '3M',    days: 90 },
                     ] as { label: string; days: number }[]).map(({ label, days }) => {
                         const f = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
-                        const isActive = fromDate === f && toDate === today;
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const isActive = fromDate === f && toDate === todayStr;
                         return (
                             <button
                                 key={label}
                                 className={`rp-chip-btn${isActive ? ' active' : ''}`}
-                                onClick={() => { setFromDate(f); setToDate(today); }}
+                                onClick={() => { setFromDate(f); setToDate(new Date().toISOString().split('T')[0]); }}
                             >
                                 {label}
                             </button>

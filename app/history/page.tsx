@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
@@ -30,6 +30,22 @@ export default function HistoryPage() {
   const [toDate, setToDate] = useState('');
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll reset - runs synchronously before browser paint via ref callback
+  const scrollResetRef = (node: HTMLDivElement | null) => {
+    if (node) {
+      node.scrollTop = 0;
+    }
+    (mainContentRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  };
+
+  useEffect(() => {
+    // Apply dark mode class from localStorage on mount
+    const saved = localStorage.getItem('marginApexTheme');
+    if (saved === 'dark') document.body.classList.add('dark');
+    else document.body.classList.remove('dark');
+  }, []);
 
   useEffect(() => {
     async function fetchHistory() {
@@ -217,9 +233,10 @@ export default function HistoryPage() {
               </div>
             </div>
 
-            <div className="main-content">
+            <div className="main-content" ref={scrollResetRef}>
               <div className="history-list">
                 {filteredData.length === 0 ? (
+
                   <div className="empty-history">
                     <i className={currentTab === 'position' ? "fas fa-folder-open" : "fas fa-list-ul"}></i>
                     <p>No history found</p>
@@ -273,7 +290,7 @@ export default function HistoryPage() {
                 )}
               </div>
 
-              {/* Summary sticky at bottom of scroll - no gap */}
+              {/* Summary inside scroll - above footer nav */}
               <div className="history-footer">
                 <div className="footer-row">
                   <span className="footer-label"><i className="fas fa-chart-bar"></i> Gross P&L</span>

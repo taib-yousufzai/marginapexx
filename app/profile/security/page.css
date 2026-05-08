@@ -58,6 +58,7 @@
 .sec-tips-list li { font-size: 0.78rem; color: #78350F; font-weight: 500; }
 
 /* ===== DARK MODE ===== */
+body.dark { background: #121212; }
 body.dark .sec-root { background: #121212; }
 body.dark .sec-header { background: #1E1E1E; border-bottom-color: #333; }
 body.dark .sec-title { color: #F5F5F5; }

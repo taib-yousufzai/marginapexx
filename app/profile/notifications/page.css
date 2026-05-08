@@ -218,6 +218,9 @@
 }
 
 /* ── Dark mode ── */
+body.dark { background: #121212; }
+body.dark .notif-root { background: #121212; }
+html:has(body.dark) { background: #121212; }
 body.dark .notif-item.unread { background: rgba(255,255,255,0.03); }
 body.dark .notif-item:active { background: var(--card-alt-bg, #2A2A2A); }
 

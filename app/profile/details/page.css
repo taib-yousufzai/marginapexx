@@ -112,7 +112,10 @@
 
 /* ===== DARK MODE ===== */
 body.dark .pd-root { background: #121212; }
+body.dark { background: #121212; }
+html:has(body.dark) { background: #121212; }
 body.dark .pd-header { background: #1E1E1E; border-bottom-color: #333; }
+body.dark .pd-content { background: #121212; }
 body.dark .pd-title { color: #F5F5F5; }
 body.dark .pd-back-btn { background: #2A2A2A; border-color: #3A3A3A; color: #F5F5F5; }
 body.dark .pd-edit-btn { background: #F5F5F5; color: #1A1E2B; border-color: #F5F5F5; }
