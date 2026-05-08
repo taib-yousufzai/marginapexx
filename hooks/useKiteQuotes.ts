@@ -126,6 +126,8 @@ export function useKiteQuotes(
           low: quote.ohlc?.low || 0,
           close: close,
           volume: quote.volume || 0,
+          bid: (quote as any).depth?.buy?.[0]?.price || quote.last_price,
+          ask: (quote as any).depth?.sell?.[0]?.price || quote.last_price,
         };
 
         mapped[key] = quoteData;
