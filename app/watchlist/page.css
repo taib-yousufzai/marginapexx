@@ -2591,7 +2591,7 @@ body.dark .instrument-delete-btn:hover {
 /* ── Segment Tab Bar ── */
 .seg-tab-bar {
   display: flex;
-  overflow-x: auto;
+  overflow-x: hidden;
   white-space: nowrap;
   gap: 0;
   padding: 8px 0 0;
@@ -2602,16 +2602,18 @@ body.dark .instrument-delete-btn:hover {
 .seg-tab-bar::-webkit-scrollbar { display: none; }
 
 .seg-tab {
+  flex: 1;
   flex-shrink: 0;
   background: none;
   border: none;
-  padding: 8px 14px;
-  font-size: 0.72rem;
+  padding: 8px 4px;
+  font-size: 0.68rem;
   font-weight: 600;
   color: #8C94A8;
   cursor: pointer;
   position: relative;
   white-space: nowrap;
+  text-align: center;
 }
 
 .seg-tab--active {
@@ -2709,6 +2711,43 @@ body.dark .instrument-delete-btn:hover {
   align-items: center;
   margin-right: 12px;
 }
+
+/* Basket mode BUY/SELL buttons */
+.wc-basket-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+
+.wc-basket-buy,
+.wc-basket-sell {
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+  border: none;
+  color: #fff;
+  min-width: 54px;
+  text-align: center;
+}
+
+.wc-basket-buy {
+  background: #1a8a3a;
+  box-shadow: 0 0 10px rgba(26, 138, 58, 0.5);
+}
+
+.wc-basket-sell {
+  background: #b91c1c;
+  box-shadow: 0 0 10px rgba(185, 28, 28, 0.5);
+}
+
+.wc-basket-buy:active { background: #15692c; }
+.wc-basket-sell:active { background: #991515; }
 
 .instr-row__left {
   flex: 1;
