@@ -1,21 +1,65 @@
 .mobile-app {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
+    height: 100%;
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
-    background: #F5F7FB;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    background: var(--bg-body, #F5F7FB);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 @media (min-width: 1024px) {
     .mobile-app {
         max-width: 100%;
         margin: 0;
-        padding-left: var(--sidebar-width, 80px);
+        padding-left: 0;
+        height: 100%;
+        box-shadow: none;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .watchlist-shell {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background: #F5F7FB;
+    }
+
+    .desktop-basket-sidebar {
+        width: 380px;
+        background: #FFFFFF;
+        border-left: 1px solid #E8ECF0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    .dbs-content {
+        padding: 24px;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .main-viewport {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    .desktop-only {
+        display: none !important;
     }
 }
 
@@ -1760,6 +1804,20 @@
     font-weight: 800;
 }
 
+.modern-trade-sheet .trad.seg-tab--active {
+  background: #2C8E5A !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(44, 142, 90, 0.25);
+  border-color: #2C8E5A !important;
+}
+
+.seg-tab--drag-over {
+  background: rgba(44, 142, 90, 0.15) !important;
+  border-color: #2C8E5A !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
 .modern-trade-sheet .trade-chip.active {
     background: #1A1E2B;
     color: #FFFFFF;
@@ -2448,28 +2506,35 @@ body.dark .instrument-delete-btn:hover {
         gap: 12px;
     }
 
-    /* Folder drawer: persistent sidebar (no longer a slide-in overlay) */
+    /* Folder drawer: Restore fixed overlay behavior */
     .folder-drawer {
-        position: relative;
-        transform: none;
-        width: 280px;
-        height: auto;
-        box-shadow: none;
+        position: fixed;
+        transform: translateX(100%);
+        width: 360px;
+        height: 100vh;
+        z-index: 1000;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
         border-left: 1px solid var(--border-light, #E8ECF0);
+        top: 0;
+        right: 0;
+        transition: transform 0.3s ease;
     }
 
-    /* Hide the toggle button and overlay — drawer is always visible */
-    .folder-btn,
-    .drawer-overlay {
-        display: none !important;
+    .folder-drawer.open {
+        transform: translateX(0);
     }
 
-    /* Flex row: folder sidebar + main content side by side */
-    .watchlist-layout {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 0;
+    /* Restore library button and overlay */
+    .folder-btn {
+        display: flex !important;
+    }
+    
+    .drawer-overlay.active {
+        display: block !important;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 999;
     }
 
     /* Trade sheet: constrained and centred */
@@ -2842,3 +2907,61 @@ body.dark .instrument-delete-btn:hover {
 .dark .instr-row__date { color: #888; }
 .dark .instr-row__ltp { color: #f5f5f5; }
 .dark .watchlist-empty-state__title { color: #8C94A8; }
+
+/* ── Watchlist Drag & Drop & Tabs ── */
+.seg-tab-bar {
+  display: flex;
+  background: #F8F9FC;
+  border-radius: 40px;
+  padding: 4px;
+  border: 1px solid #E8ECF0;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.seg-tab {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 8px 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #5B677E;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.seg-tab--active {
+  background: #2C8E5A !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px rgba(44, 142, 90, 0.25);
+  border-color: #2C8E5A !important;
+}
+
+.seg-tab--drag-over {
+  background: rgba(44, 142, 90, 0.15) !important;
+  border-color: #2C8E5A !important;
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.drag-handle {
+  transition: color 0.2s;
+}
+
+.drag-handle:hover {
+  color: #2C8E5A !important;
+}
+
+.instr-row.basket-mode .drag-handle {
+  display: none;
+}
+
+.dark .seg-tab-bar { background: #1a1a1a; border-color: #2a2a2a; }
+.dark .seg-tab { color: #8C94A8; }
+.dark .seg-tab--drag-over { background: rgba(44, 142, 90, 0.2) !important; }
