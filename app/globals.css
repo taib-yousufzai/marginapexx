@@ -11,7 +11,7 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   background: var(--bg-body, #F0F2F5);
 }
 
@@ -335,7 +335,7 @@ body.dark {
 
 /* MARGIN APEX MODERN TEXT LOGO */
 .nav-app-name {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   font-weight: 800;
   font-size: 20px;
   letter-spacing: -0.3px;
@@ -429,7 +429,7 @@ body.dark .nav-app-name span {
 .expiry-sheet-header h3 {
   font-size: 1.2rem;
   font-weight: 800;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   color: var(--text-primary);
 }
 
@@ -557,7 +557,7 @@ body.dark .ew-cal-icon {
   font-size: 1.3rem;
   font-weight: 800;
   color: #1a1a1a;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
 }
 
 body.dark .ew-title {
@@ -676,7 +676,7 @@ body.dark .ew-code {
   font-weight: 700;
   color: #1a1a1a;
   margin-bottom: 6px;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter), sans-serif;
 }
 
 body.dark .ew-name {

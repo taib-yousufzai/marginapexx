@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { useKitePositions } from '@/hooks/useKitePositions';
 import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
 import Footer from '@/components/Footer';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import './page.css';
@@ -14,6 +16,7 @@ export default function OrderPage() {
   const [tab, setTab] = useState<'open' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<string | null>(null);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const { orders, loading: ordersLoading, error, cancelOrder } = useMyOrders();
   const { connected: kiteConnected } = useKitePositions();
@@ -66,34 +69,7 @@ export default function OrderPage() {
           <div className="ord-root">
             <div className="ord-shell">
 
-              {/* Header - Mobile Only */}
-              <div className="ord-header mobile-only">
-                <div className="ord-header-left">
-                  <div className="ord-brand">
-                    <span>MARGIN<span className="apex-text">APEX</span></span>
-                  </div>
-                  <div className="ord-brand-sub">Platform Orders • Internal Execution</div>
-                </div>
-                {kiteConnected ? (
-                  <span style={{
-                    fontSize: '0.65rem', fontWeight: 700, color: '#059669',
-                    background: 'rgba(5,150,105,0.1)', padding: '3px 10px',
-                    borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669', display: 'inline-block' }} />
-                    PRICE FEED LIVE
-                  </span>
-                ) : (
-                  <span style={{
-                    fontSize: '0.65rem', fontWeight: 700, color: '#ef4444',
-                    background: 'rgba(239,68,68,0.1)', padding: '3px 10px',
-                    borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
-                  }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-                    PRICE FEED OFF
-                  </span>
-                )}
-              </div>
+              <Navbar title="Orders" onNotifClick={() => setIsNotifDrawerOpen(true)} />
 
               {/* Search */}
               <div className="ord-search-wrap">
@@ -245,6 +221,8 @@ export default function OrderPage() {
           </div>
         </div>
       </main>
+
+      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
     </div>
   );
 }

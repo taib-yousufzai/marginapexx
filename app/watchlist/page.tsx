@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
+import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
@@ -465,6 +468,7 @@ function WatchlistContent() {
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
   const [searchText, setSearchText] = useState<string>('');
   const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
 
   // Toast State
@@ -844,20 +848,26 @@ function WatchlistContent() {
   }, []);
 
   return (
-    <div className="mobile-app" suppressHydrationWarning>
-      <div className="app-header">
-        <div className="header-top">
-          <div className="logo-area">
-            <div className="logo-text">Watchlist</div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            <div className="folder-btn" id="openFolderMobileBtn" onClick={() => setIsFolderDrawerOpen(true)}>
-              <i className="fas fa-folder"></i>
-              <span>Library</span>
-              <i className="fas fa-chevron-right"></i>
+    <div className="desktop-layout">
+      <Sidebar />
+      
+      <main className="main-viewport">
+        <div className="app-container" suppressHydrationWarning>
+          <Navbar title="Watchlist" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+          
+          <div className="app-header" style={{ borderTop: 'none' }}>
+            <div className="header-top">
+              <div className="logo-area">
+                <div className="logo-text" style={{ fontSize: '1rem' }}>My Library</div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <div className="folder-btn" id="openFolderMobileBtn" onClick={() => setIsFolderDrawerOpen(true)}>
+                  <i className="fas fa-folder"></i>
+                  <span>Folders</span>
+                  <i className="fas fa-chevron-right"></i>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
         <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
@@ -1421,6 +1431,9 @@ function WatchlistContent() {
       </div>
 
       <Footer activeTab="watchlist" />
+        </div>
+      </main>
+      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
     </div>
   );
 }

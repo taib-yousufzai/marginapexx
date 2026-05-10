@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,6 +7,9 @@ import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import OptionChainTable from './OptionChainTable';
 import Footer from '@/components/Footer';
 import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
+import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
 
 function OptionChainContent() {
   const router = useRouter();
@@ -54,6 +57,7 @@ function OptionChainContent() {
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   // Normalization for MIDCAP
   const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
@@ -158,45 +162,51 @@ function OptionChainContent() {
   const [priceMode, setPriceMode] = useState<'BA' | 'LTP'>('BA');
 
   return (
-    <div className={`oc-app-container${mounted && isDark ? ' dark' : ''}`}>
-      <header className="app-header premium-header">
-        <div className="header-wrapper">
-          <div className="oc-capsule-header">
-            {/* Left: back btn + symbol info */}
-            <div className="oc-capsule-left">
-              <div className="premium-back-btn" onClick={() => router.back()}>
-                <i className="fas fa-arrow-left" style={{ fontSize: '0.9rem' }}></i>
-              </div>
-              <div className="oc-capsule-info">
-                <div className="premium-symbol-name">{symbol}</div>
-                <div className="oc-capsule-sub">
-                  <span className="premium-badge">OPTION CHAIN</span>
-                  {connected ? (
-                    <div className="pulsing-dot connected"></div>
-                  ) : (
-                    <>
-                      <div className="pulsing-dot connecting"></div>
-                      <span className="connecting-text">Connecting...</span>
-                    </>
-                  )}
+    <div className="desktop-layout">
+      <Sidebar />
+
+      <main className="main-viewport">
+        <div className="app-container">
+          <Navbar title={`${symbol} Option Chain`} onNotifClick={() => setIsNotifDrawerOpen(true)} />
+
+          <header className="app-header premium-header desktop-only">
+            <div className="header-wrapper">
+              <div className="oc-capsule-header">
+                {/* Left: back btn + symbol info */}
+                <div className="oc-capsule-left">
+                  <div className="premium-back-btn" onClick={() => router.back()}>
+                    <i className="fas fa-arrow-left" style={{ fontSize: '0.9rem' }}></i>
+                  </div>
+                  <div className="oc-capsule-info">
+                    <div className="premium-symbol-name">{symbol}</div>
+                    <div className="oc-capsule-sub">
+                      <span className="premium-badge">OPTION CHAIN</span>
+                      {connected ? (
+                        <div className="pulsing-dot connected"></div>
+                      ) : (
+                        <>
+                          <div className="pulsing-dot connecting"></div>
+                          <span className="connecting-text">Connecting...</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {/* Right: B/A + LTP toggle */}
+                <div className="oc-capsule-right">
+                  <div className="oc-mode-toggle">
+                    {(['BA', 'LTP'] as const).map(m => (
+                      <button key={m} className={`oc-mode-btn${priceMode === m ? ' active' : ''}`} onClick={() => setPriceMode(m)}>
+                        {m === 'BA' ? 'B/A' : 'LTP'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-            {/* Right: B/A + LTP toggle */}
-            <div className="oc-capsule-right">
-              <div className="oc-mode-toggle">
-                {(['BA', 'LTP'] as const).map(m => (
-                  <button key={m} className={`oc-mode-btn${priceMode === m ? ' active' : ''}`} onClick={() => setPriceMode(m)}>
-                    {m === 'BA' ? 'B/A' : 'LTP'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <main className="main-content">
+      <div className="main-content">
         <div className="content-wrapper">
           {/* Expiry Strip — capsule container with spot + dates */}
           <div className="expiry-strip">
@@ -354,11 +364,11 @@ function OptionChainContent() {
                 )}
               </>
             )}
-          </div>
-
           <Footer activeTab="watchlist" />
         </div>
-      </main>
+      </div>
+    </div>
+  </div>
 
       <style jsx>{`
         .oc-app-container {
@@ -928,6 +938,8 @@ function OptionChainContent() {
           }
         }}
       />
+      </main>
+      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
     </div>
   );
 }

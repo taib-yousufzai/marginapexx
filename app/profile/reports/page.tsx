@@ -1,8 +1,11 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
+import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
+import Footer from '@/components/Footer';
 import './page.css';
 
 interface Order {
@@ -66,6 +69,7 @@ export default function ReportsPage() {
     const [positions, setPositions] = useState<Position[]>([]);
     const [loading, setLoading]     = useState(true);
     const [error, setError]         = useState<string | null>(null);
+    const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
     const [fromDate, setFromDate] = useState('');
     const [toDate,   setToDate]   = useState('');
@@ -135,207 +139,215 @@ export default function ReportsPage() {
     const grossLoss   = losses.reduce((s, p) => s + (p.pnl ?? 0), 0);
 
     /* ── formatters ── */
-    const fmtAmt  = (n: number) => '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtAmt = (n: number) => '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const sign = (n: number) => n > 0 ? '+' : n < 0 ? '-' : '';
     const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' });
-    const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    const sign    = (n: number) => n >= 0 ? '+' : '−';
+    const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });    return (
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="app-container">
+                    <div className="rp-root">
+                        <Navbar title="Reports & P&L" onNotifClick={() => setIsNotifDrawerOpen(true)} />
 
-    return (
-        <div className="rp-root">
-
-            {/* ══ HEADER ══ */}
-            <div className="rp-header">
-                <div className="rp-header-inner">
-                    <Link href="/profile" className="rp-back-btn">
-                        <i className="fas fa-arrow-left"></i>
-                    </Link>
-                    <span className="rp-title">Reports & P&L</span>
-                    <button className="rp-refresh-btn" onClick={fetchData} title="Refresh">
-                        <i className="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-
-                {/* Quick chips + date range */}
-                <div className="rp-date-row">
-                    {([
-                        { label: 'Today', days: 0 },
-                        { label: '1W',    days: 7 },
-                        { label: '1M',    days: 30 },
-                        { label: '3M',    days: 90 },
-                    ] as { label: string; days: number }[]).map(({ label, days }) => {
-                        const f = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const isActive = fromDate === f && toDate === todayStr;
-                        return (
-                            <button
-                                key={label}
-                                className={`rp-chip-btn${isActive ? ' active' : ''}`}
-                                onClick={() => { setFromDate(f); setToDate(new Date().toISOString().split('T')[0]); }}
-                            >
-                                {label}
-                            </button>
-                        );
-                    })}
-                    <div className="rp-date-custom">
-                        <input type="date" className="rp-date-input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
-                        <span className="rp-date-sep">–</span>
-                        <input type="date" className="rp-date-input" value={toDate} onChange={e => setToDate(e.target.value)} />
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="rp-tabs">
-                    <button className={`rp-tab ${tab === 'pnl' ? 'active' : ''}`} onClick={() => setTab('pnl')}>
-                        <i className="fas fa-chart-line"></i> P&L Report
-                    </button>
-                    <button className={`rp-tab ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>
-                        <i className="fas fa-receipt"></i> Order History
-                    </button>
-                </div>
-            </div>
-
-            {/* ══ CONTENT ══ */}
-            <div className="rp-content">
-                {loading ? (
-                    <div className="rp-loading">
-                        <div className="rp-spinner"></div>
-                        <p>Loading…</p>
-                    </div>
-                ) : error ? (
-                    <div className="rp-error">
-                        <i className="fas fa-exclamation-circle"></i>
-                        <p>{error}</p>
-                        <button onClick={fetchData} className="rp-retry-btn">Retry</button>
-                    </div>
-
-                ) : tab === 'pnl' ? (
-                    <>
-                        {/* Net P&L hero */}
-                        <div className={`rp-pnl-hero ${totalPnl >= 0 ? 'profit' : 'loss'}`}>
-                            <div className="rp-pnl-hero-label">Net P&L</div>
-                            <div className="rp-pnl-hero-value">{sign(totalPnl)}{fmtAmt(totalPnl)}</div>
-                            <div className="rp-pnl-hero-sub">
-                                {closedPositions.length} closed trade{closedPositions.length !== 1 ? 's' : ''}
+                        {/* ══ HEADER ══ */}
+                        <div className="rp-header desktop-only">
+                            <div className="rp-header-inner">
+                                <span className="rp-title">Reports & P&L</span>
+                                <button className="rp-refresh-btn" onClick={fetchData} title="Refresh">
+                                    <i className="fas fa-sync-alt"></i>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Stats grid */}
-                        <div className="rp-stats-grid">
-                            <div className="rp-stat-card">
-                                <div className="rp-stat-label">Win Rate</div>
-                                <div className="rp-stat-value">{winRate}<span className="rp-stat-unit">%</span></div>
+                        {/* Date Selection Bar */}
+                        <div className="rp-header-controls">
+                            {/* Quick chips + date range */}
+                            <div className="rp-date-row">
+                                {([
+                                    { label: 'Today', days: 0 },
+                                    { label: '1W',    days: 7 },
+                                    { label: '1M',    days: 30 },
+                                    { label: '3M',    days: 90 },
+                                ] as { label: string; days: number }[]).map(({ label, days }) => {
+                                    const f = new Date(Date.now() - days * 86400000).toISOString().split('T')[0];
+                                    const todayStr = new Date().toISOString().split('T')[0];
+                                    const isActive = fromDate === f && toDate === todayStr;
+                                    return (
+                                        <button
+                                            key={label}
+                                            className={`rp-chip-btn${isActive ? ' active' : ''}`}
+                                            onClick={() => { setFromDate(f); setToDate(new Date().toISOString().split('T')[0]); }}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                                <div className="rp-date-custom">
+                                    <input type="date" className="rp-date-input" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+                                    <span className="rp-date-sep">–</span>
+                                    <input type="date" className="rp-date-input" value={toDate} onChange={e => setToDate(e.target.value)} />
+                                </div>
                             </div>
-                            <div className="rp-stat-card">
-                                <div className="rp-stat-label">Trades</div>
-                                <div className="rp-stat-value">{closedPositions.length}</div>
-                            </div>
-                            <div className="rp-stat-card win">
-                                <div className="rp-stat-label">Winning</div>
-                                <div className="rp-stat-value">{wins.length}</div>
-                            </div>
-                            <div className="rp-stat-card loss">
-                                <div className="rp-stat-label">Losing</div>
-                                <div className="rp-stat-value">{losses.length}</div>
+
+                            {/* Tabs */}
+                            <div className="rp-tabs">
+                                <button className={`rp-tab ${tab === 'pnl' ? 'active' : ''}`} onClick={() => setTab('pnl')}>
+                                    <i className="fas fa-chart-line"></i> P&L Report
+                                </button>
+                                <button className={`rp-tab ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>
+                                    <i className="fas fa-receipt"></i> Order History
+                                </button>
                             </div>
                         </div>
 
-                        {/* Breakdown — only show when real data exists */}
-                        {closedPositions.length > 0 && (
-                            <div className="rp-breakdown">
-                                <div className="rp-breakdown-row">
-                                    <span className="rp-breakdown-label"><i className="fas fa-arrow-up"></i> Gross Profit</span>
-                                    <span className="rp-breakdown-val profit">+{fmtAmt(grossProfit)}</span>
+                        {/* ══ CONTENT ══ */}
+                        <div className="rp-content">
+                            {loading ? (
+                                <div className="rp-loading">
+                                    <div className="rp-spinner"></div>
+                                    <p>Loading…</p>
                                 </div>
-                                <div className="rp-breakdown-row">
-                                    <span className="rp-breakdown-label"><i className="fas fa-arrow-down"></i> Gross Loss</span>
-                                    <span className="rp-breakdown-val loss">−{fmtAmt(Math.abs(grossLoss))}</span>
+                            ) : error ? (
+                                <div className="rp-error">
+                                    <i className="fas fa-exclamation-circle"></i>
+                                    <p>{error}</p>
+                                    <button onClick={fetchData} className="rp-retry-btn">Retry</button>
                                 </div>
-                                {bestTrade !== null && (
-                                    <div className="rp-breakdown-row">
-                                        <span className="rp-breakdown-label"><i className="fas fa-trophy"></i> Best Trade</span>
-                                        <span className="rp-breakdown-val profit">+{fmtAmt(bestTrade)}</span>
-                                    </div>
-                                )}
-                                {worstTrade !== null && (
-                                    <div className="rp-breakdown-row">
-                                        <span className="rp-breakdown-label"><i className="fas fa-exclamation-triangle"></i> Worst Trade</span>
-                                        <span className="rp-breakdown-val loss">−{fmtAmt(Math.abs(worstTrade))}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
-                        {/* Trade History */}
-                        <div className="rp-section-label">Trade History</div>
-                        {isFakePositions && (
-                            <div className="rp-fake-banner">
-                                <i className="fas fa-eye"></i>
-                                Sample preview — your real trades will appear here
-                            </div>
-                        )}
-                        <div className={`rp-list${isFakePositions ? ' rp-list-preview' : ''}`}>
-                            {displayPositions.map(pos => (
-                                <div key={pos.id} className="rp-card">
-                                    <div className="rp-card-top">
-                                        <div className="rp-card-left">
-                                            <span className="rp-symbol">{pos.symbol}</span>
-                                            <span className={`rp-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
-                                            <span className="rp-chip">{pos.segment}</span>
+                            ) : tab === 'pnl' ? (
+                                <>
+                                    {/* Net P&L hero */}
+                                    <div className={`rp-pnl-hero ${totalPnl >= 0 ? 'profit' : 'loss'}`}>
+                                        <div className="rp-pnl-hero-label">Net P&L</div>
+                                        <div className="rp-pnl-hero-value">{sign(totalPnl)}{fmtAmt(totalPnl)}</div>
+                                        <div className="rp-pnl-hero-sub">
+                                            {closedPositions.length} closed trade{closedPositions.length !== 1 ? 's' : ''}
                                         </div>
-                                        <span className={`rp-pnl-val ${(pos.pnl ?? 0) >= 0 ? 'pos' : 'neg'}`}>
-                                            {sign(pos.pnl ?? 0)}{fmtAmt(pos.pnl ?? 0)}
-                                        </span>
                                     </div>
-                                    <div className="rp-card-meta">
-                                        <span>Qty {pos.qty}</span>
-                                        <span>Entry ₹{pos.entry_price?.toLocaleString('en-IN')}</span>
-                                        {pos.exit_price != null && <span>Exit ₹{pos.exit_price.toLocaleString('en-IN')}</span>}
-                                        <span>{fmtDate(pos.created_at)}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </>
 
-                ) : (
-                    /* ══ ORDER HISTORY ══ */
-                    <>
-                        {isFakeOrders ? (
-                            <div className="rp-fake-banner">
-                                <i className="fas fa-eye"></i>
-                                Sample preview — your real orders will appear here
-                            </div>
-                        ) : (
-                            <div className="rp-order-count">
-                                {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} in this period
-                            </div>
-                        )}
-
-                        <div className={`rp-list${isFakeOrders ? ' rp-list-preview' : ''}`}>
-                            {displayOrders.map(order => (
-                                <div key={order.id} className="rp-card">
-                                    <div className="rp-card-top">
-                                        <div className="rp-card-left">
-                                            <span className="rp-symbol">{order.symbol}</span>
-                                            <span className={`rp-badge ${order.side === 'BUY' ? 'buy' : 'sell'}`}>{order.side}</span>
-                                            <span className="rp-chip">{order.segment}</span>
+                                    {/* Stats grid */}
+                                    <div className="rp-stats-grid">
+                                        <div className="rp-stat-card">
+                                            <div className="rp-stat-label">Win Rate</div>
+                                            <div className="rp-stat-value">{winRate}<span className="rp-stat-unit">%</span></div>
                                         </div>
-                                        <span className="rp-order-price">
-                                            ₹{order.fill_price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                        </span>
+                                        <div className="rp-stat-card">
+                                            <div className="rp-stat-label">Trades</div>
+                                            <div className="rp-stat-value">{closedPositions.length}</div>
+                                        </div>
+                                        <div className="rp-stat-card win">
+                                            <div className="rp-stat-label">Winning</div>
+                                            <div className="rp-stat-value">{wins.length}</div>
+                                        </div>
+                                        <div className="rp-stat-card loss">
+                                            <div className="rp-stat-label">Losing</div>
+                                            <div className="rp-stat-value">{losses.length}</div>
+                                        </div>
                                     </div>
-                                    <div className="rp-card-meta">
-                                        <span>Qty {order.qty}</span>
-                                        <span>{order.order_type}</span>
-                                        <span className={`rp-status status-${order.status?.toLowerCase()}`}>{order.status}</span>
-                                        <span>{fmtDate(order.created_at)} {fmtTime(order.created_at)}</span>
+
+                                    {/* Breakdown — only show when real data exists */}
+                                    {closedPositions.length > 0 && (
+                                        <div className="rp-breakdown">
+                                            <div className="rp-breakdown-row">
+                                                <span className="rp-breakdown-label"><i className="fas fa-arrow-up"></i> Gross Profit</span>
+                                                <span className="rp-breakdown-val profit">+{fmtAmt(grossProfit)}</span>
+                                            </div>
+                                            <div className="rp-breakdown-row">
+                                                <span className="rp-breakdown-label"><i className="fas fa-arrow-down"></i> Gross Loss</span>
+                                                <span className="rp-breakdown-val loss">−{fmtAmt(Math.abs(grossLoss))}</span>
+                                            </div>
+                                            {bestTrade !== null && (
+                                                <div className="rp-breakdown-row">
+                                                    <span className="rp-breakdown-label"><i className="fas fa-trophy"></i> Best Trade</span>
+                                                    <span className="rp-breakdown-val profit">+{fmtAmt(bestTrade)}</span>
+                                                </div>
+                                            )}
+                                            {worstTrade !== null && (
+                                                <div className="rp-breakdown-row">
+                                                    <span className="rp-breakdown-label"><i className="fas fa-exclamation-triangle"></i> Worst Trade</span>
+                                                    <span className="rp-breakdown-val loss">−{fmtAmt(Math.abs(worstTrade))}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Trade History */}
+                                    <div className="rp-section-label">Trade History</div>
+                                    {isFakePositions && (
+                                        <div className="rp-fake-banner">
+                                            <i className="fas fa-eye"></i>
+                                            Sample preview — your real trades will appear here
+                                        </div>
+                                    )}
+                                    <div className={`rp-list${isFakePositions ? ' rp-list-preview' : ''}`}>
+                                        {displayPositions.map(pos => (
+                                            <div key={pos.id} className="rp-card">
+                                                <div className="rp-card-top">
+                                                    <div className="rp-card-left">
+                                                        <span className="rp-symbol">{pos.symbol}</span>
+                                                        <span className={`rp-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
+                                                        <span className="rp-chip">{pos.segment}</span>
+                                                    </div>
+                                                    <span className={`rp-pnl-val ${(pos.pnl ?? 0) >= 0 ? 'pos' : 'neg'}`}>
+                                                        {sign(pos.pnl ?? 0)}{fmtAmt(pos.pnl ?? 0)}
+                                                    </span>
+                                                </div>
+                                                <div className="rp-card-meta">
+                                                    <span>Qty {pos.qty}</span>
+                                                    <span>Entry ₹{pos.entry_price?.toLocaleString('en-IN')}</span>
+                                                    {pos.exit_price != null && <span>Exit ₹{pos.exit_price.toLocaleString('en-IN')}</span>}
+                                                    <span>{fmtDate(pos.created_at)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
+                                </>
+
+                            ) : (
+                                /* ══ ORDER HISTORY ══ */
+                                <>
+                                    {isFakeOrders ? (
+                                        <div className="rp-fake-banner">
+                                            <i className="fas fa-eye"></i>
+                                            Sample preview — your real orders will appear here
+                                        </div>
+                                    ) : (
+                                        <div className="rp-order-count">
+                                            {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''} in this period
+                                        </div>
+                                    )}
+
+                                    <div className={`rp-list${isFakeOrders ? ' rp-list-preview' : ''}`}>
+                                        {displayOrders.map(order => (
+                                            <div key={order.id} className="rp-card">
+                                                <div className="rp-card-top">
+                                                    <div className="rp-card-left">
+                                                        <span className="rp-symbol">{order.symbol}</span>
+                                                        <span className={`rp-badge ${order.side === 'BUY' ? 'buy' : 'sell'}`}>{order.side}</span>
+                                                        <span className="rp-chip">{order.segment}</span>
+                                                    </div>
+                                                    <span className="rp-order-price">
+                                                        ₹{order.fill_price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                    </span>
+                                                </div>
+                                                <div className="rp-card-meta">
+                                                    <span>Qty {order.qty}</span>
+                                                    <span>{order.order_type}</span>
+                                                    <span className={`rp-status status-${order.status?.toLowerCase()}`}>{order.status}</span>
+                                                    <span>{fmtDate(order.created_at)} {fmtTime(order.created_at)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
-                    </>
-                )}
-            </div>
+                        <Footer activeTab="home" />
+                    </div>
+                </div>
+            </main>
+            <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
         </div>
     );
 }

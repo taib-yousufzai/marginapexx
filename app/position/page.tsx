@@ -5,6 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
 import Footer from '@/components/Footer';
 import './page.css';
 
@@ -18,6 +20,7 @@ export default function PositionPage() {
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -71,22 +74,7 @@ export default function PositionPage() {
           <div className="pos-root">
             <div className="pos-shell">
 
-              {/* ── Header (Mobile Only) ── */}
-              <div className="pos-header mobile-only">
-                <div className="pos-header-left">
-                  <div className="pos-brand">
-                    <span>MARGIN<span className="apex-text">APEX</span></span>
-                  </div>
-                  <div className="pos-brand-sub">Internal Positions • Real-time P&amp;L</div>
-                </div>
-                <button
-                  className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
-                  onClick={() => { if (hasOpenPositions) showToast('Use detailed view to close individual positions.'); }}
-                >
-                  <i className="fas fa-sign-out-alt" />
-                  <span>Exit All</span>
-                </button>
-              </div>
+              <Navbar title="Positions" onNotifClick={() => setIsNotifDrawerOpen(true)} />
 
               {/* ── Desktop Page Header ── */}
               <div className="desktop-only" style={{ padding: '20px 24px 0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -317,6 +305,7 @@ export default function PositionPage() {
           </div>
         </div>
       </main>
+      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
     </div>
   );
 }

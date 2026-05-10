@@ -1,9 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Session } from '@supabase/supabase-js';
 import { getSession } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
-import type { Session } from '@supabase/supabase-js';
+import Sidebar from '@/components/Sidebar';
+import Navbar from '@/components/Navbar';
+import NotificationDrawer from '@/components/NotificationDrawer';
+import Footer from '@/components/Footer';
 import '../page.css';
 import './page.css';
 
@@ -61,6 +64,7 @@ export default function ProfileDetailsPage() {
     const [saving,  setSaving]  = useState(false);
     const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY);
+    const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
@@ -136,102 +140,112 @@ export default function ProfileDetailsPage() {
     const roleLabel: Record<string,string> = { super_admin:'Super Admin', admin:'Admin', broker:'Broker', user:'User' };
 
     return (
-        <div className="pd-root">
-            <div className="pd-header">
-                <div className="pd-header-inner">
-                    <Link href="/profile" className="pd-back-btn"><i className="fas fa-arrow-left"></i></Link>
-                    <span className="pd-title">Profile Details</span>
-                    {editing
-                        ? <button className="pd-edit-btn cancel" onClick={cancelEdit}>Cancel</button>
-                        : <button className="pd-edit-btn" onClick={() => { setSaveMsg(null); setEditing(true); }}><i className="fas fa-pen"></i> Edit</button>
-                    }
-                </div>
-            </div>
-
-            <div className="pd-content">
-                {loading ? (
-                    <div className="pd-loading"><div className="pd-spinner"></div><p>Loading profile…</p></div>
-                ) : (
-                    <>
-                        {/* Hero */}
-                        <div className="profile-hero">
-                            <div className="avatar">{avatarLetter}</div>
-                            <div className="profile-info">
-                                <h2>{savedName || 'User'}</h2>
-                                <span className="user-email">{email}</span>
-                                <span className="user-id">Client ID: {clientId}</span>
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="app-container">
+                    <div className="pd-root">
+                        <Navbar title="Profile Details" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+                        
+                        <div className="pd-header desktop-only">
+                            <div className="pd-header-inner">
+                                <span className="pd-title">Account Information</span>
+                                {editing
+                                    ? <button className="pd-edit-btn cancel" onClick={cancelEdit}>Cancel</button>
+                                    : <button className="pd-edit-btn" onClick={() => { setSaveMsg(null); setEditing(true); }}><i className="fas fa-pen"></i> Edit</button>
+                                }
                             </div>
                         </div>
 
-                        {saveMsg && (
-                            <div className={`pd-msg ${saveMsg.type}`}>
-                                <i className={`fas ${saveMsg.type==='success'?'fa-check-circle':'fa-exclamation-circle'}`}></i>
-                                {saveMsg.text}
-                            </div>
-                        )}
-
-                        {/* Personal Information */}
-                        <div className="pd-section">
-                            <div className="pd-section-title">Personal Information</div>
-                            <div className="pd-card">
-                                <FormRow icon="fa-user"          label="Full Name"     fieldKey="full_name"     editing={editing} value={form.full_name}     onChange={setField('full_name')} />
-                                <div className="pd-field">
-                                    <div className="pd-field-label"><i className="fas fa-envelope"></i> Email Address</div>
-                                    <div className="pd-field-value readonly">{email || '—'}</div>
-                                </div>
-                                <FormRow icon="fa-phone"         label="Phone Number"  fieldKey="phone"         editing={editing} value={form.phone}         onChange={setField('phone')}     type="tel" />
-                                <FormRow icon="fa-birthday-cake" label="Date of Birth" fieldKey="date_of_birth" editing={editing} value={form.date_of_birth} onChange={setField('date_of_birth')} type="date" />
-                                <FormRow icon="fa-city"          label="City"          fieldKey="city"          editing={editing} value={form.city}          onChange={setField('city')} />
-                                <FormRow icon="fa-map"           label="State"         fieldKey="state"         editing={editing} value={form.state}         onChange={setField('state')} />
-                            </div>
-                        </div>
-
-                        {/* Trading & KYC */}
-                        <div className="pd-section">
-                            <div className="pd-section-title">Trading & KYC</div>
-                            <div className="pd-card">
-                                <FormRow icon="fa-id-card" label="PAN Number" fieldKey="pan_number" editing={editing} value={form.pan_number} onChange={setField('pan_number')} placeholder="ABCDE1234F" />
-                                <div className="pd-field">
-                                    <div className="pd-field-label"><i className="fas fa-id-badge"></i> Account Type</div>
-                                    <div className="pd-field-value">{roleLabel[profile?.role ?? ''] ?? '—'}</div>
-                                </div>
-                                <div className="pd-field">
-                                    <div className="pd-field-label"><i className="fas fa-layer-group"></i> Trading Segments</div>
-                                    <div className="pd-field-value">
-                                        {profile?.segments?.length
-                                            ? profile.segments.map(s => <span key={s} className="pd-segment-tag">{s}</span>)
-                                            : '—'}
+                        <div className="pd-content">
+                            {loading ? (
+                                <div className="pd-loading"><div className="pd-spinner"></div><p>Loading profile…</p></div>
+                            ) : (
+                                <>
+                                    {/* Hero */}
+                                    <div className="profile-hero">
+                                        <div className="avatar">{avatarLetter}</div>
+                                        <div className="profile-info">
+                                            <h2>{savedName || 'User'}</h2>
+                                            <span className="user-email">{email}</span>
+                                            <span className="user-id">Client ID: {clientId}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="pd-field">
-                                    <div className="pd-field-label"><i className="fas fa-fingerprint"></i> Client ID</div>
-                                    <div className="pd-field-value readonly">{clientId}</div>
-                                </div>
-                                <div className="pd-field">
-                                    <div className="pd-field-label"><i className="fas fa-calendar-alt"></i> Member Since</div>
-                                    <div className="pd-field-value readonly">{fmtDate(profile?.created_at ?? '')}</div>
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Bank Details */}
-                        <div className="pd-section">
-                            <div className="pd-section-title">Bank Details</div>
-                            <div className="pd-card">
-                                <FormRow icon="fa-university"  label="Bank Name"      fieldKey="bank_name"  editing={editing} value={form.bank_name}  onChange={setField('bank_name')}  placeholder="e.g. State Bank of India" />
-                                <FormRow icon="fa-hashtag"     label="Account Number" fieldKey="account_no" editing={editing} value={form.account_no} onChange={setField('account_no')} placeholder="Enter account number" />
-                                <FormRow icon="fa-code-branch" label="IFSC Code"      fieldKey="ifsc"       editing={editing} value={form.ifsc}       onChange={setField('ifsc')}       placeholder="e.g. SBIN0001234" />
-                            </div>
-                        </div>
+                                    {saveMsg && (
+                                        <div className={`pd-msg ${saveMsg.type}`}>
+                                            <i className={`fas ${saveMsg.type==='success'?'fa-check-circle':'fa-exclamation-circle'}`}></i>
+                                            {saveMsg.text}
+                                        </div>
+                                    )}
 
-                        {editing && (
-                            <button className="pd-save-btn" onClick={handleSave} disabled={saving}>
-                                {saving ? <><i className="fas fa-spinner fa-spin"></i> Saving…</> : <><i className="fas fa-check"></i> Save Changes</>}
-                            </button>
-                        )}
-                    </>
-                )}
-            </div>
+                                    {/* Personal Information */}
+                                    <div className="pd-section">
+                                        <div className="pd-section-title">Personal Information</div>
+                                        <div className="pd-card">
+                                            <FormRow icon="fa-user"          label="Full Name"     fieldKey="full_name"     editing={editing} value={form.full_name}     onChange={setField('full_name')} />
+                                            <div className="pd-field">
+                                                <div className="pd-field-label"><i className="fas fa-envelope"></i> Email Address</div>
+                                                <div className="pd-field-value readonly">{email || '—'}</div>
+                                            </div>
+                                            <FormRow icon="fa-phone"         label="Phone Number"  fieldKey="phone"         editing={editing} value={form.phone}         onChange={setField('phone')}     type="tel" />
+                                            <FormRow icon="fa-birthday-cake" label="Date of Birth" fieldKey="date_of_birth" editing={editing} value={form.date_of_birth} onChange={setField('date_of_birth')} type="date" />
+                                            <FormRow icon="fa-city"          label="City"          fieldKey="city"          editing={editing} value={form.city}          onChange={setField('city')} />
+                                            <FormRow icon="fa-map"           label="State"         fieldKey="state"         editing={editing} value={form.state}         onChange={setField('state')} />
+                                        </div>
+                                    </div>
+
+                                    {/* Trading & KYC */}
+                                    <div className="pd-section">
+                                        <div className="pd-section-title">Trading & KYC</div>
+                                        <div className="pd-card">
+                                            <FormRow icon="fa-id-card" label="PAN Number" fieldKey="pan_number" editing={editing} value={form.pan_number} onChange={setField('pan_number')} placeholder="ABCDE1234F" />
+                                            <div className="pd-field">
+                                                <div className="pd-field-label"><i className="fas fa-id-badge"></i> Account Type</div>
+                                                <div className="pd-field-value">{roleLabel[profile?.role ?? ''] ?? '—'}</div>
+                                            </div>
+                                            <div className="pd-field">
+                                                <div className="pd-field-label"><i className="fas fa-layer-group"></i> Trading Segments</div>
+                                                <div className="pd-field-value">
+                                                    {profile?.segments?.length
+                                                        ? profile.segments.map(s => <span key={s} className="pd-segment-tag">{s}</span>)
+                                                        : '—'}
+                                                </div>
+                                            </div>
+                                            <div className="pd-field">
+                                                <div className="pd-field-label"><i className="fas fa-fingerprint"></i> Client ID</div>
+                                                <div className="pd-field-value readonly">{clientId}</div>
+                                            </div>
+                                            <div className="pd-field">
+                                                <div className="pd-field-label"><i className="fas fa-calendar-alt"></i> Member Since</div>
+                                                <div className="pd-field-value readonly">{fmtDate(profile?.created_at ?? '')}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bank Details */}
+                                    <div className="pd-section">
+                                        <div className="pd-section-title">Bank Details</div>
+                                        <div className="pd-card">
+                                            <FormRow icon="fa-university"  label="Bank Name"      fieldKey="bank_name"  editing={editing} value={form.bank_name}  onChange={setField('bank_name')}  placeholder="e.g. State Bank of India" />
+                                            <FormRow icon="fa-hashtag"     label="Account Number" fieldKey="account_no" editing={editing} value={form.account_no} onChange={setField('account_no')} placeholder="Enter account number" />
+                                            <FormRow icon="fa-code-branch" label="IFSC Code"      fieldKey="ifsc"       editing={editing} value={form.ifsc}       onChange={setField('ifsc')}       placeholder="e.g. SBIN0001234" />
+                                        </div>
+                                    </div>
+
+                                    {editing && (
+                                        <button className="pd-save-btn" onClick={handleSave} disabled={saving}>
+                                            {saving ? <><i className="fas fa-spinner fa-spin"></i> Saving…</> : <><i className="fas fa-check"></i> Save Changes</>}
+                                        </button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                        <Footer activeTab="home" />
+                    </div>
+                </div>
+            </main>
+            <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
         </div>
     );
 }
