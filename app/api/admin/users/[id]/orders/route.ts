@@ -2,95 +2,89 @@
  * GET /api/admin/users/[id]/orders
  *
  * Returns orders for a given user, with optional tab filtering, symbol search,
- * and row limit.
- *
- * Validates: Requirements 6.1–6.8, 12.1–12.6
+ * date range, and pagination.
  */
 
 import { requireAdmin } from '../../../_auth';
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export type OrderItem = {
   id: string;
+  user_id: string;
   symbol: string;
   side: 'BUY' | 'SELL';
-  status: 'EXECUTED' | 'CANCELLED' | 'REJECTED';
+  status: 'EXECUTED' | 'CANCELLED' | 'REJECTED' | 'PENDING';
   qty: number;
   price: number;
   order_type: 'MARKET' | 'LIMIT';
   info: string;
-  time: string; // mapped from created_at
+  time: string;
 };
-
-// ---------------------------------------------------------------------------
-// Route handler
-// ---------------------------------------------------------------------------
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize the caller
-    // Validates: Requirements 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
-    // Step 2: Resolve params
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
 
-    // Step 3: Parse query params
-    // Validates: Requirements 6.4–6.6
     const url = new URL(request.url);
-    const tab = url.searchParams.get('tab') ?? null;
-    const search = url.searchParams.get('search') ?? null;
+    const tab       = url.searchParams.get('tab') ?? null;
+    const search    = url.searchParams.get('search') ?? null;
     const rowsParam = url.searchParams.get('rows') ?? null;
-    const rows = rowsParam ? parseInt(rowsParam, 10) : 100;
+    const pageParam = url.searchParams.get('page') ?? '1';
+    const dateFrom  = url.searchParams.get('dateFrom') ?? null;
+    const dateTo    = url.searchParams.get('dateTo') ?? null;
+    const rows      = rowsParam ? Math.min(parseInt(rowsParam, 10), 500) : 50;
+    const page      = Math.max(1, parseInt(pageParam, 10));
 
-    // Step 4: Build query — filter by user_id
-    // Validates: Requirement 6.3
     let query = adminClient
       .from('orders')
-      .select('id, symbol, side, status, qty, price, order_type, info, created_at')
-      .eq('user_id', id);
+      .select('id, user_id, symbol, side, status, qty, price, order_type, info, created_at', { count: 'exact' })
+      .eq('user_id', id)
+      .order('created_at', { ascending: false });
 
-    // Step 5: Apply tab filter
-    // Validates: Requirements 6.4, 6.5, 6.6
     if (tab === 'executed') {
       query = query.eq('status', 'EXECUTED');
     } else if (tab === 'limit') {
       query = query.eq('status', 'CANCELLED').eq('order_type', 'LIMIT');
     } else if (tab === 'rejected') {
       query = query.eq('status', 'REJECTED');
+    } else if (tab === 'pending') {
+      query = query.eq('status', 'PENDING').eq('order_type', 'LIMIT');
     }
-    // default (no tab) → no status filter
 
-    // Step 6: Apply symbol search filter
-    // Validates: Requirement 6.7
     if (search) {
       query = query.ilike('symbol', `%${search}%`);
     }
 
-    // Step 7: Apply row limit
-    // Validates: Requirement 6.8
-    query = query.limit(rows);
+    if (dateFrom) {
+      query = query.gte('created_at', dateFrom);
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.lt('created_at', toDate.toISOString());
+    }
 
-    const { data, error } = await query;
+    const from = (page - 1) * rows;
+    const to   = from + rows - 1;
+    query = query.range(from, to);
+
+    const { data, error, count } = await query;
 
     if (error) {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Step 8: Map created_at → time and return OrderItem[]
-    // Validates: Requirement 6.2
     const orders: OrderItem[] = (data ?? []).map(
       (row: {
         id: string;
+        user_id: string;
         symbol: string;
         side: string;
         status: string;
@@ -101,9 +95,10 @@ export async function GET(
         created_at: string;
       }) => ({
         id: row.id,
+        user_id: row.user_id,
         symbol: row.symbol,
         side: row.side as 'BUY' | 'SELL',
-        status: row.status as 'EXECUTED' | 'CANCELLED' | 'REJECTED',
+        status: row.status as 'EXECUTED' | 'CANCELLED' | 'REJECTED' | 'PENDING',
         qty: row.qty,
         price: row.price,
         order_type: row.order_type as 'MARKET' | 'LIMIT',
@@ -112,7 +107,8 @@ export async function GET(
       }),
     );
 
-    return Response.json(orders, { status: 200 });
+    // Return in same shape as global endpoint so the frontend handles both uniformly
+    return Response.json({ orders, total: count ?? orders.length }, { status: 200 });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }

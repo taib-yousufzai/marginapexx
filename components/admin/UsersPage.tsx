@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from '@/lib/auth';
-import { apiCall, Toast, ToastState, SkeletonLine, UserListItem, ConfirmDialog } from './AdminUtils';
+import { apiCall, Toast, ToastState, SkeletonLine, UserListItem, ConfirmDialog, downloadCSV } from './AdminUtils';
 
 type UserRow = {
   id: string; fullName: string; role: string; active: boolean;
@@ -18,15 +18,15 @@ function mapUserListItem(u: UserListItem): UserRow {
     role: u.role.toUpperCase(),
     active: u.active,
     ledgerBal: u.balance,
-    mAvailable: u.balance,
-    openPnl: 0,
-    m2m: 0,
-    weeklyPnl: 0,
-    alltimePnl: 0,
-    marginUsed: 0,
+    mAvailable: u.balance, // This should ideally be ledgerBal - marginUsed
+    openPnl: u.openPnl ?? 0,
+    m2m: u.m2m ?? 0,
+    weeklyPnl: u.weeklyPnl ?? 0,
+    alltimePnl: 0, // Not currently computed in the list
+    marginUsed: u.marginUsed ?? 0,
     holdingMargin: 0,
-    broker: u.parent_id ?? '',
-    mobile: u.phone ?? '',
+    broker: u.parent_id ?? 'DIRECT',
+    mobile: u.phone ?? 'N/A',
     scheduled_delete_at: u.scheduled_delete_at,
   };
 }
@@ -59,7 +59,7 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  useEffect(() => {
+  const fetchUsers = () => {
     setUsersLoading(true);
     apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
@@ -74,6 +74,10 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
       }
       setUsersLoading(false);
     });
+  };
+
+  useEffect(() => {
+    fetchUsers();
   }, [router]);
 
   const handleDelete = () => {
@@ -95,9 +99,27 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
       .finally(() => setLoading(false));
   };
 
+  const handleDownloadExcel = () => {
+    const exportData = filtered.map(u => ({
+      ID: u.id,
+      Name: u.fullName,
+      Role: u.role,
+      Status: u.active ? 'Active' : 'Inactive',
+      'Ledger Balance': u.ledgerBal,
+      'Open PnL': u.openPnl,
+      M2M: u.m2m,
+      'Weekly PnL': u.weeklyPnl,
+      Broker: u.broker,
+      Mobile: u.mobile
+    }));
+    downloadCSV(exportData, `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    setToast({ message: 'Export started', type: 'success' });
+  };
+
   const filtered = users.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
-    u.fullName.toLowerCase().includes(search.toLowerCase())
+    u.fullName.toLowerCase().includes(search.toLowerCase()) ||
+    u.broker.toLowerCase().includes(search.toLowerCase())
   );
 
   const active = users.filter(u => u.active).length;
@@ -107,7 +129,7 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsNum));
   const displayed = filtered.slice((page - 1) * rowsNum, page * rowsNum);
 
-  const fmt = (n: number) => n === 0 ? '0' : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number) => n === 0 ? '0.00' : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="adm-users-root">
@@ -136,27 +158,35 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <div className="adm-ord-search-wrap" style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="adm-ord-search-wrap" style={{ flex: 1, minWidth: 280 }}>
           <i className="fas fa-search adm-ord-search-icon" />
-          <input className="adm-ord-search" placeholder="Search users..." value={search}
+          <input className="adm-ord-search" placeholder="Search by name, ID or broker..." value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <button className="adm-btn-primary" style={{ padding: '12px 24px' }} onClick={() => onNavigate('create')}>
-          <i className="fas fa-user-plus" style={{ marginRight: 8 }} />
-          Create New User
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="adm-btn-ghost" onClick={fetchUsers} title="Refresh Data">
+            <i className="fas fa-sync-alt" />
+          </button>
+          <button className="adm-btn-primary" onClick={() => onNavigate('create')}>
+            <i className="fas fa-user-plus" style={{ marginRight: 8 }} />
+            Create New User
+          </button>
+        </div>
       </div>
 
-      <div className="adm-ord-controls">
+      <div className="adm-ord-controls" style={{ marginTop: 12 }}>
         <div className="adm-ord-rows-wrap">
           <span className="adm-ord-rows-label">Rows</span>
           <select className="adm-ord-rows-select" value={rows} onChange={e => { setRows(e.target.value); setPage(1); }}>
             {['10', '25', '50', '100'].map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
+        <button className="adm-ord-download" onClick={handleDownloadExcel}>
+          <i className="fas fa-download" style={{ marginRight: 8 }} /> 
+          Download Excel
+        </button>
       </div>
-      <button className="adm-ord-download"><i className="fas fa-download" /> Download Excel</button>
 
       <div className="adm-users-list">
         {usersLoading ? (
@@ -175,35 +205,37 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
               </div>
             </div>
           ))
+        ) : displayed.length === 0 ? (
+          <div className="adm-dashed-box">No users found.</div>
         ) : displayed.map((u, i) => (
-          <div className="adm-users-card" key={i}>
+          <div className="adm-users-card" key={u.id}>
             <div className="adm-users-card-header">
               <span className="adm-users-fullname">{u.fullName} <span className="adm-users-role-tag">({u.role})</span></span>
               <span className={`adm-users-status ${u.active ? 'active' : 'inactive'}`}>{u.active ? 'Active' : 'Inactive'}</span>
             </div>
-            <div className="adm-users-uid">{u.id}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="adm-users-uid">{u.id}</div>
+              {u.broker !== 'DIRECT' && (
+                <div className="adm-acc-broker-tag" style={{ margin: 0 }}>Managed by: {u.broker}</div>
+              )}
+            </div>
             <div className="adm-users-grid">
               <span className="adm-users-dl">Ledger Bal</span>
               <span className="adm-users-dv">{fmt(u.ledgerBal)}</span>
               <span className="adm-users-dl">M. Available</span>
-              <span className={`adm-users-dv ${u.mAvailable > 0 ? 'warn' : ''}`}>{fmt(u.mAvailable)}</span>
+              <span className={`adm-users-dv ${u.mAvailable < 1000 ? 'warn' : ''}`}>{fmt(u.mAvailable)}</span>
 
-              <span className="adm-users-dl">Open PnL</span>
-              <span className="adm-users-dv">{fmt(u.openPnl)}</span>
-              <span className="adm-users-dl">M2M</span>
-              <span className="adm-users-dv">{fmt(u.m2m)}</span>
+              <span className="adm-users-dl live">Open PnL</span>
+              <span className={`adm-users-dv ${u.openPnl < 0 ? 'neg' : u.openPnl > 0 ? 'pos' : ''}`}>{fmt(u.openPnl)}</span>
+              <span className="adm-users-dl live">M2M</span>
+              <span className={`adm-users-dv ${u.m2m < 0 ? 'neg' : u.m2m > 0 ? 'pos' : ''}`}>{fmt(u.m2m)}</span>
 
               <span className="adm-users-dl">Weekly PnL</span>
               <span className={`adm-users-dv ${u.weeklyPnl < 0 ? 'neg' : u.weeklyPnl > 0 ? 'pos' : ''}`}>{fmt(u.weeklyPnl)}</span>
-              <span className="adm-users-dl">All-time PnL</span>
-              <span className={`adm-users-dv ${u.alltimePnl < 0 ? 'neg' : u.alltimePnl > 0 ? 'pos' : ''}`}>{fmt(u.alltimePnl)}</span>
-
               <span className="adm-users-dl">Margin Used</span>
               <span className="adm-users-dv">{fmt(u.marginUsed)}</span>
-              <span className="adm-users-dl">Holding Margin</span>
-              <span className="adm-users-dv">{fmt(u.holdingMargin)}</span>
 
-              <span className="adm-users-dl">Broker</span>
+              <span className="adm-users-dl">Hierarchy</span>
               <span className="adm-users-dv bold">{u.broker}</span>
               <span className="adm-users-dl">Mobile</span>
               <span className="adm-users-dv">{u.mobile}</span>

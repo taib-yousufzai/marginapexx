@@ -35,6 +35,8 @@ export interface ComexQuoteData {
   close: number;        // prev close
   volume: number;
   currency: string;     // 'USD'
+  bid?: number;
+  ask?: number;
 }
 
 interface UseComexQuotesResult {

@@ -1,173 +1,117 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { signOut } from '@/lib/auth';
-import { apiCall, Toast, ToastState, SkeletonTable, ConfirmDialog } from './AdminUtils';
+import React, { useState } from 'react';
+import SettingsScripts from './settings/SettingsScripts';
+import SettingsTradingHours from './settings/SettingsTradingHours';
+import SettingsCurrency from './settings/SettingsCurrency';
+import SettingsApp from './settings/SettingsApp';
+import SettingsBroadcaster from './settings/SettingsBroadcaster';
 
-type Script = { id: string; symbol: string; lotSize: number };
+type SettingsTab = 'scripts' | 'trading_hours' | 'currency' | 'app' | 'broadcaster';
 
 export default function SettingsPage() {
-  const [scripts, setScripts] = useState<Script[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [formSymbol, setFormSymbol] = useState('');
-  const [formLot, setFormLot] = useState('');
-  const [toast, setToast] = useState<ToastState>(null);
-  const [loading, setLoading] = useState(true);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('scripts');
 
-  useEffect(() => {
-    setLoading(true);
-    apiCall('/api/admin/settings/scripts', { method: 'GET' })
-      .then(({ ok, status, data }) => {
-        if (status === 401) { signOut(); return; }
-        if (!ok) { setToast({ message: 'Failed to load scripts', type: 'error' }); return; }
-        setScripts(data as Script[]);
-      })
-      .catch((err: unknown) => {
-        setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const handleOpenAdd = () => {
-    setEditIdx(null);
-    setFormSymbol('');
-    setFormLot('');
-    setShowModal(true);
-  };
-
-  const handleOpenEdit = (idx: number) => {
-    setEditIdx(idx);
-    setFormSymbol(scripts[idx].symbol);
-    setFormLot(String(scripts[idx].lotSize));
-    setShowModal(true);
-  };
-
-  const handleSave = async () => {
-    if (!formSymbol || !formLot) { setToast({ message: 'Fill all fields', type: 'error' }); return; }
-    setSaveLoading(true);
-    try {
-      const isEdit = editIdx !== null;
-      const method = isEdit ? 'PATCH' : 'POST';
-      const path = isEdit ? `/api/admin/settings/scripts/${scripts[editIdx].id}` : '/api/admin/settings/scripts';
-
-      const { ok, data } = await apiCall(path, {
-        method,
-        body: JSON.stringify({ symbol: formSymbol, lotSize: Number(formLot) }),
-      });
-
-      if (!ok) {
-        setToast({ message: (data as { error?: string })?.error ?? 'Failed to save', type: 'error' });
-        return;
-      }
-
-      if (isEdit) {
-        const newArr = [...scripts];
-        newArr[editIdx] = data as Script;
-        setScripts(newArr);
-      } else {
-        setScripts([...scripts, data as Script]);
-      }
-      setToast({ message: 'Saved successfully', type: 'success' });
-      setShowModal(false);
-    } catch (err: unknown) {
-      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (deleteIdx === null) return;
-    setSaveLoading(true);
-    try {
-      const { ok, data } = await apiCall(`/api/admin/settings/scripts/${scripts[deleteIdx].id}`, { method: 'DELETE' });
-      if (!ok) {
-        setToast({ message: (data as { error?: string })?.error ?? 'Failed to delete', type: 'error' });
-        return;
-      }
-      setScripts(scripts.filter((_, i) => i !== deleteIdx));
-      setToast({ message: 'Deleted successfully', type: 'success' });
-      setDeleteIdx(null);
-    } catch (err: unknown) {
-      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-    } finally {
-      setSaveLoading(false);
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'scripts':
+        return <SettingsScripts />;
+      case 'trading_hours':
+        return <SettingsTradingHours />;
+      case 'currency':
+        return <SettingsCurrency />;
+      case 'app':
+        return <SettingsApp />;
+      case 'broadcaster':
+        return <SettingsBroadcaster />;
+      default:
+        return <SettingsScripts />;
     }
   };
 
   return (
-    <div className="adm-set-root">
-      <Toast toast={toast} onDismiss={() => setToast(null)} />
-      {deleteIdx !== null && (
-        <ConfirmDialog
-          message={`Are you sure you want to delete ${scripts[deleteIdx].symbol}?`}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteIdx(null)}
-          loading={saveLoading}
-        />
-      )}
-      <div className="adm-mw-header">
-        <h2 className="adm-page-title" style={{ margin: 0 }}>Script Settings</h2>
-        <button className="adm-btn-primary" onClick={handleOpenAdd}>+ Add Script</button>
+    <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
+      {/* Settings Sidebar */}
+      <div style={{ 
+        width: '240px', 
+        borderRight: '1px solid #30363d', 
+        display: 'flex', 
+        flexDirection: 'column',
+        padding: '20px 0'
+      }}>
+        <h2 style={{ 
+          margin: '0 0 20px 20px', 
+          color: '#e6edf3', 
+          fontSize: '18px',
+          fontWeight: 600 
+        }}>
+          System Settings
+        </h2>
+        
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 12px' }}>
+          <SidebarButton 
+            active={activeTab === 'scripts'} 
+            onClick={() => setActiveTab('scripts')}
+            label="Script Settings"
+          />
+          <SidebarButton 
+            active={activeTab === 'trading_hours'} 
+            onClick={() => setActiveTab('trading_hours')}
+            label="Trading Hours"
+          />
+          <SidebarButton 
+            active={activeTab === 'currency'} 
+            onClick={() => setActiveTab('currency')}
+            label="Currency Settings"
+          />
+          <SidebarButton 
+            active={activeTab === 'app'} 
+            onClick={() => setActiveTab('app')}
+            label="App Settings"
+          />
+          <SidebarButton 
+            active={activeTab === 'broadcaster'} 
+            onClick={() => setActiveTab('broadcaster')}
+            label="Broadcaster"
+          />
+        </nav>
       </div>
 
-      <div className="adm-set-table-wrap">
-        {loading ? (
-          <SkeletonTable cols={3} rows={5} />
-        ) : (
-          <table className="adm-set-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Lot Size</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scripts.length === 0 ? (
-                <tr><td colSpan={3} className="adm-mw-empty">No scripts defined</td></tr>
-              ) : (
-                scripts.map((s, i) => (
-                  <tr key={s.id}>
-                    <td className="bold">{s.symbol}</td>
-                    <td>{s.lotSize}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                        <button className="adm-set-edit" onClick={() => handleOpenEdit(i)}>Edit</button>
-                        <button className="adm-set-del" onClick={() => setDeleteIdx(i)}>Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
+      {/* Main Content Area */}
+      <div style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', backgroundColor: '#0d1117' }}>
+        {renderActiveTab()}
       </div>
-
-      {showModal && (
-        <div className="adm-overlay" onClick={() => !saveLoading && setShowModal(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="adm-card" style={{ width: 340, padding: 24 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0, marginBottom: 20, color: '#e6edf3' }}>{editIdx !== null ? 'Edit Script' : 'Add Script'}</h3>
-            <div className="adm-upd-field">
-              <label className="adm-upd-label">Symbol</label>
-              <input className="adm-upd-input" value={formSymbol} onChange={e => setFormSymbol(e.target.value.toUpperCase())} placeholder="e.g. RELIANCE" />
-            </div>
-            <div className="adm-upd-field">
-              <label className="adm-upd-label">Lot Size</label>
-              <input type="number" className="adm-upd-input" value={formLot} onChange={e => setFormLot(e.target.value)} placeholder="e.g. 1" />
-            </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
-              <button className="adm-sheet-cancel" onClick={() => setShowModal(false)} disabled={saveLoading}>Cancel</button>
-              <button className="adm-btn-primary" onClick={handleSave} disabled={saveLoading}>
-                {saveLoading ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+function SidebarButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '10px 16px',
+        textAlign: 'left',
+        background: active ? '#1f2937' : 'transparent',
+        border: 'none',
+        borderRadius: '6px',
+        color: active ? '#e6edf3' : '#8b949e',
+        fontWeight: active ? 600 : 400,
+        cursor: 'pointer',
+        fontSize: '14px',
+        transition: 'all 0.2s ease'
+      }}
+      onMouseOver={(e) => {
+        if (!active) e.currentTarget.style.background = '#161b22';
+        e.currentTarget.style.color = '#e6edf3';
+      }}
+      onMouseOut={(e) => {
+        if (!active) {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = '#8b949e';
+        }
+      }}
+    >
+      {label}
+    </button>
   );
 }

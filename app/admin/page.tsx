@@ -189,7 +189,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
       <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('orders')}><OrdersPage selectedUser={selectedUser} /></div>
       <div style={show('position')}><PositionPage selectedUser={selectedUser} /></div>
-      <div style={show('update')}><UpdatePage selectedUser={selectedUser} /></div>
+      <div style={show('update')}><UpdatePage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} /></div>
       <div style={show('create')}>
         <CreateUserForm

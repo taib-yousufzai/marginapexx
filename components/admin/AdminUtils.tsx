@@ -4,16 +4,16 @@ import { supabase } from '@/lib/supabaseClient';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 export const TAB_INSTRUMENTS: Record<string, string[]> = {
-  'INDEX-FUT': ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX', 'NIFTYNXT50'],
-  'INDEX-OPT': ['NIFTY', 'BANKNIFTY', 'SENSEX', 'FINNIFTY', 'MIDCPNIFTY', 'BANKEX'],
-  'STOCK-FUT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 'IOC', 'HINDUNILVR'],
-  'STOCK-OPT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC'],
-  'NSE-EQ': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE', 'MARUTI', 'TATAMOTORS', 'ADANIENT', 'ONGC', 'NTPC', 'POWERGRID', 'COALINDIA', 'BPCL', 'IOC', 'HINDUNILVR', 'NESTLEIND', 'BRITANNIA', 'DABUR', 'MARICO', 'GODREJCP'],
-  'MCX-FUT': ['GOLD', 'GOLDMINI', 'SILVER', 'SILVERMINI', 'CRUDEOIL', 'CRUDEOILM', 'NATURALGAS', 'NATURALGASM', 'COPPER', 'ZINC', 'LEAD', 'ALUMINIUM', 'NICKEL'],
-  'MCX-OPT': ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'COPPER'],
-  'COMEX': ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD', 'HGUSD', 'CLUSD', 'NGUSD'],
-  'CRYPTO': ['BTCUSD', 'ETHUSD', 'XRPUSD', 'BNBUSD', 'SOLUSD', 'ADAUSD', 'DOTUSD', 'MATICUSD', 'LINKUSD', 'AVAXUSD', 'ATOMUSD', 'UNIUSD', 'LTCUSD', 'TRXUSD', 'FILUSD', 'AAVEUSD'],
-  'FOREX': ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'AUDJPY', 'CADJPY', 'CHFJPY', 'EURCHF', 'EURAUD'],
+  'INDEX-FUT': ['NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'BSE:BANKEX'],
+  'INDEX-OPT': ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'],
+  'STOCK-FUT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK', 'LT', 'BAJFINANCE'],
+  'STOCK-OPT': ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'WIPRO', 'AXISBANK'],
+  'NSE-EQ': ['NSE:RELIANCE', 'NSE:TCS', 'NSE:INFY', 'NSE:HDFCBANK', 'NSE:ICICIBANK', 'NSE:SBIN', 'NSE:WIPRO', 'NSE:AXISBANK', 'NSE:LT', 'NSE:BAJFINANCE', 'NSE:MARUTI', 'NSE:TATAMOTORS'],
+  'MCX-FUT': ['MCX:GOLD', 'MCX:SILVER', 'MCX:CRUDEOIL', 'MCX:NATURALGAS', 'MCX:COPPER', 'MCX:ZINC'],
+  'MCX-OPT': ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'],
+  'COMEX': ['GC=F', 'SI=F', 'CL=F', 'NG=F', 'HG=F', 'PL=F', 'PA=F'],
+  'CRYPTO': ['BTCUSDT', 'ETHUSDT', 'XRPUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'DOTUSDT', 'MATICUSDT', 'LINKUSDT', 'AVAXUSDT'],
+  'FOREX': ['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'AUDUSD=X', 'USDCAD=X', 'USDCHF=X', 'NZDUSD=X'],
 };
 export const LOG_ROWS = 10;
 
@@ -36,6 +36,10 @@ export type UserListItem = {
   phone: string | null;
   parent_id: string | null;
   scheduled_delete_at: string | null;
+  openPnl?: number;
+  m2m?: number;
+  weeklyPnl?: number;
+  marginUsed?: number;
 };
 
 export type PositionItem = {
@@ -89,6 +93,25 @@ export function positionItemToPosition(item: PositionItem): Position {
     exitTime: item.exit_time ?? undefined,
     settlement: item.settlement ?? undefined,
   };
+}
+export function downloadCSV(data: any[], filename: string) {
+  if (data.length === 0) return;
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(obj => 
+    Object.values(obj).map(val => 
+      typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
+    ).join(',')
+  );
+  const csvContent = [headers, ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // ─── API helper ───────────────────────────────────────────────────────────────

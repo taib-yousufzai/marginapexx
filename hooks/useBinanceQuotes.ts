@@ -25,6 +25,8 @@ export interface BinanceQuoteData {
   close: number;        // prev close
   volume: number;       // base asset volume
   quoteVolume: number;  // USDT volume
+  bid: number;
+  ask: number;
 }
 
 interface UseBinanceQuotesResult {
@@ -72,6 +74,8 @@ export function useBinanceQuotes(
         prevClosePrice: string;
         volume: string;
         quoteVolume: string;
+        bidPrice: string;
+        askPrice: string;
       }>;
 
       const mapped: Record<string, BinanceQuoteData> = {};
@@ -87,6 +91,8 @@ export function useBinanceQuotes(
           close: parseFloat(ticker.prevClosePrice),
           volume: parseFloat(ticker.volume),
           quoteVolume: parseFloat(ticker.quoteVolume),
+          bid: parseFloat(ticker.bidPrice),
+          ask: parseFloat(ticker.askPrice),
         };
       }
 

@@ -19,30 +19,70 @@ import { requireAdmin } from '../_auth';
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize the caller
-    // Validates: Requirements 2.2, 2.5, 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
-    // Step 2: Query all profiles with the required UserListItem fields
-    // Validates: Requirements 2.3, 2.4
-    const { data, error } = await adminClient
+    // 1. Fetch all profiles
+    const { data: profiles, error: pError } = await adminClient
       .from('profiles')
-      .select(
-        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, created_at, scheduled_delete_at',
-      );
+      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, created_at, scheduled_delete_at');
 
-    if (error) {
-      console.error('[GET /api/admin/users] DB error:', error);
-      return Response.json({ error: 'Internal server error', detail: error.message }, { status: 500 });
-    }
+    if (pError) throw pError;
 
-    // Step 3: Return the profile array
-    // Validates: Requirement 2.4
-    return Response.json(data, { status: 200 });
-  } catch {
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    // 2. Fetch all positions to calculate live stats
+    const { data: positions, error: posError } = await adminClient
+      .from('positions')
+      .select('user_id, pnl, status, entry_time, exit_time, margin_required');
+
+    if (posError) throw posError;
+
+    // 3. Aggregate stats per user
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const statsMap: Record<string, { openPnl: number; m2m: number; weeklyPnl: number; marginUsed: number }> = {};
+
+    (positions ?? []).forEach(pos => {
+      if (!statsMap[pos.user_id]) {
+        statsMap[pos.user_id] = { openPnl: 0, m2m: 0, weeklyPnl: 0, marginUsed: 0 };
+      }
+      const s = statsMap[pos.user_id];
+
+      // Open PNL: positions that are open or active
+      if (pos.status === 'open' || pos.status === 'active') {
+        s.openPnl += Number(pos.pnl || 0);
+      }
+
+      // M2M: All PNL from today (open + closed today)
+      const isToday = pos.entry_time >= today || (pos.exit_time && pos.exit_time >= today);
+      if (isToday) {
+        s.m2m += Number(pos.pnl || 0);
+      }
+
+      // Weekly PNL: PNL from the last 7 days
+      const isThisWeek = pos.entry_time >= oneWeekAgo || (pos.exit_time && pos.exit_time >= oneWeekAgo);
+      if (isThisWeek) {
+        s.weeklyPnl += Number(pos.pnl || 0);
+      }
+
+      // Margin Used
+      if (pos.status === 'open' || pos.status === 'active') {
+        s.marginUsed += Number(pos.margin_required || 0);
+      }
+    });
+
+    // 4. Merge stats into profiles
+    const users = (profiles ?? []).map(p => ({
+      ...p,
+      ...(statsMap[p.id] || { openPnl: 0, m2m: 0, weeklyPnl: 0, marginUsed: 0 })
+    }));
+
+    return Response.json(users, { status: 200 });
+  } catch (error: any) {
+    console.error('[GET /api/admin/users] Error:', error);
+    return Response.json({ error: 'Internal server error', detail: error.message }, { status: 500 });
   }
 }
 

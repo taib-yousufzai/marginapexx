@@ -1,0 +1,121 @@
+/**
+ * GET /api/admin/dashboard
+ *
+ * Returns computed global dashboard metrics, with optional hierarchy filtering.
+ */
+
+import { requireAdmin } from '../_auth';
+
+export type TransactionRecord = { type: 'DEPOSIT' | 'WITHDRAWAL'; amount: number };
+export type PositionRecord = { pnl: number; side: 'BUY' | 'SELL'; brokerage: number };
+
+export async function GET(request: Request): Promise<Response> {
+  try {
+    const authResult = await requireAdmin(request);
+    if (authResult instanceof Response) return authResult;
+    const { adminClient } = authResult;
+
+    const url = new URL(request.url);
+    const date_from = url.searchParams.get('date_from') ?? null;
+    const date_to = url.searchParams.get('date_to') ?? null;
+    const broker_id = url.searchParams.get('broker_id');
+    const sub_broker_id = url.searchParams.get('sub_broker_id');
+    const client_id = url.searchParams.get('client_id');
+
+    // 1. Fetch profiles to resolve hierarchy if needed
+    let targetUserIds: string[] | null = null;
+    
+    if (client_id) {
+      targetUserIds = [client_id];
+    } else if (broker_id || sub_broker_id) {
+      const { data: profiles } = await adminClient.from('profiles').select('id, parent_id, role');
+      if (profiles) {
+        const getDescendants = (parentId: string): string[] => {
+          const children = profiles.filter(p => p.parent_id === parentId).map(p => p.id);
+          const descendants = children.flatMap(childId => getDescendants(childId));
+          return [...children, ...descendants];
+        };
+        
+        if (sub_broker_id) {
+          targetUserIds = [sub_broker_id, ...getDescendants(sub_broker_id)];
+        } else if (broker_id) {
+          targetUserIds = [broker_id, ...getDescendants(broker_id)];
+        }
+      }
+    }
+
+    // 2. Fetch transactions
+    let txnQuery = adminClient.from('transactions').select('type, amount');
+    if (targetUserIds) {
+      txnQuery = txnQuery.in('user_id', targetUserIds);
+    }
+    if (date_from) txnQuery = txnQuery.gte('created_at', date_from);
+    if (date_to) txnQuery = txnQuery.lte('created_at', date_to);
+
+    const { data: txnData, error: txnError } = await txnQuery;
+    if (txnError) return Response.json({ error: 'Failed to fetch transactions' }, { status: 500 });
+
+    // 3. Fetch positions
+    let posQuery = adminClient.from('positions').select('pnl, side, brokerage');
+    if (targetUserIds) {
+      posQuery = posQuery.in('user_id', targetUserIds);
+    }
+    if (date_from) posQuery = posQuery.gte('entry_time', date_from);
+    if (date_to) posQuery = posQuery.lte('entry_time', date_to);
+
+    const { data: posData, error: posError } = await posQuery;
+    if (posError) return Response.json({ error: 'Failed to fetch positions' }, { status: 500 });
+
+    // 4. Compute metrics
+    const txns = (txnData ?? []) as TransactionRecord[];
+    const positions = (posData ?? []) as PositionRecord[];
+
+    const deposits = txns.filter(t => t.type === 'DEPOSIT');
+    const withdrawals = txns.filter(t => t.type === 'WITHDRAWAL');
+    const total_deposits = deposits.reduce((s, t) => s + t.amount, 0);
+    const total_withdrawals = withdrawals.reduce((s, t) => s + t.amount, 0);
+    const net = total_deposits - total_withdrawals;
+
+    const profits = positions.filter(p => p.pnl > 0);
+    const losses = positions.filter(p => p.pnl < 0);
+    
+    const mark_to_market = positions.reduce((s, p) => s + (Number(p.pnl) || 0), 0);
+    const total_brokerage = positions.reduce((s, p) => s + (Number(p.brokerage) || 0), 0);
+    const margin_used = positions.reduce((s, p) => s + (Number((p as any).margin_required) || 0), 0);
+
+    // Net P&L = MTM + Brokerage
+    const net_pnl = mark_to_market + total_brokerage;
+    
+    // Net Balance = Net Deposits + Net PNL
+    const ledger_balance = net;
+    const net_balance = ledger_balance + net_pnl;
+
+    const fullMetrics = {
+      ledger_balance,
+      net_balance,
+      mark_to_market,
+      net_pnl,
+      total_brokerage,
+      margin_used,
+      net,
+      total_deposits,
+      total_withdrawals,
+      avg_deposit: deposits.length > 0 ? total_deposits / deposits.length : 0,
+      avg_withdrawal: withdrawals.length > 0 ? total_withdrawals / withdrawals.length : 0,
+      avg_profit: profits.length > 0 ? profits.reduce((s, p) => s + (Number(p.pnl) || 0), 0) / profits.length : 0,
+      avg_loss: losses.length > 0 ? losses.reduce((s, p) => s + (Number(p.pnl) || 0), 0) / losses.length : 0,
+      profitable_clients: profits.length,
+      loss_making_clients: losses.length,
+      buy_position_count: positions.filter(p => p.side === 'BUY').length,
+      sell_position_count: positions.filter(p => p.side === 'SELL').length,
+      registered: targetUserIds ? targetUserIds.length : 0, // Approximate
+      added_funds: txns.filter(t => t.type === 'DEPOSIT').length,
+      conversion: '0%',
+    };
+
+    return Response.json(fullMetrics, { status: 200 });
+  } catch (err) {
+    console.error('[GET /api/admin/dashboard] Error:', err);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
