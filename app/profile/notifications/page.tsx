@@ -1,11 +1,8 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
-import Footer from '@/components/Footer';
 import './page.css';
 
 interface Notification {
@@ -109,7 +106,6 @@ export default function NotificationsPage() {
     const [loading, setLoading]   = useState(true);
     const [marking, setMarking]   = useState(false);
     const [isFake,  setIsFake]    = useState(false);
-    const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
@@ -183,80 +179,72 @@ export default function NotificationsPage() {
     const unreadCount = isFake ? 0 : notifications.filter(n => !n.read).length;
 
     return (
-        <div className="desktop-layout">
-            <Sidebar />
-            <main className="main-viewport">
-                <div className="app-container">
-                    <div className="notif-root">
-                        <Navbar title="Notifications" onNotifClick={() => setIsNotifDrawerOpen(true)} />
-                        
-                        {/* Header */}
-                        <div className="notif-header desktop-only">
-                            <div className="notif-header-inner">
-                                <span className="notif-title">
-                                    Activity Log
-                                    {unreadCount > 0 && <span className="notif-count-badge">{unreadCount}</span>}
-                                </span>
-                                {unreadCount > 0 && (
-                                    <button className="notif-mark-all-btn" onClick={markAllRead} disabled={marking}>
-                                        {marking ? <i className="fas fa-spinner fa-spin"></i> : 'Mark all read'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="notif-content">
-                            {loading ? (
-                                <div className="notif-loading">
-                                    <div className="notif-spinner"></div>
-                                    <p>Loading notifications…</p>
-                                </div>
-                            ) : notifications.length === 0 ? (
-                                <div className="notif-empty">
-                                    <div className="notif-empty-icon">
-                                        <i className="fas fa-bell-slash"></i>
-                                    </div>
-                                    <div className="notif-empty-title">All caught up!</div>
-                                    <div className="notif-empty-sub">No notifications yet. We'll alert you about orders, funds, and account updates.</div>
-                                </div>
-                            ) : (
-                                <>
-                                    {isFake && (
-                                        <div className="notif-fake-banner">
-                                            <i className="fas fa-eye"></i>
-                                            Sample preview — your real notifications will appear here
-                                        </div>
-                                    )}
-                                    <div className={`notif-list${isFake ? ' notif-list-preview' : ''}`}>
-                                        {notifications.map(n => {
-                                            const meta = getMeta(n.type);
-                                            return (
-                                                <div
-                                                    key={n.id}
-                                                    className={`notif-item${n.read ? '' : ' unread'}`}
-                                                    onClick={() => !isFake && !n.read && markRead(n.id)}
-                                                >
-                                                    <div className="notif-icon" style={{ background: meta.bg, color: meta.color }}>
-                                                        <i className={`fas ${meta.icon}`}></i>
-                                                    </div>
-                                                    <div className="notif-body">
-                                                        <div className="notif-item-title">{n.title}</div>
-                                                        <div className="notif-item-msg">{n.message}</div>
-                                                        <div className="notif-item-time">{timeAgo(n.created_at)}</div>
-                                                    </div>
-                                                    {!isFake && !n.read && <div className="notif-dot"></div>}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        <Footer activeTab="home" />
-                    </div>
+        <div className="notif-root">
+            {/* Header */}
+            <div className="notif-header">
+                <div className="notif-header-inner">
+                    <Link href="/profile" className="notif-back-btn">
+                        <i className="fas fa-arrow-left"></i>
+                    </Link>
+                    <span className="notif-title">
+                        Notifications
+                        {unreadCount > 0 && <span className="notif-count-badge">{unreadCount}</span>}
+                    </span>
+                    {unreadCount > 0 && (
+                        <button className="notif-mark-all-btn" onClick={markAllRead} disabled={marking}>
+                            {marking ? <i className="fas fa-spinner fa-spin"></i> : 'Mark all read'}
+                        </button>
+                    )}
                 </div>
-            </main>
-            <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
+            </div>
+
+            <div className="notif-content">
+                {loading ? (
+                    <div className="notif-loading">
+                        <div className="notif-spinner"></div>
+                        <p>Loading notifications…</p>
+                    </div>
+                ) : notifications.length === 0 ? (
+                    <div className="notif-empty">
+                        <div className="notif-empty-icon">
+                            <i className="fas fa-bell-slash"></i>
+                        </div>
+                        <div className="notif-empty-title">All caught up!</div>
+                        <div className="notif-empty-sub">No notifications yet. We'll alert you about orders, funds, and account updates.</div>
+                    </div>
+                ) : (
+                    <>
+                        {isFake && (
+                            <div className="notif-fake-banner">
+                                <i className="fas fa-eye"></i>
+                                Sample preview — your real notifications will appear here
+                            </div>
+                        )}
+                        <div className={`notif-list${isFake ? ' notif-list-preview' : ''}`}>
+                            {notifications.map(n => {
+                                const meta = getMeta(n.type);
+                                return (
+                                    <div
+                                        key={n.id}
+                                        className={`notif-item${n.read ? '' : ' unread'}`}
+                                        onClick={() => !isFake && !n.read && markRead(n.id)}
+                                    >
+                                        <div className="notif-icon" style={{ background: meta.bg, color: meta.color }}>
+                                            <i className={`fas ${meta.icon}`}></i>
+                                        </div>
+                                        <div className="notif-body">
+                                            <div className="notif-item-title">{n.title}</div>
+                                            <div className="notif-item-msg">{n.message}</div>
+                                            <div className="notif-item-time">{timeAgo(n.created_at)}</div>
+                                        </div>
+                                        {!isFake && !n.read && <div className="notif-dot"></div>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
         </div>
     );
 }

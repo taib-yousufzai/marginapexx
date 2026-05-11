@@ -5,8 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
 import { useKiteQuotes } from '@/hooks/useKiteQuotes';
@@ -98,10 +96,13 @@ export default function Page() {
   const [scrollKey, setScrollKey] = useState(() => Date.now());
 
   useEffect(() => {
-    // Middleware handles the initial redirect if no session.
-    // This client-side check is now redundant but kept as a silent backup
-    // to ensure user metadata is available for component logic if needed.
-  }, []);
+    getSession().then((session) => {
+      if (!session) { router.replace('/login'); return; }
+      const role = getRole(session.user);
+      if (role === 'admin' || role === 'super_admin') { router.replace('/admin'); return; }
+      if (role === 'broker') { router.replace('/broker'); return; }
+    });
+  }, [router]);
 
   useEffect(() => {
     setScrollKey(Date.now());
@@ -173,7 +174,16 @@ export default function Page() {
       
       <main className="main-viewport">
         <div className="app-container">
-          <Navbar title="MARGINAPEX" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+          {/* Mobile Navigation Bar */}
+          <div className="nav-bar-full mobile-only">
+            <div className="nav-icon-btn" onClick={() => setIsNotifDrawerOpen(true)}><i className="fas fa-bell"></i></div>
+            <div className="nav-app-name">MARGIN<span style={{ color: '#006400' }}>APEX</span></div>
+            <div className="nav-group">
+              <div className="nav-icon-btn" onClick={toggleTheme}><i className={theme === 'dark' ? "fas fa-sun" : "fas fa-moon"}></i></div>
+              <div className="nav-funds" onClick={() => router.push('/funds')}><i className="fas fa-coins"></i><span>Funds</span></div>
+              <div className="nav-icon-btn" onClick={() => router.push('/profile')}><i className="fas fa-user-cog"></i></div>
+            </div>
+          </div>
 
           <div ref={containerRef} key={scrollKey} className="main-scroll-wrapper">
             <div className="main-content">
@@ -381,10 +391,25 @@ export default function Page() {
           </div>
         </div>
 
-      </main>
+        <div className={`expiry-half-drawer-overlay ${isNotifDrawerOpen ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setIsNotifDrawerOpen(false); }}>
+          <div className="expiry-half-sheet">
+            <div className="expiry-sheet-header">
+              <h3><i className="fas fa-bell"></i> Notifications</h3>
+              <div className="expiry-sheet-close" onClick={() => setIsNotifDrawerOpen(false)}><i className="fas fa-times"></i></div>
+            </div>
+            <div className="notif-list">
+              {notifications.length === 0 ? <div className="no-data">No notifications</div> : notifications.map(n => (
+                <div key={n.id} className="notif-item">
+                  <div className="notif-title">{n.title}</div>
+                  <div className="notif-msg">{n.message}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
 
-      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
-      {toastMessage && <div className="toast-msg">{toastMessage}</div>}
+        {toastMessage && <div className="toast-msg">{toastMessage}</div>}
+      </main>
     </div>
   );
 }

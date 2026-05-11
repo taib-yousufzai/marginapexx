@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/supabaseClient';
 import './page.css';
@@ -32,7 +30,6 @@ export default function HistoryPage() {
   const [toDate, setToDate] = useState('');
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Scroll reset - runs synchronously before browser paint via ref callback
@@ -136,7 +133,59 @@ export default function HistoryPage() {
       <main className="main-viewport">
         <div className="app-container">
           <div className="history-root">
-            <Navbar title="Trade History" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+            {/* ── Header (Mobile Only) ── */}
+            <div className="app-header mobile-only">
+              <div className="header-top">
+                <div className="logo-area">
+                  <div className="logo-text">Trade History</div>
+                </div>
+                <div className="header-buttons">
+                  <button
+                    className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('position')}
+                  >
+                    Position History
+                  </button>
+                  <button
+                    className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
+                    onClick={() => setCurrentTab('order')}
+                  >
+                    Order History
+                  </button>
+                </div>
+              </div>
+              <div className="date-filter-row">
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt"></i>
+                  <div className="date-input-wrapper">
+                    <input
+                      type="date"
+                      className="date-input-compact"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                    />
+                    {!fromDate && <span className="date-placeholder">mm/dd/yyyy</span>}
+                  </div>
+                </div>
+                <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
+                <div className="filter-group">
+                  <i className="fas fa-calendar-alt"></i>
+                  <div className="date-input-wrapper">
+                    <input
+                      type="date"
+                      className="date-input-compact"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                    />
+                    {!toDate && <span className="date-placeholder">mm/dd/yyyy</span>}
+                  </div>
+                </div>
+                <div className="filter-buttons">
+                  <button className="filter-btn apply">Apply</button>
+                  <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
+                </div>
+              </div>
+            </div>
 
             {/* ── Desktop Page Header ── */}
             <div className="desktop-only" style={{ padding: '20px 24px 0 24px' }}>
@@ -272,7 +321,6 @@ export default function HistoryPage() {
           </span>
         </div>
       </div>
-      <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
     </div>
   );
 }

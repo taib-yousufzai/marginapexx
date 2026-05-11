@@ -7,10 +7,8 @@ import { pageCache } from '@/lib/pageCache';
 import './page.css';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import Footer from '@/components/Footer';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
+import Footer from '../../components/Footer';
+import Sidebar from '../../components/Sidebar';
 import QRCode from 'react-qr-code';
 
 type ActiveAccountResponse = {
@@ -69,7 +67,6 @@ export default function FundsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
     if (!text) return;
@@ -328,7 +325,12 @@ export default function FundsPage() {
       
       <main className="main-viewport">
         <div className="app-container funds-shell">
-          <Navbar title="Funds" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+          {/* ── Header (Mobile Only) ── */}
+          <div className="nav-bar-full mobile-only">
+            <Link href="/" className="nav-icon-btn"><i className="fas fa-arrow-left"></i></Link>
+            <div className="nav-app-name">Manage <span style={{ color: '#006400', marginLeft: '4px' }}>Funds</span></div>
+            <div style={{ width: '40px' }}></div>
+          </div>
 
           {/* ── Desktop Page Header ── */}
           <div className="desktop-only" style={{ padding: '20px 24px 0 24px' }}>
@@ -595,10 +597,9 @@ export default function FundsPage() {
 
           <div className="mobile-only" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
             <Footer activeTab="home" hideDrawer={true} />
+          </div>
         </div>
-      </div>
-    </main>
-    <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
-  </div>
+      </main>
+    </div>
   );
 }

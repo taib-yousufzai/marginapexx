@@ -1,11 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { updatePassword, getSession } from '@/lib/auth';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
-import Footer from '@/components/Footer';
+import { updatePassword, getSession } from '@/lib/auth';
 import './page.css';
 
 export default function SecurityPage() {
@@ -20,7 +17,6 @@ export default function SecurityPage() {
     const [msg,     setMsg]     = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [email,   setEmail]   = useState('');
     const [lastSignIn, setLastSignIn] = useState('');
-    const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
@@ -86,107 +82,97 @@ export default function SecurityPage() {
     };
 
     return (
-        <div className="desktop-layout">
-            <Sidebar />
-            <main className="main-viewport">
-                <div className="app-container">
-                    <div className="sec-root">
-                        <Navbar title="Security" onNotifClick={() => setIsNotifDrawerOpen(true)} />
-                        
-                        <div className="sec-header desktop-only">
-                            <div className="sec-header-inner">
-                                <span className="sec-title">Security & Passwords</span>
+        <div className="sec-root">
+            <div className="sec-header">
+                <div className="sec-header-inner">
+                    <Link href="/profile" className="sec-back-btn"><i className="fas fa-arrow-left"></i></Link>
+                    <span className="sec-title">Security & Passwords</span>
+                </div>
+            </div>
+
+            <div className="sec-content">
+                {/* Account info */}
+                <div className="sec-section">
+                    <div className="sec-section-title">Account Security</div>
+                    <div className="sec-card">
+                        <div className="sec-info-row">
+                            <div className="sec-info-icon" style={{background:'#EEF2F8',color:'#1E40AF'}}><i className="fas fa-envelope"></i></div>
+                            <div className="sec-info-body">
+                                <div className="sec-info-label">Email Address</div>
+                                <div className="sec-info-value">{email || '—'}</div>
+                            </div>
+                            <div className="sec-verified-badge"><i className="fas fa-check-circle"></i> Verified</div>
+                        </div>
+                        <div className="sec-info-row">
+                            <div className="sec-info-icon" style={{background:'#F0FDF4',color:'#16A34A'}}><i className="fas fa-clock"></i></div>
+                            <div className="sec-info-body">
+                                <div className="sec-info-label">Last Sign In</div>
+                                <div className="sec-info-value">{fmtDate(lastSignIn)}</div>
                             </div>
                         </div>
-
-                        <div className="sec-content">
-                            {/* Account info */}
-                            <div className="sec-section">
-                                <div className="sec-section-title">Account Security</div>
-                                <div className="sec-card">
-                                    <div className="sec-info-row">
-                                        <div className="sec-info-icon" style={{background:'#EEF2F8',color:'#1E40AF'}}><i className="fas fa-envelope"></i></div>
-                                        <div className="sec-info-body">
-                                            <div className="sec-info-label">Email Address</div>
-                                            <div className="sec-info-value">{email || '—'}</div>
-                                        </div>
-                                        <div className="sec-verified-badge"><i className="fas fa-check-circle"></i> Verified</div>
-                                    </div>
-                                    <div className="sec-info-row">
-                                        <div className="sec-info-icon" style={{background:'#F0FDF4',color:'#16A34A'}}><i className="fas fa-clock"></i></div>
-                                        <div className="sec-info-body">
-                                            <div className="sec-info-label">Last Sign In</div>
-                                            <div className="sec-info-value">{fmtDate(lastSignIn)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Change password */}
-                            <div className="sec-section">
-                                <div className="sec-section-title">Change Password</div>
-                                <div className="sec-card">
-                                    <form onSubmit={handleChangePassword} className="sec-form">
-                                        <div className="sec-field">
-                                            <label className="sec-label"><i className="fas fa-lock"></i> Current Password</label>
-                                            <div className="sec-input-wrap">
-                                                <input type={showCurrent?'text':'password'} className="sec-input" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} placeholder="Enter current password" autoComplete="current-password" />
-                                                <button type="button" className="sec-eye-btn" onClick={()=>setShowCurrent(!showCurrent)} tabIndex={-1}><i className={`fas ${showCurrent?'fa-eye-slash':'fa-eye'}`}></i></button>
-                                            </div>
-                                        </div>
-                                        <div className="sec-field">
-                                            <label className="sec-label"><i className="fas fa-key"></i> New Password</label>
-                                            <div className="sec-input-wrap">
-                                                <input type={showNew?'text':'password'} className="sec-input" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Enter new password" autoComplete="new-password" />
-                                                <button type="button" className="sec-eye-btn" onClick={()=>setShowNew(!showNew)} tabIndex={-1}><i className={`fas ${showNew?'fa-eye-slash':'fa-eye'}`}></i></button>
-                                            </div>
-                                            {newPassword && (
-                                                <div className="sec-strength">
-                                                    <div className="sec-strength-bar">
-                                                        {[1,2,3,4,5].map(i => <div key={i} className="sec-strength-seg" style={{background: i<=strength.score ? strength.color : '#E2E8F0'}} />)}
-                                                    </div>
-                                                    <span className="sec-strength-label" style={{color:strength.color}}>{strength.label}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="sec-field">
-                                            <label className="sec-label"><i className="fas fa-check-double"></i> Confirm New Password</label>
-                                            <div className="sec-input-wrap">
-                                                <input type={showConfirm?'text':'password'} className="sec-input" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" />
-                                                <button type="button" className="sec-eye-btn" onClick={()=>setShowConfirm(!showConfirm)} tabIndex={-1}><i className={`fas ${showConfirm?'fa-eye-slash':'fa-eye'}`}></i></button>
-                                            </div>
-                                            {confirmPassword && newPassword !== confirmPassword && <div className="sec-mismatch"><i className="fas fa-times-circle"></i> Passwords do not match</div>}
-                                            {confirmPassword && newPassword === confirmPassword && <div className="sec-match"><i className="fas fa-check-circle"></i> Passwords match</div>}
-                                        </div>
-                                        {msg && (
-                                            <div className={`sec-msg ${msg.type}`}>
-                                                <i className={`fas ${msg.type==='success'?'fa-check-circle':'fa-exclamation-circle'}`}></i>
-                                                {msg.text}
-                                            </div>
-                                        )}
-                                        <button type="submit" className="sec-save-btn" disabled={saving}>
-                                            {saving ? <><i className="fas fa-spinner fa-spin"></i> Updating…</> : <><i className="fas fa-shield-alt"></i> Update Password</>}
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
-                            {/* Tips */}
-                            <div className="sec-tips">
-                                <div className="sec-tips-title"><i className="fas fa-lightbulb"></i> Password Tips</div>
-                                <ul className="sec-tips-list">
-                                    <li>Use at least 8 characters</li>
-                                    <li>Mix uppercase, lowercase, numbers & symbols</li>
-                                    <li>Avoid using personal info like your name or birthday</li>
-                                    <li>Don't reuse passwords from other sites</li>
-                                </ul>
-                            </div>
-                        </div>
-                        <Footer activeTab="home" />
                     </div>
                 </div>
-            </main>
-            <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
+
+                {/* Change password */}
+                <div className="sec-section">
+                    <div className="sec-section-title">Change Password</div>
+                    <div className="sec-card">
+                        <form onSubmit={handleChangePassword} className="sec-form">
+                            <div className="sec-field">
+                                <label className="sec-label"><i className="fas fa-lock"></i> Current Password</label>
+                                <div className="sec-input-wrap">
+                                    <input type={showCurrent?'text':'password'} className="sec-input" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} placeholder="Enter current password" autoComplete="current-password" />
+                                    <button type="button" className="sec-eye-btn" onClick={()=>setShowCurrent(!showCurrent)} tabIndex={-1}><i className={`fas ${showCurrent?'fa-eye-slash':'fa-eye'}`}></i></button>
+                                </div>
+                            </div>
+                            <div className="sec-field">
+                                <label className="sec-label"><i className="fas fa-key"></i> New Password</label>
+                                <div className="sec-input-wrap">
+                                    <input type={showNew?'text':'password'} className="sec-input" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="Enter new password" autoComplete="new-password" />
+                                    <button type="button" className="sec-eye-btn" onClick={()=>setShowNew(!showNew)} tabIndex={-1}><i className={`fas ${showNew?'fa-eye-slash':'fa-eye'}`}></i></button>
+                                </div>
+                                {newPassword && (
+                                    <div className="sec-strength">
+                                        <div className="sec-strength-bar">
+                                            {[1,2,3,4,5].map(i => <div key={i} className="sec-strength-seg" style={{background: i<=strength.score ? strength.color : '#E2E8F0'}} />)}
+                                        </div>
+                                        <span className="sec-strength-label" style={{color:strength.color}}>{strength.label}</span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="sec-field">
+                                <label className="sec-label"><i className="fas fa-check-double"></i> Confirm New Password</label>
+                                <div className="sec-input-wrap">
+                                    <input type={showConfirm?'text':'password'} className="sec-input" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" />
+                                    <button type="button" className="sec-eye-btn" onClick={()=>setShowConfirm(!showConfirm)} tabIndex={-1}><i className={`fas ${showConfirm?'fa-eye-slash':'fa-eye'}`}></i></button>
+                                </div>
+                                {confirmPassword && newPassword !== confirmPassword && <div className="sec-mismatch"><i className="fas fa-times-circle"></i> Passwords do not match</div>}
+                                {confirmPassword && newPassword === confirmPassword && <div className="sec-match"><i className="fas fa-check-circle"></i> Passwords match</div>}
+                            </div>
+                            {msg && (
+                                <div className={`sec-msg ${msg.type}`}>
+                                    <i className={`fas ${msg.type==='success'?'fa-check-circle':'fa-exclamation-circle'}`}></i>
+                                    {msg.text}
+                                </div>
+                            )}
+                            <button type="submit" className="sec-save-btn" disabled={saving}>
+                                {saving ? <><i className="fas fa-spinner fa-spin"></i> Updating…</> : <><i className="fas fa-shield-alt"></i> Update Password</>}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                {/* Tips */}
+                <div className="sec-tips">
+                    <div className="sec-tips-title"><i className="fas fa-lightbulb"></i> Password Tips</div>
+                    <ul className="sec-tips-list">
+                        <li>Use at least 8 characters</li>
+                        <li>Mix uppercase, lowercase, numbers & symbols</li>
+                        <li>Avoid using personal info like your name or birthday</li>
+                        <li>Don't reuse passwords from other sites</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     );
 }

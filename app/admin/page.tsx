@@ -5,23 +5,21 @@ import { getSession, getRole, signOut } from '@/lib/auth';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import '../admin-layout.css';
 
-import dynamic from 'next/dynamic';
-
-// Modular Components (Dynamic Imports for performance)
-const TelegramPage = dynamic(() => import('@/components/admin/TelegramPage'), { loading: () => <div className="adm-page-loading">Loading Telegram...</div> });
-const SettingsPage = dynamic(() => import('@/components/admin/SettingsPage'), { loading: () => <div className="adm-page-loading">Loading Settings...</div> });
-const MarketWatchPage = dynamic(() => import('@/components/admin/MarketWatchPage'), { loading: () => <div className="adm-page-loading">Loading MarketWatch...</div> });
-const DashboardPage = dynamic(() => import('@/components/admin/DashboardPage'), { loading: () => <div className="adm-page-loading">Loading Dashboard...</div> });
-const OrdersPage = dynamic(() => import('@/components/admin/OrdersPage'), { loading: () => <div className="adm-page-loading">Loading Orders...</div> });
-const PositionPage = dynamic(() => import('@/components/admin/PositionPage'), { loading: () => <div className="adm-page-loading">Loading Position...</div> });
-const UpdatePage = dynamic(() => import('@/components/admin/UpdatePage'), { loading: () => <div className="adm-page-loading">Loading Update...</div> });
-const UsersPage = dynamic(() => import('@/components/admin/UsersPage'), { loading: () => <div className="adm-page-loading">Loading Users...</div> });
-const CreateUserForm = dynamic(() => import('@/components/admin/CreateUserForm'), { loading: () => <div className="adm-page-loading">Loading Form...</div> });
-const ActLedgerPage = dynamic(() => import('@/components/admin/ActLedgerPage'), { loading: () => <div className="adm-page-loading">Loading Ledger...</div> });
-const AccountsPage = dynamic(() => import('@/components/admin/AccountsPage'), { loading: () => <div className="adm-page-loading">Loading Accounts...</div> });
-const PayinOutPage = dynamic(() => import('@/components/admin/PayinOutPage'), { loading: () => <div className="adm-page-loading">Loading Payin-Out...</div> });
-const PayAccountsPage = dynamic(() => import('@/components/admin/PayAccountsPage'), { loading: () => <div className="adm-page-loading">Loading Payment Accounts...</div> });
-const UserPanel = dynamic(() => import('@/components/admin/UserPanel'), { ssr: false });
+// Modular Components
+import TelegramPage from '@/components/admin/TelegramPage';
+import SettingsPage from '@/components/admin/SettingsPage';
+import MarketWatchPage from '@/components/admin/MarketWatchPage';
+import DashboardPage from '@/components/admin/DashboardPage';
+import OrdersPage from '@/components/admin/OrdersPage';
+import PositionPage from '@/components/admin/PositionPage';
+import UpdatePage from '@/components/admin/UpdatePage';
+import UsersPage from '@/components/admin/UsersPage';
+import CreateUserForm from '@/components/admin/CreateUserForm';
+import ActLedgerPage from '@/components/admin/ActLedgerPage';
+import AccountsPage from '@/components/admin/AccountsPage';
+import PayinOutPage from '@/components/admin/PayinOutPage';
+import PayAccountsPage from '@/components/admin/PayAccountsPage';
+import UserPanel from '@/components/admin/UserPanel';
 
 const navItems = [
   { key: 'telegram', label: 'TELEGRAM' },
@@ -48,14 +46,22 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>({ id: '', role: '' });
   const [userRole, setUserRole] = useState<string>('');
 
-  // Role check is now handled by middleware for seamless initial load.
+  // Route guard — Supabase session + admin role check
   useEffect(() => {
-    setIsChecking(false);
-    // Grab user role for UI logic (optional but helpful)
     getSession().then((session) => {
-      if (session) setUserRole(getRole(session.user));
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+      const role = getRole(session.user);
+      if (role !== 'admin' && role !== 'super_admin') {
+        router.replace('/');
+        return;
+      }
+      setUserRole(role);
+      setIsChecking(false);
     });
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const savedPage = sessionStorage.getItem('adminActivePage');

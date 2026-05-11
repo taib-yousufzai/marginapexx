@@ -18,7 +18,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { kiteRestore, kiteStatus } from '@/lib/kiteClient';
-import { useStore } from '@/lib/store';
 
 export interface QuoteData {
   lastPrice: number;
@@ -45,10 +44,10 @@ export function useKiteQuotes(
   instruments: string[],
   refreshInterval = 5000,
 ): UseKiteQuotesResult {
-  const globalQuotes = useStore((state) => state.quotes);
-  const updateGlobalQuotes = useStore((state) => state.updateQuotes);
-  
+  const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
   const [connected, setConnected] = useState(false);
+  // Start in loading=true so the UI shows a spinner, not "No live data",
+  // while we check the session status on mount.
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -139,7 +138,7 @@ export function useKiteQuotes(
         }
       }
 
-      updateGlobalQuotes(mapped);
+      setQuotes(mapped);
       setConnected(true);
       setError(null);
     } catch (err) {
@@ -181,11 +180,5 @@ export function useKiteQuotes(
     };
   }, [fetchQuotes, refreshInterval]);
 
-  // Filter global quotes to only include requested instruments
-  const filteredQuotes = instruments.reduce((acc, symbol) => {
-    if (globalQuotes[symbol]) acc[symbol] = globalQuotes[symbol];
-    return acc;
-  }, {} as Record<string, QuoteData>);
-
-  return { quotes: filteredQuotes, connected, loading, error, refresh: fetchQuotes };
+  return { quotes, connected, loading, error, refresh: fetchQuotes };
 }

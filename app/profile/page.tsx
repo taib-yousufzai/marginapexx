@@ -4,9 +4,6 @@ import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
 import type { Session } from '@supabase/supabase-js';
-import Sidebar from '@/components/Sidebar';
-import Navbar from '@/components/Navbar';
-import NotificationDrawer from '@/components/NotificationDrawer';
 import './page.css';
 export default function ProfilePage() {
     useAuth();
@@ -25,7 +22,6 @@ export default function ProfilePage() {
     // Profile data
     const [profileName, setProfileName] = useState<string>('');
     const [profilePhone, setProfilePhone] = useState<string>('');
-    const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
     const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -135,129 +131,128 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="desktop-layout">
-            <Sidebar />
-            
-            <main className="main-viewport">
-                <div className="app-container">
-                    <Navbar title="My Account" onNotifClick={() => setIsNotifDrawerOpen(true)} />
+        <div className="mobile-app">
+            <div className="app-header">
+                <div className="header-top">
+                    <div className="logo-area">
+                        <Link href="/" style={{color:'#1A1E2B',textDecoration:'none',display:'flex',alignItems:'center',justifyContent:'center',background:'#F8FAFF',width:'36px',height:'36px',borderRadius:'50%',border:'1px solid #EEF2F8'}}>
+                            <i className="fas fa-arrow-left" style={{fontSize:'1rem'}}></i>
+                        </Link>
+                        <div className="logo-text" style={{marginLeft:'6px'}}>My Account</div>
+                    </div>
+                </div>
+            </div>
 
-                    <div className="main-scroll-wrapper">
-                        <div className="main-content">
-                            <div className="profile-hero">
-                                <div className="avatar">{avatarLetter}</div>
-                                <div className="profile-info">
-                                    <h2>{displayName}</h2>
-                                    <span className="user-email">{email}</span>
-                                    <span className="user-id">Client ID: {clientId}</span>
-                                </div>
-                                <button className="edit-btn" onClick={openModal} aria-label="Quick edit">
-                                    <i className="fas fa-pen"></i>
-                                </button>
-                            </div>
+            <div className="main-content">
+                <div className="profile-hero">
+                    <div className="avatar">{avatarLetter}</div>
+                    <div className="profile-info">
+                        <h2>{displayName}</h2>
+                        <span className="user-email">{email}</span>
+                        <span className="user-id">Client ID: {clientId}</span>
+                    </div>
+                    <button className="edit-btn" onClick={openModal} aria-label="Quick edit">
+                        <i className="fas fa-pen"></i>
+                    </button>
+                </div>
 
-                            <div className="funds-card">
-                                <div className="funds-label">Available Margin</div>
-                                <div className="funds-amount">
-                                    {balance === null ? <span style={{opacity:0.5,fontSize:'1.4rem'}}>Loading…</span> : formattedBalance}
-                                </div>
-                                <div className="funds-actions">
-                                    <Link href="/funds" className="fund-btn add-btn" style={{textDecoration:'none'}}><i className="fas fa-plus"></i> Add Funds</Link>
-                                    <Link href="/funds?tab=withdraw" className="fund-btn wd-btn" style={{textDecoration:'none'}}><i className="fas fa-arrow-down"></i> Withdraw</Link>
-                                </div>
-                            </div>
+                <div className="funds-card">
+                    <div className="funds-label">Available Margin</div>
+                    <div className="funds-amount">
+                        {balance === null ? <span style={{opacity:0.5,fontSize:'1.4rem'}}>Loading…</span> : formattedBalance}
+                    </div>
+                    <div className="funds-actions">
+                        <Link href="/funds" className="fund-btn add-btn" style={{textDecoration:'none'}}><i className="fas fa-plus"></i> Add Funds</Link>
+                        <Link href="/funds?tab=withdraw" className="fund-btn wd-btn" style={{textDecoration:'none'}}><i className="fas fa-arrow-down"></i> Withdraw</Link>
+                    </div>
+                </div>
 
-                            <div className="menu-groups-grid">
-                                <div className="menu-group">
-                                    <div className="menu-group-title">Account & Details</div>
-                                    <div className="menu-list">
-                                        <Link href="/profile/details" className="menu-item">
-                                            <div className="m-icon" style={{background:'#EEF2F8',color:'#1E40AF'}}><i className="fas fa-user"></i></div>
-                                            <div className="m-text">Profile Details</div>
-                                            <i className="fas fa-chevron-right m-caret"></i>
-                                        </Link>
-                                        <Link href="/profile/reports" className="menu-item">
-                                            <div className="m-icon" style={{background:'#FEF0F0',color:'#C62E2E'}}><i className="fas fa-file-invoice"></i></div>
-                                            <div className="m-text">Reports & P&L</div>
-                                            <i className="fas fa-chevron-right m-caret"></i>
-                                        </Link>
-                                        <Link href="/profile/security" className="menu-item">
-                                            <div className="m-icon" style={{background:'#F0FDF4',color:'#16A34A'}}><i className="fas fa-shield-alt"></i></div>
-                                            <div className="m-text">Security & Passwords</div>
-                                            <i className="fas fa-chevron-right m-caret"></i>
-                                        </Link>
-                                    </div>
-                                </div>
+                <div className="menu-groups-grid">
+                    <div className="menu-group">
+                        <div className="menu-group-title">Account & Details</div>
+                        <div className="menu-list">
+                            <Link href="/profile/details" className="menu-item">
+                                <div className="m-icon" style={{background:'#EEF2F8',color:'#1E40AF'}}><i className="fas fa-user"></i></div>
+                                <div className="m-text">Profile Details</div>
+                                <i className="fas fa-chevron-right m-caret"></i>
+                            </Link>
+                            <Link href="/profile/reports" className="menu-item">
+                                <div className="m-icon" style={{background:'#FEF0F0',color:'#C62E2E'}}><i className="fas fa-file-invoice"></i></div>
+                                <div className="m-text">Reports & P&L</div>
+                                <i className="fas fa-chevron-right m-caret"></i>
+                            </Link>
+                            <Link href="/profile/security" className="menu-item">
+                                <div className="m-icon" style={{background:'#F0FDF4',color:'#16A34A'}}><i className="fas fa-shield-alt"></i></div>
+                                <div className="m-text">Security & Passwords</div>
+                                <i className="fas fa-chevron-right m-caret"></i>
+                            </Link>
+                        </div>
+                    </div>
 
-                                <div className="menu-group">
-                                    <div className="menu-group-title">App Preferences</div>
-                                    <div className="menu-list">
-                                        <div className="menu-item" onClick={toggleDark} style={{cursor:'pointer'}}>
-                                            <div className="m-icon" style={{background:'#FAF5FF',color:'#9333EA'}}><i className="fas fa-moon"></i></div>
-                                            <div className="m-text">Dark Mode</div>
-                                            <div className={`toggle-switch ${isDark ? 'active' : ''}`}>
-                                                <div className="toggle-thumb"></div>
-                                            </div>
-                                        </div>
-                                        <Link href="/profile/notifications" className="menu-item">
-                                            <div className="m-icon" style={{background:'#FFFBEB',color:'#D97706'}}><i className="fas fa-bell"></i></div>
-                                            <div className="m-text">Notifications</div>
-                                            {unreadCount > 0 && (
-                                                <span style={{background:'#C62E2E',color:'white',fontSize:'0.6rem',fontWeight:800,padding:'2px 7px',borderRadius:'20px',marginRight:'4px'}}>
-                                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                                </span>
-                                            )}
-                                            <i className="fas fa-chevron-right m-caret"></i>
-                                        </Link>
-                                    </div>
+                    <div className="menu-group">
+                        <div className="menu-group-title">App Preferences</div>
+                        <div className="menu-list">
+                            <div className="menu-item" onClick={toggleDark} style={{cursor:'pointer'}}>
+                                <div className="m-icon" style={{background:'#FAF5FF',color:'#9333EA'}}><i className="fas fa-moon"></i></div>
+                                <div className="m-text">Dark Mode</div>
+                                <div className={`toggle-switch ${isDark ? 'active' : ''}`}>
+                                    <div className="toggle-thumb"></div>
                                 </div>
                             </div>
-
-                            <button className="logout-btn" onClick={() => signOut()}>
-                                <i className="fas fa-power-off"></i> Logout
-                            </button>
+                            <Link href="/profile/notifications" className="menu-item">
+                                <div className="m-icon" style={{background:'#FFFBEB',color:'#D97706'}}><i className="fas fa-bell"></i></div>
+                                <div className="m-text">Notifications</div>
+                                {unreadCount > 0 && (
+                                    <span style={{background:'#C62E2E',color:'white',fontSize:'0.6rem',fontWeight:800,padding:'2px 7px',borderRadius:'20px',marginRight:'4px'}}>
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                )}
+                                <i className="fas fa-chevron-right m-caret"></i>
+                            </Link>
                         </div>
                     </div>
                 </div>
 
-                <NotificationDrawer isOpen={isNotifDrawerOpen} onClose={() => setIsNotifDrawerOpen(false)} />
+                <button className="logout-btn" onClick={() => signOut()}>
+                    <i className="fas fa-power-off"></i> Logout
+                </button>
+            </div>
 
-                {/* Quick Edit Bottom Sheet */}
-                {modalOpen && (
-                    <div className="qe-overlay" ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) closeModal(); }}>
-                        <div className="qe-sheet">
-                            <div className="qe-handle"></div>
-                            <div className="qe-header">
-                                <span className="qe-title">Quick Edit</span>
-                                <button className="qe-close" onClick={closeModal}><i className="fas fa-times"></i></button>
+            {/* Quick Edit Bottom Sheet */}
+            {modalOpen && (
+                <div className="qe-overlay" ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) closeModal(); }}>
+                    <div className="qe-sheet">
+                        <div className="qe-handle"></div>
+                        <div className="qe-header">
+                            <span className="qe-title">Quick Edit</span>
+                            <button className="qe-close" onClick={closeModal}><i className="fas fa-times"></i></button>
+                        </div>
+                        <div className="qe-body">
+                            <div className="qe-field">
+                                <label className="qe-label"><i className="fas fa-user"></i> Full Name</label>
+                                <input className="qe-input" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Enter your full name" autoFocus />
                             </div>
-                            <div className="qe-body">
-                                <div className="qe-field">
-                                    <label className="qe-label"><i className="fas fa-user"></i> Full Name</label>
-                                    <input className="qe-input" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Enter your full name" autoFocus />
-                                </div>
-                                <div className="qe-field">
-                                    <label className="qe-label"><i className="fas fa-phone"></i> Phone Number</label>
-                                    <input className="qe-input" type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Enter phone number" />
-                                </div>
-                                {saveMsg && (
-                                    <div className={`qe-msg ${saveMsg.type}`}>
-                                        <i className={`fas ${saveMsg.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
-                                        {saveMsg.text}
-                                    </div>
-                                )}
-                                <button className="qe-save-btn" onClick={handleQuickSave} disabled={saving}>
-                                    {saving ? <><i className="fas fa-spinner fa-spin"></i> Saving…</> : <><i className="fas fa-check"></i> Save Changes</>}
-                                </button>
-                                <Link href="/profile/details" className="qe-full-link" onClick={closeModal}>
-                                    <i className="fas fa-id-card"></i> View full profile details
-                                    <i className="fas fa-arrow-right"></i>
-                                </Link>
+                            <div className="qe-field">
+                                <label className="qe-label"><i className="fas fa-phone"></i> Phone Number</label>
+                                <input className="qe-input" type="tel" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Enter phone number" />
                             </div>
+                            {saveMsg && (
+                                <div className={`qe-msg ${saveMsg.type}`}>
+                                    <i className={`fas ${saveMsg.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+                                    {saveMsg.text}
+                                </div>
+                            )}
+                            <button className="qe-save-btn" onClick={handleQuickSave} disabled={saving}>
+                                {saving ? <><i className="fas fa-spinner fa-spin"></i> Saving…</> : <><i className="fas fa-check"></i> Save Changes</>}
+                            </button>
+                            <Link href="/profile/details" className="qe-full-link" onClick={closeModal}>
+                                <i className="fas fa-id-card"></i> View full profile details
+                                <i className="fas fa-arrow-right"></i>
+                            </Link>
                         </div>
                     </div>
-                )}
-            </main>
+                </div>
+            )}
         </div>
     );
 }

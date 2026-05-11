@@ -138,22 +138,16 @@ let _cacheTimestamp = 0;
 const SESSION_CACHE_TTL_MS = 60_000; // re-validate after 60 seconds
 
 // Supabase keeps the session fresh via its own token refresh mechanism.
-// We listen for auth state changes to keep our cache and cookies in sync.
+// We listen for auth state changes to keep our cache in sync.
 if (typeof window !== 'undefined') {
   import('./supabaseClient').then(({ supabase: sb }) => {
-    sb.auth.onAuthStateChange((event, session) => {
+    sb.auth.onAuthStateChange((_event, session) => {
       if (session) {
         _cachedSession = session;
         _cacheTimestamp = Date.now();
-        // Set a simple cookie for the middleware to read
-        document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${session.expires_in}; SameSite=Lax`;
-        document.cookie = `sb-user-role=${session.user.user_metadata?.role || 'user'}; path=/; max-age=${session.expires_in}; SameSite=Lax`;
       } else {
         _cachedSession = null;
         _cacheTimestamp = 0;
-        // Clear cookies on sign-out
-        document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'sb-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
     });
   });
