@@ -29,25 +29,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
+    <div className="adm-settings-layout">
       {/* Settings Sidebar */}
-      <div style={{ 
-        width: '240px', 
-        borderRight: '1px solid #30363d', 
-        display: 'flex', 
-        flexDirection: 'column',
-        padding: '20px 0'
-      }}>
-        <h2 style={{ 
-          margin: '0 0 20px 20px', 
-          color: '#e6edf3', 
-          fontSize: '18px',
-          fontWeight: 600 
-        }}>
+      <div className="adm-settings-sidebar">
+        <h2 className="adm-settings-title">
           System Settings
         </h2>
         
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 12px' }}>
+        <nav className="adm-settings-nav">
           <SidebarButton 
             active={activeTab === 'scripts'} 
             onClick={() => setActiveTab('scripts')}
@@ -77,7 +66,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', backgroundColor: '#0d1117' }}>
+      <div className="adm-settings-main">
         {renderActiveTab()}
       </div>
     </div>
@@ -88,28 +77,7 @@ function SidebarButton({ active, onClick, label }: { active: boolean, onClick: (
   return (
     <button
       onClick={onClick}
-      style={{
-        padding: '10px 16px',
-        textAlign: 'left',
-        background: active ? '#1f2937' : 'transparent',
-        border: 'none',
-        borderRadius: '6px',
-        color: active ? '#e6edf3' : '#8b949e',
-        fontWeight: active ? 600 : 400,
-        cursor: 'pointer',
-        fontSize: '14px',
-        transition: 'all 0.2s ease'
-      }}
-      onMouseOver={(e) => {
-        if (!active) e.currentTarget.style.background = '#161b22';
-        e.currentTarget.style.color = '#e6edf3';
-      }}
-      onMouseOut={(e) => {
-        if (!active) {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = '#8b949e';
-        }
-      }}
+      className={`adm-settings-btn ${active ? 'active' : ''}`}
     >
       {label}
     </button>

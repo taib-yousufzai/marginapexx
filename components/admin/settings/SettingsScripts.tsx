@@ -149,7 +149,7 @@ export default function SettingsScripts() {
 
       {showModal && (
         <div className="adm-overlay" onClick={() => !saveLoading && setShowModal(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="adm-card" style={{ width: 340, padding: 24 }} onClick={e => e.stopPropagation()}>
+          <div className="adm-card" style={{ width: '90%', maxWidth: 340, padding: 24 }} onClick={e => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, marginBottom: 20, color: '#e6edf3' }}>{editIdx !== null ? 'Edit Script' : 'Add Script'}</h3>
             <div className="adm-upd-field">
               <label className="adm-upd-label">Symbol</label>
@@ -159,7 +159,7 @@ export default function SettingsScripts() {
               <label className="adm-upd-label">Lot Size</label>
               <input type="number" className="adm-upd-input" value={formLot} onChange={e => setFormLot(e.target.value)} placeholder="e.g. 1" />
             </div>
-            <div style={{ display: 'flex', gap: 12, marginTop: 24, justifyContent: 'flex-end' }}>
+            <div className="adm-sheet-actions" style={{ marginTop: 24 }}>
               <button className="adm-sheet-cancel" onClick={() => setShowModal(false)} disabled={saveLoading}>Cancel</button>
               <button className="adm-btn-primary" onClick={handleSave} disabled={saveLoading}>
                 {saveLoading ? 'Saving...' : 'Save'}
