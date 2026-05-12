@@ -265,9 +265,10 @@
 
 .adm-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .adm-card-title {
@@ -1246,6 +1247,19 @@
 }
 .adm-mw-remove:hover { color: #f85149; }
 
+.adm-mw-row-remove {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.adm-mw-row-remove:hover { color: #f85149; background: rgba(248,81,73,0.1); }
+
 /* ===== MARKET WATCH DROPDOWN ===== */
 .adm-mw-search-wrap {
   position: relative;
@@ -1395,7 +1409,8 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
-.adm-db-cell {
+.adm-db-cell,
+.adm-db-card {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -1404,20 +1419,55 @@
   flex-direction: column;
   gap: 6px;
 }
-.adm-db-cell-label {
+.adm-db-cell-label,
+.adm-db-label {
   font-size: 0.65rem;
   font-weight: 700;
   color: #94a3b8;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
-.adm-db-cell-value {
+.adm-db-cell-value,
+.adm-db-value {
   font-size: 0.95rem;
   font-weight: 700;
   color: #f8fafc;
 }
-.adm-db-cell-value.pos { color: #2ea043; }
-.adm-db-cell-value.neg { color: #f85149; }
+.adm-db-cell-value.pos,
+.adm-db-value.pos { color: #2ea043; }
+.adm-db-cell-value.neg,
+.adm-db-value.neg { color: #f85149; }
+
+/* Section header - fix class name mismatch */
+.adm-db-sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.adm-db-sec-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin: 0;
+}
+.adm-db-refresh {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+.adm-db-refresh:hover { color: #f8fafc; background: rgba(255,255,255,0.1); }
+.adm-db-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .adm-db-role-badge {
   font-size: 0.6rem;
@@ -2412,12 +2462,13 @@
 
 .adm-pay-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: auto 1fr;
+  gap: 8px 16px;
   background: #030712;
   padding: 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: baseline;
 }
 
 .adm-pay-item {
@@ -2437,6 +2488,8 @@
   font-size: 0.9rem;
   color: #f8fafc;
   font-weight: 600;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 .adm-pay-dv.bold {
   font-weight: 800;

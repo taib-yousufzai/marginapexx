@@ -242,7 +242,7 @@ export default function MarketWatchPage() {
                     <td style={{ textAlign: 'right' }}>{fmt(q?.close)}</td>
                     <td style={{ textAlign: 'right' }}>
                       <button className="adm-mw-row-remove" onClick={() => removeInstrument(sym, i)} title="Remove">
-                        <i className="fas fa-times" />
+                        ✕
                       </button>
                     </td>
                   </tr>

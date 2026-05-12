@@ -57,89 +57,42 @@ export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selected
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
-      {/* Update Settings Sidebar */}
-      <div style={{ 
-        width: '240px', 
-        borderRight: '1px solid #30363d', 
-        display: 'flex', 
-        flexDirection: 'column',
-        padding: '20px 0'
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)' }}>
+      {/* User selector row - above tabs */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', borderBottom: '1px solid #30363d', flexShrink: 0
       }}>
-        <div style={{ padding: '0 20px 20px 20px', borderBottom: '1px solid #30363d', marginBottom: '20px' }}>
-          <h2 style={{ color: '#e6edf3', fontSize: '18px', fontWeight: 600, margin: '0 0 8px 0' }}>
-            Update User
-          </h2>
-          <div style={{ 
-            color: '#8b949e', 
-            fontSize: '13px', 
-            background: '#161b22', 
-            padding: '6px 10px', 
-            borderRadius: '6px',
-            fontFamily: 'monospace',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <span>{selectedUser?.id ? selectedUser.id : 'No User'}</span>
-            {onOpenUserPanel && (
-              <button 
-                onClick={onOpenUserPanel} 
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#4493f8', 
-                  fontSize: '12px', 
-                  cursor: 'pointer', 
-                  padding: 0 
-                }}>
-                Change
-              </button>
-            )}
-          </div>
+        <span style={{ color: '#e6edf3', fontSize: '13px', fontWeight: 600 }}>Update User</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ color: '#8b949e', fontSize: '12px', fontFamily: 'monospace' }}>
+            {selectedUser?.id ? selectedUser.id.slice(0, 12) + '...' : 'No User'}
+          </span>
+          {onOpenUserPanel && (
+            <button onClick={onOpenUserPanel} style={{ background: '#161b22', border: '1px solid #30363d', color: '#4493f8', fontSize: '12px', cursor: 'pointer', padding: '4px 10px', borderRadius: '6px' }}>
+              Change
+            </button>
+          )}
         </div>
-        
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 12px' }}>
-          <SidebarButton 
-            active={activeTab === 'profile'} 
-            onClick={() => setActiveTab('profile')}
-            label="User Profile"
-          />
-          <SidebarButton 
-            active={activeTab === 'segments'} 
-            onClick={() => setActiveTab('segments')}
-            label="Segment Config"
-          />
-          <SidebarButton 
-            active={activeTab === 'ledger'} 
-            onClick={() => setActiveTab('ledger')}
-            label="Ledger Update"
-          />
-          <SidebarButton 
-            active={activeTab === 'copy_settings'} 
-            onClick={() => setActiveTab('copy_settings')}
-            label="Copy Settings"
-          />
-          <SidebarButton 
-            active={activeTab === 'block_scripts'} 
-            onClick={() => setActiveTab('block_scripts')}
-            label="Block Scripts"
-          />
-          <SidebarButton 
-            active={activeTab === 'notifications'} 
-            onClick={() => setActiveTab('notifications')}
-            label="Send Notification"
-          />
-          <SidebarButton 
-            active={activeTab === 'multiple_settings'} 
-            onClick={() => setActiveTab('multiple_settings')}
-            label="Bulk Updates"
-          />
-        </nav>
+      </div>
+
+      {/* Horizontal scrollable tabs */}
+      <div style={{
+        display: 'flex', flexDirection: 'row', overflowX: 'auto',
+        borderBottom: '1px solid #30363d', padding: '8px 12px', gap: '4px',
+        flexShrink: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' as any,
+      }}>
+        <SidebarButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
+        <SidebarButton active={activeTab === 'segments'} onClick={() => setActiveTab('segments')} label="Segments" />
+        <SidebarButton active={activeTab === 'ledger'} onClick={() => setActiveTab('ledger')} label="Ledger" />
+        <SidebarButton active={activeTab === 'copy_settings'} onClick={() => setActiveTab('copy_settings')} label="Copy" />
+        <SidebarButton active={activeTab === 'block_scripts'} onClick={() => setActiveTab('block_scripts')} label="Block" />
+        <SidebarButton active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} label="Notify" />
+        <SidebarButton active={activeTab === 'multiple_settings'} onClick={() => setActiveTab('multiple_settings')} label="Bulk" />
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', backgroundColor: '#0d1117' }}>
+      <div style={{ flex: 1, padding: '16px', overflowY: 'auto', backgroundColor: '#0d1117' }}>
         {renderActiveTab()}
       </div>
     </div>
@@ -151,26 +104,18 @@ function SidebarButton({ active, onClick, label }: { active: boolean, onClick: (
     <button
       onClick={onClick}
       style={{
-        padding: '10px 16px',
-        textAlign: 'left',
+        padding: '6px 12px',
+        textAlign: 'center',
         background: active ? '#1f2937' : 'transparent',
-        border: 'none',
+        border: active ? '1px solid #374151' : '1px solid transparent',
         borderRadius: '6px',
         color: active ? '#e6edf3' : '#8b949e',
         fontWeight: active ? 600 : 400,
         cursor: 'pointer',
-        fontSize: '14px',
+        fontSize: '12px',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
         transition: 'all 0.2s ease'
-      }}
-      onMouseOver={(e) => {
-        if (!active) e.currentTarget.style.background = '#161b22';
-        e.currentTarget.style.color = '#e6edf3';
-      }}
-      onMouseOut={(e) => {
-        if (!active) {
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.color = '#8b949e';
-        }
       }}
     >
       {label}

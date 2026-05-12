@@ -238,7 +238,7 @@ export default function PaymentAccountsPage() {
         />
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <h2 className="adm-page-title" style={{ margin: 0 }}>Payment Accounts</h2>
         {!isFormOpen && (
           <button className="adm-btn-primary" onClick={handleOpenAdd}>

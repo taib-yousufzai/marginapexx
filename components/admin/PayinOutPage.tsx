@@ -377,23 +377,25 @@ export default function PayinOutPage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 20, borderTop: '1px solid #21262d', paddingTop: 20 }}>
-            <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20, borderTop: '1px solid #21262d', paddingTop: 20 }}>
+            <div style={{ position: 'relative' }}>
               <i className="fas fa-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#8b949e', fontSize: '0.85rem' }} />
               <input
                 className="adm-upd-input"
-                style={{ width: '100%', paddingLeft: 40, height: 44, borderRadius: 10 }}
+                style={{ width: '100%', paddingLeft: 40, height: 44, borderRadius: 10, boxSizing: 'border-box' }}
                 placeholder="Search by User ID, Name or Reference..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
               />
             </div>
-            <button className="adm-pay-clear-btn" style={{ height: 44, padding: '0 24px', borderRadius: 10 }} onClick={() => { setStatus('All Status'); setSearch(''); setDateFrom(''); setDateTo(''); }}>
-              Reset
-            </button>
-            <button className="adm-btn-primary" style={{ height: 44, padding: '0 24px', borderRadius: 10, background: '#238636' }} onClick={handleDownloadCsv}>
-              <i className="fas fa-file-excel" style={{ marginRight: 8 }} /> Export CSV
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="adm-pay-clear-btn" style={{ flex: 1, height: 44, borderRadius: 10 }} onClick={() => { setStatus('All Status'); setSearch(''); setDateFrom(''); setDateTo(''); }}>
+                Reset
+              </button>
+              <button className="adm-btn-primary" style={{ flex: 2, height: 44, borderRadius: 10, background: '#238636' }} onClick={handleDownloadCsv}>
+                <i className="fas fa-file-excel" style={{ marginRight: 8 }} /> Export CSV
+              </button>
+            </div>
           </div>
         </div>
 
