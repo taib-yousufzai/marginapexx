@@ -178,6 +178,7 @@ export default function PositionPage() {
                           <p>No open positions</p>
                         </div>
                       ) : openPositions.map(pos => (
+                        <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)}>
                           <div className="pos-card-left">
                             <div className="pos-card-symbol">{pos.symbol}</div>
                             <div className="pos-card-details">
