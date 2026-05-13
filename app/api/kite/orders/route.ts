@@ -43,20 +43,29 @@ export interface KiteOrder {
   tag: string | null;
 }
 
+async function doFetchOrders(apiKey: string, accessToken: string) {
+  return fetch('https://api.kite.trade/orders', {
+    headers: {
+      'X-Kite-Version': '3',
+      Authorization: `token ${apiKey}:${accessToken}`,
+    },
+    cache: 'no-store',
+  });
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const apiKey = process.env.KITE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'Kite API not configured' }, { status: 500 });
   }
 
+  // Resolve token: cookie first, then shared DB session
   let accessToken = request.cookies.get('kite_access_token')?.value;
+  const tokenSource = accessToken ? 'cookie' : 'db';
 
   if (!accessToken) {
-    console.log('[Kite Orders] No cookie found, checking shared session...');
     const sharedSession = await getSharedKiteSession();
-    if (sharedSession) {
-      accessToken = sharedSession.accessToken;
-    }
+    if (sharedSession) accessToken = sharedSession.accessToken;
   }
 
   if (!accessToken) {
@@ -64,21 +73,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await fetch('https://api.kite.trade/orders', {
-      headers: {
-        'X-Kite-Version': '3',
-        Authorization: `token ${apiKey}:${accessToken}`,
-      },
-      cache: 'no-store',
-    });
+    let response = await doFetchOrders(apiKey, accessToken);
+
+    // If cookie token was rejected, transparently retry with fresh DB token
+    if ((response.status === 403 || response.status === 401) && tokenSource === 'cookie') {
+      console.warn('[Kite Orders] Cookie token rejected — retrying with fresh DB token...');
+      const freshSession = await getSharedKiteSession();
+      if (freshSession) {
+        response = await doFetchOrders(apiKey, freshSession.accessToken);
+      }
+    }
 
     if (!response.ok) {
-      if (response.status === 403) {
-        return NextResponse.json(
-          { error: 'Kite session expired. Please reconnect.' },
-          { status: 403 },
-        );
-      }
       return NextResponse.json({ error: 'Failed to fetch orders' }, { status: response.status });
     }
 

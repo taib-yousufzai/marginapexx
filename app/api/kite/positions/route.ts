@@ -41,20 +41,29 @@ export interface KitePosition {
   day_sell_value: number;
 }
 
+async function doFetchPositions(apiKey: string, accessToken: string) {
+  return fetch('https://api.kite.trade/portfolio/positions', {
+    headers: {
+      'X-Kite-Version': '3',
+      Authorization: `token ${apiKey}:${accessToken}`,
+    },
+    cache: 'no-store',
+  });
+}
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const apiKey = process.env.KITE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'Kite API not configured' }, { status: 500 });
   }
 
+  // Resolve token: cookie first, then shared DB session
   let accessToken = request.cookies.get('kite_access_token')?.value;
+  const tokenSource = accessToken ? 'cookie' : 'db';
 
   if (!accessToken) {
-    console.log('[Kite Positions] No cookie found, checking shared session...');
     const sharedSession = await getSharedKiteSession();
-    if (sharedSession) {
-      accessToken = sharedSession.accessToken;
-    }
+    if (sharedSession) accessToken = sharedSession.accessToken;
   }
 
   if (!accessToken) {
@@ -62,21 +71,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const response = await fetch('https://api.kite.trade/portfolio/positions', {
-      headers: {
-        'X-Kite-Version': '3',
-        Authorization: `token ${apiKey}:${accessToken}`,
-      },
-      cache: 'no-store',
-    });
+    let response = await doFetchPositions(apiKey, accessToken);
+
+    // If cookie token was rejected, transparently retry with fresh DB token
+    if ((response.status === 403 || response.status === 401) && tokenSource === 'cookie') {
+      console.warn('[Kite Positions] Cookie token rejected — retrying with fresh DB token...');
+      const freshSession = await getSharedKiteSession();
+      if (freshSession) {
+        response = await doFetchPositions(apiKey, freshSession.accessToken);
+      }
+    }
 
     if (!response.ok) {
-      if (response.status === 403) {
-        return NextResponse.json(
-          { error: 'Kite session expired. Please reconnect.' },
-          { status: 403 },
-        );
-      }
       return NextResponse.json({ error: 'Failed to fetch positions' }, { status: response.status });
     }
 
