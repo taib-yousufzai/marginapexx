@@ -61,20 +61,29 @@ export function useKiteQuotes(
 
     let response: Response;
 
-    // Use POST if we have many instruments to avoid URL length limits
-    if (instruments.length > 50) {
-      response = await fetch('/api/kite/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instruments }),
-        cache: 'no-store',
-      });
-    } else {
-      const params = new URLSearchParams();
-      instruments.forEach(inst => params.append('instruments', inst));
-      response = await fetch(`/api/kite/quotes?${params.toString()}`, {
-        cache: 'no-store',
-      });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      // Use POST if we have many instruments to avoid URL length limits
+      if (instruments.length > 50) {
+        response = await fetch('/api/kite/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instruments }),
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+      } else {
+        const params = new URLSearchParams();
+        instruments.forEach(inst => params.append('instruments', inst));
+        response = await fetch(`/api/kite/quotes?${params.toString()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     // Signal to the caller that the token was rejected
@@ -168,7 +177,6 @@ export function useKiteQuotes(
     let cancelled = false;
 
     async function init() {
-      await kiteRestore();
       if (cancelled) return;
 
       try {
