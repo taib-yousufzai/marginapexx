@@ -15,32 +15,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python_version: '3.11'
 
-      - name: Install Playwright + dependencies
-        run: |
-          npm install playwright otpauth
-          npx playwright install chromium --with-deps
-
-      - name: Upload debug screenshot on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: '*.png'
-          if-no-files-found: ignore
+      - name: Install Dependencies
+        run: pip install requests pyotp kiteconnect
 
       - name: Run Kite auto-login
         env:
           ZERODHA_USER_ID: ${{ secrets.ZERODHA_USER_ID }}
           ZERODHA_PASSWORD: ${{ secrets.ZERODHA_PASSWORD }}
           ZERODHA_TOTP_SECRET: ${{ secrets.ZERODHA_TOTP_SECRET }}
-          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          NEXT_PUBLIC_KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
           KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ZERODHA_SUPABASE_USER_ID: ${{ secrets.ZERODHA_SUPABASE_USER_ID }}
-        run: node scripts/kite-autologin.js
+        run: python scripts/kite_autologin.py
