@@ -53,13 +53,15 @@ export default function PositionPage() {
   const realized = positions.filter(p => p.status === 'closed').reduce((acc, p) => acc + (p.pnl || 0), 0);
   const unrealized = positions.filter(p => p.status === 'open' || p.status === 'active').reduce((acc, p) => acc + (p.total_pnl || 0), 0);
 
-  const fmtUSD = (val: number) => {
+  const fmtUSD = (val: number, settlement?: string) => {
+    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
     const sign = val >= 0 ? '+' : '';
-    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${sign}${isUSD ? '$' : '₹'}${Math.abs(val).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const fmtPrice = (val: number) => {
-    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtPrice = (val: number, settlement?: string) => {
+    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
+    return `${isUSD ? '$' : '₹'}${val.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -176,11 +178,10 @@ export default function PositionPage() {
                           <p>No open positions</p>
                         </div>
                       ) : openPositions.map(pos => (
-                        <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)}>
                           <div className="pos-card-left">
                             <div className="pos-card-symbol">{pos.symbol}</div>
                             <div className="pos-card-details">
-                              <span>Avg Price: <strong>{fmtPrice(pos.entry_price)}</strong></span>
+                              <span>Avg Price: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                               <span>Qty: <strong>{pos.qty_open}</strong></span>
                             </div>
                           </div>
@@ -189,9 +190,9 @@ export default function PositionPage() {
                               {pos.side}
                             </span>
                             <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                              P&amp;L: {pos.total_pnl >= 0 ? '+' : ''}₹{pos.total_pnl.toFixed(2)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                              P&amp;L: {fmtUSD(pos.total_pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
                             </div>
-                            <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.current_ltp)}</strong></div>
+                            <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></div>
                           </div>
                         </div>
                       ))
@@ -206,7 +207,7 @@ export default function PositionPage() {
                           <div className="pos-card-left">
                             <div className="pos-card-symbol">{pos.symbol}</div>
                             <div className="pos-card-details">
-                              <span>Entry: <strong>{fmtPrice(pos.entry_price)}</strong></span>
+                              <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                               <span>Qty: <strong>{pos.qty_total}</strong></span>
                             </div>
                           </div>
@@ -215,9 +216,9 @@ export default function PositionPage() {
                               {pos.side}
                             </span>
                             <div className={`pos-card-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
-                              P&amp;L: {pos.pnl >= 0 ? '+' : ''}₹{pos.pnl.toFixed(2)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                              P&amp;L: {fmtUSD(pos.pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
                             </div>
-                            <div className="pos-card-ltp">Exit: <strong>{fmtPrice(pos.exit_price || 0)}</strong></div>
+                            <div className="pos-card-ltp">Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></div>
                           </div>
                         </div>
                       ))
@@ -237,7 +238,7 @@ export default function PositionPage() {
                           </div>
                           <div className="pos-detail-right">
                             <div className={`pos-detail-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                              {pos.total_pnl >= 0 ? '+' : ''}₹{pos.total_pnl.toFixed(2)}
+                              {fmtUSD(pos.total_pnl, pos.settlement)}
                             </div>
                             <div className="pos-detail-pct">{pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%</div>
                             <span className={`pos-status-badge ${pos.status}`}>
@@ -247,10 +248,10 @@ export default function PositionPage() {
                         </div>
                         <div className="pos-detail-meta">
                           <span>Qty: <strong>{pos.qty_open || pos.qty_total}</strong></span>
-                          <span>Entry: <strong>{fmtPrice(pos.entry_price)}</strong></span>
+                          <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                           {pos.status === 'closed'
-                            ? <span>Exit: <strong>{fmtPrice(pos.exit_price || 0)}</strong></span>
-                            : <span>Current: <strong>{fmtPrice(pos.current_ltp)}</strong></span>
+                            ? <span>Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></span>
+                            : <span>Current: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
                           }
                         </div>
                       </div>
@@ -275,7 +276,7 @@ export default function PositionPage() {
                     </div>
                     <div className="ps-header-right">
                       <div className={`ps-price ${selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}`}>
-                        {fmtPrice(selectedPos.current_ltp)}
+                        {fmtPrice(selectedPos.current_ltp, selectedPos.settlement)}
                       </div>
                     </div>
                   </div>
@@ -283,7 +284,7 @@ export default function PositionPage() {
                   <div style={{ padding: '20px 0' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Entry Price</span>
-                      <span style={{ fontWeight: 700 }}>{fmtPrice(selectedPos.entry_price)}</span>
+                      <span style={{ fontWeight: 700 }}>{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>Quantity</span>
@@ -296,7 +297,7 @@ export default function PositionPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                       <span style={{ color: 'var(--text-secondary)' }}>P&amp;L</span>
                       <span style={{ fontWeight: 800, fontSize: '1.2rem' }} className={selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}>
-                        {fmtUSD(selectedPos.total_pnl)}
+                        {fmtUSD(selectedPos.total_pnl, selectedPos.settlement)}
                       </span>
                     </div>
                   </div>

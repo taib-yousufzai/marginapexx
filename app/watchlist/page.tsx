@@ -789,8 +789,14 @@ function WatchlistContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
-    const quote = quotes[selectedItem.kiteSymbol];
-    const currentLtp = quote?.lastPrice ?? selectedItem.price;
+    // Resolve live LTP from correct source (mirrors the trade sheet display logic)
+    const isCryptoItem = !!(selectedItem.binanceSymbol);
+    let livePrice = selectedItem.price;
+    if (isCryptoItem && selectedItem.binanceSymbol) {
+      livePrice = binanceQuotes[selectedItem.binanceSymbol]?.lastPrice ?? selectedItem.price;
+    } else if (selectedItem.kiteSymbol) {
+      livePrice = quotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
+    }
 
     const result = await placeOrder({
       symbol: selectedItem.symbol,
@@ -800,8 +806,8 @@ function WatchlistContent() {
       order_type: orderType,
       product_type: productType,
       qty: orderQty,
-      lots: orderUnit === 'lot' ? orderQty : 0, // Simplified for now
-      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentLtp
+      lots: orderUnit === 'lot' ? orderQty : 0,
+      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : livePrice
     });
 
     if (result.success) {
@@ -812,16 +818,43 @@ function WatchlistContent() {
     }
   };
 
-  const currentQuote = selectedItem ? quotes[selectedItem.kiteSymbol] : null;
-  const currentLtp = currentQuote?.lastPrice ?? selectedItem?.price ?? 0;
+  // ── Trade sheet: resolve live quote from correct source ─────────────────
+  // Crypto  → useBinanceQuotes  (kiteSymbol is '' for crypto)
+  // COMEX   → useComexQuotes    (has both kiteSymbol + comexSymbol)
+  // All else→ useKiteQuotes
+  const isCrypto = !!(selectedItem?.binanceSymbol);
+  const isComex  = !!(selectedItem?.comexSymbol);
 
-  const isCrypto = selectedItem?.segment?.includes('Crypto') ?? false;
+  const currentKiteQuote    = selectedItem?.kiteSymbol   ? quotes[selectedItem.kiteSymbol]           : null;
+  const currentBinanceQuote = selectedItem?.binanceSymbol ? binanceQuotes[selectedItem.binanceSymbol] : null;
+  const currentComexQuote   = selectedItem?.comexSymbol   ? comexQuotes[selectedItem.comexSymbol]     : null;
+
+  let currentLtp           = 0;
+  let currentChangePercent = 0;
+  let currentChangePts     = 0;
+
+  if (isCrypto && currentBinanceQuote) {
+    currentLtp           = currentBinanceQuote.lastPrice;
+    currentChangePercent = currentBinanceQuote.changePercent;
+    currentChangePts     = currentBinanceQuote.change;
+  } else if (isComex && currentComexQuote) {
+    currentLtp           = currentComexQuote.lastPrice;
+    currentChangePercent = currentComexQuote.changePercent;
+    currentChangePts     = currentComexQuote.change;
+  } else if (currentKiteQuote) {
+    currentLtp           = currentKiteQuote.lastPrice;
+    currentChangePercent = currentKiteQuote.changePercent;
+    currentChangePts     = currentKiteQuote.change;
+  } else {
+    // Fallback to static item price (before any live data arrives)
+    currentLtp = selectedItem?.price ?? 0;
+  }
+
   const formatPrice = (price: number) => {
-    if (isCrypto) return `$${price.toFixed(2)}`;
+    if (isCrypto || isComex) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const ltpStr = currentLtp.toLocaleString('en-IN', { minimumFractionDigits: 2 });
   const bidPrice = currentLtp - (currentLtp * 0.001);
   const askPrice = currentLtp + (currentLtp * 0.001);
 
@@ -976,9 +1009,9 @@ function WatchlistContent() {
             <span className="ts-segment-badge" id="sheetSegment">{selectedItem?.segment || '---'}</span>
           </div>
           <div className="ts-price-block">
-            <div className="ts-price-value" id="sheetCmpValue">₹{ltpStr}</div>
-            <span className={`ts-change-badge ${currentQuote && currentQuote.changePercent < 0 ? 'negative' : ''}`} id="sheetChange">
-              {currentQuote ? (currentQuote.changePercent >= 0 ? '+' : '') + currentQuote.changePercent.toFixed(2) + '%' : '0.00%'}
+            <div className="ts-price-value" id="sheetCmpValue">{formatPrice(currentLtp)}</div>
+            <span className={`ts-change-badge ${currentChangePercent < 0 ? 'negative' : ''}`} id="sheetChange">
+              {currentLtp > 0 ? (currentChangePercent >= 0 ? '+' : '') + currentChangePercent.toFixed(2) + '%' : '0.00%'}
             </span>
           </div>
         </div>

@@ -56,12 +56,14 @@ BEGIN
     INSERT INTO public.positions (
       user_id, symbol, side, status,
       qty_total, qty_open,
-      avg_price, entry_price, ltp
+      avg_price, entry_price, ltp,
+      settlement
     )
     VALUES (
       p_user_id, p_symbol, p_side, 'open',
       p_qty, p_qty,
-      p_fill_price, p_fill_price, p_ltp
+      p_fill_price, p_fill_price, p_ltp,
+      p_segment
     );
   END IF;
 
@@ -180,7 +182,7 @@ $$;
 
 
 -- Grant execute to service role only
-REVOKE ALL ON FUNCTION public.place_order FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.close_position FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.place_order  TO service_role;
-GRANT EXECUTE ON FUNCTION public.close_position TO service_role;
+REVOKE ALL ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.close_position(uuid, uuid, numeric, numeric, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric) TO service_role;
+GRANT EXECUTE ON FUNCTION public.close_position(uuid, uuid, numeric, numeric, text) TO service_role;

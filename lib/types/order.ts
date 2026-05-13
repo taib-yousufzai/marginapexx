@@ -72,6 +72,7 @@ export interface MyPosition {
   duration_seconds: number;
   entry_time: string;
   exit_time: string | null;
+  settlement: string;
   created_at: string;
 }
 

@@ -10,6 +10,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useKiteQuotes } from './useKiteQuotes';
+import { useBinanceQuotes } from './useBinanceQuotes';
+import { useComexQuotes } from './useComexQuotes';
 import { MyPosition } from '@/lib/types/order';
 
 export interface EnrichedPosition extends MyPosition {
@@ -57,27 +59,47 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     return () => clearInterval(timer);
   }, [fetchPositions]);
 
-  // Instruments for LTP polling
-  // We need to map symbol (e.g. "NIFTY FUT") back to a kite instrument if possible,
-  // or store the kite_instrument in the positions table.
-  // Assuming 'symbol' in positions table is actually the Kite key "EXCHANGE:SYMBOL"
-  const instrumentKeys = useMemo(() => 
-    rawPositions.filter(p => p.status === 'open' || p.status === 'active').map(p => p.symbol),
-  [rawPositions]);
+  // Group instrument keys by segment
+  const { kiteKeys, binanceKeys, comexKeys } = useMemo(() => {
+    const kite: string[] = [];
+    const binance: string[] = [];
+    const comex: string[] = [];
 
-  // Use the existing Kite Quotes hook for real-time prices
-  const { quotes } = useKiteQuotes(instrumentKeys, refreshInterval);
+    rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
+      const seg = (p.settlement || '').toUpperCase();
+      if (seg.includes('CRYPTO')) {
+        binance.push(p.symbol);
+      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+        comex.push(p.symbol);
+      } else {
+        kite.push(p.symbol);
+      }
+    });
+
+    return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
+  }, [rawPositions]);
+
+  // Use the respective hooks for each segment
+  const { quotes: kiteQuotes } = useKiteQuotes(kiteKeys, refreshInterval);
+  const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, refreshInterval);
+  const { quotes: comexQuotes } = useComexQuotes(comexKeys, refreshInterval);
 
   // Enrich positions with live calculations
   const enrichedPositions = useMemo(() => {
     return rawPositions.map(p => {
-      const quote = quotes[p.symbol];
-      const ltp = quote ? quote.lastPrice : (p.ltp || p.entry_price);
+      const seg = (p.settlement || '').toUpperCase();
+      let ltp = p.ltp || p.entry_price;
+      
+      if (seg.includes('CRYPTO')) {
+        ltp = binanceQuotes[p.symbol]?.lastPrice ?? ltp;
+      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+        ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
+      } else {
+        ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
+      }
 
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
-        // P&L = (LTP - EntryPrice) * Qty if BUY
-        // P&L = (EntryPrice - LTP) * Qty if SELL
         if (p.side === 'BUY') {
           unrealised = (ltp - p.entry_price) * p.qty_open;
         } else {
@@ -97,7 +119,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         pnl_percent: parseFloat(pnl_percent.toFixed(2))
       } as EnrichedPosition;
     });
-  }, [rawPositions, quotes]);
+  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes]);
 
   return { positions: enrichedPositions, loading, error, refresh: fetchPositions };
 }
