@@ -72,22 +72,34 @@ def main():
     print("TwoFA success.")
 
     # ── Step 4: Get Request Token via OAuth Redirect ─────────────────────────
-    # We call the connect URL with skip_session=true to get the redirect immediately
     print("Fetching OAuth redirect...")
     connect_url = f"https://kite.trade/connect/login?v=3&api_key={api_key}&skip_session=true"
     
-    # We don't want to follow redirects fully, we just want the final URL containing request_token
-    response = session.get(connect_url, allow_redirects=True)
-    final_url = response.url
+    # We follow redirects manually to avoid the "Connection Refused" error when 
+    # it tries to hit the local redirect URL (127.0.0.1:3000)
+    current_url = connect_url
+    request_token = None
     
-    parsed_url = urlparse(final_url)
-    query_params = parse_qs(parsed_url.query)
-    
-    if 'request_token' not in query_params:
-        print(f"Failed to find request_token in URL: {final_url}")
+    for _ in range(5):  # Max 5 redirects
+        res = session.get(current_url, allow_redirects=False)
+        if 'Location' in res.headers:
+            current_url = res.headers['Location']
+            print(f"Redirecting to: {current_url}")
+            if 'request_token=' in current_url:
+                parsed_url = urlparse(current_url)
+                request_token = parse_qs(parsed_url.query).get('request_token', [None])[0]
+                break
+        else:
+            # If no Location header, maybe we are already at the destination
+            if 'request_token=' in res.url:
+                parsed_url = urlparse(res.url)
+                request_token = parse_qs(parsed_url.query).get('request_token', [None])[0]
+            break
+
+    if not request_token:
+        print(f"Failed to capture request_token. Final URL: {current_url}")
         return
     
-    request_token = query_params['request_token'][0]
     print(f"Captured request_token: {request_token}")
 
     # ── Step 5: Generate Session (Exchange Token) ────────────────────────────
