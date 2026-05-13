@@ -68,7 +68,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
       const seg = (p.settlement || '').toUpperCase();
       if (seg.includes('CRYPTO')) {
-        binance.push(p.symbol);
+        // Binance API expects symbols without slashes like BTCUSDT
+        binance.push(p.symbol.replace('/', ''));
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         comex.push(p.symbol);
       } else {
@@ -91,7 +92,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       let ltp = p.ltp || p.entry_price;
       
       if (seg.includes('CRYPTO')) {
-        ltp = binanceQuotes[p.symbol]?.lastPrice ?? ltp;
+        const binanceKey = p.symbol.replace('/', '');
+        ltp = binanceQuotes[binanceKey]?.lastPrice ?? ltp;
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
       } else {

@@ -29,7 +29,7 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'NSE:NIFTY 50': { name: 'NIFTY 50', icon: 'fas fa-chart-line' },
   'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
-  'NSE:USDINR': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
+  'CDS:USDINR': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
   'MCX:CRUDEOIL': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
   'MCX:GOLD': { name: 'GOLD', icon: 'fas fa-coins' },
   'MCX:SILVER': { name: 'SILVER', icon: 'fas fa-gem' },

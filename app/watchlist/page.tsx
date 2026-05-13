@@ -812,7 +812,8 @@ function WatchlistContent() {
 
     if (result.success) {
       closeTradeSheet();
-      showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ₹${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
+      const symbol = (selectedItem.binanceSymbol || selectedItem.comexSymbol) ? '$' : '₹';
+      showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
       showToast(`❌ Order Failed: ${result.error}`, true);
     }
@@ -1139,12 +1140,11 @@ function WatchlistContent() {
       <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         {selectedItem && (() => {
-          const q = quotes[selectedItem.kiteSymbol];
-          const ltp = q?.lastPrice ?? selectedItem.price;
-          const bid = q?.bid ?? (ltp * 0.999);
-          const ask = q?.ask ?? (ltp * 1.001);
-          const chgPct = q ? q.changePercent : 0;
-          const fmt = (v: number) => `₹${v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const ltp = currentLtp;
+          const bid = bidPrice;
+          const ask = askPrice;
+          const chgPct = currentChangePercent;
+          const fmt = (v: number) => formatPrice(v);
           return (
             <div style={{ padding: '0' }}>
               <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1218,16 +1218,19 @@ function WatchlistContent() {
                 No items. Tap BUY/SELL on any stock.
               </div>
             ) : basketLegs.map((leg, i) => {
-              const q = quotes[leg.item.kiteSymbol];
+              const legIsCrypto = !!leg.item.binanceSymbol;
+              const legIsComex  = !!leg.item.comexSymbol;
+              const q = legIsCrypto ? binanceQuotes[leg.item.binanceSymbol!] : (legIsComex ? comexQuotes[leg.item.comexSymbol!] : quotes[leg.item.kiteSymbol]);
               const ltp = q?.lastPrice ?? leg.item.price;
               const totalVal = ltp * leg.qty;
+              const legSymbol = (legIsCrypto || legIsComex) ? '$' : '₹';
               return (
                 <div key={i} style={{ background: '#F8FAFF', border: '1px solid #EEF2F8', borderRadius: '16px', padding: '14px' }}>
                   {/* Header row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1A1E2B' }}>{leg.item.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>₹{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>{legSymbol}{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       <button onClick={() => setBasketLegs(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', color: '#C62E2E', cursor: 'pointer', fontSize: '0.9rem', padding: '0' }}>
                         <i className="fas fa-trash-alt"></i>
                       </button>
