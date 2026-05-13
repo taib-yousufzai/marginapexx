@@ -9,6 +9,8 @@ type UserRow = {
   ledgerBal: number; mAvailable: number; openPnl: number; m2m: number;
   weeklyPnl: number; alltimePnl: number; marginUsed: number; holdingMargin: number;
   broker: string; mobile: string; scheduled_delete_at: string | null;
+  segments: string[]; read_only: boolean; demo_user: boolean;
+  intraday_sq_off: boolean; auto_sqoff: number; sqoff_method: string;
 };
 
 function mapUserListItem(u: UserListItem): UserRow {
@@ -18,7 +20,7 @@ function mapUserListItem(u: UserListItem): UserRow {
     role: u.role.toUpperCase(),
     active: u.active,
     ledgerBal: u.balance,
-    mAvailable: u.balance, // This should ideally be ledgerBal - marginUsed
+    mAvailable: u.balance - (u.marginUsed ?? 0),
     openPnl: u.openPnl ?? 0,
     m2m: u.m2m ?? 0,
     weeklyPnl: u.weeklyPnl ?? 0,
@@ -28,6 +30,12 @@ function mapUserListItem(u: UserListItem): UserRow {
     broker: u.parent_id ?? 'DIRECT',
     mobile: u.phone ?? 'N/A',
     scheduled_delete_at: u.scheduled_delete_at,
+    segments: u.segments ?? [],
+    read_only: u.read_only,
+    demo_user: u.demo_user,
+    intraday_sq_off: u.intraday_sq_off,
+    auto_sqoff: u.auto_sqoff,
+    sqoff_method: u.sqoff_method,
   };
 }
 
@@ -110,7 +118,13 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
       M2M: u.m2m,
       'Weekly PnL': u.weeklyPnl,
       Broker: u.broker,
-      Mobile: u.mobile
+      Mobile: u.mobile,
+      Segments: u.segments.join(', '),
+      'Read Only': u.read_only ? 'Yes' : 'No',
+      'Demo User': u.demo_user ? 'Yes' : 'No',
+      'Intraday SQ Off': u.intraday_sq_off ? 'Yes' : 'No',
+      'Auto SQ Off %': u.auto_sqoff,
+      'SQ Off Method': u.sqoff_method,
     }));
     downloadCSV(exportData, `users_export_${new Date().toISOString().split('T')[0]}.csv`);
     setToast({ message: 'Export started', type: 'success' });

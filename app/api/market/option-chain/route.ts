@@ -17,12 +17,13 @@ export async function GET(request: Request) {
     
     const expiry = searchParams.get('expiry');
 
-    // 1. Fetch available expiries for this symbol
+    const today = new Date().toISOString().split('T')[0];
     const { data: expiries, error: expiryError } = await supabase
       .from('instruments')
       .select('expiry')
       .eq('underlying_symbol', symbol)
       .not('expiry', 'is', null)
+      .gte('expiry', today)
       .order('expiry', { ascending: true });
 
     if (expiryError) throw expiryError;

@@ -36,6 +36,13 @@ export type UserListItem = {
   phone: string | null;
   parent_id: string | null;
   scheduled_delete_at: string | null;
+  segments: string[] | null;
+  read_only: boolean;
+  demo_user: boolean;
+  intraday_sq_off: boolean;
+  auto_sqoff: number;
+  sqoff_method: string;
+  created_at: string;
   openPnl?: number;
   m2m?: number;
   weeklyPnl?: number;
