@@ -16,24 +16,24 @@ const KITE_INSTRUMENTS_ROW1 = [
   'NSE:NIFTY 50',
   'BSE:SENSEX',
   'NSE:NIFTY BANK',
-  'CDS:USDINR',
+  'CDS:USDINR26MAYFUT',
 ];
 const KITE_INSTRUMENTS_ROW2 = [
-  'MCX:CRUDEOIL',
-  'MCX:GOLD',
-  'MCX:SILVER',
-  'MCX:NATURALGAS',
+  'MCX:CRUDEOIL26MAYFUT',
+  'MCX:GOLD26JUNFUT',
+  'MCX:SILVER26JULFUT',
+  'MCX:NATURALGAS26MAYFUT',
 ];
 
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'NSE:NIFTY 50': { name: 'NIFTY 50', icon: 'fas fa-chart-line' },
   'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
-  'CDS:USDINR': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
-  'MCX:CRUDEOIL': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
-  'MCX:GOLD': { name: 'GOLD', icon: 'fas fa-coins' },
-  'MCX:SILVER': { name: 'SILVER', icon: 'fas fa-gem' },
-  'MCX:NATURALGAS': { name: 'NAT GAS', icon: 'fas fa-fire' },
+  'CDS:USDINR26MAYFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
+  'MCX:CRUDEOIL26MAYFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
+  'MCX:GOLD26JUNFUT': { name: 'GOLD', icon: 'fas fa-coins' },
+  'MCX:SILVER26JULFUT': { name: 'SILVER', icon: 'fas fa-gem' },
+  'MCX:NATURALGAS26MAYFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 
 type MarketItem = { name: string; price: number; change: number; type: string; icon: string };

@@ -43,12 +43,6 @@ async function getSupabaseUserId(request: NextRequest): Promise<string | null> {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // If cookie already exists, nothing to do
-  const existingToken = request.cookies.get('kite_access_token')?.value;
-  if (existingToken) {
-    return NextResponse.json({ restored: false, reason: 'cookie_exists' });
-  }
-
   const supabaseUserId = await getSupabaseUserId(request);
   console.log('[Kite Restore] Resolved Supabase User ID:', supabaseUserId);
   
