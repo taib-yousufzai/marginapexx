@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/kite/autologin?secret=qwertyuiopasdfghjklzxcvbnm",
-      "schedule": "1 1 * * *"
+      "schedule": "32 0 * * *"
     },
     {
       "path": "/api/cron/sync-instruments?secret=qwertyuiopasdfghjklzxcvbnm",
