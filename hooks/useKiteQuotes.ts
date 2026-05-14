@@ -82,6 +82,11 @@ export function useKiteQuotes(
           signal: controller.signal,
         });
       }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      // AbortError = timeout, ignore silently
+      if (err instanceof Error && err.name === 'AbortError') return true;
+      throw err;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -166,6 +171,10 @@ export function useKiteQuotes(
         await doFetch(); // one retry with the fresh cookie
       }
     } catch (err) {
+      // Silently ignore AbortError (timeout) - it's expected behavior
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       console.error('[useKiteQuotes] Error:', err);
       setError('Network error fetching quotes');
     } finally {

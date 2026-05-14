@@ -967,19 +967,20 @@ function WatchlistContent() {
       {basketMode && (
         <div style={{
           position: 'fixed', bottom: '92px', left: '50%', transform: 'translateX(-50%)',
-          width: 'calc(100% - 24px)', maxWidth: '476px', background: '#FFFFFF',
-          borderTop: '1px solid #E8ECF0', padding: '10px 16px',
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.1)', zIndex: 44,
+          width: 'calc(100% - 24px)', maxWidth: '476px',
+          background: 'var(--container-bg, #FFFFFF)',
+          borderTop: '1px solid var(--border-light, #E8ECF0)', padding: '10px 16px',
+          boxShadow: '0 -4px 16px rgba(0,0,0,0.15)', zIndex: 44,
           boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px',
           borderRadius: '16px'
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1A1E2B' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary, #1A1E2B)' }}>
             {basketLegs.length} in basket
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
               onClick={() => { setBasketMode(false); setBasketLegs([]); }}
-              style={{ flex: 1, background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              style={{ flex: 1, background: 'var(--icon-bg, #F3F4F6)', color: 'var(--text-secondary, #4B5563)', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               <i className="fas fa-times"></i> Cancel
             </button>
@@ -1149,45 +1150,45 @@ function WatchlistContent() {
             <div style={{ padding: '0' }}>
               <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#E5E7EB', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
-                    <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: '#4B5563' }}></i>
+                  <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--icon-bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
+                    <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}></i>
                   </button>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.15' }}>{selectedItem.name}</div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{selectedItem.name}</div>
                     <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedItem.segment}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '0.47rem', fontWeight: '600', color: '#8C94A8', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
-                  <div style={{ fontSize: '0.935rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '2px', lineHeight: '1.1' }}>{fmt(ltp)}</div>
+                  <div style={{ fontSize: '0.47rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
+                  <div style={{ fontSize: '0.935rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.1' }}>{fmt(ltp)}</div>
                   <span className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
                 </div>
               </div>
-              <div style={{ height: '1px', background: '#F0F2F8', margin: '0 0 8px', width: '100%' }}></div>
+              <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
               <div style={{ padding: '0 12px 10px 12px' }}>
-                <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>BID</div>
+                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>{fmt(bid)}</div>
                   </div>
-                  <div style={{ width: '1px', background: '#E2E8F0', height: '24px' }}></div>
+                  <div style={{ width: '1px', background: 'var(--border-card)', height: '24px' }}></div>
                   <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>ASK</div>
+                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
                     <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>{fmt(ask)}</div>
                   </div>
                 </div>
                 <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: '700', color: '#5B677E', marginBottom: '6px' }}>PRICE SUMMARY</div>
-                  <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.open)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.high)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt(selectedItem.low)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: '#8C94A8', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B' }}>{fmt(selectedItem.close)}</div></div>
+                  <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>PRICE SUMMARY</div>
+                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.open)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.high)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt(selectedItem.low)}</div></div>
+                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)' }}>{fmt(selectedItem.close)}</div></div>
                   </div>
                 </div>
-                <div style={{ background: '#F8FAFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <div style={{ fontSize: '0.65rem', fontWeight: '600', color: '#8C94A8', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#1A1E2B', background: '#FFFFFF', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
+                <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem)}>
@@ -1225,12 +1226,12 @@ function WatchlistContent() {
               const totalVal = ltp * leg.qty;
               const legSymbol = (legIsCrypto || legIsComex) ? '$' : '₹';
               return (
-                <div key={i} style={{ background: '#F8FAFF', border: '1px solid #EEF2F8', borderRadius: '16px', padding: '14px' }}>
+                <div key={i} style={{ background: 'var(--card-alt-bg, #F8FAFF)', border: '1px solid var(--border-card, #EEF2F8)', borderRadius: '16px', padding: '14px' }}>
                   {/* Header row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1A1E2B' }}>{leg.item.name}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: '800', color: 'var(--text-primary, #1A1E2B)' }}>{leg.item.name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#1A1E2B' }}>{legSymbol}{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary, #1A1E2B)' }}>{legSymbol}{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                       <button onClick={() => setBasketLegs(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', color: '#C62E2E', cursor: 'pointer', fontSize: '0.9rem', padding: '0' }}>
                         <i className="fas fa-trash-alt"></i>
                       </button>
@@ -1238,34 +1239,34 @@ function WatchlistContent() {
                   </div>
                   {/* Order unit row */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: '700', color: '#8C94A8', letterSpacing: '0.5px' }}>ORDER UNIT</span>
-                    <div style={{ display: 'flex', background: '#FFFFFF', border: '1px solid #E2E6EC', borderRadius: '20px', overflow: 'hidden' }}>
+                    <span style={{ fontSize: '0.6rem', fontWeight: '700', color: 'var(--text-muted, #8C94A8)', letterSpacing: '0.5px' }}>ORDER UNIT</span>
+                    <div style={{ display: 'flex', background: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-card, #E2E6EC)', borderRadius: '20px', overflow: 'hidden' }}>
                       <button
                         onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, unit: 'qty' } : l))}
-                        style={{ padding: '4px 12px', fontSize: '0.65rem', fontWeight: '700', border: 'none', cursor: 'pointer', background: leg.unit !== 'lot' ? '#1A1E2B' : 'transparent', color: leg.unit !== 'lot' ? '#fff' : '#6B7280' }}
+                        style={{ padding: '4px 12px', fontSize: '0.65rem', fontWeight: '700', border: 'none', cursor: 'pointer', background: leg.unit !== 'lot' ? '#4B5563' : 'transparent', color: '#fff' }}
                       >QTY</button>
                       <button
                         onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, unit: 'lot' } : l))}
-                        style={{ padding: '4px 12px', fontSize: '0.65rem', fontWeight: '700', border: 'none', cursor: 'pointer', background: leg.unit === 'lot' ? '#1A1E2B' : 'transparent', color: leg.unit === 'lot' ? '#fff' : '#6B7280' }}
+                        style={{ padding: '4px 12px', fontSize: '0.65rem', fontWeight: '700', border: 'none', cursor: 'pointer', background: leg.unit === 'lot' ? '#4B5563' : 'transparent', color: leg.unit === 'lot' ? '#fff' : 'var(--text-secondary, #6B7280)' }}
                       >LOT</button>
                     </div>
                   </div>
                   {/* B/S toggle + qty stepper */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', border: '1px solid #E2E6EC' }}>
+                    <div style={{ display: 'flex', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border-card, #E2E6EC)' }}>
                       <button
                         onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, side: 'BUY' } : l))}
-                        style={{ padding: '6px 14px', fontSize: '0.72rem', fontWeight: '800', border: 'none', cursor: 'pointer', background: leg.side === 'BUY' ? '#1a8a3a' : '#F3F4F6', color: leg.side === 'BUY' ? '#fff' : '#6B7280' }}
+                        style={{ padding: '6px 14px', fontSize: '0.72rem', fontWeight: '800', border: 'none', cursor: 'pointer', background: leg.side === 'BUY' ? '#1a8a3a' : 'var(--icon-bg, #F3F4F6)', color: leg.side === 'BUY' ? '#fff' : 'var(--text-secondary, #6B7280)' }}
                       >B</button>
                       <button
                         onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, side: 'SELL' } : l))}
-                        style={{ padding: '6px 14px', fontSize: '0.72rem', fontWeight: '800', border: 'none', cursor: 'pointer', background: leg.side === 'SELL' ? '#b91c1c' : '#F3F4F6', color: leg.side === 'SELL' ? '#fff' : '#6B7280' }}
+                        style={{ padding: '6px 14px', fontSize: '0.72rem', fontWeight: '800', border: 'none', cursor: 'pointer', background: leg.side === 'SELL' ? '#b91c1c' : 'var(--icon-bg, #F3F4F6)', color: leg.side === 'SELL' ? '#fff' : 'var(--text-secondary, #6B7280)' }}
                       >S</button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#FFFFFF', border: '1px solid #E2E6EC', borderRadius: '20px', padding: '4px 14px' }}>
-                      <button onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, qty: Math.max(1, l.qty - 1) } : l))} style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: '#6B7280', padding: '0' }}>−</button>
-                      <span style={{ fontSize: '0.85rem', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{leg.qty}</span>
-                      <button onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, qty: l.qty + 1 } : l))} style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: '#6B7280', padding: '0' }}>+</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-alt-bg, #F3F4F6)', border: '1px solid var(--border-card, #E2E6EC)', borderRadius: '20px', padding: '4px 14px' }}>
+                      <button onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, qty: Math.max(1, l.qty - 1) } : l))} style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-secondary, #6B7280)', padding: '0' }}>−</button>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', minWidth: '20px', textAlign: 'center', color: 'var(--text-primary, #1A1E2B)' }}>{leg.qty}</span>
+                      <button onClick={() => setBasketLegs(prev => prev.map((l, j) => j === i ? { ...l, qty: l.qty + 1 } : l))} style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-secondary, #6B7280)', padding: '0' }}>+</button>
                     </div>
                   </div>
                 </div>
@@ -1273,21 +1274,21 @@ function WatchlistContent() {
             })}
           </div>
 
-          <div className="basket-margin-summary" style={{ border: '1px solid #EEF2F8', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>{basketLegs.length}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700' }}>₹{basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#8C94A8' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{(basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0) * 0.2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #EEF2F8', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
+          <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{(basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0) * 0.2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '12px', width: '100%', padding: '0 4px' }}>
             <button
-              style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0 }}
+              style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 8px', borderRadius: '50px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0, whiteSpace: 'nowrap' }}
               onClick={() => setShowBasketConfirm(true)}
             >
-              <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '1rem' }}></i> Execute Basket
+              <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '0.78rem' }}></i> Execute Basket
             </button>
             <button
-              style={{ flex: 1, background: '#EFEFEF', color: '#6B7280', border: 'none', padding: '17px 0', borderRadius: '50px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', minWidth: 0 }}
+              style={{ flex: 1, background: 'var(--icon-bg, #EFEFEF)', color: 'var(--text-secondary, #6B7280)', border: 'none', padding: '17px 8px', borderRadius: '50px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', minWidth: 0, whiteSpace: 'nowrap' }}
               onClick={() => {
                 setBasketLegs([]);
                 const sheet = document.getElementById('basketSheet');
