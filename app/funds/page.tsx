@@ -80,6 +80,30 @@ export default function FundsPage() {
     window.open(`https://wa.me/${number.replace(/[^0-9]/g, '')}`, '_blank');
   };
 
+  const downloadQRCode = () => {
+    const svg = document.querySelector(".qr-container svg") as SVGGraphicsElement;
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = 1000; // High resolution
+      canvas.height = 1000;
+      if (ctx) {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 50, 50, 900, 900);
+      }
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `MarginApex_QR_${amount}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = `data:image/svg+xml;base64,${btoa(svgData)}`;
+  };
+
   useEffect(() => {
     let cancelled = false;
     getSession().then((session) => {
@@ -403,18 +427,47 @@ export default function FundsPage() {
                             PAYMENT DETAILS ({paymentMethod === 'UPI' ? 'UPI' : 'BANK'})
                           </div>
                           <div className="payment-details-card">
+                            <div className="amount-edit-row" style={{ marginBottom: '20px', padding: '16px', background: 'var(--icon-bg)', borderRadius: '16px', border: '1px solid var(--border-card)' }}>
+                              <label style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '4px', display: 'block' }}>CONFIRM DEPOSIT AMOUNT</label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>₹</span>
+                                <input 
+                                  type="number" 
+                                  value={amount} 
+                                  onChange={(e) => setAmount(e.target.value)}
+                                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', width: '100%' }}
+                                />
+                              </div>
+                            </div>
+
                             {paymentMethod === 'UPI' ? (
                               <div className="upi-payment-info" style={{ textAlign: 'center' }}>
-                                <div className="qr-container" style={{ background: 'white', padding: '15px', borderRadius: '20px', display: 'inline-block', marginBottom: '20px' }}>
-                                  <QRCode value={`upi://pay?pa=${activeAccount.upi_id}&pn=MarginApex&am=${amount}&cu=INR`} size={160} />
+                                <div className="qr-box-wrapper" style={{ marginBottom: '24px' }}>
+                                  <div className="qr-container" style={{ background: 'white', padding: '20px', borderRadius: '24px', display: 'inline-block', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', border: '1px solid #eee' }}>
+                                    <QRCode value={`upi://pay?pa=${activeAccount.upi_id}&pn=${encodeURIComponent(activeAccount.account_holder)}&am=${amount}&cu=INR`} size={200} />
+                                  </div>
+                                  <button 
+                                    onClick={downloadQRCode}
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: '16px auto 0', background: 'var(--icon-bg)', border: '1px solid var(--border-card)', padding: '10px 20px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}
+                                  >
+                                    <i className="fas fa-download"></i> Download QR
+                                  </button>
                                 </div>
+
+                                <div className="section-divider" style={{ height: '1px', background: 'var(--border-card)', margin: '20px 0', borderBottom: '1px dashed var(--border-card)' }}></div>
+
                                 <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.upi_id, 'UPI ID')}>
-                                  <div><strong>UPI ID</strong><span>{activeAccount.upi_id}</span></div>
+                                  <div><strong>UPI ID / VPA</strong><span>{activeAccount.upi_id}</span></div>
                                   <i className="fas fa-copy copy-icon"></i>
                                 </div>
-                                <a href={`upi://pay?pa=${activeAccount.upi_id}&pn=MarginApex&am=${amount}&cu=INR`} className="submit-funds-btn" style={{ marginTop: '16px', background: '#006400' }}>
-                                  <i className="fas fa-mobile-android"></i> Open UPI App
-                                </a>
+                                <div className="copyable-row" onClick={() => copyToClipboard(activeAccount.account_holder, 'Beneficiary')}>
+                                  <div><strong>Beneficiary Name</strong><span>{activeAccount.account_holder}</span></div>
+                                  <i className="fas fa-copy copy-icon"></i>
+                                </div>
+                                
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '16px', lineHeight: '1.5' }}>
+                                  <i className="fas fa-info-circle"></i> Scan the QR code or copy details to pay using any UPI app like PhonePe, Google Pay, or Paytm.
+                                </p>
                               </div>
                             ) : (
                               <div className="bank-payment-info">
