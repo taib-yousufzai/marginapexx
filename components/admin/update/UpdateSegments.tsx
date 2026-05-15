@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth';
-import { apiCall, Toast, ToastState } from '../AdminUtils';
+import { apiCall, Toast, ToastState, UserListItem } from '../AdminUtils';
 import { SegSettings } from '../UpdatePage'; // We will define this type locally to avoid circular dependencies
 
 const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
@@ -16,6 +16,25 @@ export type SegmentSettingsType = {
   holdingType: string;
   exitBuffer: string; tradeAllowed: boolean;
 };
+
+export interface SegmentRow {
+  segment: string;
+  side: string;
+  commission_type: string;
+  commission_value: number;
+  profit_hold_sec: number;
+  loss_hold_sec: number;
+  strike_range: number;
+  max_lot: number;
+  max_order_lot: number;
+  intraday_leverage: number;
+  intraday_type: string;
+  holding_leverage: number;
+  entry_buffer: number;
+  holding_type: string;
+  exit_buffer: number;
+  trade_allowed: boolean;
+}
 
 const defaultSeg = (): SegmentSettingsType => ({
   commissionType: 'Per Crore', commissionValue: '4500',
@@ -134,7 +153,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
-  const rowToSegSettings = (row: any): SegmentSettingsType => ({
+  const rowToSegSettings = (row: SegmentRow): SegmentSettingsType => ({
     commissionType: row.commission_type,
     commissionValue: String(row.commission_value),
     profitHoldSec: String(row.profit_hold_sec),
@@ -166,10 +185,10 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
         return;
       }
       
-      const userData = userRes.data as any;
+      const userData = userRes.data as UserListItem;
       setSegments(userData.segments ?? []);
       
-      const rows = segRes.data as any[];
+      const rows = segRes.data as SegmentRow[];
       const map: Record<string, SegmentSettingsType> = {};
       for (const row of rows) {
         const key = `${row.segment}-${row.side}`;
@@ -232,7 +251,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   return (
     <div className="adm-upd-root" style={{ padding: '0 0 40px 0' }}>
       <div className="adm-upd-section-title">Segment Configuration</div>
-      <p style={{ color: '#8b949e', fontSize: '14px', marginBottom: 20 }}>Configure leverage, commission, and buffers for the user's active exchange segments.</p>
+      <p style={{ color: '#8b949e', fontSize: '14px', marginBottom: 20 }}>Configure leverage, commission, and buffers for the user&apos;s active exchange segments.</p>
       
       {segBlocks.map(name => (
         <SegmentBlock 

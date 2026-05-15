@@ -91,8 +91,9 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
 
       await fetchOrders(); // Refresh list
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: err.message };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return { success: false, error: message };
     }
   };
 

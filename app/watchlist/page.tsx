@@ -571,7 +571,7 @@ function WatchlistContent() {
       setWatchlistItems(defaults);
       saveWatchlistToStorage(defaults);
     } else {
-      let loaded = loadWatchlistFromStorage();
+      const loaded = loadWatchlistFromStorage();
 
       // MIGRATION: Update legacy items to new segments/symbols
       let migrated = false;

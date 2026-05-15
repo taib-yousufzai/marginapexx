@@ -1,8 +1,15 @@
-const fs = require('fs');
-const lines = fs.readFileSync('app/admin/page.tsx', 'utf8').split('\n');
+import fs from 'fs';
+
+const filePath = 'app/admin/page.tsx';
+if (!fs.existsSync(filePath)) {
+  console.error(`File not found: ${filePath}`);
+  process.exit(1);
+}
+
+const lines = fs.readFileSync(filePath, 'utf8').split('\n');
 let d = 0;
 // Check depth before line 3028 (PayinOutPageImpl start)
-for (let i = 0; i < 3027; i++) {
+for (let i = 0; i < 3027 && i < lines.length; i++) {
   for (const c of lines[i]) {
     if (c === '{') d++;
     if (c === '}') d--;

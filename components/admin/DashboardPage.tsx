@@ -105,25 +105,27 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
 
   useEffect(() => {
     apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, data }) => {
-      if (ok) setUsersList(data as any);
+      if (ok) setUsersList(data as { id: string; role: string; parent_id: string }[]);
     });
   }, []);
 
   useEffect(() => {
     if (selectedUser?.id) {
-      const u = usersList.find(x => x.id === selectedUser.id);
-      if (u) {
-        if (u.role === 'broker') { setBrokerId(u.id); setSubBrokerId(''); setClientId(''); }
-        else if (u.role === 'sub_broker') { setBrokerId(u.parent_id || ''); setSubBrokerId(u.id); setClientId(''); }
-        else { 
-          setClientId(u.id); 
-          const parent = usersList.find(x => x.id === u.parent_id);
-          if (parent?.role === 'sub_broker') { setSubBrokerId(parent.id); setBrokerId(parent.parent_id || ''); }
-          else if (parent?.role === 'broker') { setBrokerId(parent.id); setSubBrokerId(''); }
+      setTimeout(() => {
+        const u = usersList.find(x => x.id === selectedUser.id);
+        if (u) {
+          if (u.role === 'broker') { setBrokerId(u.id); setSubBrokerId(''); setClientId(''); }
+          else if (u.role === 'sub_broker') { setBrokerId(u.parent_id || ''); setSubBrokerId(u.id); setClientId(''); }
+          else { 
+            setClientId(u.id); 
+            const parent = usersList.find(x => x.id === u.parent_id);
+            if (parent?.role === 'sub_broker') { setSubBrokerId(parent.id); setBrokerId(parent.parent_id || ''); }
+            else if (parent?.role === 'broker') { setBrokerId(parent.id); setSubBrokerId(''); }
+          }
+        } else {
+          setClientId(selectedUser.id);
         }
-      } else {
-        setClientId(selectedUser.id);
-      }
+      }, 0);
     }
   }, [selectedUser, usersList]);
 
@@ -152,7 +154,7 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
   }, [dateFrom, dateTo, brokerId, subBrokerId, clientId]);
 
   useEffect(() => {
-    fetchMetrics();
+    setTimeout(() => fetchMetrics(), 0);
     const interval = setInterval(() => {
       fetchMetrics(false, true); // silent refresh every second
     }, 1000);

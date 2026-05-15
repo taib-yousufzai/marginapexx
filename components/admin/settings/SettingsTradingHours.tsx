@@ -10,6 +10,14 @@ type TradingSegment = {
   isActive: boolean;
 };
 
+interface TradingSegmentRow {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+}
+
 export default function SettingsTradingHours() {
   const [segments, setSegments] = useState<TradingSegment[]>([]);
   const [toast, setToast] = useState<ToastState>(null);
@@ -25,7 +33,7 @@ export default function SettingsTradingHours() {
     try {
       const { ok, data } = await apiCall('/api/admin/settings/trading-hours', { method: 'GET' });
       if (ok && Array.isArray(data)) {
-        setSegments(data.map((s: any) => ({
+        setSegments((data as TradingSegmentRow[]).map(s => ({
           id: s.id,
           name: s.name,
           startTime: s.start_time,
@@ -40,7 +48,7 @@ export default function SettingsTradingHours() {
     }
   };
 
-  const handleUpdate = (id: string, field: keyof TradingSegment, value: any) => {
+  const handleUpdate = <K extends keyof TradingSegment>(id: string, field: K, value: TradingSegment[K]) => {
     setSegments(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
   };
 

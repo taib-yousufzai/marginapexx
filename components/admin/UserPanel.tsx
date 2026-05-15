@@ -28,7 +28,7 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    setUsersLoading(true);
+    setTimeout(() => setUsersLoading(true), 0);
     apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
         const items = (data as UserListItem[]).map(u => ({

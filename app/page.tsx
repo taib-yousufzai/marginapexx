@@ -94,7 +94,6 @@ export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const [scrollKey, setScrollKey] = useState(() => Date.now());
 
   useEffect(() => {
     getSession().then((session) => {
@@ -106,7 +105,6 @@ export default function Page() {
   }, [router]);
 
   useEffect(() => {
-    setScrollKey(Date.now());
     if (containerRef.current) containerRef.current.scrollTop = 0;
   }, [pathname]);
 
@@ -114,8 +112,7 @@ export default function Page() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [infoState, setInfoState] = useState<{ title: string, content: string } | null>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string }[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -150,8 +147,10 @@ export default function Page() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
     if (savedTheme) {
-      setTheme(savedTheme);
-      document.body.classList.toggle('dark', savedTheme === 'dark');
+      setTimeout(() => {
+        setTheme(savedTheme);
+        document.body.classList.toggle('dark', savedTheme === 'dark');
+      }, 0);
     }
   }, []);
 
@@ -160,11 +159,6 @@ export default function Page() {
     setTheme(newTheme);
     document.body.classList.toggle('dark', newTheme === 'dark');
     localStorage.setItem('marginApexTheme', newTheme);
-  };
-
-  const showToast = (msg: string, duration = 2000) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), duration);
   };
 
   const instruments = activeCategory === 'equity' ? equityInstruments : commodityInstruments;
@@ -186,7 +180,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div ref={containerRef} key={scrollKey} className="main-scroll-wrapper">
+          <div ref={containerRef} className="main-scroll-wrapper">
             <div className="main-content">
               <div className="screen">
                 <div className="content-padded">

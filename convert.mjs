@@ -1,6 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const cheerio = require('cheerio');
+import fs from 'fs';
+import path from 'path';
+import * as cheerio from 'cheerio';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const sourceDir = path.join(__dirname, '..');
 const destDir = path.join(__dirname, 'app');

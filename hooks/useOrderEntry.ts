@@ -55,9 +55,10 @@ export function useOrderEntry() {
       }
 
       return { success: true, order: result };
-    } catch (err: any) {
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }
@@ -89,9 +90,10 @@ export function useOrderEntry() {
       }
 
       return { success: true, ...result };
-    } catch (err: any) {
-      setError(err.message);
-      return { success: false, error: err.message };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      return { success: false, error: message };
     } finally {
       setLoading(false);
     }

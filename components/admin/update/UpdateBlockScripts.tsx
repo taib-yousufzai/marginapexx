@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiCall, Toast, ToastState } from '../AdminUtils';
 
 const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
@@ -13,11 +13,7 @@ export default function UpdateBlockScripts({ selectedUser }: { selectedUser: { i
   const [toast, setToast] = useState<ToastState>(null);
   const [activeBlocks, setActiveBlocks] = useState<{ symbols: string[], segments: string[] }>({ symbols: [], segments: [] });
 
-  useEffect(() => {
-    fetchBlocks();
-  }, [uid]);
-
-  const fetchBlocks = async () => {
+  const fetchBlocks = useCallback(async () => {
     try {
       const { ok, data } = await apiCall(`/api/admin/users/${uid}/block-scripts`, { method: 'GET' });
       if (ok) {
@@ -26,7 +22,11 @@ export default function UpdateBlockScripts({ selectedUser }: { selectedUser: { i
     } catch (e) {
       console.error('Failed to fetch blocks');
     }
-  };
+  }, [uid]);
+
+  useEffect(() => {
+    fetchBlocks();
+  }, [fetchBlocks]);
 
   const handleBlock = async () => {
     if (segment === 'ALL' && !scriptName) {

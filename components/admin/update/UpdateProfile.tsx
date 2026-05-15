@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth';
-import { apiCall, Toast, ToastState } from '../AdminUtils';
+import { apiCall, Toast, ToastState, UserListItem } from '../AdminUtils';
 
 const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
@@ -28,14 +28,16 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
 
   useEffect(() => {
     if (!uid) return;
-    setPassword('');
-    setLoading(true);
+    setTimeout(() => {
+      setPassword('');
+      setLoading(true);
+    }, 0);
     apiCall(`/api/admin/users/${uid}`, { method: 'GET' }).then(({ ok, status, data }) => {
       setLoading(false);
       if (status === 401) { signOut(); return; }
       if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
       if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
-      const p = data as any;
+      const p = data as UserListItem;
       setEmail(p.email ?? '');
       setFullName(p.full_name ?? '');
       setPhone(p.phone ?? '');

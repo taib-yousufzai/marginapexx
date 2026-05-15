@@ -57,7 +57,6 @@ export default function FundsPage() {
   const [savedAccounts, setSavedAccounts] = useState<SavedAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [isAddingAccount, setIsAddingAccount] = useState<boolean>(false);
-  const [accountsLoading, setAccountsLoading] = useState<boolean>(false);
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState<boolean>(false);
 
   const [utr, setUtr] = useState<string>('');
@@ -117,7 +116,6 @@ export default function FundsPage() {
   }, []);
 
   const fetchSavedAccounts = async (accessToken: string) => {
-    setAccountsLoading(true);
     try {
       const res = await fetch('/api/pay/bank-accounts', {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -131,8 +129,6 @@ export default function FundsPage() {
       }
     } catch (err) {
       console.error('Failed to fetch bank accounts:', err);
-    } finally {
-      setAccountsLoading(false);
     }
   };
 
@@ -259,8 +255,8 @@ export default function FundsPage() {
         const data = await res.json();
         setSubmitError(data.error ?? 'Something went wrong.');
       }
-    } catch (err: any) {
-      setSubmitError(err.message || 'Network error.');
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Network error.');
     } finally {
       setSubmitting(false);
     }
@@ -340,8 +336,8 @@ export default function FundsPage() {
     }
   };
 
-  const numAmount = Number(amount);
-  const withdrawDisabled = submitting || submitted || !amount || isNaN(numAmount) || numAmount <= 0 || !selectedAccountId;
+  const numAmount_val = Number(amount);
+  const withdrawDisabled = submitting || submitted || !amount || isNaN(numAmount_val) || numAmount_val <= 0 || !selectedAccountId;
 
   return (
     <div className="desktop-layout">
@@ -407,17 +403,18 @@ export default function FundsPage() {
 
                           <div className="method-choice-title" style={{ marginTop: '24px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', textAlign: 'center', letterSpacing: '0.5px' }}>CHOOSE PAYMENT METHOD</div>
                           <div className="method-choice-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <button className="method-btn-direct" disabled={numAmount < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('UPI')}>
+                            <button className="method-btn-direct" disabled={Number(amount) < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('UPI')}>
                               <i className="fas fa-qrcode"></i>
                               <span>Pay via UPI</span>
                             </button>
-                            <button className="method-btn-direct" disabled={numAmount < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('BANK_TRANSFER')}>
+                            <button className="method-btn-direct" disabled={Number(amount) < 1000 || activeAccountLoading} onClick={() => handleProceedToPay('BANK_TRANSFER')}>
                               <i className="fas fa-university"></i>
                               <span>Bank Transfer</span>
                             </button>
                           </div>
-                          {numAmount < 1000 && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center', fontWeight: 600 }}>Minimum deposit is ₹1,000</p>}
+                          {Number(amount) < 1000 && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center', fontWeight: 600 }}>Minimum deposit is ₹1,000</p>}
                           {activeAccountError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{activeAccountError}</p>}
+                          {submitError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{submitError}</p>}
                         </div>
                       )}
 
@@ -511,6 +508,7 @@ export default function FundsPage() {
                           <button className="submit-funds-btn" disabled={utr.length !== 12 || !screenshot || submitting} onClick={handleConfirmDeposit}>
                             {submitting ? 'Processing...' : 'Submit Deposit Request'}
                           </button>
+                          {submitError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{submitError}</p>}
                         </div>
                       )}
 
@@ -565,6 +563,7 @@ export default function FundsPage() {
                       <button className="submit-funds-btn" disabled={withdrawDisabled} onClick={handleWithdraw}>
                         {submitting ? 'Processing...' : 'Withdraw Funds'}
                       </button>
+                      {submitError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{submitError}</p>}
                     </div>
                   )}
                 </div>

@@ -109,6 +109,11 @@ export function useKiteQuotes(
         net_change: number;
         ohlc: { open: number; high: number; low: number; close: number };
         volume: number;
+        depth?: {
+          buy: { price: number; quantity: number; orders: number }[];
+          sell: { price: number; quantity: number; orders: number }[];
+        };
+        tradingsymbol?: string;
       }>;
     };
 
@@ -137,15 +142,15 @@ export function useKiteQuotes(
         low: quote.ohlc?.low || 0,
         close: close,
         volume: quote.volume || 0,
-        bid: (quote as any).depth?.buy?.[0]?.price || quote.last_price,
-        ask: (quote as any).depth?.sell?.[0]?.price || quote.last_price,
+        bid: quote.depth?.buy?.[0]?.price || quote.last_price,
+        ask: quote.depth?.sell?.[0]?.price || quote.last_price,
       };
-
+      
       mapped[key] = quoteData;
 
       // Also map by tradingsymbol as a fallback if the key is different
-      if ((quote as any).tradingsymbol) {
-        mapped[(quote as any).tradingsymbol] = quoteData;
+      if (quote.tradingsymbol) {
+        mapped[quote.tradingsymbol] = quoteData;
       }
     }
 
@@ -180,7 +185,7 @@ export function useKiteQuotes(
     } finally {
       setLoading(false);
     }
-  }, [doFetch]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [doFetch]);  
 
   useEffect(() => {
     let cancelled = false;

@@ -101,7 +101,7 @@ export function positionItemToPosition(item: PositionItem): Position {
     settlement: item.settlement ?? undefined,
   };
 }
-export function downloadCSV(data: any[], filename: string) {
+export function downloadCSV(data: Record<string, unknown>[], filename: string) {
   if (data.length === 0) return;
   const headers = Object.keys(data[0]).join(',');
   const rows = data.map(obj => 

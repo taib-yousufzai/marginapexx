@@ -90,7 +90,7 @@ export default function PaymentAccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Open add form

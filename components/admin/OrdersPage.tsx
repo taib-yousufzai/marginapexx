@@ -133,7 +133,9 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, tab, rows, page, dateFrom, dateTo, search, isGlobal, refreshKey]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => {
+    setTimeout(() => fetchOrders(), 0);
+  }, [fetchOrders]);
 
   // ── Emergency actions ───────────────────────────────────────────────────────
 

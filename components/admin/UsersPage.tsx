@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, SkeletonLine, UserListItem, ConfirmDialog, downloadCSV } from './AdminUtils';
@@ -51,7 +51,7 @@ function DeletionBanner({ scheduledDeleteAt }: { scheduledDeleteAt: string }) {
   );
 }
 
-export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
+export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, onNavigate }: {
   selectedUser: { id: string; role: string };
   onSelectUser: (u: { id: string; role: string }) => void;
   onNavigate: (page: string) => void;
@@ -67,7 +67,7 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  const fetchUsers = (silent = false) => {
+  const fetchUsers = useCallback((silent = false) => {
     if (!silent) setUsersLoading(true);
     apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
@@ -82,15 +82,15 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
       }
       setUsersLoading(false);
     });
-  };
+  }, [router]);
 
   useEffect(() => {
-    fetchUsers();
+    setTimeout(() => fetchUsers(), 0);
     const interval = setInterval(() => {
       fetchUsers(true); // silent refresh every second
     }, 1000);
     return () => clearInterval(interval);
-  }, [router]);
+  }, [fetchUsers]);
 
   const handleDelete = () => {
     if (!confirmDialog) return;

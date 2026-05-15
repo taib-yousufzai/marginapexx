@@ -46,8 +46,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       if (!res.ok) throw new Error('Failed to fetch positions');
       const data = await res.json();
       setRawPositions(data.positions || []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }

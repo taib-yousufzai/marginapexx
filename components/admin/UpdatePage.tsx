@@ -38,21 +38,21 @@ export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selected
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'profile':
-        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser as any} /> : <EmptyState message="Please select a user first to edit their profile." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to edit their profile." onOpen={onOpenUserPanel} />;
       case 'segments':
-        return selectedUser?.id ? <UpdateSegments selectedUser={selectedUser as any} /> : <EmptyState message="Please select a user first to configure their segments." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateSegments selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to configure their segments." onOpen={onOpenUserPanel} />;
       case 'ledger':
-        return selectedUser?.id ? <UpdateLedger selectedUser={selectedUser as any} /> : <EmptyState message="Please select a user first to update their ledger." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateLedger selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to update their ledger." onOpen={onOpenUserPanel} />;
       case 'copy_settings':
         return <UpdateCopySettings selectedUser={selectedUser} />;
       case 'block_scripts':
-        return selectedUser?.id ? <UpdateBlockScripts selectedUser={selectedUser as any} /> : <EmptyState message="Please select a user first to block their scripts." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateBlockScripts selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to block their scripts." onOpen={onOpenUserPanel} />;
       case 'notifications':
         return <UpdateNotifications selectedUser={selectedUser} />;
       case 'multiple_settings':
         return <UpdateMultipleSettings selectedUser={selectedUser} />;
       default:
-        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser as any} /> : <EmptyState message="Please select a user first." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} /> : <EmptyState message="Please select a user first." onOpen={onOpenUserPanel} />;
     }
   };
 
@@ -80,7 +80,7 @@ export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selected
       <div style={{
         display: 'flex', flexDirection: 'row', overflowX: 'auto',
         borderBottom: '1px solid #30363d', padding: '8px 12px', gap: '4px',
-        flexShrink: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' as any,
+        flexShrink: 0, scrollbarWidth: 'none', msOverflowStyle: 'none',
       }}>
         <SidebarButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
         <SidebarButton active={activeTab === 'segments'} onClick={() => setActiveTab('segments')} label="Segments" />

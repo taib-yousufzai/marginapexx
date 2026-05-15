@@ -46,7 +46,7 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
     <div className="adm-upd-root" style={{ padding: '0 0 40px 0' }}>
       <div className="adm-upd-section-title">Manual Ledger Adjustment</div>
       <p style={{ color: '#8b949e', fontSize: '14px', marginBottom: 20 }}>
-        Manually credit or debit funds to the user's account for corrections, adjustments, or penalties.
+        Manually credit or debit funds to the user&apos;s account for corrections, adjustments, or penalties.
       </p>
 
       <div className="adm-upd-card">

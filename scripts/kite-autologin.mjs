@@ -8,10 +8,9 @@
  * Run by GitHub Actions daily at 06:31 IST.
  */
 
-const { chromium } = require('playwright');
-const { TOTP, Secret } = require('otpauth');
-const crypto = require('crypto');
-const https = require('https');
+import { chromium } from 'playwright';
+import { TOTP, Secret } from 'otpauth';
+import crypto from 'crypto';
 
 // ── Env vars ──────────────────────────────────────────────────────────────────
 const {

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ConfirmDialog, SkeletonLine, Position, PositionItem, positionItemToPosition } from './AdminUtils';
 
@@ -20,7 +20,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
 
   const uid = selectedUser.id;
 
-  const fetchPositions = (silent = false) => {
+  const fetchPositions = useCallback((silent = false) => {
     if (!uid) return;
     if (!silent) setPosLoading(true);
     apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
@@ -35,15 +35,15 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       })
       .finally(() => setPosLoading(false));
-  };
+  }, [uid, tab]);
 
   useEffect(() => {
-    fetchPositions();
+    setTimeout(() => fetchPositions(), 0);
     const interval = setInterval(() => {
       fetchPositions(true); // silent refresh every second
     }, 1000);
     return () => clearInterval(interval);
-  }, [uid, tab]);
+  }, [fetchPositions]);
 
   const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
 

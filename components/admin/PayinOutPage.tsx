@@ -73,7 +73,7 @@ export default function PayinOutPage() {
         setRequests([]);
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [tab, dateFrom, dateTo, status, search, page, rows, refreshKey]);
 
   // Realtime subscription
@@ -129,7 +129,7 @@ export default function PayinOutPage() {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       })
       .finally(() => setRulesLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [tab]);
 
   const handleAccept = async (r: PayRequest) => {

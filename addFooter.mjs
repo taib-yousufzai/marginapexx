@@ -1,5 +1,9 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const cssToAdd = `
 /* GLOBAL FOOTER NAV STYLES */
@@ -89,6 +93,7 @@ const footerHtml = `
 
 function appendToGlobalsCss() {
   const globalsPath = path.join(__dirname, 'app', 'globals.css');
+  if (!fs.existsSync(globalsPath)) return;
   let cssText = fs.readFileSync(globalsPath, 'utf8');
   if (!cssText.includes('/* GLOBAL FOOTER NAV STYLES */')) {
     fs.appendFileSync(globalsPath, cssToAdd);
@@ -130,10 +135,6 @@ function processPage(routePath, isHome = false) {
       return;
     }
     
-    // We look for the end of the root container e.g. </div>\n</div>\n\n<!-- Half Page Expiry
-    // Or just right before the </div>\n\n<script> marker.
-    // Let's just find the closing </div> right before <script> or <div id="tradeSheetOverlay"> or <div id="drawerOverlay">
-    
     const insertionPoints = [
       '<!-- COMPACT PROFESSIONAL BOTTOM SHEET -->',
       '<div id="tradeSheetOverlay"',
@@ -147,15 +148,9 @@ function processPage(routePath, isHome = false) {
     
     for (const point of insertionPoints) {
       if (content.includes(point)) {
-         // Insert before this point, but we need to put it inside the main root div, actually wait, appending it just before the point if it's a bottom sheet is fine, but it needs to be inside the wrapper if the wrapper has overflow!
-         // Wait, the mobile apps have <div class="mobile-app">
-         // Let's replace </div>\n\n<!-- COMPACT with </div>\n${footerHtml}\n<!-- COMPACT
-         // Actually, let's just insert it right before the point. The html strings are just strings.
-         
          const replacement = footerHtml + '\n\n' + point;
          content = content.replace(point, replacement);
          
-         // Also inject setActiveTab script so it highlights the right tab!
          const tabName = routePath.replace('/', '');
          const scriptInject = `
     setTimeout(() => {

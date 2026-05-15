@@ -6,6 +6,13 @@ import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import { useComexQuotes } from '@/hooks/useComexQuotes';
 import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
 
+interface InstrumentSuggestion {
+  id?: string;
+  tradingsymbol?: string;
+  name?: string;
+  segment?: string;
+}
+
 export default function MarketWatchPage() {
   const tabs = ['INDEX-FUT', 'INDEX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'NSE-EQ', 'MCX-FUT', 'MCX-OPT', 'COMEX', 'CRYPTO', 'FOREX'];
   const [activeTab, setActiveTab] = useState('INDEX-FUT');
@@ -39,7 +46,7 @@ export default function MarketWatchPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    fetchWatchlist();
+    setTimeout(() => fetchWatchlist(), 0);
   }, [fetchWatchlist]);
 
   const currentSymbols = useMemo(() => watchlists[activeTab] ?? [], [watchlists, activeTab]);
@@ -68,20 +75,20 @@ export default function MarketWatchPage() {
   }), [kiteQuotes, comexQuotes, binanceQuotes]);
 
   const instruments = watchlists[activeTab] ?? [];
-  const [remoteSuggestions, setRemoteSuggestions] = useState<any[]>([]);
+  const [remoteSuggestions, setRemoteSuggestions] = useState<InstrumentSuggestion[]>([]);
   const [searching, setSearching] = useState(false);
 
   // Real instrument search
   useEffect(() => {
     if (search.trim().length < 2) {
-      setRemoteSuggestions([]);
+      setTimeout(() => setRemoteSuggestions([]), 0);
       return;
     }
     const delayDebounceFn = setTimeout(() => {
       setSearching(true);
       apiCall(`/api/admin/instruments/search?q=${encodeURIComponent(search)}&tab=${encodeURIComponent(activeTab)}`, { method: 'GET' })
         .then(({ ok, data }) => {
-          if (ok) setRemoteSuggestions(data as any[]);
+          if (ok) setRemoteSuggestions(data as InstrumentSuggestion[]);
         })
         .finally(() => setSearching(false));
     }, 300);
@@ -172,8 +179,8 @@ export default function MarketWatchPage() {
               ) : suggestions.length === 0 ? (
                 <div className="adm-mw-dd-empty">No results found</div>
               ) : (
-                suggestions.map(item => {
-                  const sym = item.id || item.tradingsymbol;
+                suggestions.map((item, idx) => {
+                  const sym = (item.id || item.tradingsymbol || `unknown-${idx}`) as string;
                   const added = instruments.includes(sym);
                   return (
                     <div

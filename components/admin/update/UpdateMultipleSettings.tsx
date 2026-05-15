@@ -16,7 +16,7 @@ const defaultSeg = (): SegmentSettingsType => ({
   exitBuffer: '0.0017', tradeAllowed: true,
 });
 
-export default function UpdateMultipleSettings({ selectedUser }: { selectedUser?: { id: string } }) {
+export default function UpdateMultipleSettings({ selectedUser: _selectedUser }: { selectedUser?: { id: string } }) {
   const [targetBroker, setTargetBroker] = useState('');
   const [segmentsToUpdate, setSegmentsToUpdate] = useState<string[]>([]);
   const [config, setConfig] = useState<SegmentSettingsType>(defaultSeg());
