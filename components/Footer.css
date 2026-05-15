@@ -292,7 +292,10 @@ body.dark .summary-item {
 
 .summary-value {
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   color: var(--text-primary, #1A1A1A);
   white-space: nowrap;
 }

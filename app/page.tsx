@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
 import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import TickFlash from '@/components/TickFlash';
 import './page.css';
 import './admin-layout.css';
 
@@ -126,7 +127,7 @@ export default function Page() {
   }, []);
 
   const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
-  const { quotes, connected: kiteConnected, loading: kiteLoading } = useKiteQuotes(allKiteInstruments, 5000);
+  const { quotes, connected: kiteConnected, loading: kiteLoading } = useKiteQuotes(allKiteInstruments, 1000);
 
   const buildRow = (instruments: string[]): MarketItem[] => {
     return instruments.map((key) => {
@@ -293,8 +294,16 @@ export default function Page() {
                                     <i className={market.icon}></i>
                                     <span className="market-rect-name">{market.name}</span>
                                   </div>
-                                  <div className="market-rect-price">{market.price.toLocaleString('en-IN', { minimumFractionDigits: market.price < 100 ? 2 : 0 })}</div>
-                                  <div className={`market-rect-change ${market.type}`}>{market.change > 0 ? `+${market.change}%` : `${market.change}%`}</div>
+                                  <div className="market-rect-price">
+                                    <TickFlash value={market.price}>
+                                      {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </TickFlash>
+                                  </div>
+                                  <div className={`market-rect-change ${market.type}`}>
+                                    <TickFlash value={market.change}>
+                                      {market.change > 0 ? `+${market.change.toFixed(2)}%` : `${market.change.toFixed(2)}%`}
+                                    </TickFlash>
+                                  </div>
                                 </div>
                               ))}
                             </div>

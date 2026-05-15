@@ -1,6 +1,8 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
+import TickFlash from '@/components/TickFlash';
 import './Footer.css';
 
 interface FooterProps {
@@ -24,6 +26,52 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const [balance, setBalance] = useState(0);
+  const [floatingPnl, setFloatingPnl] = useState(0);
+  const [usedMargin, setUsedMargin] = useState(0);
+
+  const fetchSummary = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const token = session.access_token;
+      
+      // Fetch balance
+      const balRes = await fetch('/api/pay/balance', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (balRes.ok) {
+        const { balance } = await balRes.json();
+        setBalance(balance);
+      }
+
+      // Fetch positions for Floating P/L
+      const posRes = await fetch('/api/positions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (posRes.ok) {
+        const { positions } = await posRes.json();
+        const pnl = (positions || []).reduce((acc: number, p: any) => acc + (p.pnl || 0), 0);
+        const used = (positions || []).reduce((acc: number, p: any) => acc + (p.margin_used || 0), 0);
+        setFloatingPnl(pnl);
+        setUsedMargin(used);
+      }
+    } catch (err) {
+      console.error('Footer fetchSummary failed', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSummary();
+    const interval = setInterval(fetchSummary, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const equity = balance + floatingPnl;
+  const freeMargin = equity - usedMargin;
+  const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const [openHeight, setOpenHeight] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -134,27 +182,35 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                 <div className="summary-grid">
                   <div className="summary-item">
                     <span className="summary-label">Balance</span>
-                    <span className="summary-value">₹10,000</span>
+                    <span className="summary-value">₹{fmt(balance)}</span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">Free Margin</span>
-                    <span className="summary-value">₹8,000</span>
+                    <span className="summary-value">₹{fmt(freeMargin)}</span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">Floating P/L</span>
-                    <span className="summary-value positive">₹+500</span>
+                    <span className={`summary-value ${floatingPnl >= 0 ? 'positive' : 'negative'}`}>
+                      ₹<TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : ''}{fmt(floatingPnl)}</TickFlash>
+                    </span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">Equity</span>
-                    <span className="summary-value highlight">₹10,500</span>
+                    <span className="summary-value highlight">
+                      ₹<TickFlash value={equity}>{fmt(equity)}</TickFlash>
+                    </span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">Used Margin</span>
-                    <span className="summary-value">₹2,000</span>
+                    <span className="summary-value">
+                      ₹<TickFlash value={usedMargin}>{fmt(usedMargin)}</TickFlash>
+                    </span>
                   </div>
                   <div className="summary-item">
                     <span className="summary-label">Margin Limit</span>
-                    <span className="summary-value">₹10,000</span>
+                    <span className="summary-value">
+                      ₹<TickFlash value={balance}>{fmt(balance)}</TickFlash>
+                    </span>
                   </div>
                 </div>
               </div>

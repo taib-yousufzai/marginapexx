@@ -1,10 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/kite/autologin?secret=qwertyuiopasdfghjklzxcvbnm",
-      "schedule": "32 0 * * *"
-    },
-    {
       "path": "/api/cron/sync-instruments?secret=qwertyuiopasdfghjklzxcvbnm",
       "schedule": "0 2 * * *"
     }

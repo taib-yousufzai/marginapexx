@@ -40,9 +40,9 @@ function mapUserListItem(u: UserListItem): UserRow {
 }
 
 function DeletionBanner({ scheduledDeleteAt }: { scheduledDeleteAt: string }) {
-  const dateStr = new Date(scheduledDeleteAt).toLocaleString('en-IN', {
+  const dateStr = scheduledDeleteAt ? new Date(scheduledDeleteAt).toLocaleString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+  }) : 'N/A';
   return (
     <div className="adm-users-del-banner">
       <i className="fas fa-trash-alt adm-users-del-icon" />
@@ -67,8 +67,8 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
-  const fetchUsers = () => {
-    setUsersLoading(true);
+  const fetchUsers = (silent = false) => {
+    if (!silent) setUsersLoading(true);
     apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
         setUsers((data as UserListItem[]).map(mapUserListItem));
@@ -86,6 +86,10 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
 
   useEffect(() => {
     fetchUsers();
+    const interval = setInterval(() => {
+      fetchUsers(true); // silent refresh every second
+    }, 1000);
+    return () => clearInterval(interval);
   }, [router]);
 
   const handleDelete = () => {
@@ -143,7 +147,7 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsNum));
   const displayed = filtered.slice((page - 1) * rowsNum, page * rowsNum);
 
-  const fmt = (n: number) => n === 0 ? '0.00' : n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number | null | undefined) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="adm-users-root">
@@ -179,7 +183,7 @@ export default function UsersPage({ selectedUser, onSelectUser, onNavigate }: {
             onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="adm-btn-ghost" onClick={fetchUsers} title="Refresh Data">
+          <button className="adm-btn-ghost" onClick={() => fetchUsers()} title="Refresh Data">
             <i className="fas fa-sync-alt" />
           </button>
           <button className="adm-btn-primary" onClick={() => onNavigate('create')}>

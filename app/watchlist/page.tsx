@@ -599,17 +599,17 @@ function WatchlistContent() {
   }, []);
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
-  const { quotes } = useKiteQuotes(kiteSymbols, 5000);
+  const { quotes } = useKiteQuotes(kiteSymbols, 1000);
 
   const binanceSymbols = watchlistItems
     .map(i => i.binanceSymbol)
     .filter((s): s is string => !!s);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 5000);
+  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 1000);
 
   const comexSymbols = watchlistItems
     .map(i => i.comexSymbol)
     .filter((s): s is string => !!s);
-  const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 30_000);
+  const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 1000);
 
   useEffect(() => {
     window.__kiteQuotes = quotes;

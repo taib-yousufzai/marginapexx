@@ -55,7 +55,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
   useEffect(() => {
     fetchPositions();
-    const timer = setInterval(fetchPositions, 10000); // DB fetch every 10s
+    const timer = setInterval(fetchPositions, 1000); // DB fetch every 1s
     return () => clearInterval(timer);
   }, [fetchPositions]);
 

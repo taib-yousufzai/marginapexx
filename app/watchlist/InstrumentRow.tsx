@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { QuoteData } from '@/hooks/useKiteQuotes';
 import { BinanceQuoteData } from '@/hooks/useBinanceQuotes';
 import { ComexQuoteData } from '@/hooks/useComexQuotes';
+import TickFlash from '@/components/TickFlash';
 
 export interface WatchlistItem {
   name: string;
@@ -110,15 +111,21 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
           {isLoading ? (
             <div className="instr-row__ltp" style={{ color: '#9CA3AF' }}>Loading…</div>
           ) : (
-            <>
+                      <>
               <div className="instr-row__ltp">
-                {isCrypto
-                  ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : showComex
+                <TickFlash value={ltp}>
+                  {isCrypto
                     ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `LTP: ${ltp.toFixed(2)}`}
+                    : showComex
+                      ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : `LTP: ${ltp.toFixed(2)}`}
+                </TickFlash>
               </div>
-              <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
+              <div className="instr-row__abs-change">
+                <TickFlash value={absoluteChange}>
+                  {absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}
+                </TickFlash>
+              </div>
               <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
                 {percentChange >= 0 ? '+' : ''}{percentChange.toFixed(2)}%
               </div>

@@ -10,7 +10,7 @@ import './page.css';
 
 export default function PositionPage() {
   useAuth();
-  const { positions, loading: posLoading, error: posError, refresh } = useMyPositions(5000);
+  const { positions, loading: posLoading, error: posError, refresh } = useMyPositions(1000);
   const { closePosition, loading: closingPos } = useOrderEntry();
 
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');

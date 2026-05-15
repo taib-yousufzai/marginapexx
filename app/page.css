@@ -536,19 +536,24 @@ body.dark .circle-icon {
 }
 
 .market-rect-price {
-  font-weight: 800;
-  font-size: 0.9rem;
-  font-family: 'Playfair Display', monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
   margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .market-rect-change {
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   padding: 2px 6px;
   border-radius: 20px;
   display: inline-block;
+  letter-spacing: -0.01em;
 }
 
 .market-rect-change.positive {

@@ -20,9 +20,9 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
 
   const uid = selectedUser.id;
 
-  const fetchPositions = () => {
+  const fetchPositions = (silent = false) => {
     if (!uid) return;
-    setPosLoading(true);
+    if (!silent) setPosLoading(true);
     apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
@@ -39,6 +39,10 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
 
   useEffect(() => {
     fetchPositions();
+    const interval = setInterval(() => {
+      fetchPositions(true); // silent refresh every second
+    }, 1000);
+    return () => clearInterval(interval);
   }, [uid, tab]);
 
   const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
@@ -155,7 +159,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
       </div>
       <div className="adm-pos-stat-card">
         <div className="adm-pos-stat-label">OPEN PNL</div>
-        <div className={`adm-pos-stat-value ${openPnl >= 0 ? 'pos' : 'neg'}`}>{openPnl.toFixed(2)}</div>
+        <div className={`adm-pos-stat-value ${openPnl >= 0 ? 'pos' : 'neg'}`}>{(openPnl ?? 0).toFixed(2)}</div>
       </div>
       <div className="adm-pos-stat-card">
         <div className="adm-pos-stat-label">WEEKLY PNL</div>
@@ -228,7 +232,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
               </div>
               <div className="adm-ord-badges">
                 <span className={`adm-ord-side ${p.side === 'BUY' ? 'buy' : 'sell'}`}>{p.side}</span>
-                <span className={`adm-pos-pnl ${p.pnl >= 0 ? 'pos' : 'neg'}`}>{p.pnl.toFixed(2)}</span>
+                <span className={`adm-pos-pnl ${p.pnl >= 0 ? 'pos' : 'neg'}`}>{(p.pnl ?? 0).toFixed(2)}</span>
               </div>
             </div>
             <div className="adm-ord-details">
@@ -236,24 +240,24 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
                 <span className="adm-ord-dl">Qty</span>
                 <span className="adm-ord-dv">{p.qty}</span>
                 <span className="adm-ord-dl">Avg Price</span>
-                <span className="adm-ord-dv">{p.avgPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="adm-ord-dv">{(p.avgPrice ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="adm-ord-detail-row">
                 <span className="adm-ord-dl">Entry</span>
-                <span className="adm-ord-dv">{p.entry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                <span className="adm-ord-dv">{(p.entry ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 {tab !== 'closed' ? (
                   <><span className="adm-ord-dl">LTP</span>
                     <span className="adm-ord-dv" style={{ color: '#388bfd' }}>{p.ltp?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
                 ) : (
                   <><span className="adm-ord-dl">Exit</span>
-                    <span className="adm-ord-dv">{p.exit?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
+                    <span className="adm-ord-dv">{(p.exit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
                 )}
               </div>
               <div className="adm-ord-detail-row">
                 <span className="adm-ord-dl">Duration</span>
                 <span className="adm-ord-dv">{p.duration}</span>
                 <span className="adm-ord-dl">Brokerage</span>
-                <span className="adm-ord-dv">{p.brokerage.toFixed(2)}</span>
+                <span className="adm-ord-dv">{(p.brokerage ?? 0).toFixed(2)}</span>
               </div>
               <div className="adm-ord-detail-row">
                 <span className="adm-ord-dl">SL / TP</span>

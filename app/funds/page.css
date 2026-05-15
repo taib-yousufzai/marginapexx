@@ -36,7 +36,9 @@ body.dark .balance-card {
 .balance-amount {
   font-size: 2.2rem;
   font-weight: 800;
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
   margin-bottom: 12px;
 }
 
@@ -157,7 +159,9 @@ body.dark .funds-toggle-slider {
   font-size: 2.2rem;
   font-weight: 800;
   color: var(--text-primary);
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
 }
 
 .quick-amounts {
@@ -512,7 +516,9 @@ body.dark .funds-toggle-slider {
 .margin-value {
   font-size: 1.8rem;
   font-weight: 800;
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
   color: #4ADE80;
   margin-bottom: 16px;
 }
@@ -581,7 +587,9 @@ body.dark .funds-toggle-slider {
   width: 180px;
   text-align: left;
   outline: none;
-  font-family: 'Playfair Display', serif;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
 }
 
 .quick-amount-chips {

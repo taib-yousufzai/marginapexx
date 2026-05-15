@@ -22,9 +22,11 @@ export default function AccountsPage() {
   const [page, setPage] = useState(1);
   const [accounts, setAccounts] = useState<AccountItem[]>([]);
   const [toast, setToast] = useState<ToastState>(null);
+  const [loading, setLoading] = useState(false);
   const ROWS = 10;
-
-  useEffect(() => {
+  
+  const fetchAccounts = (silent = false) => {
+    if (!silent) setLoading(true);
     const params = new URLSearchParams();
     params.set('filter', filter);
     if (dateFrom) params.set('date_from', dateFrom);
@@ -39,7 +41,16 @@ export default function AccountsPage() {
       })
       .catch((err: unknown) => {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
-      });
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+    const interval = setInterval(() => {
+      fetchAccounts(true); // silent refresh every second
+    }, 1000);
+    return () => clearInterval(interval);
   }, [filter, dateFrom, dateTo, search]);
 
   const totalNetPnl = accounts.reduce((s, a) => s + a.net_pnl, 0);
@@ -75,7 +86,7 @@ export default function AccountsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
   const displayed = filtered.slice((page - 1) * ROWS, page * ROWS);
 
-  const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (n: number | null | undefined) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="adm-acc-root">

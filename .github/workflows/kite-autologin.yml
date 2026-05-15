@@ -2,8 +2,8 @@ name: Kite Auto Login
 
 on:
   schedule:
-    # 01:01 UTC = 06:31 IST — just after Zerodha invalidates tokens at 06:00 IST
-    - cron: '32 0 * * *'
+    # 00:45 UTC = 06:15 IST — well after Zerodha invalidates tokens at 06:00 IST
+    - cron: '45 0 * * *'
   workflow_dispatch: # allow manual trigger from GitHub Actions UI
 
 jobs:

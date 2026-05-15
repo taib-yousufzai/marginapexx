@@ -126,24 +126,29 @@ export async function apiCall(
   path: string,
   options: RequestInit,
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token ?? '';
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
-  
-  // Handle empty responses (like 204 No Content)
-  if (res.status === 204) {
-    return { ok: res.ok, status: res.status, data: null };
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token ?? '';
+    const res = await fetch(path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers ?? {}),
+      },
+    });
+    
+    // Handle empty responses (like 204 No Content)
+    if (res.status === 204) {
+      return { ok: res.ok, status: res.status, data: null };
+    }
+    
+    const data = await res.json();
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    console.error(`apiCall error [${path}]:`, err);
+    return { ok: false, status: 500, data: { error: 'Network or Authentication Error' } };
   }
-  
-  const data = await res.json();
-  return { ok: res.ok, status: res.status, data };
 }
 
 // ─── UI Components ────────────────────────────────────────────────────────────

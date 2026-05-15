@@ -379,7 +379,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
                 <td><span className={`adm-ord-side ${o.side.toLowerCase()}`}>{o.side}</span></td>
                 <td><span className={`adm-ord-status ${o.status.toLowerCase()}`}>{o.status}</span></td>
                 <td>{o.qty}</td>
-                <td>{o.price.toFixed(2)}</td>
+                <td>{(o.price ?? 0).toFixed(2)}</td>
                 <td><span className="adm-ord-type-badge">{o.orderType}</span></td>
                 <td className="adm-ord-info">{o.info || '—'}</td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }} className="adm-ord-time">

@@ -127,8 +127,8 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
     }
   }, [selectedUser, usersList]);
 
-  const fetchMetrics = useCallback((manual = false) => {
-    setLoading(true);
+  const fetchMetrics = useCallback((manual = false, silent = false) => {
+    if (!silent) setLoading(true);
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo) params.set('date_to', dateTo);
@@ -153,6 +153,10 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
 
   useEffect(() => {
     fetchMetrics();
+    const interval = setInterval(() => {
+      fetchMetrics(false, true); // silent refresh every second
+    }, 1000);
+    return () => clearInterval(interval);
   }, [fetchMetrics]);
 
   const metricsStore = metricsToStore(metrics);
