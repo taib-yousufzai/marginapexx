@@ -114,6 +114,7 @@ export function useKiteQuotes(
           sell: { price: number; quantity: number; orders: number }[];
         };
         tradingsymbol?: string;
+        instrument_token?: number;
       }>;
     };
 
@@ -148,9 +149,18 @@ export function useKiteQuotes(
       
       mapped[key] = quoteData;
 
-      // Also map by tradingsymbol as a fallback if the key is different
+      // Extract symbol from key (e.g., 'NSE:NIFTY 50' -> 'NIFTY 50')
+      const symbolPart = key.includes(':') ? key.split(':')[1] : key;
+      mapped[symbolPart] = quoteData;
+
+      // Also map by tradingsymbol from response if it exists
       if (quote.tradingsymbol) {
         mapped[quote.tradingsymbol] = quoteData;
+      }
+      
+      // Map by instrument_token as a last resort
+      if (quote.instrument_token) {
+        mapped[String(quote.instrument_token)] = quoteData;
       }
     }
 
@@ -189,6 +199,15 @@ export function useKiteQuotes(
 
   useEffect(() => {
     let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    async function poll() {
+      if (cancelled) return;
+      await fetchQuotes();
+      if (!cancelled) {
+        timerId = setTimeout(poll, refreshInterval);
+      }
+    }
 
     async function init() {
       if (cancelled) return;
@@ -201,19 +220,15 @@ export function useKiteQuotes(
       }
 
       if (cancelled) return;
-
-      await fetchQuotes();
-
-      if (cancelled) return;
-
-      intervalRef.current = setInterval(fetchQuotes, refreshInterval);
+      poll(); // Start the recursive polling chain
     }
 
     init();
 
     return () => {
       cancelled = true;
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (timerId) clearTimeout(timerId);
+      if (intervalRef.current) clearInterval(intervalRef.current); // Cleanup old interval ref if any
     };
   }, [fetchQuotes, refreshInterval]);
 

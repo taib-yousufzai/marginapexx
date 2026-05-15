@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -62,6 +62,7 @@ function OptionChainContent() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
+      setData(null);
       try {
         const url = `/api/market/option-chain?symbol=${normalizedSymbol}${selectedExpiry ? `&expiry=${selectedExpiry}` : ''}`;
         const res = await fetch(url);
@@ -107,7 +108,10 @@ function OptionChainContent() {
                        symbol === 'SENSEX' ? 'BSE:SENSEX' :
                        symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
 
-  const spotPrice = underlyingId ? quotes[underlyingId]?.lastPrice || 0 : 0;
+  const spotPrice = React.useMemo(() => {
+    if (!underlyingId) return 0;
+    return (quotes[underlyingId] || quotes[underlyingId.split(':')[1] || ''])?.lastPrice || 0;
+  }, [underlyingId, quotes]);
 
   const handleTrade = (instrSymbol: string, side: 'BUY' | 'SELL') => {
     const strikeMatch = data?.strikes.find(s => s.ce?.symbol === instrSymbol || s.pe?.symbol === instrSymbol);

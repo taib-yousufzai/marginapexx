@@ -70,26 +70,44 @@ async function fetchKiteQuotesBatch(
   const allKiteData: Record<string, any> = {};
   let tokenExpired = false;
 
-  const params = new URLSearchParams();
-  kiteRequestInstruments.forEach(inst => params.append('i', inst));
+  // Split into batches of 100 to avoid URL length limits (approx 8KB) in proxies/CDNs
+  const batchSize = 100;
+  const batches: string[][] = [];
+  for (let i = 0; i < kiteRequestInstruments.length; i += batchSize) {
+    batches.push(kiteRequestInstruments.slice(i, i + batchSize));
+  }
 
-  try {
-    const response = await fetch(`https://api.kite.trade/quote?${params.toString()}`, {
-      headers: {
-        'X-Kite-Version': '3',
-        'Authorization': `token ${apiKey}:${accessToken}`,
-      },
-      cache: 'no-store',
-    });
+  // Fetch batches in parallel for speed (Kite allows up to 10 req/sec)
+  const results = await Promise.all(
+    batches.map(async (batch) => {
+      const params = new URLSearchParams();
+      batch.forEach(inst => params.append('i', inst));
 
-    if (response.status === 403 || response.status === 401) {
-      tokenExpired = true;
-    } else if (response.ok) {
-      const json = await response.json();
-      if (json.data) Object.assign(allKiteData, json.data);
-    }
-  } catch (err) {
-    console.error('[Kite Quotes] Fetch error:', err);
+      try {
+        const response = await fetch(`https://api.kite.trade/quote?${params.toString()}`, {
+          headers: {
+            'X-Kite-Version': '3',
+            'Authorization': `token ${apiKey}:${accessToken}`,
+          },
+          cache: 'no-store',
+        });
+
+        if (response.status === 403 || response.status === 401) {
+          return { data: null, expired: true };
+        } else if (response.ok) {
+          const json = await response.json();
+          return { data: json.data || {}, expired: false };
+        }
+      } catch (err) {
+        console.error('[Kite Quotes] Batch fetch error:', err);
+      }
+      return { data: {}, expired: false };
+    })
+  );
+
+  for (const res of results) {
+    if (res.expired) tokenExpired = true;
+    if (res.data) Object.assign(allKiteData, res.data);
   }
 
   return { data: allKiteData, tokenExpired };

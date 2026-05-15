@@ -64,7 +64,19 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
     return () => scrollEl.removeEventListener('scroll', onScroll);
   }, []);
 
-  const getQuote = (id?: string) => (id ? quotes[id] || null : null);
+  const getQuote = (id?: string, token?: number) => {
+    if (!id && !token) return null;
+    if (id && quotes[id]) return quotes[id];
+    if (token && quotes[String(token)]) return quotes[String(token)];
+    
+    if (id) {
+      const parts = id.split(':');
+      const symbolOnly = parts.length > 1 ? parts[1] : id;
+      if (quotes[symbolOnly]) return quotes[symbolOnly];
+    }
+    
+    return null;
+  };
 
   return (
     <div className="oct-wrap">
@@ -92,8 +104,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         {/* ── Data rows ── */}
         <div className="oct-body">
           {strikes.map((s) => {
-            const ceQuote = getQuote(s.ce?.id);
-            const peQuote = getQuote(s.pe?.id);
+            const ceQuote = getQuote(s.ce?.id, s.ce?.token);
+            const peQuote = getQuote(s.pe?.id, s.pe?.token);
             const isAtm = s.strike === atmStrike?.strike;
 
             const ceBid = ceQuote ? (ceQuote.lastPrice - 0.05).toFixed(1) : '---';

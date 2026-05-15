@@ -64,9 +64,22 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   };
 
   useEffect(() => {
-    fetchSummary();
-    const interval = setInterval(fetchSummary, 1000);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      if (cancelled) return;
+      await fetchSummary();
+      if (!cancelled) {
+        timerId = setTimeout(poll, 3000);
+      }
+    };
+
+    poll();
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+    };
   }, []);
 
   const equity = balance + floatingPnl;
