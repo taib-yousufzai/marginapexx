@@ -86,17 +86,38 @@ export async function loadKiteSession(
   };
 }
 
+// ─── Shared Session Cache ───────────────────────────────────────────────────
+
+let sharedSessionCache: KiteSessionData | null = null;
+let lastSharedFetchTime = 0;
+const SHARED_CACHE_TTL = 60 * 1000; // 1 minute
+
 /**
  * Load the master/shared Kite session that is used for "everyone".
  * Uses the ZERODHA_SUPABASE_USER_ID from environment variables.
+ * Results are cached in memory for 60 seconds.
  */
 export async function getSharedKiteSession(): Promise<KiteSessionData | null> {
+  const now = Date.now();
+  if (sharedSessionCache && (now - lastSharedFetchTime < SHARED_CACHE_TTL)) {
+    // Check if it's still valid (not expired)
+    if (sharedSessionCache.expiresAt > new Date()) {
+      return sharedSessionCache;
+    }
+  }
+
   const masterId = process.env.ZERODHA_SUPABASE_USER_ID;
   if (!masterId) {
     console.warn('ZERODHA_SUPABASE_USER_ID not configured for shared session');
     return null;
   }
-  return loadKiteSession(masterId);
+
+  const session = await loadKiteSession(masterId);
+  if (session) {
+    sharedSessionCache = session;
+    lastSharedFetchTime = now;
+  }
+  return session;
 }
 
 /**

@@ -23,18 +23,21 @@ import type {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch the Kite LTP for a single instrument key server-side.
- * Falls back to null if Kite is not connected or returns an error.
+ * Fetch the Kite LTP for one or more instruments server-side.
+ * Returns a map of instrument -> last_price.
  */
-async function fetchKiteLtp(instrument: string): Promise<number | null> {
+async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, number>> {
+  if (instruments.length === 0) return {};
   const apiKey = process.env.KITE_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return {};
 
   try {
     const session = await getSharedKiteSession();
-    if (!session) return null;
+    if (!session) return {};
 
-    const params = new URLSearchParams({ i: instrument });
+    const params = new URLSearchParams();
+    instruments.forEach(i => params.append('i', i));
+
     const res = await fetch(`https://api.kite.trade/quote?${params}`, {
       headers: {
         'X-Kite-Version': '3',
@@ -43,12 +46,18 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
       cache: 'no-store',
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) return {};
 
     const data = await res.json() as { data?: Record<string, { last_price: number }> };
-    return data.data?.[instrument]?.last_price ?? null;
+    const result: Record<string, number> = {};
+    for (const inst of instruments) {
+      if (data.data?.[inst]) {
+        result[inst] = data.data[inst].last_price;
+      }
+    }
+    return result;
   } catch {
-    return null;
+    return {};
   }
 }
 
@@ -131,14 +140,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const admin = getAdminClient();
+  const kiteInst = kite_instrument || symbol;
 
-  // 4. Load user profile — check active, not read_only
-  const { data: profile, error: profileErr } = await admin
-    .from('profiles')
-    .select('id, active, read_only, segments, parent_id')
-    .eq('id', user.id)
-    .single();
+  // Identify all instruments needed for this order to batch the Kite API call
+  const instrumentsToFetch = [kiteInst];
+  const isOption = segment.includes('OPT');
+  const underlyingId = segment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
+  if (isOption && underlyingId !== kiteInst) {
+    instrumentsToFetch.push(underlyingId);
+  }
 
+  // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
+  // This is the key optimization — previously these were sequential (~4 round-trips).
+  const [profileResult, segSettingResult, txData, quotesMap] = await Promise.all([
+    // Profile
+    admin.from('profiles')
+      .select('id, active, read_only, segments, parent_id')
+      .eq('id', user.id)
+      .single(),
+
+    // Segment settings (we don't know parent_id yet, so we'll refetch if needed)
+    admin.from('segment_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('segment', segment)
+      .eq('side', side)
+      .maybeSingle(),
+
+    // Balance — aggregate in DB, not in JS (avoids loading all rows)
+    admin.rpc('get_user_balance', { p_user_id: user.id }),
+
+    // Kite LTP — batch fetch all needed quotes in one call
+    fetchKiteQuotes(instrumentsToFetch),
+  ]);
+
+  const kiteLtp = quotesMap[kiteInst] ?? null;
+
+  // 4. Profile checks
+  const { data: profile, error: profileErr } = profileResult;
   if (profileErr || !profile) {
     return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
   }
@@ -155,15 +194,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Trading not allowed in segment: ${segment}` }, { status: 403 });
   }
 
-  // 6. Load segment settings for this user (or their broker's defaults)
-  const lookupId = profile.parent_id ?? user.id;
-  const { data: segSetting } = await admin
-    .from('segment_settings')
-    .select('*')
-    .eq('user_id', lookupId)
-    .eq('segment', segment)
-    .eq('side', side)
-    .maybeSingle();
+  // 6. Segment settings — if parallel fetch missed parent_id broker settings, retry once
+  let segSetting = segSettingResult.data;
+  if (!segSetting && profile.parent_id && profile.parent_id !== user.id) {
+    const { data } = await admin
+      .from('segment_settings')
+      .select('*')
+      .eq('user_id', profile.parent_id)
+      .eq('segment', segment)
+      .eq('side', side)
+      .maybeSingle();
+    segSetting = data;
+  }
 
   // 7. Validate lot / qty limits & Strike Range
   if (segSetting) {
@@ -177,14 +219,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { status: 400 });
     }
 
-    // Strike Range Enforcement for Options
-    if (segment.includes('OPT') && segSetting.strike_range > 0) {
+    // Strike Range check — reuse the already-fetched quotes (no second Kite call)
+    if (isOption && segSetting.strike_range > 0 && kiteLtp) {
       const strikePrice = parseFloat(symbol.match(/\d+/)?.[0] || '0');
       if (strikePrice > 0) {
-        // Fetch current spot price for range check
-        const underlyingId = segment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
-        const spot = await fetchKiteLtp(underlyingId);
-        
+        const spot = quotesMap[underlyingId];
         if (spot) {
           const diff = Math.abs(strikePrice - spot);
           if (diff > segSetting.strike_range) {
@@ -197,29 +236,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 8. Margin check — balance = SUM(approved transactions)
-  const { data: txData, error: txErr } = await admin
-    .from('transactions')
-    .select('type, amount')
-    .eq('user_id', user.id)
-    .eq('status', 'APPROVED');
-
-  if (txErr) {
-    return NextResponse.json({ error: 'Failed to load balance' }, { status: 500 });
-  }
-
-  let balance = 0;
-  for (const tx of txData ?? []) {
-    if (tx.type === 'DEPOSIT' || tx.type === 'PNL_CREDIT') {
-      balance += Number(tx.amount);
-    } else {
-      balance -= Number(tx.amount);
-    }
-  }
-
-  // Required margin = exposure / leverage
+  // 8. Balance check — use the aggregated value from the parallel RPC call
+  const balance = Number(txData.data ?? 0);
   const leverage      = segSetting?.intraday_leverage ?? 1;
-  const exposure      = qty * (order_type === 'LIMIT' || order_type === 'SL' ? client_price : client_price); // simplification
+  const exposure      = qty * client_price;
   const requiredMargin = exposure / leverage;
 
   if (balance < requiredMargin) {
@@ -228,11 +248,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }, { status: 400 });
   }
 
-  // 9. Fetch LTP from Kite (server-side) — fall back to client_price if unavailable
-  const kiteInst = kite_instrument || symbol;
-  const kiteLtp  = await fetchKiteLtp(kiteInst);
-  const baseLtp  = kiteLtp ?? client_price;
-
+  // 9. Fill price — use the already-fetched kiteLtp (no second Kite call)
+  const baseLtp = kiteLtp ?? client_price;
   if (!baseLtp || baseLtp <= 0) {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }

@@ -18,12 +18,18 @@ import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import type { ClosePositionResponse } from '@/lib/types/order';
 
+/**
+ * Fetch the Kite LTP for a single instrument key server-side.
+ * Falls back to null if Kite is not connected or returns an error.
+ */
 async function fetchKiteLtp(instrument: string): Promise<number | null> {
   const apiKey = process.env.KITE_API_KEY;
   if (!apiKey) return null;
+
   try {
     const session = await getSharedKiteSession();
     if (!session) return null;
+
     const params = new URLSearchParams({ i: instrument });
     const res = await fetch(`https://api.kite.trade/quote?${params}`, {
       headers: {
@@ -32,7 +38,9 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
       },
       cache: 'no-store',
     });
+
     if (!res.ok) return null;
+
     const data = await res.json() as { data?: Record<string, { last_price: number }> };
     return data.data?.[instrument]?.last_price ?? null;
   } catch {
@@ -56,41 +64,42 @@ export async function POST(
 
   const admin = getAdminClient();
 
-  // Load the position — must belong to this user and be open
-  const { data: pos, error: posErr } = await admin
-    .from('positions')
-    .select('*')
-    .eq('id', positionId)
-    .eq('user_id', user.id)
-    .eq('status', 'open')
-    .single();
+  // 1. Parallel fetch position and profile
+  const [posResult, profileResult] = await Promise.all([
+    admin.from('positions')
+      .select('*')
+      .eq('id', positionId)
+      .eq('user_id', user.id)
+      .eq('status', 'open')
+      .single(),
+    admin.from('profiles')
+      .select('parent_id')
+      .eq('id', user.id)
+      .single(),
+  ]);
 
+  const { data: pos, error: posErr } = posResult;
   if (posErr || !pos) {
     return NextResponse.json({ error: 'Position not found or already closed' }, { status: 404 });
   }
 
-  // Load segment settings for exit buffer
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('parent_id')
-    .eq('id', user.id)
-    .single();
+  // 2. Parallel fetch segment settings and LTP
+  const lookupId = profileResult.data?.parent_id ?? user.id;
+  const [segSettingResult, kiteLtp] = await Promise.all([
+    admin.from('segment_settings')
+      .select('exit_buffer, profit_hold_sec, loss_hold_sec')
+      .eq('user_id', lookupId)
+      .eq('segment', pos.settlement ?? '')
+      .eq('side', pos.side)
+      .maybeSingle(),
+    pos.symbol ? fetchKiteLtp(pos.symbol) : Promise.resolve(null),
+  ]);
 
-  const lookupId = profile?.parent_id ?? user.id;
-  const { data: segSetting } = await admin
-    .from('segment_settings')
-    .select('exit_buffer, profit_hold_sec, loss_hold_sec')
-    .eq('user_id', lookupId)
-    .eq('segment', pos.settlement ?? '')
-    .eq('side', pos.side)
-    .maybeSingle();
-
+  const { data: segSetting } = segSettingResult;
   const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
   const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
   const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
-  // Fetch LTP from Kite
-  const kiteLtp = pos.symbol ? await fetchKiteLtp(pos.symbol) : null;
   const baseLtp = kiteLtp ?? Number(pos.ltp ?? pos.entry_price);
 
   // Exit price: opposite buffer to entry
