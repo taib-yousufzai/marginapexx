@@ -13,11 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Legacy/Browser scripts that shouldn't be linted as Node/TS
-    "temp_check.js",
     "scripts/watchlist-inline-script.js",
-    "scripts/gen.js",
-    "scripts/gen-watchlist.js",
-    "scratch/**",
   ]),
 ]);
 
