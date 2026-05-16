@@ -492,6 +492,9 @@ function WatchlistContent() {
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
   const [limitPrice, setLimitPrice] = useState<string>('');
+  const [slTpOpen, setSlTpOpen] = useState<boolean>(false);
+  const [slPrice, setSlPrice] = useState<string>('');
+  const [tpPrice, setTpPrice] = useState<string>('');
 
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
@@ -746,6 +749,9 @@ function WatchlistContent() {
     setOrderUnit('qty');
     setOrderType('MARKET');
     setProductType('INTRADAY');
+    setSlTpOpen(false);
+    setSlPrice('');
+    setTpPrice('');
 
     // Close detail sheet if open
     const detailSheet = document.getElementById('detailSheet');
@@ -1079,7 +1085,7 @@ function WatchlistContent() {
                 ))}
               </div>
             </div>
-            <div className="ts-section-card" id="priceInputCard" style={{ display: orderType === 'LIMIT' ? 'block' : 'none' }}>
+            <div className="ts-section-card" id="priceInputCard" style={{ display: (orderType === 'LIMIT' || orderType === 'SL') ? 'block' : 'none' }}>
               <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
               <input
                 type="number"
@@ -1091,10 +1097,55 @@ function WatchlistContent() {
                 onChange={(e) => setLimitPrice(e.target.value)}
               />
             </div>
-            <div className="ts-section-card" id="triggerCard" style={{ display: orderType === 'SLM' ? 'block' : 'none' }}>
+            <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
               <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
               <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} />
             </div>
+
+            {/* SL / TP toggle — only for MARKET order */}
+            {orderType === 'MARKET' && (
+              <div className="ts-section-card" style={{ padding: '0', overflow: 'hidden' }}>
+                <button
+                  onClick={() => setSlTpOpen(o => !o)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  <span className="ts-section-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    Stop Loss &amp; Target
+                  </span>
+                  <i className={`fas fa-chevron-${slTpOpen ? 'up' : 'down'}`} style={{ fontSize: '0.7rem', color: '#6B7280' }}></i>
+                </button>
+
+                {slTpOpen && (
+                  <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="price-input"
+                        value={slPrice}
+                        onChange={e => setSlPrice(e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                      />
+                    </div>
+                    <div>
+                      <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="price-input"
+                        value={tpPrice}
+                        onChange={e => setTpPrice(e.target.value)}
+                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="ts-section-card">
               <div className="ts-section-label">Product Type</div>
               <div className="ts-pill-group" id="productTypeContainer">
@@ -1663,24 +1714,59 @@ function buildInlineScript(): string {
         folderTreeMobile.innerHTML = html;
       }
 
+      var searchDebounceTimer = null;
+
+      function renderSearchResults(results) {
+        searchResultCount.textContent = results.length + ' results';
+        var html = '';
+        results.slice(0, 50).forEach(function(item) {
+          var isCrypto = item.segment && item.segment.indexOf('Crypto') >= 0;
+          html += '<div class="search-result-item">' +
+            '<div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-segment">' + escapeHtml(item.segment) + '</div></div>' +
+            '<div class="sri-right"><div class="sri-price">' + formatPrice(item.price, isCrypto) + '</div>' +
+            '<button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>+</button>' +
+            '</div></div>';
+        });
+        searchResultsList.innerHTML = html;
+        searchResultsArea.style.display = 'block';
+      }
+
       if (searchInput) {
         searchInput.addEventListener('input', function() {
-          var query = this.value.trim().toLowerCase();
+          var query = this.value.trim();
           if (query.length === 0) {
             searchResultsArea.style.display = 'none';
             clearSearchBtn.style.display = 'none';
+            if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             return;
           }
           clearSearchBtn.style.display = 'block';
-          var results = allScriptsDB.filter(function(s) { return s.name.toLowerCase().indexOf(query) >= 0 || s.symbol.toLowerCase().indexOf(query) >= 0; });
-          searchResultCount.textContent = results.length + ' results';
-          var html = '';
-          results.slice(0, 50).forEach(function(item) {
-            var isCrypto = item.segment && item.segment.indexOf('Crypto') >= 0;
-            html += '<div class="search-result-item"><div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-segment">' + escapeHtml(item.segment) + '</div></div><div class="sri-right"><div class="sri-price">' + formatPrice(item.price, isCrypto) + '</div><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>+</button></div></div>';
+
+          // Hardcoded results turant dikhao
+          var localResults = allScriptsDB.filter(function(s) {
+            return s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 ||
+                   s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
           });
-          searchResultsList.innerHTML = html;
-          searchResultsArea.style.display = 'block';
+          renderSearchResults(localResults);
+
+          // Live DB results 300ms debounce ke saath fetch karo
+          if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+          searchDebounceTimer = setTimeout(function() {
+            fetch('/api/market/instruments/search?q=' + encodeURIComponent(query))
+              .then(function(res) { return res.json(); })
+              .then(function(liveResults) {
+                if (!Array.isArray(liveResults)) return;
+                // Live results pehle, phir hardcoded jo live mein nahi hain
+                var liveSymbols = new Set(liveResults.map(function(r) { return r.symbol; }));
+                var hardcodedExtra = allScriptsDB.filter(function(s) { return !liveSymbols.has(s.symbol); });
+                var merged = liveResults.concat(hardcodedExtra);
+                // Sirf tab update karo jab query abhi bhi same ho
+                if (searchInput.value.trim() === query) {
+                  renderSearchResults(merged);
+                }
+              })
+              .catch(function() { /* error pe local results hi rehne do */ });
+          }, 300);
         });
       }
 
