@@ -496,6 +496,8 @@ function WatchlistContent() {
   const [slPrice, setSlPrice] = useState<string>('');
   const [tpPrice, setTpPrice] = useState<string>('');
 
+  const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
+
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
@@ -741,11 +743,20 @@ function WatchlistContent() {
     };
   }, [watchlistItems]);
 
-  const openTradeSheet = (item: WatchlistItem) => {
+  const openTradeSheet = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BOTH') => {
+    setTradeSide(side);
     setSelectedItem(item);
     // Reset defaults or set based on item type
-    const isIndex = item.name.includes('NIFTY') || item.name.includes('BANKNIFTY');
-    setOrderQty(isIndex ? 25 : 1);
+    const name = item.name.toUpperCase();
+    let computedLot = 1;
+    if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
+    else if (name.includes('BANKNIFTY')) computedLot = 15;
+    else if (name.includes('FINNIFTY')) computedLot = 40;
+    else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
+    else if (name.includes('SENSEX')) computedLot = 10;
+    else if (name.includes('BANKEX')) computedLot = 15;
+    
+    setOrderQty(computedLot);
     setOrderUnit('qty');
     setOrderType('MARKET');
     setProductType('INTRADAY');
@@ -792,6 +803,24 @@ function WatchlistContent() {
     if (detailOverlay) detailOverlay.classList.add('active');
   };
 
+  let lotSize = 1;
+  if (selectedItem) {
+    const name = selectedItem.name.toUpperCase();
+    if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) {
+      lotSize = 25;
+    } else if (name.includes('BANKNIFTY')) {
+      lotSize = 15;
+    } else if (name.includes('FINNIFTY')) {
+      lotSize = 40;
+    } else if (name.includes('MIDCP') || name.includes('MIDCAP')) {
+      lotSize = 75;
+    } else if (name.includes('SENSEX')) {
+      lotSize = 10;
+    } else if (name.includes('BANKEX')) {
+      lotSize = 15;
+    }
+  }
+
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
@@ -811,7 +840,7 @@ function WatchlistContent() {
       side,
       order_type: orderType,
       product_type: productType,
-      qty: orderQty,
+      qty: orderUnit === 'lot' ? orderQty * lotSize : orderQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
       client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : livePrice
     });
@@ -866,8 +895,8 @@ function WatchlistContent() {
   const askPrice = currentLtp + (currentLtp * 0.001);
 
   const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice
-    ? orderQty * parseFloat(limitPrice)
-    : orderQty * currentLtp;
+    ? (orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)
+    : (orderUnit === 'lot' ? orderQty * lotSize : orderQty) * currentLtp;
 
   useEffect(() => {
     window.__kiteQuotes = window.__kiteQuotes || {};
@@ -1042,12 +1071,12 @@ function WatchlistContent() {
                 <div className="ts-toggle-switch" id="qtyLotToggle">
                   <button
                     className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
-                    onClick={() => setOrderUnit('qty')}
+                    onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); }}
                     suppressHydrationWarning
                   >QTY</button>
                   <button
                     className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
-                    onClick={() => setOrderUnit('lot')}
+                    onClick={() => { setOrderUnit('lot'); setOrderQty(1); }}
                     suppressHydrationWarning
                   >LOT</button>
                 </div>
@@ -1055,19 +1084,25 @@ function WatchlistContent() {
             </div>
             <div className="ts-info-cards-wrap">
               <div className="ts-info-cards">
-                <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">1</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">{lotSize}</div></div>
                 <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">--</div></div>
                 <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{orderUnit === 'lot' ? orderQty : '--'}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty : orderQty}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty * lotSize : orderQty}</div></div>
               </div>
             </div>
             <div className="ts-qty-container">
-              <div className="ts-section-label">Quantity</div>
+              <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
               <div className="ts-qty-stepper">
-                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => setOrderQty(q => Math.max(1, q - 1))}><i className="fas fa-minus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => setOrderQty(q => {
+                  const step = orderUnit === 'qty' ? lotSize : 1;
+                  return Math.max(step, q - step);
+                })}><i className="fas fa-minus"></i></button>
                 <div className="ts-qty-display" id="tradeQtyDisplay">{orderQty}</div>
                 <input type="hidden" id="tradeQtyInput" value={orderQty} />
-                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => setOrderQty(q => q + 1)}><i className="fas fa-plus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => setOrderQty(q => {
+                  const step = orderUnit === 'qty' ? lotSize : 1;
+                  return q + step;
+                })}><i className="fas fa-plus"></i></button>
               </div>
               <div className="ts-qty-hint" id="sheetLotHint">
                 {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
@@ -1102,25 +1137,13 @@ function WatchlistContent() {
               <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} />
             </div>
 
-            {/* SL / TP toggle — only for MARKET order */}
-            {orderType === 'MARKET' && (
-              <div className="ts-section-card" style={{ padding: '0', overflow: 'hidden' }}>
-                <button
-                  onClick={() => setSlTpOpen(o => !o)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '12px 14px', background: 'none', border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  <span className="ts-section-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    Stop Loss &amp; Target
-                  </span>
-                  <i className={`fas fa-chevron-${slTpOpen ? 'up' : 'down'}`} style={{ fontSize: '0.7rem', color: '#6B7280' }}></i>
-                </button>
-
-                {slTpOpen && (
-                  <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
+            {/* SL / TP / Limit inputs for GTT order */}
+            {orderType === 'GTT' && (
+              <div className="ts-section-card">
+                <div className="ts-section-label">SL / Limit / Target</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
                       <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                       <input
                         type="number"
@@ -1131,7 +1154,7 @@ function WatchlistContent() {
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
                       />
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                       <input
                         type="number"
@@ -1143,7 +1166,18 @@ function WatchlistContent() {
                       />
                     </div>
                   </div>
-                )}
+                  <div>
+                    <div className="ts-section-label">Buy at Limit <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <input
+                      type="number"
+                      placeholder="0.00"
+                      className="price-input"
+                      value={limitPrice}
+                      onChange={e => setLimitPrice(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
             <div className="ts-section-card">
@@ -1170,22 +1204,26 @@ function WatchlistContent() {
       </div>
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
-        <button
-          className="ts-btn ts-btn-buy"
-          id="sheetBuyBtn"
-          disabled={placingOrder}
-          onClick={() => handlePlaceOrder('BUY')}
-        >
-          {placingOrder ? 'PLACING...' : 'BUY'}
-        </button>
-        <button
-          className="ts-btn ts-btn-sell"
-          id="sheetSellBtn"
-          disabled={placingOrder}
-          onClick={() => handlePlaceOrder('SELL')}
-        >
-          {placingOrder ? 'PLACING...' : 'SELL'}
-        </button>
+        {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
+          <button
+            className="ts-btn ts-btn-buy"
+            id="sheetBuyBtn"
+            disabled={placingOrder}
+            onClick={() => handlePlaceOrder('BUY')}
+          >
+            {placingOrder ? 'PLACING...' : 'BUY'}
+          </button>
+        )}
+        {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
+          <button
+            className="ts-btn ts-btn-sell"
+            id="sheetSellBtn"
+            disabled={placingOrder}
+            onClick={() => handlePlaceOrder('SELL')}
+          >
+            {placingOrder ? 'PLACING...' : 'SELL'}
+          </button>
+        )}
       </div>
 
       <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
@@ -1242,10 +1280,10 @@ function WatchlistContent() {
                   <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem)}>
+                  <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem, 'BUY')}>
                     <i className="fas fa-arrow-up"></i> BUY
                   </button>
-                  <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem)}>
+                  <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem, 'SELL')}>
                     <i className="fas fa-arrow-down"></i> SELL
                   </button>
                 </div>
