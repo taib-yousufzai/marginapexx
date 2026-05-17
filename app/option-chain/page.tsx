@@ -124,19 +124,10 @@ function OptionChainContent() {
       setSelectedContract({ symbol: instrSymbol, type, strike: strikeMatch.strike });
       const defaultQty = symbol === 'NIFTY' ? 50 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
       setOrderQty(defaultQty);
-      // Open sheet visually
-      const sheet = document.getElementById('tradeSheet');
-      const overlay = document.getElementById('tradeSheetOverlay');
-      if (sheet) sheet.classList.add('open');
-      if (overlay) overlay.classList.add('active');
     }
   };
 
   const closeTradeSheet = () => {
-    const sheet = document.getElementById('tradeSheet');
-    const overlay = document.getElementById('tradeSheetOverlay');
-    if (sheet) sheet.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
     setSelectedContract(null);
   };
 
@@ -284,6 +275,72 @@ function OptionChainContent() {
         </div>
       </main>
 
+      {/* Critical CSS inlined — prevents FOUC when CSS chunk loads late during client navigation */}
+      <style>{`
+        .expiry-half-drawer-overlay {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.55); z-index: 1000;
+          opacity: 0; visibility: hidden; pointer-events: none;
+          transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .expiry-half-drawer-overlay.active {
+          opacity: 1; visibility: visible; pointer-events: auto;
+        }
+        .expiry-half-sheet {
+          background: var(--card-bg, #F5F7FB);
+          border-radius: 20px 20px 0 0;
+          width: 100%; max-width: 500px; max-height: 85dvh;
+          overflow-y: auto;
+          box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+          position: fixed; bottom: 0; left: 0; right: 0; margin: 0 auto;
+          transform: translateY(100%); visibility: hidden;
+          transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05), visibility 0s linear 0.38s;
+          z-index: 1001;
+        }
+        .expiry-half-drawer-overlay.active .expiry-half-sheet {
+          transform: translateY(0); visibility: visible;
+          transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05), visibility 0s linear 0s;
+        }
+        @media (max-width: 500px) { .expiry-half-sheet { max-width: 100%; } }
+        .os-handle { display: flex; justify-content: center; padding: 10px 0 6px; }
+        .os-handle-bar { width: 40px; height: 4px; background: var(--border-card, #e2e6ea); border-radius: 4px; }
+        .os-sheet-header { padding: 14px 16px; border-bottom: 1px solid var(--border-light, #e8ecf0); display: flex; align-items: center; gap: 10px; }
+        .os-back-btn { background: var(--icon-bg, #f0f2f5); border: none; width: 34px; height: 34px; border-radius: 50%; font-size: 0.9rem; cursor: pointer; color: var(--text-secondary, #6b7280); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .os-sheet-left { flex: 1; }
+        .os-sheet-name { font-size: 1rem; font-weight: 800; color: var(--text-primary, #1a1a1a); margin-bottom: 4px; }
+        .os-sheet-segment { display: inline-block; font-size: 0.6rem; font-weight: 600; color: #C62E2E; background: #FEF0F0; padding: 3px 10px; border-radius: 20px; }
+        .os-sheet-right { text-align: right; }
+        .os-cmp-label { font-size: 0.55rem; color: var(--text-muted, #9ca3af); text-transform: uppercase; }
+        .os-cmp-val { font-size: 1.2rem; font-weight: 800; color: var(--text-primary, #1a1a1a); }
+        .os-cmp-chg { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 30px; display: inline-block; margin-top: 2px; }
+        .os-cmp-chg.pos { color: #2C8E5A; background: #E9F6EF; }
+        .os-cmp-chg.neg { color: #C62E2E; background: #FEF0F0; }
+        .os-bidask { background: var(--card-alt-bg, #f8f9fb); margin: 10px 16px; padding: 10px 16px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .os-ba-col { flex: 1; text-align: center; }
+        .os-ba-label { font-size: 0.6rem; color: var(--text-muted, #9ca3af); text-transform: uppercase; margin-bottom: 3px; }
+        .os-ba-val { font-size: 1rem; font-weight: 700; }
+        .os-ba-val.pos { color: #2C8E5A; }
+        .os-ba-val.neg { color: #C62E2E; }
+        .os-ba-divider { width: 1px; height: 32px; background: var(--border-light, #e8ecf0); margin: 0 8px; }
+        .os-qty-section { background: var(--card-alt-bg, #f8f9fb); padding: 10px 14px; border-radius: 18px; margin: 0 16px 12px; box-sizing: border-box; }
+        .os-qty-label { font-size: 0.7rem; font-weight: 500; color: var(--text-muted, #9ca3af); margin-bottom: 8px; }
+        .os-qty-control { display: flex; align-items: center; justify-content: space-between; background: var(--card-bg, #fff); border-radius: 40px; padding: 3px; border: 1px solid var(--border-light, #e8ecf0); width: 100%; box-sizing: border-box; overflow: hidden; }
+        .os-qty-btn { width: 38px; height: 38px; min-width: 38px; background: var(--icon-bg, #f0f2f5); border: none; border-radius: 30px; font-size: 1rem; font-weight: 600; color: #C62E2E; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .os-qty-input { flex: 1; min-width: 0; text-align: center; font-size: 1rem; font-weight: 700; border: none; outline: none; background: transparent; color: var(--text-primary, #1a1a1a); font-family: inherit; }
+        .os-type-section { background: var(--card-alt-bg, #f8f9fb); padding: 10px 14px; border-radius: 18px; margin: 0 16px 12px; }
+        .os-section-lbl { font-size: 0.7rem; font-weight: 500; color: var(--text-muted, #9ca3af); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .os-type-btns { display: flex; gap: 8px; }
+        .os-type-btn { flex: 1; padding: 8px; border: 1px solid var(--border-light, #e8ecf0); background: var(--card-bg, #fff); border-radius: 30px; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; color: var(--text-secondary, #6b7280); font-family: inherit; transition: 0.15s; }
+        .os-type-btn.active { background: #C62E2E; color: white; border-color: #C62E2E; }
+        .os-price-input { width: 100%; margin-top: 10px; padding: 10px; border-radius: 30px; border: 1px solid var(--border-light, #e8ecf0); font-size: 0.85rem; background: var(--card-bg, #fff); color: var(--text-primary, #1a1a1a); outline: none; font-family: inherit; box-sizing: border-box; }
+        .os-actions { padding: 4px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; }
+        .os-btn-buy, .os-btn-sell { flex: 1; padding: 14px; border: none; border-radius: 40px; font-size: 0.9rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; transition: 0.15s; }
+        .os-btn-buy { background: #2C8E5A; color: white; }
+        .os-btn-sell { background: #C62E2E; color: white; }
+        .os-btn-buy:disabled, .os-btn-sell:disabled { opacity: 0.6; cursor: not-allowed; }
+      `}</style>
+
       {/* Contract Order Sheet — outside all overflow/transform containers so position:fixed works */}
       <div
         className={`expiry-half-drawer-overlay${selectedContract ? ' active' : ''}`}
@@ -419,65 +476,7 @@ function OptionChainContent() {
 
       {/* Order Entry Sheet */}
 
-      {/* Order Entry Sheet */}
-      <div id="tradeSheetOverlay" className="trade-sheet-overlay" onClick={closeTradeSheet}></div>
-      <div id="tradeSheet" className="trade-sheet">
-        <div className="sheet-handle"><div className="handle-bar"></div></div>
-        {selectedContract && (
-          <div className="ts-content" style={{ padding: '0 20px 20px' }}>
-            <div className="ts-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <div className="ts-symbol" style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{selectedContract.strike} {selectedContract.type}</div>
-                <div className="ts-exchange" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{symbol} OPTION</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="ts-ltp" style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {(() => {
-                    const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
-                    return quotes[kiteId || '']?.lastPrice?.toFixed(2) || '---';
-                  })()}
-                </div>
-              </div>
-            </div>
-            <div className="ts-order-options" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="ts-row">
-                <div className="ts-label">Quantity</div>
-                <div className="ts-qty-selector" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button className="qty-btn" onClick={() => setOrderQty(q => Math.max(1, q - 1))}>-</button>
-                  <input type="number" className="qty-input" value={orderQty} onChange={e => setOrderQty(parseInt(e.target.value) || 1)} />
-                  <button className="qty-btn" onClick={() => setOrderQty(q => q + 1)}>+</button>
-                </div>
-              </div>
-              <div className="ts-row">
-                <div className="ts-label">Order Type</div>
-                <div className="pill-group">
-                  {['MARKET', 'LIMIT'].map(t => (
-                    <button key={t} className={`pill-btn ${orderType === t ? 'active' : ''}`} onClick={() => setOrderType(t as OrderType)}>{t}</button>
-                  ))}
-                </div>
-              </div>
-              {orderType === 'LIMIT' && (
-                <div className="ts-row">
-                  <div className="ts-label">Price</div>
-                  <input type="number" className="price-input" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} placeholder="0.00" />
-                </div>
-              )}
-              <div className="ts-row">
-                <div className="ts-label">Product</div>
-                <div className="pill-group">
-                  {['INTRADAY', 'CARRY'].map(p => (
-                    <button key={p} className={`pill-btn ${productType === p ? 'active' : ''}`} onClick={() => setProductType(p as ProductType)}>{p}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="ts-footer" style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button className="ts-btn ts-btn-buy" onClick={() => handlePlaceOrder('BUY')} disabled={placingOrder}>{placingOrder ? '...' : 'BUY'}</button>
-              <button className="ts-btn ts-btn-sell" onClick={() => handlePlaceOrder('SELL')} disabled={placingOrder}>{placingOrder ? '...' : 'SELL'}</button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Order Entry Sheet removed — expiry-half-sheet handles all order entry */}
 
       <div className={`pos-toast${toast.visible ? ' show' : ''}`} style={{
           position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',

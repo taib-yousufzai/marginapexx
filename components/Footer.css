@@ -10,6 +10,8 @@
   left: 0;
   right: 0;
   width: 100%;
+  height: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
   background: var(--footer-bg, #FFFFFF) !important;
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -177,29 +179,32 @@ body.dark .footer-nav[data-active="history"]::before {
 
 .account-drawer-ark {
   position: fixed;
-  bottom: var(--footer-nav-height, 65px);
+  bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   margin: 0 auto;
   max-width: 500px;
   width: 100%;
   
-  @media (min-width: 1024px) {
+  height: 0px;
+  min-height: 0 !important;
+  max-height: 50vh !important;
+  flex-grow: 0 !important;
+  background: transparent;
+  z-index: 46;
+  border-radius: 0;
+  will-change: height, background;
+  overflow: visible; /* allows handle to protrude above */
+}
+
+@media (min-width: 1024px) {
+  .account-drawer-ark {
     left: var(--sidebar-width, 80px);
     right: 0;
     max-width: none;
     width: auto;
     margin: 0;
   }
-  height: 0px;
-  min-height: 0 !important;
-  max-height: 50vh !important;
-  flex-grow: 0 !important;
-  background: var(--drawer-bg, #FFFFFF);
-  z-index: 46;
-  border-radius: 0;
-  will-change: height;
-  overflow: visible; /* allows line+handle to protrude above */
 }
 
 /* Wrapper placeholder */
@@ -229,7 +234,6 @@ body.dark .ark-drawer-top-line { background: red; }
   height: 20px;
   background: #DC2626;
   clip-path: path("M 0 20 C 15 20, 32 0, 45 0 C 58 0, 75 20, 90 20 Z");
-  filter: drop-shadow(0 -4px 8px rgba(220, 38, 38, 0.3));
   display: flex;
   justify-content: center;
   align-items: center;
@@ -253,6 +257,8 @@ body.dark .ark-drag-handle-area { background: #DC2626; }
 
 .drawer-inner-scroll {
   padding: 6px 10px;
+  overflow: hidden;
+  visibility: hidden;
 }
 
 .drawer-inner-scroll::-webkit-scrollbar { display: none; }
@@ -317,7 +323,7 @@ body.dark .summary-value.highlight { color: var(--footer-active, #008000); }
 }
 
 body.dark .account-drawer-ark {
-  background: var(--drawer-bg, #1E1E1E);
+  background: transparent;
 }
 
 /* Inner content clip - hides overflow when drawer animates */

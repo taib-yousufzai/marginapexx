@@ -106,6 +106,11 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     if (!panelRef.current) return;
     panelRef.current.style.transition = 'height 0.4s cubic-bezier(0.2, 0.9, 0.3, 1)';
     panelRef.current.style.height = isOpen ? `${openHeight}px` : '0px';
+    panelRef.current.style.background = isOpen ? 'var(--drawer-bg, #FFFFFF)' : 'transparent';
+    // Hide inner content when closed so overflow:visible doesn't leak it
+    if (contentRef.current) {
+      contentRef.current.style.visibility = isOpen ? 'visible' : 'hidden';
+    }
   }, [isOpen, vh]);
 
   // Reset drawer when switching pages
