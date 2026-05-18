@@ -151,17 +151,21 @@ export default function PositionPage() {
                 <div className="pos-pnl-card">
                   <div className="pos-pnl-card-title">Today's P&amp;L</div>
                   <div className="pos-pnl-card-body">
-                    <div className="pos-pnl-col left">
-                      <div className="pos-pnl-label">Realized</div>
-                      <div className={`pos-pnl-val${realized >= 0 ? ' green' : ' red'}`}>{fmtUSD(realized)}</div>
-                    </div>
+                    {currentMain === 'cumulative' && currentSub === 'closed' && (
+                      <div className="pos-pnl-col left">
+                        <div className="pos-pnl-label">Realized</div>
+                        <div className={`pos-pnl-val${realized >= 0 ? ' green' : ' red'}`}>{fmtUSD(realized)}</div>
+                      </div>
+                    )}
                     <div className="pos-pnl-col center">
                       <div className={`pos-pnl-total${totalPnl >= 0 ? ' green' : ' red'}`}>{fmtUSD(totalPnl)}</div>
                     </div>
-                    <div className="pos-pnl-col right">
-                      <div className="pos-pnl-label">Unrealized</div>
-                      <div className={`pos-pnl-val${unrealized >= 0 ? ' green' : ' red'}`}>{fmtUSD(unrealized)}</div>
-                    </div>
+                    {currentMain === 'cumulative' && currentSub === 'closed' && (
+                      <div className="pos-pnl-col right">
+                        <div className="pos-pnl-label">Unrealized</div>
+                        <div className={`pos-pnl-val${unrealized >= 0 ? ' green' : ' red'}`}>{fmtUSD(unrealized)}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
