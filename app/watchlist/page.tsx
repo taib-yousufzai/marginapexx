@@ -231,6 +231,7 @@ function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
           key={label}
           className={`seg-tab${activeTab === label ? ' seg-tab--active' : ''}`}
           onClick={() => onTabChange(label)}
+          suppressHydrationWarning
         >
           {label}
         </button>
@@ -695,6 +696,35 @@ function WatchlistContent() {
         if (footer) footer.classList.add('visible');
       }
     };
+
+    // Open trade sheet with a pre-built item object (used by position page "Add More")
+    (window as any).__reactOpenTradeSheetWithItem = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BUY') => {
+      setSelectedItem(item);
+      setTradeSide(side);
+      const name = (item.name || item.symbol).toUpperCase();
+      let computedLot = 1;
+      if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
+      else if (name.includes('BANKNIFTY')) computedLot = 15;
+      else if (name.includes('FINNIFTY')) computedLot = 40;
+      else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
+      else if (name.includes('SENSEX')) computedLot = 10;
+      else if (name.includes('BANKEX')) computedLot = 15;
+      setOrderQty(computedLot);
+      setOrderUnit('qty');
+      setOrderType('MARKET');
+      setProductType('INTRADAY');
+      const detailSheet = document.getElementById('detailSheet');
+      const detailOverlay = document.getElementById('detailSheetOverlay');
+      if (detailSheet) detailSheet.classList.remove('open');
+      if (detailOverlay) detailOverlay.classList.remove('active');
+      const sheet = document.getElementById('tradeSheet');
+      const overlay = document.getElementById('tradeSheetOverlay');
+      const footer = document.getElementById('tsStickyFooter');
+      if (sheet) sheet.classList.add('open');
+      if (overlay) overlay.classList.add('active');
+      if (footer) footer.classList.add('visible');
+    };
+
     (window as any).__reactOpenDetailSheet = (symbol: string) => {
       // Search in user watchlist first
       let item: WatchlistItem | undefined = window.__watchlistItems?.find((i: WatchlistItem) => i.symbol === symbol)
@@ -1759,10 +1789,11 @@ function buildInlineScript(): string {
         var html = '';
         results.slice(0, 50).forEach(function(item) {
           var rawPrice = item.price || 0;
-          var priceStr = rawPrice > 0 ? rawPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0';
+          var priceStr = rawPrice > 0 ? rawPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '---';
+          var kiteId = item.kiteSymbol || item.symbol || '';
           html += '<div class="search-result-item">' +
             '<div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-symbol">' + escapeHtml(item.symbol || '') + '</div></div>' +
-            '<div class="sri-right"><div class="sri-price">' + priceStr + '</div>' +
+            '<div class="sri-right"><div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '">' + priceStr + '</div>' +
             '<button class="add-script-btn sri-add-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
             '</div></div>';
         });
@@ -1772,6 +1803,31 @@ function buildInlineScript(): string {
         // Hide watchlist so search fills full screen
         var watchlistSection = document.querySelector('.watchlist-section');
         if (watchlistSection) watchlistSection.style.display = 'none';
+
+        // Fetch live prices for all results that have a kiteSymbol
+        var kiteIds = results.slice(0, 50)
+          .map(function(r) { return r.kiteSymbol || ''; })
+          .filter(function(id) { return id.includes(':'); });
+        if (kiteIds.length === 0) return;
+
+        fetch('/api/kite/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instruments: kiteIds })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(json) {
+            var quoteData = json.data || {};
+            Object.entries(quoteData).forEach(function(entry) {
+              var kiteId = entry[0];
+              var quote = entry[1];
+              var lp = quote && quote.last_price;
+              if (!lp) return;
+              var el = searchResultsList.querySelector('[data-kite-id="' + kiteId + '"]');
+              if (el) el.textContent = lp.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+            });
+          })
+          .catch(function() {});
       }
 
       if (searchInput) {

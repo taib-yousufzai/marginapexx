@@ -6,6 +6,7 @@ import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
+import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
 
 export default function PositionPage() {
@@ -18,6 +19,22 @@ export default function PositionPage() {
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Add More trade sheet
+  const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
+  const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BUY');
+
+  const openAddMore = (pos: EnrichedPosition) => {
+    setTradeSheetItem({
+      name: pos.symbol,
+      symbol: pos.symbol,
+      kiteSymbol: pos.symbol,
+      segment: pos.settlement || 'INR',
+      price: pos.current_ltp,
+      change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
+    });
+    setTradeSheetSide(pos.side);
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -270,6 +287,7 @@ export default function PositionPage() {
               <div className="pos-sheet-handle"><div className="pos-sheet-handle-bar" /></div>
               {selectedPos && (
                 <div className="pos-sheet-content">
+                  {/* Header */}
                   <div className="ps-header-row">
                     <div className="ps-header-left">
                       <div className="ps-symbol">{selectedPos.symbol}</div>
@@ -279,33 +297,58 @@ export default function PositionPage() {
                       <div className={`ps-price ${selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}`}>
                         {fmtPrice(selectedPos.current_ltp, selectedPos.settlement)}
                       </div>
+                      <div className={`ps-change ${selectedPos.pnl_percent >= 0 ? 'ps-green' : 'ps-red'}`}>
+                        {selectedPos.pnl_percent >= 0 ? '+' : ''}{selectedPos.pnl_percent.toFixed(2)}%
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ padding: '20px 0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Entry Price</span>
-                      <span style={{ fontWeight: 700 }}>{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</span>
+                  {/* Bid / Ask */}
+                  <div className="ps-bidask-row">
+                    <div>
+                      <div className="ps-ba-label">BID</div>
+                      <div className="ps-ba-bid">{selectedPos.current_ltp > 0 ? (selectedPos.current_ltp - 0.20).toFixed(2) : '---'}</div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Quantity</span>
-                      <span style={{ fontWeight: 700 }}>{selectedPos.qty_open || selectedPos.qty_total}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>Side</span>
-                      <span className={`pos-badge ${selectedPos.side === 'BUY' ? 'long' : 'short'}`}>{selectedPos.side}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>P&amp;L</span>
-                      <span style={{ fontWeight: 800, fontSize: '1.2rem' }} className={selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}>
-                        {fmtUSD(selectedPos.total_pnl, selectedPos.settlement)}
-                      </span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="ps-ba-label">ASK</div>
+                      <div className="ps-ba-ask">{selectedPos.current_ltp > 0 ? (selectedPos.current_ltp + 0.20).toFixed(2) : '---'}</div>
                     </div>
                   </div>
 
+                  {/* Meta row */}
+                  <div className="ps-meta-row">
+                    <div>
+                      <div className="ps-meta-label">Avg Price</div>
+                      <div className="ps-meta-val">{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div className="ps-meta-label">Quantity</div>
+                      <div className="ps-meta-val">{selectedPos.qty_open || selectedPos.qty_total}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="ps-meta-label">Side</div>
+                      <span className={`pos-badge ${selectedPos.side === 'BUY' ? 'long' : 'short'}`} style={{ fontSize: '0.75rem', padding: '4px 14px' }}>{selectedPos.side}</span>
+                    </div>
+                  </div>
+
+                  {/* P&L + Exit All */}
+                  {selectedPos.status === 'open' && (
+                    <div className="ps-pnl-section">
+                      <div>
+                        <div className="ps-pnl-label">Current P&amp;L</div>
+                        <div className={`ps-pnl-value ${selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}`}>
+                          {selectedPos.total_pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.total_pnl, selectedPos.settlement)}
+                        </div>
+                      </div>
+                      <button className="ps-btn-exit" onClick={() => handleExit(selectedPos.id)}>Exit All</button>
+                    </div>
+                  )}
+
+                  {/* Add More / Partial Exit */}
                   {selectedPos.status === 'open' && (
                     <div className="ps-action-row">
-                      <button className="ps-btn-exit" style={{ width: '100%' }} onClick={() => handleExit(selectedPos.id)}>Close Position</button>
+                      <button className="ps-btn-add" onClick={() => openAddMore(selectedPos)}>Add More</button>
+                      <button className="ps-btn-partial" onClick={() => handleExit(selectedPos.id)}>Partial Exit</button>
                     </div>
                   )}
                 </div>
@@ -319,6 +362,14 @@ export default function PositionPage() {
           </div>
         </div>
       </main>
+
+      {/* Add More — full watchlist-style trade sheet */}
+      <TradeSheet
+        item={tradeSheetItem}
+        side={tradeSheetSide}
+        onClose={() => setTradeSheetItem(null)}
+        onSuccess={refresh}
+      />
     </div>
   );
 }

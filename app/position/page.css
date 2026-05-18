@@ -886,15 +886,16 @@ body.dark .pos-badge.short {
 }
 
 .ps-symbol {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   color: #111827;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 
 .ps-segment {
   font-size: 11px;
   color: #6B7280;
+  font-weight: 500;
 }
 
 .ps-header-right {
@@ -902,13 +903,13 @@ body.dark .pos-badge.short {
 }
 
 .ps-price {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   margin-bottom: 2px;
 }
 
 .ps-change {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -927,10 +928,57 @@ body.dark .pos-badge.short {
 
 .ps-bidask-row {
   display: flex;
-  gap: 16px;
-  font-size: 11px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--card-alt-bg, #f8f9fb);
+  border-radius: 14px;
+  border-bottom: none;
+}
+
+.ps-ba-label {
+  font-size: 0.6rem;
+  font-weight: 700;
   color: #6B7280;
-  align-items: baseline;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.ps-ba-bid {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #059669;
+}
+
+.ps-ba-ask {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #DC2626;
+}
+
+.ps-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--card-alt-bg, #f8f9fb);
+  border-radius: 14px;
+}
+
+.ps-meta-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.ps-meta-val {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
 }
 
 .ps-ohlc-row {
@@ -951,14 +999,14 @@ body.dark .pos-badge.short {
 }
 
 .ps-pnl-label {
-  font-size: 11px;
+  font-size: 12px;
   color: #6B7280;
   margin-bottom: 4px;
 }
 
 .ps-pnl-value {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
 }
 
 .ps-btn-exit {
@@ -966,23 +1014,178 @@ body.dark .pos-badge.short {
   color: #FFFFFF;
   border: none;
   border-radius: 40px;
-  padding: 9px 20px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease;
+  white-space: nowrap;
 }
 
 .ps-btn-exit:active {
   transform: scale(0.95);
 }
 
+.ps-btn-add {
+  flex: 1;
+  background: transparent;
+  color: #059669;
+  border: 2px solid #059669;
+  border-radius: 40px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.ps-btn-add:active {
+  transform: scale(0.95);
+}
+
+.ps-btn-partial {
+  flex: 1;
+  background: transparent;
+  color: #DC2626;
+  border: 2px solid #DC2626;
+  border-radius: 40px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.ps-btn-partial:active {
+  transform: scale(0.95);
+}
+
 .ps-action-row {
   display: flex;
   gap: 12px;
-  margin-top: auto;
-  padding-top: 2px;
   padding-bottom: 14px;
+}
+
+/* ── Add More Sheet ── */
+.add-more-sheet {
+  max-height: 80dvh;
+}
+
+.ps-add-section {
+  background: var(--card-alt-bg, #f8f9fb);
+  padding: 10px 14px;
+  border-radius: 18px;
+}
+
+.ps-add-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6B7280;
+  margin-bottom: 10px;
+  letter-spacing: 0.4px;
+}
+
+.ps-qty-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 40px;
+  padding: 3px;
+  border: 1px solid #e8ecf0;
+  gap: 0;
+}
+
+.ps-qty-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  background: #f0f2f5;
+  border: none;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #C62E2E;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ps-qty-input {
+  width: 80px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #111827;
+  font-family: inherit;
+}
+
+.ps-type-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.ps-type-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #e8ecf0;
+  background: #fff;
+  border-radius: 30px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  color: #6b7280;
+  font-family: inherit;
+  transition: 0.15s;
+}
+
+.ps-type-btn.active {
+  background: #C62E2E;
+  color: #fff;
+  border-color: #C62E2E;
+}
+
+.ps-limit-input {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 30px;
+  border: 1px solid #e8ecf0;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #111827;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.ps-btn-buy-more {
+  flex: 1;
+  background: #2C8E5A;
+  color: #fff;
+  border: none;
+  border-radius: 40px;
+  padding: 14px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  transition: 0.15s;
+}
+
+.ps-btn-buy-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ── Closed Position Flat Grid ── */
