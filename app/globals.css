@@ -794,6 +794,12 @@ body.dark .ew-arrow--today {
     overflow-x: hidden;
     position: relative;
     background: var(--bg-body);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .main-viewport::-webkit-scrollbar {
+    display: none;
   }
 
   .app-container {

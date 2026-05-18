@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { getSession } from '@/lib/auth';
+import { pageCache } from '@/lib/pageCache';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import Sidebar from '@/components/Sidebar';
@@ -14,11 +16,40 @@ export default function PositionPage() {
   const { positions, loading: posLoading, error: posError, refresh } = useMyPositions(1000);
   const { closePosition, loading: closingPos } = useOrderEntry();
 
+  const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSession().then((session) => {
+      if (cancelled || !session) return;
+      fetch('/api/pay/balance', { headers: { Authorization: `Bearer ${session.access_token}` } })
+        .then(res => res.ok ? res.json() : { balance: 0 })
+        .then(data => {
+          if (cancelled) return;
+          const bal = data.balance ?? 0;
+          setBalance(bal);
+          pageCache.set('funds:balance', bal);
+        })
+        .catch(() => {});
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const formatBalance = (val: number | null) => {
+    if (val === null) return '...';
+    if (val > 999) return (val / 1000).toFixed(2) + ' k';
+    return val.toFixed(2);
+  };
+
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
   const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Exit All Modal
+  const [isExitAllModalOpen, setIsExitAllModalOpen] = useState(false);
+  const [isExitingAll, setIsExitingAll] = useState(false);
 
   // Add More trade sheet
   const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
@@ -73,6 +104,32 @@ export default function PositionPage() {
   const closedPositions = positions.filter(p => p.status === 'closed');
   const hasOpenPositions = openPositions.length > 0;
 
+  const handleExitAllConfirm = async () => {
+    if (!hasOpenPositions) return;
+    setIsExitingAll(true);
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    const promises = openPositions.map(p => closePosition(p.id));
+    const results = await Promise.all(promises);
+    
+    results.forEach(res => {
+      if (res.success) successCount++;
+      else failCount++;
+    });
+    
+    setIsExitingAll(false);
+    setIsExitAllModalOpen(false);
+    
+    if (failCount === 0) {
+      showToast(`Successfully closed ${successCount} position(s).`);
+    } else {
+      showToast(`Closed ${successCount}, failed ${failCount}.`);
+    }
+    refresh();
+  };
+
   const totalPnl = positions.reduce((acc, p) => acc + (p.total_pnl || 0), 0);
   const realized = positions.filter(p => p.status === 'closed').reduce((acc, p) => acc + (p.pnl || 0), 0);
   const unrealized = positions.filter(p => p.status === 'open' || p.status === 'active').reduce((acc, p) => acc + (p.total_pnl || 0), 0);
@@ -105,13 +162,19 @@ export default function PositionPage() {
                   </div>
                   <div className="pos-brand-sub">Internal Positions • Real-time P&amp;L</div>
                 </div>
-                <button
-                  className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
-                  onClick={() => { if (hasOpenPositions) showToast('Use detailed view to close individual positions.'); }}
-                >
-                  <i className="fas fa-sign-out-alt" />
-                  <span>Exit All</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button className="pos-wallet-btn" onClick={() => showToast('Wallet clicked')}>
+                    <i className="fas fa-wallet" />
+                    <span>₹{formatBalance(balance)}</span>
+                  </button>
+                  <button
+                    className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
+                    onClick={() => { if (hasOpenPositions) setIsExitAllModalOpen(true); }}
+                  >
+                    <i className="fas fa-sign-out-alt" />
+                    <span>Exit All</span>
+                  </button>
+                </div>
               </div>
 
               {/* ── Desktop Page Header ── */}
@@ -120,14 +183,20 @@ export default function PositionPage() {
                   <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Positions</h1>
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>Internal Execution • Real-time P&amp;L</p>
                 </div>
-                <button
-                  className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
-                  onClick={() => { if (hasOpenPositions) showToast('Use detailed view to close individual positions.'); }}
-                  style={{ padding: '10px 20px', fontSize: '0.9rem' }}
-                >
-                  <i className="fas fa-sign-out-alt" />
-                  <span>Exit All Positions</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button className="pos-wallet-btn" onClick={() => showToast('Wallet clicked')}>
+                    <i className="fas fa-wallet" />
+                    <span>{formatBalance(balance)}</span>
+                  </button>
+                  <button
+                    className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
+                    onClick={() => { if (hasOpenPositions) setIsExitAllModalOpen(true); }}
+                    style={{ padding: '10px 20px', fontSize: '0.9rem' }}
+                  >
+                    <i className="fas fa-sign-out-alt" />
+                    <span>Exit All Positions</span>
+                  </button>
+                </div>
               </div>
 
               {/* ── Main Tabs ── */}
@@ -399,6 +468,39 @@ export default function PositionPage() {
             <div className={`pos-toast${toast ? ' show' : ''}`}>
               <i className="fas fa-circle-info" />
               <span>{toast}</span>
+            </div>
+
+            {/* Exit All Confirmation Modal */}
+            <div className={`pos-modal-overlay${isExitAllModalOpen ? ' open' : ''}`} onClick={() => !isExitingAll && setIsExitAllModalOpen(false)}>
+              <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
+                <div className="pos-modal-icon">
+                  <i className="fas fa-exclamation-triangle" />
+                </div>
+                <div className="pos-modal-title">Close All Positions?</div>
+                <div className="pos-modal-desc">
+                  Are you sure you want to exit all <strong>{openPositions.length}</strong> open positions? This action will execute market orders immediately and cannot be undone.
+                </div>
+                <div className="pos-modal-actions">
+                  <button 
+                    className="pos-modal-btn cancel" 
+                    onClick={() => setIsExitAllModalOpen(false)}
+                    disabled={isExitingAll}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="pos-modal-btn confirm" 
+                    onClick={handleExitAllConfirm}
+                    disabled={isExitingAll}
+                  >
+                    {isExitingAll ? (
+                      <><i className="fas fa-circle-notch fa-spin" style={{ marginRight: '6px' }} /> Closing...</>
+                    ) : (
+                      'Confirm Exit All'
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
