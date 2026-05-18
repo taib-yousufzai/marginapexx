@@ -33,9 +33,6 @@ function OptionChainContent() {
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
-  const [slTpEnabled, setSlTpEnabled] = useState(false);
-  const [slPrice, setSlPrice] = useState('');
-  const [tpPrice, setTpPrice] = useState('');
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
@@ -392,64 +389,22 @@ function OptionChainContent() {
                                   <button className="os-qty-btn" onClick={() => setOrderQty(q => q + 1)}><i className="fas fa-plus"></i></button>
                                 </div>
                               </div>
-                              {/* Order Type + SL/TP Toggle */}
+                              {/* Order Type */}
                               <div className="os-type-section">
                                 <div className="os-section-lbl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <i className="fas fa-layer-group"></i> ORDER TYPE
                                   </span>
-                                  {orderType === 'MARKET' && (
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}>
-                                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                                        Stop Loss &amp; Target
-                                      </span>
-                                      <span
-                                        onClick={() => { setSlTpEnabled(v => !v); setSlPrice(''); setTpPrice(''); }}
-                                        style={{
-                                          display: 'inline-flex', alignItems: 'center',
-                                          width: '36px', height: '20px', borderRadius: '10px',
-                                          background: slTpEnabled ? '#C62E2E' : '#D1D5DB',
-                                          transition: 'background 0.2s', cursor: 'pointer',
-                                          padding: '2px', flexShrink: 0,
-                                        }}
-                                      >
-                                        <span style={{
-                                          width: '16px', height: '16px', borderRadius: '50%',
-                                          background: '#fff',
-                                          transform: slTpEnabled ? 'translateX(16px)' : 'translateX(0)',
-                                          transition: 'transform 0.2s',
-                                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                        }} />
-                                      </span>
-                                    </label>
-                                  )}
                                 </div>
                                 <div className="os-type-btns">
                                   {(['MARKET', 'LIMIT'] as OrderType[]).map(t => (
-                                    <button key={t} className={`os-type-btn${orderType === t ? ' active' : ''}`} onClick={() => { setOrderType(t); if (t !== 'MARKET') { setSlTpEnabled(false); setSlPrice(''); setTpPrice(''); } }}>{t}</button>
+                                    <button key={t} className={`os-type-btn${orderType === t ? ' active' : ''}`} onClick={() => { setOrderType(t); }}>{t}</button>
                                   ))}
                                 </div>
                                 {orderType === 'LIMIT' && (
                                   <input className="os-price-input" type="number" placeholder="Limit Price (₹)" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} />
                                 )}
                               </div>
-
-                              {/* SL / TP — only when MARKET + toggle ON */}
-                              {orderType === 'MARKET' && slTpEnabled && (
-                                <div className="os-type-section">
-                                  <div className="os-section-lbl"><i className="fas fa-shield-alt"></i> STOP LOSS &amp; TARGET</div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    <div>
-                                      <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>Stop Loss (₹)</div>
-                                      <input className="os-price-input" style={{ marginTop: 0 }} type="number" placeholder="0.00" value={slPrice} onChange={e => setSlPrice(e.target.value)} />
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }}>Target (₹)</div>
-                                      <input className="os-price-input" style={{ marginTop: 0 }} type="number" placeholder="0.00" value={tpPrice} onChange={e => setTpPrice(e.target.value)} />
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
                               {/* Product Type */}
                               <div className="os-type-section">
                                 <div className="os-section-lbl"><i className="fas fa-clock"></i> PRODUCT TYPE</div>

@@ -922,7 +922,7 @@ function WatchlistContent() {
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <div className="folder-btn" id="openFolderMobileBtn" onClick={() => setIsFolderDrawerOpen(true)}>
               <i className="fas fa-folder"></i>
-              <span>Library</span>
+              <span>Scripts Library</span>
               <i className="fas fa-chevron-right"></i>
             </div>
           </div>
@@ -931,14 +931,14 @@ function WatchlistContent() {
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
           <input type="text" className="search-input" id="globalSearchInput" placeholder="Search instrument" autoComplete="off" value={searchText} onChange={(e) => setSearchText(e.target.value)} suppressHydrationWarning />
-          <i className="fas fa-trash clear-search" id="clearSearchBtn" onClick={() => setSearchText('')}></i>
+          <i className="fas fa-times-circle clear-search" id="clearSearchBtn" onClick={() => setSearchText('')}></i>
         </div>
       </div>
 
       <div className="main-content">
         <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
           <div className="section-subtitle">
-            <i className="fas fa-search"></i> SEARCH RESULTS <span style={{ fontSize: '0.6rem', marginLeft: 'auto' }} id="searchResultCount"></span>
+            <i className="fas fa-search"></i> SEARCH RESULTS <span id="searchResultCount"></span>
           </div>
           <div id="searchResultsList"></div>
         </div>
@@ -1097,7 +1097,7 @@ function WatchlistContent() {
                   const step = orderUnit === 'qty' ? lotSize : 1;
                   return Math.max(step, q - step);
                 })}><i className="fas fa-minus"></i></button>
-                <div className="ts-qty-display" id="tradeQtyDisplay">{orderQty}</div>
+                <div className="ts-qty-val" id="tradeQtyDisplay">{orderQty}</div>
                 <input type="hidden" id="tradeQtyInput" value={orderQty} />
                 <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => setOrderQty(q => {
                   const step = orderUnit === 'qty' ? lotSize : 1;
@@ -1755,18 +1755,23 @@ function buildInlineScript(): string {
       var searchDebounceTimer = null;
 
       function renderSearchResults(results) {
-        searchResultCount.textContent = results.length + ' results';
+        searchResultCount.textContent = results.length + ' RESULTS';
         var html = '';
         results.slice(0, 50).forEach(function(item) {
-          var isCrypto = item.segment && item.segment.indexOf('Crypto') >= 0;
+          var rawPrice = item.price || 0;
+          var priceStr = rawPrice > 0 ? rawPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '0';
           html += '<div class="search-result-item">' +
-            '<div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-segment">' + escapeHtml(item.segment) + '</div></div>' +
-            '<div class="sri-right"><div class="sri-price">' + formatPrice(item.price, isCrypto) + '</div>' +
-            '<button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>+</button>' +
+            '<div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-symbol">' + escapeHtml(item.symbol || '') + '</div></div>' +
+            '<div class="sri-right"><div class="sri-price">' + priceStr + '</div>' +
+            '<button class="add-script-btn sri-add-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
             '</div></div>';
         });
         searchResultsList.innerHTML = html;
-        searchResultsArea.style.display = 'block';
+        // Show as flex so the section stretches full height
+        searchResultsArea.style.display = 'flex';
+        // Hide watchlist so search fills full screen
+        var watchlistSection = document.querySelector('.watchlist-section');
+        if (watchlistSection) watchlistSection.style.display = 'none';
       }
 
       if (searchInput) {
@@ -1775,6 +1780,9 @@ function buildInlineScript(): string {
           if (query.length === 0) {
             searchResultsArea.style.display = 'none';
             clearSearchBtn.style.display = 'none';
+            // Restore watchlist section
+            var watchlistSection = document.querySelector('.watchlist-section');
+            if (watchlistSection) watchlistSection.style.display = '';
             if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             return;
           }
@@ -1813,6 +1821,9 @@ function buildInlineScript(): string {
           searchInput.value = '';
           searchResultsArea.style.display = 'none';
           this.style.display = 'none';
+          // Restore watchlist section
+          var watchlistSection = document.querySelector('.watchlist-section');
+          if (watchlistSection) watchlistSection.style.display = '';
         });
       }
 
