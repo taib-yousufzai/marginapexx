@@ -24,6 +24,13 @@ export default function PositionPage() {
   const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
   const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BUY');
 
+  // Inline expand for open positions
+  const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
+
+  const toggleExpand = (posId: string) => {
+    setExpandedPosId(prev => prev === posId ? null : posId);
+  };
+
   const openAddMore = (pos: EnrichedPosition) => {
     setTradeSheetItem({
       name: pos.symbol,
@@ -127,13 +134,13 @@ export default function PositionPage() {
               <div className="pos-main-tabs">
                 <div
                   className={`pos-main-tab${currentMain === 'cumulative' ? ' active' : ''}`}
-                  onClick={() => setCurrentMain('cumulative')}
+                  onClick={() => { setCurrentMain('cumulative'); setExpandedPosId(null); }}
                 >
                   Cumulative P&amp;L
                 </div>
                 <div
                   className={`pos-main-tab${currentMain === 'detailed' ? ' active' : ''}`}
-                  onClick={() => setCurrentMain('detailed')}
+                  onClick={() => { setCurrentMain('detailed'); setExpandedPosId(null); }}
                 >
                   Detailed P&amp;L
                 </div>
@@ -162,13 +169,13 @@ export default function PositionPage() {
                   <div className="pos-sub-tabs">
                     <div
                       className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
-                      onClick={() => setCurrentSub('open')}
+                      onClick={() => { setCurrentSub('open'); setExpandedPosId(null); }}
                     >
                       Open Positions
                     </div>
                     <div
                       className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
-                      onClick={() => setCurrentSub('closed')}
+                      onClick={() => { setCurrentSub('closed'); setExpandedPosId(null); }}
                     >
                       Closed Positions
                     </div>
@@ -195,23 +202,33 @@ export default function PositionPage() {
                           <p>No open positions</p>
                         </div>
                       ) : openPositions.map(pos => (
-                        <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)}>
-                          <div className="pos-card-left">
-                            <div className="pos-card-symbol">{pos.symbol}</div>
-                            <div className="pos-card-details">
-                              <span>Avg Price: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
-                              <span>Qty: <strong>{pos.qty_open}</strong></span>
+                        <div key={pos.id} className={`pos-card${expandedPosId === pos.id ? ' pos-card--expanded' : ''}`} onClick={() => toggleExpand(pos.id)}>
+                          <div className="pos-card-main">
+                            <div className="pos-card-left">
+                              <div className="pos-card-symbol">{pos.symbol}</div>
+                              <div className="pos-card-details">
+                                <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
+                                <span>Qty: <strong>{pos.qty_open}</strong></span>
+                              </div>
+                            </div>
+                            <div className="pos-card-right">
+                              <span className={`pos-badge${pos.side === 'BUY' ? ' long' : ' short'}`}>{pos.side}</span>
+                              <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
+                                P&amp;L: {fmtUSD(pos.total_pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                              </div>
+                              <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></div>
                             </div>
                           </div>
-                          <div className="pos-card-right">
-                            <span className={`pos-badge${pos.side === 'BUY' ? ' long' : ' short'}`}>
-                              {pos.side}
-                            </span>
-                            <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                              P&amp;L: {fmtUSD(pos.total_pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                          {expandedPosId === pos.id && (
+                            <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
+                              <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
+                                <i className="fas fa-plus-circle" /> Add More
+                              </button>
+                              <button className="pca-btn pca-exit" onClick={() => handleExit(pos.id)} disabled={closingPos}>
+                                <i className="fas fa-times-circle" /> Exit
+                              </button>
                             </div>
-                            <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></div>
-                          </div>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -249,7 +266,17 @@ export default function PositionPage() {
                         <p>No trades available</p>
                       </div>
                     ) : positions.map(pos => (
-                      <div key={pos.id} className="pos-detail-card" onClick={() => handleRowClick(pos)}>
+                      <div
+                        key={pos.id}
+                        className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}`}
+                        onClick={() => {
+                          if (pos.status === 'closed') {
+                            handleRowClick(pos);
+                          } else {
+                            toggleExpand(pos.id);
+                          }
+                        }}
+                      >
                         <div className="pos-detail-header-row">
                           <div className="pos-detail-symbol">
                             {pos.symbol} <span className="pos-detail-side">{pos.side}</span>
@@ -272,6 +299,16 @@ export default function PositionPage() {
                             : <span>Current: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
                           }
                         </div>
+                        {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
+                          <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
+                            <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
+                              <i className="fas fa-plus-circle" /> Add More
+                            </button>
+                            <button className="pca-btn pca-exit" onClick={() => handleExit(pos.id)} disabled={closingPos}>
+                              <i className="fas fa-times-circle" /> Exit
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))
                   )
@@ -283,7 +320,7 @@ export default function PositionPage() {
 
             {/* Sheet */}
             <div className={`pos-sheet-overlay${isSheetOpen ? ' open' : ''}`} onClick={closeSheet} />
-            <div className={`pos-sheet${isSheetOpen ? ' open' : ''}`}>
+            <div className={`pos-sheet${isSheetOpen ? ' open' : ''}${selectedPos?.status === 'closed' ? ' pos-sheet--closed' : ''}`}>
               <div className="pos-sheet-handle"><div className="pos-sheet-handle-bar" /></div>
               {selectedPos && (
                 <div className="pos-sheet-content">

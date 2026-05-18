@@ -1169,8 +1169,16 @@
     border: none;
     background: transparent;
     outline: none;
-    pointer-events: none;
+    pointer-events: auto;
     width: 100%;
+    font-family: inherit;
+    -moz-appearance: textfield;
+}
+
+.ts-qty-val::-webkit-outer-spin-button,
+.ts-qty-val::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 .ts-qty-hint {

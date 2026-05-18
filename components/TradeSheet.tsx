@@ -34,6 +34,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
   const [orderQty, setOrderQty] = useState(1);
+  const [qtyInput, setQtyInput] = useState('1'); // string for free typing
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
@@ -50,11 +51,27 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
     ? totalQty * parseFloat(limitPrice)
     : totalQty * currentLtp;
 
+  // Sync qtyInput → orderQty when input is a valid number
+  const handleQtyChange = (val: string) => {
+    setQtyInput(val);
+    const n = parseInt(val);
+    if (!isNaN(n) && n > 0) setOrderQty(n);
+  };
+
+  // Stepper buttons update both
+  const stepQty = (delta: number) => {
+    const step = orderUnit === 'qty' ? lotSize : 1;
+    const next = Math.max(step, orderQty + delta * step);
+    setOrderQty(next);
+    setQtyInput(String(next));
+  };
+
   // Reset state when item changes
   useEffect(() => {
     if (item) {
       const ls = getLotSize(item.name);
       setOrderQty(ls);
+      setQtyInput(String(ls));
       setOrderUnit('qty');
       setOrderType('MARKET');
       setProductType('INTRADAY');
@@ -188,9 +205,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
           font-size: 0.62rem; font-weight: 700; color: #6B7280;
           text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px;
         }
-        .ts2-unit-row {
-          display: flex; align-items: center; justify-content: space-between;
-        }
+        .ts2-unit-row { display: flex; align-items: center; justify-content: space-between; }
         .ts2-toggle {
           display: flex; background: #F1F5F9; border-radius: 30px; padding: 3px; gap: 2px;
         }
@@ -206,9 +221,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
 
         .ts2-info-wrap { background: #F1F5F9; border-radius: 14px; padding: 8px; }
         .ts2-info-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
-        .ts2-info-card {
-          background: #fff; border-radius: 10px; padding: 8px 6px; text-align: center;
-        }
+        .ts2-info-card { background: #fff; border-radius: 10px; padding: 8px 6px; text-align: center; }
         .ts2-ic-label {
           font-size: 0.55rem; font-weight: 600; color: #6B7280;
           text-transform: uppercase; margin-bottom: 4px;
@@ -230,7 +243,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
         .ts2-qty-val {
           flex: 1; text-align: center; font-size: 1.25rem; font-weight: 800;
           color: #111827; border: none; background: transparent; outline: none;
+          font-family: inherit; min-width: 0;
+          -moz-appearance: textfield;
         }
+        .ts2-qty-val::-webkit-outer-spin-button,
+        .ts2-qty-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .ts2-qty-hint { font-size: 0.6rem; color: #9CA3AF; margin-top: 7px; text-align: center; }
 
         .ts2-pills { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -256,8 +273,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
           background: #fff; border-radius: 14px; border: 1px solid #F1F5F9; overflow: hidden;
         }
         .ts2-margin-row {
-          display: flex; justify-content: space-between; align-items: center;
-          padding: 11px 14px;
+          display: flex; justify-content: space-between; align-items: center; padding: 11px 14px;
         }
         .ts2-margin-row + .ts2-margin-row { border-top: 1px solid #F1F5F9; }
         .ts2-ml { font-size: 0.68rem; font-weight: 600; color: #6B7280; }
@@ -306,10 +322,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
         }
       `}</style>
 
-      {/* Overlay */}
       <div className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
 
-      {/* Sheet */}
       <div className={`ts2-sheet${isOpen ? ' open' : ''}`}>
         {item && (
           <>
@@ -343,22 +357,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
               </div>
             </div>
 
-            {/* Scrollable body */}
             <div className="ts2-scroll">
               <div className="ts2-body">
 
-                {/* Order Unit toggle */}
+                {/* Order Unit */}
                 <div className="ts2-card">
                   <div className="ts2-unit-row">
                     <span className="ts2-label" style={{ marginBottom: 0 }}>Order Unit</span>
                     <div className="ts2-toggle">
                       <button
                         className={`ts2-toggle-opt${orderUnit === 'qty' ? ' active' : ''}`}
-                        onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); }}
+                        onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); setQtyInput(String(lotSize)); }}
                       >QTY</button>
                       <button
                         className={`ts2-toggle-opt${orderUnit === 'lot' ? ' active' : ''}`}
-                        onClick={() => { setOrderUnit('lot'); setOrderQty(1); }}
+                        onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
                       >LOT</button>
                     </div>
                   </div>
@@ -390,17 +403,22 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
                 <div className="ts2-card">
                   <div className="ts2-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
                   <div className="ts2-stepper">
-                    <button className="ts2-qty-btn" onClick={() => setOrderQty(q => {
-                      const step = orderUnit === 'qty' ? lotSize : 1;
-                      return Math.max(step, q - step);
-                    })}>
+                    <button className="ts2-qty-btn" onClick={() => stepQty(-1)}>
                       <i className="fas fa-minus" />
                     </button>
-                    <div className="ts2-qty-val">{orderQty}</div>
-                    <button className="ts2-qty-btn" onClick={() => setOrderQty(q => {
-                      const step = orderUnit === 'qty' ? lotSize : 1;
-                      return q + step;
-                    })}>
+                    <input
+                      className="ts2-qty-val"
+                      type="number"
+                      value={qtyInput}
+                      onChange={e => handleQtyChange(e.target.value)}
+                      onBlur={() => {
+                        // On blur, if empty or invalid, reset to current orderQty
+                        if (!qtyInput || parseInt(qtyInput) < 1) {
+                          setQtyInput(String(orderQty));
+                        }
+                      }}
+                    />
+                    <button className="ts2-qty-btn" onClick={() => stepQty(1)}>
                       <i className="fas fa-plus" />
                     </button>
                   </div>
@@ -458,7 +476,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
               </div>
             </div>
 
-            {/* Sticky footer buttons */}
+            {/* Footer */}
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
                 <button className="ts2-btn ts2-btn-buy" disabled={placingOrder} onClick={() => handlePlace('BUY')}>
@@ -475,7 +493,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
         )}
       </div>
 
-      {/* Toast */}
       <div className={`ts2-toast${toast ? ' show' : ''}`}>{toast}</div>
     </>
   );

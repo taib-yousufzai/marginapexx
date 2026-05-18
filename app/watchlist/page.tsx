@@ -489,6 +489,20 @@ function WatchlistContent() {
   // Trade Sheet State
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
   const [orderQty, setOrderQty] = useState<number>(25);
+  const [qtyInput, setQtyInput] = useState<string>('25');
+
+  const handleQtyChange = (val: string) => {
+    setQtyInput(val);
+    const n = parseInt(val);
+    if (!isNaN(n) && n > 0) setOrderQty(n);
+  };
+
+  const stepQtyWl = (delta: number) => {
+    const step = orderUnit === 'qty' ? lotSize : 1;
+    const next = Math.max(step, orderQty + delta * step);
+    setOrderQty(next);
+    setQtyInput(String(next));
+  };
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -1101,12 +1115,12 @@ function WatchlistContent() {
                 <div className="ts-toggle-switch" id="qtyLotToggle">
                   <button
                     className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
-                    onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); }}
+                    onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); setQtyInput(String(lotSize)); }}
                     suppressHydrationWarning
                   >QTY</button>
                   <button
                     className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
-                    onClick={() => { setOrderUnit('lot'); setOrderQty(1); }}
+                    onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
                     suppressHydrationWarning
                   >LOT</button>
                 </div>
@@ -1123,16 +1137,18 @@ function WatchlistContent() {
             <div className="ts-qty-container">
               <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
               <div className="ts-qty-stepper">
-                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => setOrderQty(q => {
-                  const step = orderUnit === 'qty' ? lotSize : 1;
-                  return Math.max(step, q - step);
-                })}><i className="fas fa-minus"></i></button>
-                <div className="ts-qty-val" id="tradeQtyDisplay">{orderQty}</div>
-                <input type="hidden" id="tradeQtyInput" value={orderQty} />
-                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => setOrderQty(q => {
-                  const step = orderUnit === 'qty' ? lotSize : 1;
-                  return q + step;
-                })}><i className="fas fa-plus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => stepQtyWl(-1)}><i className="fas fa-minus"></i></button>
+                <input
+                  className="ts-qty-val"
+                  id="tradeQtyDisplay"
+                  type="number"
+                  value={qtyInput}
+                  onChange={e => handleQtyChange(e.target.value)}
+                  onBlur={() => {
+                    if (!qtyInput || parseInt(qtyInput) < 1) setQtyInput(String(orderQty));
+                  }}
+                />
+                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => stepQtyWl(1)}><i className="fas fa-plus"></i></button>
               </div>
               <div className="ts-qty-hint" id="sheetLotHint">
                 {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
