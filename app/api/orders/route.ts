@@ -152,10 +152,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingResult, txData, quotesMap] = await Promise.all([
+  const [profileResult, segSettingResult, quotesMap] = await Promise.all([
     // Profile
     admin.from('profiles')
-      .select('id, active, read_only, segments, parent_id')
+      .select('id, active, read_only, segments, parent_id, balance')
       .eq('id', user.id)
       .single(),
 
@@ -166,9 +166,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq('segment', segment)
       .eq('side', side)
       .maybeSingle(),
-
-    // Balance — aggregate in DB, not in JS (avoids loading all rows)
-    admin.rpc('get_user_balance', { p_user_id: user.id }),
 
     // Kite LTP — batch fetch all needed quotes in one call
     fetchKiteQuotes(instrumentsToFetch),
@@ -236,8 +233,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 8. Balance check — use the aggregated value from the parallel RPC call
-  const balance = Number(txData.data ?? 0);
+  // 8. Balance check — use the balance from the profile query
+  const balance = Number(profile.balance ?? 0);
   const leverage      = segSetting?.intraday_leverage ?? 1;
   const exposure      = qty * client_price;
   const requiredMargin = exposure / leverage;
