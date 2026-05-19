@@ -27,12 +27,13 @@ function addToWatchlist(item: {
   try {
     const raw = localStorage.getItem(WATCHLIST_KEY);
     const list = raw ? JSON.parse(raw) : [];
-    
-    // Check if already exists in default watchlist
-    const exists = list.some((i: any) => i.symbol === item.symbol && (i.category || 'WATCHLIST') === 'WATCHLIST');
+
+    const targetCat = item.category || 'WATCHLIST';
+    // Check if already exists in the selected watchlist
+    const exists = list.some((i: any) => i.symbol === item.symbol && (i.category || 'WATCHLIST') === targetCat);
     if (exists) return false;
-    
-    const newItem = { ...item, category: 'WATCHLIST' };
+
+    const newItem = { ...item, category: targetCat };
     list.push(newItem);
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
     return true;
@@ -75,6 +76,8 @@ function OptionChainContent() {
   const [triggerPrice, setTriggerPrice] = useState('');
   const [slPrice, setSlPrice] = useState('');
   const [tpPrice, setTpPrice] = useState('');
+  const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
+  const [pendingWatchlistItem, setPendingWatchlistItem] = useState<any>(null);
 
   const lotSize = symbol === 'NIFTY' ? 25 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
 
@@ -94,7 +97,7 @@ function OptionChainContent() {
     }
   };
 
-  const handleAddToWatchlist = () => {
+  const handleAddToWatchlistClick = () => {
     if (!selectedContract) return;
     const strikeMatch = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol);
     const contractData = selectedContract.type === 'CE' ? strikeMatch?.ce : strikeMatch?.pe;
@@ -109,8 +112,8 @@ function OptionChainContent() {
     const low = quote ? quote.low : 0;
     const close = quote ? quote.close : 0;
 
-    const success = addToWatchlist({
-      name: `${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
+    setPendingWatchlistItem({
+      name: `${symbol} ${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
       symbol: selectedContract.symbol,
       kiteSymbol: kiteId || selectedContract.symbol,
       price,
@@ -121,13 +124,22 @@ function OptionChainContent() {
       high,
       low,
       close,
-      category: 'WATCHLIST'
     });
+    setShowWatchlistSelector(true);
+  };
+
+  const confirmAddToWatchlist = (category: string) => {
+    if (!pendingWatchlistItem) return;
+
+    const success = addToWatchlist({ ...pendingWatchlistItem, category });
+
+    setShowWatchlistSelector(false);
+    setPendingWatchlistItem(null);
 
     if (success) {
-      showToast('Added to watchlist', false);
+      showToast('Added to ' + (category === 'WATCHLIST' ? 'Watchlist' : category), false);
     } else {
-      showToast('Already added to watchlist', true);
+      showToast('Already added to this watchlist', true);
     }
   };
 
@@ -184,11 +196,11 @@ function OptionChainContent() {
   const instrumentIds = React.useMemo(() => {
     if (!data) return [];
     const underlyingId = symbol === 'NIFTY' ? 'NSE:NIFTY 50' :
-                         symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
-                         symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
-                         symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
-                         symbol === 'SENSEX' ? 'BSE:SENSEX' :
-                         symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
+      symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
+        symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
+          symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
+            symbol === 'SENSEX' ? 'BSE:SENSEX' :
+              symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
     const ids: string[] = underlyingId ? [underlyingId] : [];
     data.strikes.forEach(s => {
       if (s.ce?.id) ids.push(s.ce.id);
@@ -200,11 +212,11 @@ function OptionChainContent() {
   const { quotes, connected } = useKiteQuotes(instrumentIds, 2000);
 
   const underlyingId = symbol === 'NIFTY' ? 'NSE:NIFTY 50' :
-                       symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
-                       symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
-                       symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
-                       symbol === 'SENSEX' ? 'BSE:SENSEX' :
-                       symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
+    symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
+      symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
+        symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
+          symbol === 'SENSEX' ? 'BSE:SENSEX' :
+            symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
 
   const spotPrice = React.useMemo(() => {
     if (!underlyingId) return 0;
@@ -455,7 +467,7 @@ function OptionChainContent() {
         {selectedContract && (() => {
           const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
           const kiteToken = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.token;
-          
+
           const getQuoteHelper = (id?: string, token?: number) => {
             if (!id && !token) return null;
             if (id && quotes[id]) return quotes[id];
@@ -487,7 +499,7 @@ function OptionChainContent() {
                       <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}></i>
                     </button>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
                       <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedContract.symbol}</span>
                     </div>
                   </div>
@@ -510,33 +522,79 @@ function OptionChainContent() {
                       <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>₹{ask.toFixed(2)}</div>
                     </div>
                   </div>
-                  
-                  {/* ADD TO WATCHLIST - REPLACE PRICE SUMMARY */}
+
+                  {/* ADD TO WATCHLIST */}
                   <div style={{ marginBottom: '8px' }}>
-                    <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>ADD TO WATCHLIST</div>
-                    <button
-                      onClick={handleAddToWatchlist}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        background: '#2C8E5A',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '14px',
-                        fontWeight: '800',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        boxShadow: '0 2px 8px rgba(44,142,90,0.2)',
-                        fontFamily: 'inherit',
-                        transition: 'background 0.15s ease'
-                      }}
-                    >
-                      <i className="fas fa-plus"></i> Add to Watchlist
-                    </button>
+                    <div style={{ fontSize: '0.52rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>ADD TO WATCHLIST</div>
+                    {!showWatchlistSelector ? (
+                      <button
+                        onClick={handleAddToWatchlistClick}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          background: '#2C8E5A',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '14px',
+                          fontWeight: '800',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          boxShadow: '0 2px 8px rgba(44,142,90,0.2)',
+                          fontFamily: 'inherit',
+                          transition: 'background 0.15s ease'
+                        }}
+                      >
+                        <i className="fas fa-plus"></i> Add to Watchlist
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {['WATCHLIST', 'WATCHLIST-1', 'WATCHLIST-2', 'WATCHLIST-3'].map(wl => (
+                          <button
+                            key={wl}
+                            onClick={() => confirmAddToWatchlist(wl)}
+                            style={{
+                              padding: '12px 14px',
+                              background: 'var(--card-alt-bg)',
+                              border: '1px solid var(--border-card)',
+                              borderRadius: '12px',
+                              textAlign: 'left',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              transition: 'background 0.15s ease'
+                            }}
+                          >
+                            <i className="fas fa-list" style={{ color: '#2C8E5A', fontSize: '0.8rem' }}></i>
+                            {wl === 'WATCHLIST' ? 'Default Watchlist' : wl}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => setShowWatchlistSelector(false)}
+                          style={{
+                            padding: '8px',
+                            background: 'transparent',
+                            border: 'none',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit',
+                            textAlign: 'center'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -553,7 +611,7 @@ function OptionChainContent() {
                       })()}
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => { setSheetSide('BUY'); setSheetView('ORDER'); }}>
                       <i className="fas fa-arrow-up"></i> BUY
@@ -799,11 +857,11 @@ function OptionChainContent() {
       {/* Order Entry Sheet removed — expiry-half-sheet handles all order entry */}
 
       <div className={`pos-toast${toast.visible ? ' show' : ''}`} style={{
-          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          background: toast.isError ? '#C62E2E' : '#2C8E5A', color: '#fff',
-          padding: '12px 24px', borderRadius: '40px', fontWeight: '600', zIndex: 9999,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.2)', opacity: toast.visible ? 1 : 0,
-          visibility: toast.visible ? 'visible' : 'hidden', transition: 'all 0.3s ease'
+        position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
+        background: toast.isError ? '#C62E2E' : '#2C8E5A', color: '#fff',
+        padding: '12px 24px', borderRadius: '40px', fontWeight: '600', zIndex: 9999,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.2)', opacity: toast.visible ? 1 : 0,
+        visibility: toast.visible ? 'visible' : 'hidden', transition: 'all 0.3s ease'
       }}>
         {toast.msg}
       </div>
