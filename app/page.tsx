@@ -285,7 +285,6 @@ export default function Page() {
                               {row.map((market, i) => (
                                 <div className="market-rectangle" key={i} onClick={() => router.push(`/watchlist?symbol=${encodeURIComponent(market.name)}`)}>
                                   <div className="market-rect-header">
-                                    <i className={market.icon}></i>
                                     <span className="market-rect-name">{market.name}</span>
                                   </div>
                                   <div className="market-rect-price">

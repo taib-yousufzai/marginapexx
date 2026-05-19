@@ -530,8 +530,8 @@ body.dark .circle-icon {
 }
 
 .market-rect-name {
-  font-weight: 700;
-  font-size: 0.7rem;
+  font-weight: 900;
+  font-size: 0.75rem;
   color: var(--text-primary);
 }
 
