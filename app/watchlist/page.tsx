@@ -136,6 +136,9 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
 
 export type TabLabel =
   | 'WATCHLIST'
+  | 'WATCHLIST-1'
+  | 'WATCHLIST-2'
+  | 'WATCHLIST-3'
   | 'INDEX-FUT' | 'INDEX-OPT'
   | 'STOCK-FUT' | 'STOCK-OPT'
   | 'MCX-FUT' | 'MCX-OPT'
@@ -144,8 +147,9 @@ export type TabLabel =
 
 export const TAB_LABELS: TabLabel[] = [
   'WATCHLIST',
-  'INDEX-FUT', 'INDEX-OPT',
-  'STOCK-FUT',
+  'WATCHLIST-1',
+  'WATCHLIST-2',
+  'WATCHLIST-3',
 ];
 
 // ── Segment → Tab Mapping ────────────────────────────────────────────────────
@@ -180,12 +184,11 @@ export function getTabForItem(item: WatchlistItem): TabLabel {
   if (item.category && TAB_LABELS.includes(item.category as TabLabel)) {
     return item.category as TabLabel;
   }
-  return SEGMENT_TAB_MAP[item.segment] ?? 'COI';
+  return 'WATCHLIST';
 }
 
 /** Filters items to those belonging to the active tab. */
 export function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistItem[] {
-  if (tab === 'WATCHLIST') return items;
   return items.filter(item => getTabForItem(item) === tab);
 }
 
@@ -645,15 +648,16 @@ function WatchlistContent() {
   useEffect(() => {
     window.__addToWatchlistCallback = (item: WatchlistItem) => {
       setWatchlistItems(prev => {
-        if (prev.some(i => i.symbol === item.symbol)) return prev;
-        const next = [...prev, item];
+        const newItem = { ...item, category: activeTab };
+        if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
+        const next = [...prev, newItem];
         saveWatchlistToStorage(next);
         return next;
       });
     };
     window.__removeFromWatchlistCallback = (symbol: string) => {
       setWatchlistItems(prev => {
-        const next = prev.filter(i => i.symbol !== symbol);
+        const next = prev.filter(i => !(i.symbol === symbol && getTabForItem(i) === activeTab));
         saveWatchlistToStorage(next);
         return next;
       });
@@ -786,7 +790,7 @@ function WatchlistContent() {
         if (detailOverlay) detailOverlay.classList.add('active');
       }
     };
-  }, [watchlistItems]);
+  }, [watchlistItems, activeTab]);
 
   const openTradeSheet = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BOTH') => {
     setTradeSide(side);
@@ -1141,7 +1145,7 @@ function WatchlistContent() {
             <div className="ts-qty-container">
               <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
               <div className="ts-qty-stepper">
-                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => stepQtyWl(-1)}><i className="fas fa-minus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => stepQtyWl(-1)} suppressHydrationWarning><i className="fas fa-minus"></i></button>
                 <input
                   className="ts-qty-val"
                   id="tradeQtyDisplay"
@@ -1151,8 +1155,9 @@ function WatchlistContent() {
                   onBlur={() => {
                     if (!qtyInput || parseInt(qtyInput) < 1) setQtyInput(String(orderQty));
                   }}
+                  suppressHydrationWarning
                 />
-                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => stepQtyWl(1)}><i className="fas fa-plus"></i></button>
+                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => stepQtyWl(1)} suppressHydrationWarning><i className="fas fa-plus"></i></button>
               </div>
               <div className="ts-qty-hint" id="sheetLotHint">
                 {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
@@ -1161,7 +1166,7 @@ function WatchlistContent() {
             <div className="ts-section-card">
               <div className="ts-section-label">Order Type</div>
               <div className="ts-pill-group" id="orderTypeContainer">
-                {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[]).map(type => (
+                {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as const).map(type => (
                   <button
                     key={type}
                     className={`ts-pill ${orderType === type ? 'active' : ''}`}
@@ -1180,11 +1185,12 @@ function WatchlistContent() {
                 style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
                 value={limitPrice}
                 onChange={(e) => setLimitPrice(e.target.value)}
+                suppressHydrationWarning
               />
             </div>
             <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
               <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} />
+              <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} suppressHydrationWarning />
             </div>
 
             {/* SL / TP / Limit inputs for GTT order */}
@@ -1202,6 +1208,7 @@ function WatchlistContent() {
                         value={slPrice}
                         onChange={e => setSlPrice(e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                        suppressHydrationWarning
                       />
                     </div>
                     <div style={{ flex: 1 }}>
@@ -1213,6 +1220,7 @@ function WatchlistContent() {
                         value={tpPrice}
                         onChange={e => setTpPrice(e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                        suppressHydrationWarning
                       />
                     </div>
                   </div>
@@ -1225,6 +1233,7 @@ function WatchlistContent() {
                       value={limitPrice}
                       onChange={e => setLimitPrice(e.target.value)}
                       style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
+                      suppressHydrationWarning
                     />
                   </div>
                 </div>
@@ -1587,12 +1596,15 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-      <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: '#fff', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
-        <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F3F4F6' }}>
-          <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: '#111827' }}>0 in basket</span>
+      <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: 'var(--container-bg, #fff)', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
+        <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>
+          <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary, #111827)' }}>0 selected</span>
         </div>
-        <div className="multi-select-row bottom-row" style={{ padding: '10px 16px' }}>
-          <button id="exitSelectionBtn" style={{ width: '100%', background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '10px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '700' }}>Exit Selection</button>
+        <div className="multi-select-row bottom-row" style={{ padding: '10px 16px', display: 'flex', gap: '10px' }}>
+          <button id="exitSelectionBtn" style={{ flex: 1, background: 'var(--icon-bg, #F3F4F6)', color: 'var(--text-secondary, #4B5563)', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}>Exit Selection</button>
+          <button id="deleteSelectionBtn" style={{ flex: 1, background: '#C62E2E', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(198,46,46,0.2)' }}>
+            <i className="fas fa-trash-alt"></i> Delete
+          </button>
         </div>
       </div>
 
@@ -1934,6 +1946,66 @@ function buildInlineScript(): string {
         });
       }
 
+      var deleteSelectionBtn = document.getElementById('deleteSelectionBtn');
+      if (deleteSelectionBtn) {
+        deleteSelectionBtn.addEventListener('click', function() {
+          var checkedBoxes = document.querySelectorAll('.wc-checkbox:checked');
+          if (checkedBoxes.length === 0) {
+            if (window.showToast) window.showToast('Select items to delete', true);
+            return;
+          }
+          
+          var symbolsToDelete = [];
+          checkedBoxes.forEach(function(cb) {
+            var card = cb.closest('.watchlist-card');
+            if (card) {
+              var symbol = card.getAttribute('data-symbol');
+              if (symbol) symbolsToDelete.push(symbol);
+            }
+          });
+
+          if (symbolsToDelete.length > 0) {
+            symbolsToDelete.forEach(function(sym) {
+              if (typeof window.__removeFromWatchlistCallback === 'function') {
+                window.__removeFromWatchlistCallback(sym);
+              }
+            });
+            if (window.showToast) window.showToast('Deleted ' + symbolsToDelete.length + ' item' + (symbolsToDelete.length !== 1 ? 's' : '') + ' from watchlist', false);
+          }
+          
+          exitSelectionMode();
+        });
+      }
+
+      // Capture all clicks when selectionMode is active to toggle checkboxes easily
+      document.addEventListener('click', function(e) {
+        if (!selectionMode) return;
+        
+        var card = e.target.closest('.watchlist-card');
+        if (!card) return;
+        
+        // Skip swipe delete buttons or checkbox itself to avoid double-toggling
+        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox')) {
+          return;
+        }
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var cb = card.querySelector('.wc-checkbox');
+        if (cb) {
+          cb.checked = !cb.checked;
+          updateSelectionUI();
+        }
+      }, true);
+
+      // Handle delegating checkbox change listener to keep count updated
+      document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('wc-checkbox')) {
+          updateSelectionUI();
+        }
+      });
+
       var basketModeBtn = document.getElementById('basketModeBtn');
       // basketModeBtn click is handled by React - no JS handler needed
 
@@ -1985,6 +2057,7 @@ function buildInlineScript(): string {
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'flex';
         });
+        updateSelectionUI();
       }
 
       function exitSelectionMode() {
@@ -2000,7 +2073,7 @@ function buildInlineScript(): string {
 
       function updateSelectionUI() {
         var checked = document.querySelectorAll('.wc-checkbox:checked').length;
-        if (selectedCountSpan) selectedCountSpan.textContent = checked + ' in basket';
+        if (selectedCountSpan) selectedCountSpan.textContent = checked + ' selected';
       }
 
       window.__renderWatchlist = function() { /* Now handled by React */ };

@@ -9,6 +9,39 @@ import Footer from '@/components/Footer';
 import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
 import './option-chain.css';
 
+function addToWatchlist(item: {
+  name: string;
+  symbol: string;
+  kiteSymbol: string;
+  price: number;
+  change: string;
+  segment: string;
+  contractDate: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  category?: string;
+}) {
+  const WATCHLIST_KEY = 'marginApex_watchlist';
+  try {
+    const raw = localStorage.getItem(WATCHLIST_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    
+    // Check if already exists in default watchlist
+    const exists = list.some((i: any) => i.symbol === item.symbol && (i.category || 'WATCHLIST') === 'WATCHLIST');
+    if (exists) return false;
+    
+    const newItem = { ...item, category: 'WATCHLIST' };
+    list.push(newItem);
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
 function OptionChainContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,6 +66,70 @@ function OptionChainContent() {
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
+
+  // Dual popup and Trade Sheet States
+  const [sheetView, setSheetView] = useState<'DETAILS' | 'ORDER'>('DETAILS');
+  const [sheetSide, setSheetSide] = useState<'BUY' | 'SELL'>('BUY');
+  const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
+  const [qtyInput, setQtyInput] = useState('25');
+  const [triggerPrice, setTriggerPrice] = useState('');
+  const [slPrice, setSlPrice] = useState('');
+  const [tpPrice, setTpPrice] = useState('');
+
+  const lotSize = symbol === 'NIFTY' ? 25 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
+
+  const stepQty = (dir: number) => {
+    const step = orderUnit === 'lot' ? 1 : lotSize;
+    const currentVal = parseInt(qtyInput) || lotSize;
+    const newVal = Math.max(step, currentVal + (dir * step));
+    setOrderQty(newVal);
+    setQtyInput(String(newVal));
+  };
+
+  const handleQtyChange = (val: string) => {
+    setQtyInput(val);
+    const parsed = parseInt(val) || 0;
+    if (parsed > 0) {
+      setOrderQty(parsed);
+    }
+  };
+
+  const handleAddToWatchlist = () => {
+    if (!selectedContract) return;
+    const strikeMatch = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol);
+    const contractData = selectedContract.type === 'CE' ? strikeMatch?.ce : strikeMatch?.pe;
+    if (!contractData) return;
+
+    const kiteId = contractData.id;
+    const quote = kiteId ? quotes[kiteId] : null;
+    const price = quote ? quote.lastPrice : 0;
+    const change = quote ? `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%` : '0.00%';
+    const open = quote ? quote.open : 0;
+    const high = quote ? quote.high : 0;
+    const low = quote ? quote.low : 0;
+    const close = quote ? quote.close : 0;
+
+    const success = addToWatchlist({
+      name: `${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
+      symbol: selectedContract.symbol,
+      kiteSymbol: kiteId || selectedContract.symbol,
+      price,
+      change,
+      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BFO' : 'NFO',
+      contractDate: selectedExpiry ? selectedExpiry : '',
+      open,
+      high,
+      low,
+      close,
+      category: 'WATCHLIST'
+    });
+
+    if (success) {
+      showToast('Added to watchlist', false);
+    } else {
+      showToast('Already added to watchlist', true);
+    }
+  };
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
@@ -119,8 +216,12 @@ function OptionChainContent() {
     if (strikeMatch) {
       const type = strikeMatch.ce?.symbol === instrSymbol ? 'CE' : 'PE';
       setSelectedContract({ symbol: instrSymbol, type, strike: strikeMatch.strike });
-      const defaultQty = symbol === 'NIFTY' ? 50 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
+      const defaultQty = lotSize;
       setOrderQty(defaultQty);
+      setQtyInput(String(defaultQty));
+      setOrderUnit('qty');
+      setSheetView('DETAILS');
+      setSheetSide(side);
     }
   };
 
@@ -338,95 +439,359 @@ function OptionChainContent() {
         .os-btn-buy:disabled, .os-btn-sell:disabled { opacity: 0.6; cursor: not-allowed; }
       `}</style>
 
-      {/* Contract Order Sheet — outside all overflow/transform containers so position:fixed works */}
+      {/* Contract Order Sheet Overlay */}
       <div
-        className={`expiry-half-drawer-overlay${selectedContract ? ' active' : ''}`}
-        onClick={(e) => { if (e.target === e.currentTarget) setSelectedContract(null); }}
+        className={`trade-sheet-overlay${selectedContract ? ' active' : ''}`}
+        id={sheetView === 'ORDER' ? 'tradeSheetOverlay' : 'detailSheetOverlay'}
+        onClick={() => setSelectedContract(null)}
+      ></div>
+
+      {/* Contract Order Sheet */}
+      <div
+        className={`trade-sheet${selectedContract ? ' open' : ''}${sheetView === 'DETAILS' ? ' detail-sheet' : ''}`}
+        id={sheetView === 'ORDER' ? 'tradeSheet' : 'detailSheet'}
+        style={sheetView === 'DETAILS' ? { height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' } : undefined}
       >
-        <div className="expiry-half-sheet">
-          {selectedContract && (() => {
-                          const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
-                          const quote = kiteId ? quotes[kiteId] : null;
-                          const ltp = quote ? quote.lastPrice : 0;
-                          const chgPct = quote ? quote.changePercent : 0;
-                          const bid = ltp > 0 ? ltp - 0.20 : 0;
-                          const ask = ltp > 0 ? ltp + 0.20 : 0;
-                          return (
-                            <>
-                              {/* Header with back arrow — watchlist style */}
-                              <div className="os-sheet-header">
-                                <button className="os-back-btn" onClick={() => setSelectedContract(null)}>
-                                  <i className="fas fa-chevron-left"></i>
-                                </button>
-                                <div className="os-sheet-left">
-                                  <div className="os-sheet-name">{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
-                                  <span className="os-sheet-segment">{selectedContract.symbol}</span>
-                                </div>
-                                <div className="os-sheet-right">
-                                  <div className="os-cmp-label">CMP</div>
-                                  <div className="os-cmp-val">{ltp > 0 ? `₹${ltp.toFixed(2)}` : '---'}</div>
-                                  <div className={`os-cmp-chg ${chgPct < 0 ? 'neg' : 'pos'}`}>{chgPct > 0 ? '+' : ''}{chgPct.toFixed(2)}%</div>
-                                </div>
-                              </div>
-                              {/* BID / ASK */}
-                              <div className="os-bidask">
-                                <div className="os-ba-col">
-                                  <div className="os-ba-label">BID</div>
-                                  <div className="os-ba-val pos">{bid > 0 ? bid.toFixed(2) : '---'}</div>
-                                </div>
-                                <div className="os-ba-divider"></div>
-                                <div className="os-ba-col">
-                                  <div className="os-ba-label">ASK</div>
-                                  <div className="os-ba-val neg">{ask > 0 ? ask.toFixed(2) : '---'}</div>
-                                </div>
-                              </div>
-                              {/* Quantity */}
-                              <div className="os-qty-section">
-                                <div className="os-qty-label">QUANTITY</div>
-                                <div className="os-qty-control">
-                                  <button className="os-qty-btn" onClick={() => setOrderQty(q => Math.max(1, q - 1))}><i className="fas fa-minus"></i></button>
-                                  <input className="os-qty-input" type="number" value={orderQty} onChange={e => setOrderQty(Math.max(1, parseInt(e.target.value) || 1))} />
-                                  <button className="os-qty-btn" onClick={() => setOrderQty(q => q + 1)}><i className="fas fa-plus"></i></button>
-                                </div>
-                              </div>
-                              {/* Order Type */}
-                              <div className="os-type-section">
-                                <div className="os-section-lbl" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <i className="fas fa-layer-group"></i> ORDER TYPE
-                                  </span>
-                                </div>
-                                <div className="os-type-btns">
-                                  {(['MARKET', 'LIMIT'] as OrderType[]).map(t => (
-                                    <button key={t} className={`os-type-btn${orderType === t ? ' active' : ''}`} onClick={() => { setOrderType(t); }}>{t}</button>
-                                  ))}
-                                </div>
-                                {orderType === 'LIMIT' && (
-                                  <input className="os-price-input" type="number" placeholder="Limit Price (₹)" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} />
-                                )}
-                              </div>
-                              {/* Product Type */}
-                              <div className="os-type-section">
-                                <div className="os-section-lbl"><i className="fas fa-clock"></i> PRODUCT TYPE</div>
-                                <div className="os-type-btns">
-                                  {(['INTRADAY', 'CARRY'] as ProductType[]).map(p => (
-                                    <button key={p} className={`os-type-btn${productType === p ? ' active' : ''}`} onClick={() => setProductType(p)}>{p}</button>
-                                  ))}
-                                </div>
-                              </div>
-                              {/* BUY / SELL */}
-                              <div className="os-actions">
-                                <button className="os-btn-buy" onClick={() => { handlePlaceOrder('BUY'); setSelectedContract(null); }} disabled={placingOrder}>
-                                  {placingOrder ? <i className="fas fa-circle-notch fa-spin"></i> : <><i className="fas fa-arrow-up"></i> BUY</>}
-                                </button>
-                                <button className="os-btn-sell" onClick={() => { handlePlaceOrder('SELL'); setSelectedContract(null); }} disabled={placingOrder}>
-                                  {placingOrder ? <i className="fas fa-circle-notch fa-spin"></i> : <><i className="fas fa-arrow-down"></i> SELL</>}
-                                </button>
-                              </div>
-                            </>
-                          );
-                        })()}
-        </div>
+        {selectedContract && (() => {
+          const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
+          const kiteToken = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.token;
+          
+          const getQuoteHelper = (id?: string, token?: number) => {
+            if (!id && !token) return null;
+            if (id && quotes[id]) return quotes[id];
+            if (token && quotes[String(token)]) return quotes[String(token)];
+            if (id) {
+              const parts = id.split(':');
+              const symbolOnly = parts.length > 1 ? parts[1] : id;
+              if (quotes[symbolOnly]) return quotes[symbolOnly];
+            }
+            return null;
+          };
+
+          const quote = getQuoteHelper(kiteId, kiteToken);
+          const strikeMatch = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol);
+          const contractData = selectedContract.type === 'CE' ? strikeMatch?.ce : strikeMatch?.pe;
+
+          const ltp = quote ? quote.lastPrice : (contractData?.price || 0);
+          const chgPct = quote ? quote.changePercent : (contractData?.change || 0);
+          const bid = ltp > 0 ? ltp - 0.05 : 0;
+          const ask = ltp > 0 ? ltp + 0.05 : 0;
+
+          if (sheetView === 'DETAILS') {
+            return (
+              <div style={{ padding: '0' }}>
+                <div className="sheet-handle" style={{ display: 'flex' }}><div className="handle-bar" style={{ display: 'block' }}></div></div>
+                <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--icon-bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => setSelectedContract(null)}>
+                      <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}></i>
+                    </button>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                      <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedContract.symbol}</span>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '0.47rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
+                    <div style={{ fontSize: '0.935rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.1' }}>₹{ltp.toFixed(2)}</div>
+                    <span className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
+                  </div>
+                </div>
+                <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
+                <div style={{ padding: '0 12px 10px 12px' }}>
+                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>₹{bid.toFixed(2)}</div>
+                    </div>
+                    <div style={{ width: '1px', background: 'var(--border-card)', height: '24px' }}></div>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>₹{ask.toFixed(2)}</div>
+                    </div>
+                  </div>
+                  
+                  {/* ADD TO WATCHLIST - REPLACE PRICE SUMMARY */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>ADD TO WATCHLIST</div>
+                    <button
+                      onClick={handleAddToWatchlist}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: '#2C8E5A',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '14px',
+                        fontWeight: '800',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 8px rgba(44,142,90,0.2)',
+                        fontFamily: 'inherit',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <i className="fas fa-plus"></i> Add to Watchlist
+                    </button>
+                  </div>
+
+                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>
+                      {(() => {
+                        if (!selectedExpiry) return '--';
+                        const [year, monthNum, dayNum] = selectedExpiry.split('-').map(Number);
+                        const dateObj = new Date(year, monthNum - 1, dayNum);
+                        const day = dateObj.getDate();
+                        const month = dateObj.toLocaleDateString('en-IN', { month: 'short' });
+                        const yr = year;
+                        return `${day} ${month} ${yr}`;
+                      })()}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => { setSheetSide('BUY'); setSheetView('ORDER'); }}>
+                      <i className="fas fa-arrow-up"></i> BUY
+                    </button>
+                    <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => { setSheetSide('SELL'); setSheetView('ORDER'); }}>
+                      <i className="fas fa-arrow-down"></i> SELL
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ORDER / TRADE SHEET VIEW
+          const calculatedRequiredMargin = (ltp || 10) * orderQty;
+          const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+
+          return (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div className="ts-header">
+                <button className="ts-back-btn" onClick={() => setSheetView('DETAILS')} suppressHydrationWarning>
+                  <i className="fas fa-chevron-left"></i>
+                </button>
+                <div className="ts-name-block">
+                  <div className="ts-instr-name">{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                  <span className="ts-segment-badge">{selectedContract.symbol}</span>
+                </div>
+                <div className="ts-price-block">
+                  <div className="ts-price-value">₹{ltp.toFixed(2)}</div>
+                  <span className={`ts-change-badge ${chgPct < 0 ? 'negative' : 'positive'}`}>
+                    {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+
+              <div className="ts-bidask-row">
+                <div className="ts-ba-cell">
+                  <span className="ts-ba-label">BID</span>
+                  <span className="ts-ba-val bid-val">₹{bid.toFixed(2)}</span>
+                </div>
+                <div className="ts-ba-divider"></div>
+                <div className="ts-ba-cell">
+                  <span className="ts-ba-label">ASK</span>
+                  <span className="ts-ba-val ask-val">₹{ask.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="sheet-content-scroll">
+                <div className="ts-body">
+                  {/* QTY / LOT Switch card */}
+                  <div className="ts-section-card">
+                    <div className="ts-qty-lot-row">
+                      <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
+                      <div className="ts-toggle-switch">
+                        <button
+                          className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
+                          onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); setQtyInput(String(lotSize)); }}
+                          suppressHydrationWarning
+                        >QTY</button>
+                        <button
+                          className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
+                          onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
+                          suppressHydrationWarning
+                        >LOT</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lot Info summary */}
+                  <div className="ts-info-cards-wrap">
+                    <div className="ts-info-cards">
+                      <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val">{lotSize}</div></div>
+                      <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val">--</div></div>
+                      <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val">{orderUnit === 'lot' ? orderQty : '--'}</div></div>
+                      <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val">{totalQty}</div></div>
+                    </div>
+                  </div>
+
+                  {/* Stepper Card */}
+                  <div className="ts-qty-container">
+                    <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
+                    <div className="ts-qty-stepper">
+                      <button className="ts-qty-btn" onClick={() => stepQty(-1)} suppressHydrationWarning><i className="fas fa-minus"></i></button>
+                      <input
+                        className="ts-qty-val"
+                        type="number"
+                        value={qtyInput}
+                        onChange={e => handleQtyChange(e.target.value)}
+                        onBlur={() => {
+                          if (!qtyInput || parseInt(qtyInput) < 1) setQtyInput(String(orderQty));
+                        }}
+                        suppressHydrationWarning
+                      />
+                      <button className="ts-qty-btn" onClick={() => stepQty(1)} suppressHydrationWarning><i className="fas fa-plus"></i></button>
+                    </div>
+                    <div className="ts-qty-hint">
+                      {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
+                    </div>
+                  </div>
+
+                  {/* Order Type pills */}
+                  <div className="ts-section-card">
+                    <div className="ts-section-label">Order Type</div>
+                    <div className="ts-pill-group">
+                      {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[]).map(type => (
+                        <button
+                          key={type}
+                          className={`ts-pill ${orderType === type ? 'active' : ''}`}
+                          onClick={() => setOrderType(type)}
+                        >{type}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Limit Price Input Card */}
+                  {(orderType === 'LIMIT' || orderType === 'GTT') && (
+                    <div className="ts-section-card">
+                      <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="price-input"
+                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(e.target.value)}
+                        suppressHydrationWarning
+                      />
+                    </div>
+                  )}
+
+                  {/* Trigger Price Card */}
+                  {orderType === 'SLM' && (
+                    <div className="ts-section-card">
+                      <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        className="price-input"
+                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
+                        value={triggerPrice}
+                        onChange={e => setTriggerPrice(e.target.value)}
+                        suppressHydrationWarning
+                      />
+                    </div>
+                  )}
+
+                  {/* SL / TP inputs for GTT order */}
+                  {orderType === 'GTT' && (
+                    <div className="ts-section-card">
+                      <div className="ts-section-label">SL / Limit / Target</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                              type="number"
+                              placeholder="0.00"
+                              className="price-input"
+                              value={slPrice}
+                              onChange={e => setSlPrice(e.target.value)}
+                              style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
+                              suppressHydrationWarning
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                              type="number"
+                              placeholder="0.00"
+                              className="price-input"
+                              value={tpPrice}
+                              onChange={e => setTpPrice(e.target.value)}
+                              style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
+                              suppressHydrationWarning
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Product Type Card */}
+                  <div className="ts-section-card">
+                    <div className="ts-section-label">Product Type</div>
+                    <div className="ts-pill-group">
+                      <button
+                        className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`}
+                        onClick={() => setProductType('INTRADAY')}
+                      >INTRADAY</button>
+                      <button
+                        className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`}
+                        onClick={() => setProductType('CARRY')}
+                      >CARRY</button>
+                    </div>
+                  </div>
+
+                  {/* Margin Info Card */}
+                  <div className="ts-margin-card">
+                    <div className="ts-margin-row">
+                      <span className="ts-ml">Available</span>
+                      <span className="ts-mv avail">₹ 30,670.32</span>
+                    </div>
+                    <div className="ts-margin-row">
+                      <span className="ts-ml">Required Margin</span>
+                      <span className="ts-mv required">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="ts-margin-row">
+                      <span className="ts-ml">Carry Charges</span>
+                      <span className="ts-mv carry">₹ 0.00</span>
+                    </div>
+                  </div>
+                  <div style={{ height: '8px' }}></div>
+                </div>
+              </div>
+
+              {/* Sticky Execution Button */}
+              <div className="ts-sticky-footer visible" style={{ flexShrink: 0 }}>
+                {sheetSide === 'BUY' ? (
+                  <button
+                    className="ts-btn ts-btn-buy"
+                    disabled={placingOrder}
+                    onClick={() => handlePlaceOrder('BUY')}
+                  >
+                    {placingOrder ? 'PLACING...' : 'BUY'}
+                  </button>
+                ) : (
+                  <button
+                    className="ts-btn ts-btn-sell"
+                    disabled={placingOrder}
+                    onClick={() => handlePlaceOrder('SELL')}
+                  >
+                    {placingOrder ? 'PLACING...' : 'SELL'}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Order Entry Sheet */}

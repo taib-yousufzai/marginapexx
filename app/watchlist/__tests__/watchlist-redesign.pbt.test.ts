@@ -21,6 +21,10 @@ interface WatchlistItem {
 }
 
 type TabLabel =
+  | 'WATCHLIST'
+  | 'WATCHLIST-1'
+  | 'WATCHLIST-2'
+  | 'WATCHLIST-3'
   | 'INDEX-FUT' | 'INDEX-OPT'
   | 'STOCK-FUT' | 'STOCK-OPT'
   | 'MCX-FUT'   | 'MCX-OPT'
@@ -28,11 +32,10 @@ type TabLabel =
   | 'FOREX'     | 'COI';
 
 const TAB_LABELS: TabLabel[] = [
-  'INDEX-FUT', 'INDEX-OPT',
-  'STOCK-FUT', 'STOCK-OPT',
-  'MCX-FUT',   'MCX-OPT',
-  'NSF-EQ',    'CRYPTO',
-  'FOREX',     'COI',
+  'WATCHLIST',
+  'WATCHLIST-1',
+  'WATCHLIST-2',
+  'WATCHLIST-3',
 ];
 
 const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
@@ -60,7 +63,7 @@ function getTabForItem(item: WatchlistItem): TabLabel {
   if (item.category && TAB_LABELS.includes(item.category as TabLabel)) {
     return item.category as TabLabel;
   }
-  return SEGMENT_TAB_MAP[item.segment] ?? 'COI';
+  return 'WATCHLIST';
 }
 
 function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistItem[] {
