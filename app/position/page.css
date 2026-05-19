@@ -124,9 +124,9 @@
   justify-content: center;
   gap: 4px;
   background: rgba(243, 246, 251, 0.7);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid #111827;
   border-radius: 40px;
-  padding: 8px 8px;
+  padding: 4px 8px;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   backdrop-filter: blur(8px);
@@ -326,6 +326,12 @@
   flex-direction: column;
   gap: 12px;
   background: #FFFFFF;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.pos-content::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* ── P&L Summary Card ─────────────────────────── */
@@ -1031,7 +1037,7 @@ body.dark .pos-card:hover {
 }
 
 body.dark .pos-card--expanded {
-  border-color: #C62E2E;
+  border-color: #555;
 }
 
 body.dark .pos-card-actions {

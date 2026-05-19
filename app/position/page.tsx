@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getSession } from '@/lib/auth';
 import { pageCache } from '@/lib/pageCache';
@@ -12,6 +13,7 @@ import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
 
 export default function PositionPage() {
+  const router = useRouter();
   useAuth();
   const { positions, loading: posLoading, error: posError, refresh } = useMyPositions(1000);
   const { closePosition, loading: closingPos } = useOrderEntry();
@@ -37,7 +39,7 @@ export default function PositionPage() {
 
   const formatBalance = (val: number | null) => {
     if (val === null) return '...';
-    if (val > 999) return (val / 1000).toFixed(2) + ' k';
+    if (val > 999) return (val / 1000).toFixed(2) + 'k';
     return val.toFixed(2);
   };
 
@@ -163,7 +165,7 @@ export default function PositionPage() {
                   <div className="pos-brand-sub">Internal Positions • Real-time P&amp;L</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button className="pos-wallet-btn" onClick={() => showToast('Wallet clicked')}>
+                  <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
                     <span>₹{formatBalance(balance)}</span>
                   </button>
@@ -184,7 +186,7 @@ export default function PositionPage() {
                   <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>Internal Execution • Real-time P&amp;L</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button className="pos-wallet-btn" onClick={() => showToast('Wallet clicked')}>
+                  <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
                     <span>{formatBalance(balance)}</span>
                   </button>
@@ -218,7 +220,9 @@ export default function PositionPage() {
               {/* ── Sticky Sub-Header (P&L + Sub-Tabs) ── */}
               <div className="pos-sticky-subheader">
                 <div className="pos-pnl-card">
-                  <div className="pos-pnl-card-title">Today's P&amp;L</div>
+                  <div className="pos-pnl-card-title">
+                    {currentMain === 'cumulative' && currentSub === 'closed' ? "Today's P&L" : "Live P&L Summary"}
+                  </div>
                   <div className="pos-pnl-card-body">
                     {currentMain === 'cumulative' && currentSub === 'closed' && (
                       <div className="pos-pnl-col left">
