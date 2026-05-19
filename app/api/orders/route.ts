@@ -256,10 +256,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 10. Compute fill price (LTP ± buffer from segment_settings)
   let fillPrice: number;
-  const isImmediate = ['MARKET', 'SLM'].includes(order_type ?? 'MARKET');
+  const isImmediate = (order_type ?? 'MARKET') === 'MARKET';
 
   if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
     fillPrice = client_price;
+  } else if (order_type === 'SLM') {
+    fillPrice = trigger_price ? Number(trigger_price) : client_price;
   } else {
     const entryBuffer = segSetting?.entry_buffer ?? 0.003;
     const exitBuffer  = segSetting?.exit_buffer  ?? 0.0017;
@@ -273,13 +275,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp
 
   // 11. Atomic write via Postgres RPC
+  const targetOrderType = order_type ?? 'MARKET';
+  const rpcOrderType = targetOrderType === 'SLM' ? 'SL' : targetOrderType;
+
   const { data: orderId, error: rpcErr } = await admin.rpc('place_order', {
     p_user_id:      user.id,
     p_symbol:       symbol,
     p_kite_inst:    kiteInst,
     p_segment:      segment,
     p_side:         side,
-    p_order_type:   order_type ?? 'MARKET',
+    p_order_type:   rpcOrderType,
     p_product_type: product_type ?? 'INTRADAY',
     p_qty:          qty,
     p_lots:         lots ?? 0,
@@ -294,6 +299,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (rpcErr) {
     console.error('[POST /api/orders] RPC error:', rpcErr);
     return NextResponse.json({ error: 'Order execution failed. Please try again.' }, { status: 500 });
+  }
+
+  // Update order_type to 'SLM' in the database if it was an SLM order
+  if (targetOrderType === 'SLM' && orderId) {
+    const { error: updateErr } = await admin
+      .from('orders')
+      .update({ order_type: 'SLM' })
+      .eq('id', orderId);
+    if (updateErr) {
+      console.error('[POST /api/orders] Failed to restore SLM order type:', updateErr);
+    }
   }
 
   const response: PlaceOrderResponse = {

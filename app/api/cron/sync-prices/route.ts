@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { processPendingOrdersAndPositions } from '@/lib/orderMatching';
+
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Extend Vercel timeout limits
@@ -103,6 +105,13 @@ export async function GET(request: Request) {
           .upsert(allQuotes.slice(i, i + 1000), { onConflict: 'id' });
 
         if (upsertError) throw upsertError;
+      }
+
+      // 6. Match pending orders and check stop loss/target thresholds
+      try {
+        await processPendingOrdersAndPositions(allQuotes);
+      } catch (engineErr) {
+        console.error('[Sync Prices] Order matching engine error:', engineErr);
       }
     }
 

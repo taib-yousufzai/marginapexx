@@ -46,7 +46,7 @@ export function validatePayRequest(
     body === null ||
     !('type' in body) ||
     (body as Record<string, unknown>).type !== 'DEPOSIT' &&
-      (body as Record<string, unknown>).type !== 'WITHDRAWAL'
+    (body as Record<string, unknown>).type !== 'WITHDRAWAL'
   ) {
     return { valid: false, error: 'Invalid type', status: 400 };
   }
