@@ -126,7 +126,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price } = body;
+  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target } = body;
 
   // 3. Basic field validation
   if (!symbol || !side || !qty || !segment) {
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let fillPrice: number;
   const isImmediate = ['MARKET', 'SLM'].includes(order_type ?? 'MARKET');
 
-  if (order_type === 'LIMIT' || order_type === 'SL') {
+  if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
     fillPrice = client_price;
   } else {
     const entryBuffer = segSetting?.entry_buffer ?? 0.003;
@@ -286,7 +286,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     p_ltp:          baseLtp,
     p_fill_price:   fillPrice,
     p_info:         null,
-    p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null
+    p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null,
+    p_stop_loss:    stop_loss ? parseFloat(stop_loss.toString()) : null,
+    p_target:       target ? parseFloat(target.toString()) : null
   });
 
   if (rpcErr) {

@@ -29,6 +29,10 @@ export interface PlaceOrderRequest {
   client_price: number;
   /** Optional trigger price for SL, SLM, GTT orders */
   trigger_price?: number;
+  /** Optional stop loss price for GTT and limit orders */
+  stop_loss?: number;
+  /** Optional target price for GTT and limit orders */
+  target?: number;
 }
 
 // ─── Response (POST /api/orders) ─────────────────────────────────────────────
@@ -53,6 +57,9 @@ export interface MyOrder {
   order_type: OrderType;
   product_type: ProductType;
   info: string | null;
+  trigger_price?: number;
+  stop_loss?: number;
+  target?: number;
   created_at: string;
 }
 
@@ -73,6 +80,8 @@ export interface MyPosition {
   entry_time: string;
   exit_time: string | null;
   settlement: string;
+  stop_loss?: number;
+  target?: number;
   created_at: string;
 }
 

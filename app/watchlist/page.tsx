@@ -507,6 +507,7 @@ function WatchlistContent() {
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
   const [limitPrice, setLimitPrice] = useState<string>('');
+  const [triggerPrice, setTriggerPrice] = useState<string>('');
   const [slTpOpen, setSlTpOpen] = useState<boolean>(false);
   const [slPrice, setSlPrice] = useState<string>('');
   const [tpPrice, setTpPrice] = useState<string>('');
@@ -886,7 +887,10 @@ function WatchlistContent() {
       product_type: productType,
       qty: orderUnit === 'lot' ? orderQty * lotSize : orderQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
-      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : livePrice
+      client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) : livePrice,
+      trigger_price: parseFloat(triggerPrice) || undefined,
+      stop_loss: parseFloat(slPrice) || undefined,
+      target: parseFloat(tpPrice) || undefined
     });
 
     if (result.success) {
@@ -1180,7 +1184,7 @@ function WatchlistContent() {
             </div>
             <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
               <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} />
+              <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} />
             </div>
 
             {/* SL / TP / Limit inputs for GTT order */}

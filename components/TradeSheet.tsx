@@ -38,6 +38,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
+  const [triggerPrice, setTriggerPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -106,7 +107,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
       lots: orderUnit === 'lot' ? orderQty : 0,
       order_type: orderType,
       product_type: productType,
-      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) || 0 : currentLtp,
+      client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) || 0 : currentLtp,
+      trigger_price: parseFloat(triggerPrice) || undefined,
     });
     if (res.success) {
       showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
