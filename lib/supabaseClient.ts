@@ -16,4 +16,17 @@ function createSupabaseClient(): SupabaseClient {
   return _client;
 }
 
-export const supabase = createSupabaseClient();
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(target, prop, receiver) {
+    const client = createSupabaseClient();
+    const value = Reflect.get(client, prop, client);
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+  set(target, prop, value, receiver) {
+    const client = createSupabaseClient();
+    return Reflect.set(client, prop, value, client);
+  }
+});

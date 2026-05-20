@@ -444,55 +444,60 @@ export default function PositionPage() {
                     /* ── CLOSED POSITION SHEET ── */
                     <>
                       {/* Header row */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div className="ps-symbol">{selectedPos.symbol}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                            <span className={`pos-badge ${selectedPos.side === 'BUY' ? 'long' : 'short'}`} style={{ fontSize: '0.65rem', padding: '3px 10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div className="ps-symbol" style={{ color: 'var(--text-primary, #1A1A1A)', margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{selectedPos.symbol}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span className={`pos-badge ${selectedPos.side === 'BUY' ? 'long' : 'short'}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
                               {selectedPos.side === 'BUY' ? 'LONG' : 'SHORT'}
                             </span>
                             {selectedPos.product_type && (
-                              <span className={`pos-product-badge${selectedPos.product_type === 'CARRY' ? ' carry' : ''}`}>{selectedPos.product_type}</span>
+                              <span className={`pos-product-badge${selectedPos.product_type === 'CARRY' ? ' carry' : ''}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>{selectedPos.product_type}</span>
                             )}
-                            <span style={{ fontSize: '0.65rem', color: '#6B7280', fontWeight: 600 }}>· Manual</span>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '2px' }}>Exit Price</div>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1A1E2B' }}>{fmtPrice(selectedPos.exit_price || 0, selectedPos.settlement)}</div>
+                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Exit Price</div>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedPos.exit_price || 0, selectedPos.settlement)}</div>
                         </div>
                       </div>
 
-                      {/* Divider */}
-                      <div style={{ height: '1px', background: '#F0F2F8', margin: '4px 0' }} />
-
-                      {/* Realised P&L */}
-                      <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                        <div style={{ fontSize: '0.6rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Realised P&amp;L</div>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626', lineHeight: 1 }}>
-                          {selectedPos.pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.pnl, selectedPos.settlement)}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: selectedPos.pnl_percent >= 0 ? '#059669' : '#DC2626', marginTop: '4px' }}>
-                          {selectedPos.pnl_percent >= 0 ? '+' : ''}{selectedPos.pnl_percent.toFixed(2)}%
+                      {/* Realised P&L Container */}
+                      <div style={{
+                        backgroundColor: 'var(--card-alt-bg, #F3F4F6)',
+                        border: '1px solid var(--border-light, #E8ECF0)',
+                        padding: '12px 16px',
+                        borderRadius: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        width: '100%',
+                        marginBottom: '8px',
+                        boxSizing: 'border-box'
+                      }}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', alignSelf: 'flex-start' }}>Realised P&amp;L</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', width: '100%', padding: '2px 0 0 0' }}>
+                          <div style={{ fontSize: '2rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626', lineHeight: 1 }}>
+                            {selectedPos.pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.pnl, selectedPos.settlement)}
+                          </div>
+                          <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary, #6B7280)', marginTop: '4px' }}>
+                            {selectedPos.pnl_percent >= 0 ? '+' : ''}{selectedPos.pnl_percent.toFixed(2)}%
+                          </div>
                         </div>
                       </div>
-
-                      {/* Divider */}
-                      <div style={{ height: '1px', background: '#F0F2F8', margin: '4px 0' }} />
 
                       {/* Meta grid */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 8px' }}>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Avg Price</div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1A1E2B' }}>{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginBottom: '8px' }}>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Avg Price</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Quantity</div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1A1E2B' }}>{selectedPos.qty_total}</div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Quantity</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{selectedPos.qty_total}</div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Duration</div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1A1E2B' }}>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Duration</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>
                             {(() => {
                               const s = selectedPos.duration_seconds || 0;
                               if (s < 60) return `${s}s`;
@@ -501,21 +506,21 @@ export default function PositionPage() {
                             })()}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626' }}>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626' }}>
                             {selectedPos.pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.pnl, selectedPos.settlement)}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Entry Time</div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1A1E2B' }}>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Entry Time</div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>
                             {new Date(selectedPos.entry_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })}
                           </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>Exit Time</div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1A1E2B' }}>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Exit Time</div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>
                             {selectedPos.exit_time ? new Date(selectedPos.exit_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}
                           </div>
                         </div>
@@ -524,11 +529,11 @@ export default function PositionPage() {
                       {/* Trade Again button */}
                       <button
                         style={{
-                          width: '100%', padding: '14px', borderRadius: '50px',
+                          width: '100%', padding: '11px', borderRadius: '50px',
                           border: '1.5px solid #059669', background: '#fff',
                           color: '#059669', fontSize: '0.95rem', fontWeight: 800,
                           cursor: 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', gap: '8px', marginTop: '4px',
+                          justifyContent: 'center', gap: '8px', marginTop: '2px',
                           transition: 'all 0.18s',
                         }}
                         onClick={() => openTradeAgain(selectedPos)}
