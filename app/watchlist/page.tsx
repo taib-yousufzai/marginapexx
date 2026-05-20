@@ -562,28 +562,38 @@ function WatchlistContent() {
   // Handle deep linking from other screens (e.g. Home)
   const deepLinkSymbol = searchParams.get('symbol');
   useEffect(() => {
-    if (deepLinkSymbol && watchlistItems.length > 0) {
-      const query = deepLinkSymbol.toUpperCase();
-      // Find item that matches name or symbol
-      const item = watchlistItems.find(i => 
-        i.symbol.toUpperCase() === query || 
+    if (!deepLinkSymbol) return;
+    const query = deepLinkSymbol.toUpperCase();
+
+    const tryOpen = (items: WatchlistItem[]) => {
+      let item = items.find(i =>
+        i.symbol.toUpperCase() === query ||
         i.name.toUpperCase().includes(query) ||
         (i.kiteSymbol && i.kiteSymbol.toUpperCase().includes(query))
       );
 
-      if (item) {
-        // Switch to the appropriate tab if needed
-        const itemTab = getTabForItem(item);
-        if (itemTab !== activeTab) {
-          setActiveTab(itemTab);
-        }
-
-        // Auto-open the trade sheet
-        const timer = setTimeout(() => {
-          openTradeSheet(item);
-        }, 500); // Wait a bit for render
-        return () => clearTimeout(timer);
+      // Fallback: build a minimal item so the sheet still opens
+      if (!item) {
+        item = {
+          name: deepLinkSymbol,
+          symbol: deepLinkSymbol,
+          kiteSymbol: deepLinkSymbol,
+          segment: 'INR',
+          price: 0,
+        } as WatchlistItem;
       }
+
+      const itemTab = getTabForItem(item);
+      if (itemTab !== activeTab) setActiveTab(itemTab);
+
+      const timer = setTimeout(() => {
+        openTradeSheet(item!);
+      }, 500);
+      return () => clearTimeout(timer);
+    };
+
+    if (watchlistItems.length > 0) {
+      return tryOpen(watchlistItems);
     }
   }, [deepLinkSymbol, watchlistItems]);
 

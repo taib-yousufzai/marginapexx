@@ -573,6 +573,24 @@
   color: #B22234;
 }
 
+/* INTRADAY / CARRY product type badge */
+.pos-product-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  display: inline-block;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.pos-product-badge.carry {
+  background: #FFF7ED;
+  color: #C2410C;
+}
+
 .pos-card-pnl {
   font-size: 13px;
   font-weight: 700;

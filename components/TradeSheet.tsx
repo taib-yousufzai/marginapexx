@@ -368,7 +368,27 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               </button>
               <div className="ts2-name-block">
                 <div className="ts2-instr-name">{item.name}</div>
-                <span className="ts2-segment-badge">{item.segment}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span className="ts2-segment-badge">{item.segment}</span>
+                  {exitMode && (
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: '0.6rem', fontWeight: 700,
+                      color: '#B91C1C', background: '#FEF2F2',
+                      padding: '2px 8px', borderRadius: '30px',
+                      textTransform: 'uppercase', letterSpacing: '0.3px'
+                    }}>Exit Position</span>
+                  )}
+                  {!exitMode && (
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: '0.6rem', fontWeight: 700,
+                      color: '#15803D', background: '#DCFCE7',
+                      padding: '2px 8px', borderRadius: '30px',
+                      textTransform: 'uppercase', letterSpacing: '0.3px'
+                    }}>Add More</span>
+                  )}
+                </div>
               </div>
               <div className="ts2-price-block">
                 <div className="ts2-price-value">{fmt(currentLtp)}</div>
@@ -578,13 +598,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
             {/* Footer */}
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
-                <button className="ts2-btn ts2-btn-buy" disabled={placingOrder} onClick={() => handlePlace('BUY')}>
-                  {placingOrder ? 'PLACING...' : 'BUY'}
+                <button
+                  className={`ts2-btn${exitMode ? ' ts2-btn-sell' : ' ts2-btn-buy'}`}
+                  disabled={placingOrder}
+                  onClick={() => handlePlace('BUY')}
+                >
+                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
-                <button className="ts2-btn ts2-btn-sell" disabled={placingOrder} onClick={() => handlePlace('SELL')}>
-                  {placingOrder ? 'PLACING...' : 'SELL'}
+                <button
+                  className="ts2-btn ts2-btn-sell"
+                  disabled={placingOrder}
+                  onClick={() => handlePlace('SELL')}
+                >
+                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'SELL'}
                 </button>
               )}
             </div>

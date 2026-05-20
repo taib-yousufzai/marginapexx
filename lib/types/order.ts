@@ -80,6 +80,7 @@ export interface MyPosition {
   entry_time: string;
   exit_time: string | null;
   settlement: string;
+  product_type?: ProductType;
   stop_loss?: number;
   target?: number;
   created_at: string;
