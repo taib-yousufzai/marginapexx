@@ -56,6 +56,7 @@ export default function PositionPage() {
   // Add More trade sheet
   const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
   const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BUY');
+  const [tradeSheetExitMode, setTradeSheetExitMode] = useState(false);
 
   // Inline expand for open positions
   const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
@@ -74,6 +75,21 @@ export default function PositionPage() {
       change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
     });
     setTradeSheetSide(pos.side);
+    setTradeSheetExitMode(false);
+  };
+
+  const openExitSheet = (pos: EnrichedPosition) => {
+    setTradeSheetItem({
+      name: pos.symbol,
+      symbol: pos.symbol,
+      kiteSymbol: pos.symbol,
+      segment: pos.settlement || 'INR',
+      price: pos.current_ltp,
+      change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
+    });
+    // Exit is the opposite side: BUY position → SELL to exit, SELL position → BUY to exit
+    setTradeSheetSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
+    setTradeSheetExitMode(true);
   };
 
   const showToast = (msg: string) => {
@@ -301,7 +317,7 @@ export default function PositionPage() {
                               <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
-                              <button className="pca-btn pca-exit" onClick={() => handleExit(pos.id)} disabled={closingPos}>
+                              <button className="pca-btn pca-exit" onClick={() => openExitSheet(pos)}>
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
                             </div>
@@ -381,7 +397,7 @@ export default function PositionPage() {
                             <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
                               <i className="fas fa-plus-circle" /> Add More
                             </button>
-                            <button className="pca-btn pca-exit" onClick={() => handleExit(pos.id)} disabled={closingPos}>
+                            <button className="pca-btn pca-exit" onClick={() => openExitSheet(pos)}>
                               <i className="fas fa-times-circle" /> Exit
                             </button>
                           </div>
@@ -514,8 +530,9 @@ export default function PositionPage() {
       <TradeSheet
         item={tradeSheetItem}
         side={tradeSheetSide}
-        onClose={() => setTradeSheetItem(null)}
+        onClose={() => { setTradeSheetItem(null); setTradeSheetExitMode(false); }}
         onSuccess={refresh}
+        exitMode={tradeSheetExitMode}
       />
     </div>
   );

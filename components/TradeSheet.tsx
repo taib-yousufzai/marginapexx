@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface TradeSheetItem {
   name: string;
@@ -17,6 +18,8 @@ interface TradeSheetProps {
   side: 'BUY' | 'SELL' | 'BOTH';
   onClose: () => void;
   onSuccess?: () => void;
+  /** When true: hides GTT order type and hides Product Type section entirely */
+  exitMode?: boolean;
 }
 
 function getLotSize(name: string): number {
@@ -29,7 +32,7 @@ function getLotSize(name: string): number {
   return 1;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -39,6 +42,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
   const [triggerPrice, setTriggerPrice] = useState('');
+  const [slPrice, setSlPrice] = useState('');
+  const [tpPrice, setTpPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -77,18 +82,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
       setOrderType('MARKET');
       setProductType('INTRADAY');
       setLimitPrice('');
+      setTriggerPrice('');
+      setSlPrice('');
+      setTpPrice('');
     }
   }, [item?.symbol]);
 
   // Fetch balance
   useEffect(() => {
     if (!isOpen) return;
-    fetch('/api/user/balance')
-      .then(r => r.text())
-      .then(text => {
-        try { setAvailableBalance(JSON.parse(text).balance); } catch { /* ignore */ }
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      if (!token) return;
+      fetch('/api/pay/balance', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {});
+        .then(r => r.json())
+        .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
+        .catch(() => {});
+    });
   }, [isOpen]);
 
   const showToast = (msg: string) => {
@@ -106,9 +118,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
       qty: totalQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
       order_type: orderType,
-      product_type: productType,
+      product_type: exitMode ? 'INTRADAY' : productType,
       client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) || 0 : currentLtp,
       trigger_price: parseFloat(triggerPrice) || undefined,
+      stop_loss: parseFloat(slPrice) || undefined,
+      target: parseFloat(tpPrice) || undefined,
     });
     if (res.success) {
       showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
@@ -271,6 +285,24 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
           color: #111827; outline: none; margin-top: 10px; font-family: inherit;
         }
 
+        .ts2-field-input {
+          width: 100%; box-sizing: border-box;
+          background: #FFFFFF;
+          border: 1px solid #DCE3EC;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #1A1E2B;
+          outline: none;
+          transition: border-color 0.2s;
+          font-family: inherit;
+        }
+        .ts2-field-input:focus {
+          border-color: #006400;
+          box-shadow: 0 0 0 2px rgba(0,100,0,0.1);
+        }
+
         .ts2-margin-card {
           background: #fff; border-radius: 14px; border: 1px solid #F1F5F9; overflow: hidden;
         }
@@ -431,22 +463,86 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
                 <div className="ts2-card">
                   <div className="ts2-label">Order Type</div>
                   <div className="ts2-pills">
-                    {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[]).map(t => (
+                    {(exitMode
+                      ? (['MARKET', 'LIMIT', 'SLM'] as OrderType[])
+                      : (['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[])
+                    ).map(t => (
                       <button key={t} className={`ts2-pill${orderType === t ? ' active' : ''}`} onClick={() => setOrderType(t)}>{t}</button>
                     ))}
                   </div>
-                  {(orderType === 'LIMIT' || orderType === 'SL') && (
+                </div>
+
+                {/* LIMIT — Price input (separate card, matches watchlist) */}
+                {(orderType === 'LIMIT' || orderType === 'SL') && (
+                  <div className="ts2-card">
+                    <div className="ts2-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                     <input
-                      className="ts2-price-input"
+                      className="ts2-field-input"
                       type="number"
-                      placeholder="Price (₹)"
+                      placeholder="0.00"
                       value={limitPrice}
                       onChange={e => setLimitPrice(e.target.value)}
                     />
-                  )}
-                </div>
+                  </div>
+                )}
+
+                {/* Trigger Price — SLM (separate card, matches watchlist) */}
+                {orderType === 'SLM' && (
+                  <div className="ts2-card">
+                    <div className="ts2-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <input
+                      className="ts2-field-input"
+                      type="number"
+                      placeholder="0.00"
+                      value={triggerPrice}
+                      onChange={e => setTriggerPrice(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* GTT — Stop Loss / Target / Limit (separate card, matches watchlist) */}
+                {orderType === 'GTT' && (
+                  <div className="ts2-card">
+                    <div className="ts2-label">SL / Limit / Target</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ flex: 1 }}>
+                          <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                          <input
+                            className="ts2-field-input"
+                            type="number"
+                            placeholder="0.00"
+                            value={slPrice}
+                            onChange={e => setSlPrice(e.target.value)}
+                          />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div className="ts2-label" style={{ marginBottom: 6 }}>Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                          <input
+                            className="ts2-field-input"
+                            type="number"
+                            placeholder="0.00"
+                            value={tpPrice}
+                            onChange={e => setTpPrice(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="ts2-label" style={{ marginBottom: 6 }}>Buy at Limit <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                        <input
+                          className="ts2-field-input"
+                          type="number"
+                          placeholder="0.00"
+                          value={limitPrice}
+                          onChange={e => setLimitPrice(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Product Type */}
+                {!exitMode && (
                 <div className="ts2-card">
                   <div className="ts2-label">Product Type</div>
                   <div className="ts2-pills">
@@ -455,6 +551,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess }: TradeShee
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Margin */}
                 <div className="ts2-margin-card">
