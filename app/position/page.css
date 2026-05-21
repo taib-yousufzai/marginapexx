@@ -641,11 +641,38 @@
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
-/* Header row: symbol left, P&L right */
-.pos-detail-header-row {
+/* Layout container: left column (symbol + meta) and right column (P&L + status) */
+.pos-detail-main-layout {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: stretch;
+  width: 100%;
+  gap: 16px;
+}
+
+.pos-detail-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.pos-detail-right-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.pos-detail-pnl-group {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 /* ── Margin row ── */
@@ -696,11 +723,20 @@ body.dark .pos-detail-margin-row { border-top-color: #333; }
 
 .pos-detail-meta {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 5px;
   font-size: 10px;
   color: #6B7280;
   font-weight: 500;
+  width: 100%;
+}
+
+.pos-detail-meta-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 
 .pos-detail-meta strong {
@@ -737,13 +773,6 @@ body.dark .pos-detail-margin-row { border-top-color: #333; }
 body.dark .pos-detail-margin-label { color: #888; }
 body.dark .pos-detail-margin-val { color: #D0D0D0; }
 
-.pos-detail-right {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-}
 
 .pos-detail-pnl {
   font-size: 14px;
