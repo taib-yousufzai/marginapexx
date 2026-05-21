@@ -259,9 +259,16 @@ interface InstrumentRowProps {
 
 function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetail, basketMode, onBasketBuy, onBasketSell }: InstrumentRowProps) {
   const [priceView, setPriceView] = useState<'kite' | 'comex'>('kite');
+  const [productTypeView, setProductTypeView] = useState<'INTRADAY' | 'CARRY'>((item as any).productType || 'INTRADAY');
 
   const isCrypto = !!item.binanceSymbol;
   const hasDualView = !!item.kiteSymbol && !!item.comexSymbol;
+  const isEquity =
+    !isCrypto &&
+    !hasDualView &&
+    !item.segment.startsWith('MCX') &&
+    !item.segment.startsWith('CDS') &&
+    item.segment !== 'Crypto';
   const showComex = hasDualView && priceView === 'comex';
 
   let ltp = 0;
@@ -283,12 +290,12 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
 
   const handleLeftClick = () => {
     if (basketMode) return;
-    onDetail(item);
+    onDetail({ ...item, productType: productTypeView } as WatchlistItem);
   };
 
   const handleRightClick = () => {
     if (basketMode) return;
-    onDetail(item);
+    onDetail({ ...item, productType: productTypeView } as WatchlistItem);
   };
 
   return (
@@ -323,6 +330,19 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
               {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
             </div>
           )}
+          {isEquity && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextType = productTypeView === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
+                setProductTypeView(nextType);
+                (item as any).productType = nextType;
+              }}
+              style={{ fontSize: '0.62rem', fontWeight: '700', color: '#2C8E5A', background: '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
+            >
+              {productTypeView === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+            </div>
+          )}
         </div>
         <div className="instr-row__right" onClick={handleRightClick} style={{ cursor: 'pointer' }}>
           {isLoading ? (
@@ -348,8 +368,8 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
         </div>
         {basketMode && (
           <div className="wc-basket-actions" onClick={(e) => e.stopPropagation()}>
-            <button className="wc-basket-buy" onClick={() => onBasketBuy?.(item)}>BUY</button>
-            <button className="wc-basket-sell" onClick={() => onBasketSell?.(item)}>SELL</button>
+            <button className="wc-basket-buy" onClick={() => onBasketBuy?.({ ...item, productType: productTypeView } as WatchlistItem)}>BUY</button>
+            <button className="wc-basket-sell" onClick={() => onBasketSell?.({ ...item, productType: productTypeView } as WatchlistItem)}>SELL</button>
           </div>
         )}
       </div>
@@ -712,7 +732,7 @@ function WatchlistContent() {
         setOrderQty(isIndex ? 25 : 1);
         setOrderUnit('qty');
         setOrderType('MARKET');
-        setProductType('INTRADAY');
+        setProductType((item as any).productType || 'INTRADAY');
         const detailSheet = document.getElementById('detailSheet');
         const detailOverlay = document.getElementById('detailSheetOverlay');
         if (detailSheet) detailSheet.classList.remove('open');
@@ -741,7 +761,7 @@ function WatchlistContent() {
       setOrderQty(computedLot);
       setOrderUnit('qty');
       setOrderType('MARKET');
-      setProductType('INTRADAY');
+      setProductType((item as any).productType || 'INTRADAY');
       const detailSheet = document.getElementById('detailSheet');
       const detailOverlay = document.getElementById('detailSheetOverlay');
       if (detailSheet) detailSheet.classList.remove('open');
@@ -818,7 +838,7 @@ function WatchlistContent() {
     setOrderQty(computedLot);
     setOrderUnit('qty');
     setOrderType('MARKET');
-    setProductType('INTRADAY');
+    setProductType((item as any).productType || 'INTRADAY');
     setSlTpOpen(false);
     setSlPrice('');
     setTpPrice('');
@@ -1857,9 +1877,15 @@ function buildInlineScript(): string {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instruments: kiteIds })
         })
-          .then(function(r) { return r.json(); })
+          .then(function(r) {
+            var ct = r.headers.get('content-type');
+            if (r.ok && ct && ct.indexOf('application/json') !== -1) {
+              return r.json();
+            }
+            return { data: {} };
+          })
           .then(function(json) {
-            var quoteData = json.data || {};
+            var quoteData = (json && json.data) || {};
             Object.entries(quoteData).forEach(function(entry) {
               var kiteId = entry[0];
               var quote = entry[1];
@@ -1897,9 +1923,15 @@ function buildInlineScript(): string {
           if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
           searchDebounceTimer = setTimeout(function() {
             fetch('/api/market/instruments/search?q=' + encodeURIComponent(query))
-              .then(function(res) { return res.json(); })
+              .then(function(res) {
+                var ct = res.headers.get('content-type');
+                if (res.ok && ct && ct.indexOf('application/json') !== -1) {
+                  return res.json();
+                }
+                return [];
+              })
               .then(function(liveResults) {
-                if (!Array.isArray(liveResults)) return;
+                if (!liveResults || !Array.isArray(liveResults)) return;
                 // Live results pehle, phir hardcoded jo live mein nahi hain
                 var liveSymbols = new Set(liveResults.map(function(r) { return r.symbol; }));
                 var hardcodedExtra = allScriptsDB.filter(function(s) { return !liveSymbols.has(s.symbol); });
@@ -2101,6 +2133,16 @@ function buildInlineScript(): string {
 }
 
 export default function WatchlistPage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist...</div>;
+  }
+
   return (
     <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist...</div>}>
       <WatchlistContent />

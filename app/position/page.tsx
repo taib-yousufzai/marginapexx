@@ -25,10 +25,16 @@ export default function PositionPage() {
     getSession().then((session) => {
       if (cancelled || !session) return;
       fetch('/api/pay/balance', { headers: { Authorization: `Bearer ${session.access_token}` } })
-        .then(res => res.ok ? res.json() : { balance: 0 })
+        .then(res => {
+          const contentType = res.headers.get('content-type');
+          if (res.ok && contentType && contentType.includes('application/json')) {
+            return res.json();
+          }
+          return { balance: 0 };
+        })
         .then(data => {
           if (cancelled) return;
-          const bal = data.balance ?? 0;
+          const bal = (data && data.balance) ?? 0;
           setBalance(bal);
           pageCache.set('funds:balance', bal);
         })
