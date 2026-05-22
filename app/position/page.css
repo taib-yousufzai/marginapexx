@@ -523,6 +523,7 @@
 
 .pos-card-left {
   flex: 1;
+  min-width: 0;
 }
 
 .pos-card-symbol {
@@ -530,6 +531,17 @@
   font-weight: 800;
   color: #111827;
   margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.pos-symbol-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
 }
 
 .pos-card-details {
@@ -580,15 +592,15 @@
   padding: 2px 7px;
   border-radius: 20px;
   display: inline-block;
-  background: #EFF6FF;
-  color: #1D4ED8;
+  color: #2C8E5A;
+  background: #E9F6EF;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .pos-product-badge.carry {
-  background: #FFF7ED;
-  color: #C2410C;
+  color: #FFFFFF;
+  background: #4A148C;
 }
 
 .pos-card-pnl {
@@ -656,6 +668,7 @@
   flex-direction: column;
   gap: 5px;
   flex: 1;
+  min-width: 0;
 }
 
 .pos-detail-right-col {
@@ -713,6 +726,7 @@ body.dark .pos-detail-margin-row { border-top-color: #333; }
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .pos-detail-side {
@@ -735,8 +749,13 @@ body.dark .pos-detail-margin-row { border-top-color: #333; }
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
+  flex-wrap: nowrap;
+}
+
+.pos-detail-meta-row span {
+  white-space: nowrap;
 }
 
 .pos-detail-meta strong {
@@ -1240,11 +1259,20 @@ body.dark .pos-badge.short {
   align-items: flex-start;
 }
 
+.ps-header-left {
+  flex: 1;
+  min-width: 0;
+}
+
 .ps-symbol {
   font-size: 18px;
   font-weight: 800;
   color: #111827;
   margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
 
 .ps-segment {

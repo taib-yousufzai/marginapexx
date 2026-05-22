@@ -25,13 +25,35 @@ interface UseMyPositionsResult {
   positions: EnrichedPosition[];
   loading:   boolean;
   error:     string | null;
-  refresh:   () => void;
+  refresh:   () => Promise<void>;
+  updatePositionLocally?: (posId: string, updatedFields: Partial<MyPosition>) => void;
+  startConversion?: (posId: string, newType: string) => void;
+  endConversion?: (posId: string) => void;
 }
 
 export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
   const [rawPositions, setRawPositions] = useState<MyPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inFlightConversions, setInFlightConversions] = useState<Record<string, string>>({});
+
+  const updatePositionLocally = useCallback((posId: string, updatedFields: Partial<MyPosition>) => {
+    setRawPositions(prev =>
+      prev.map(p => (p.id === posId ? { ...p, ...updatedFields } : p))
+    );
+  }, []);
+
+  const startConversion = useCallback((posId: string, newType: string) => {
+    setInFlightConversions(prev => ({ ...prev, [posId]: newType }));
+  }, []);
+
+  const endConversion = useCallback((posId: string) => {
+    setInFlightConversions(prev => {
+      const next = { ...prev };
+      delete next[posId];
+      return next;
+    });
+  }, []);
 
   const fetchPositions = useCallback(async () => {
     try {
@@ -88,6 +110,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
   // Enrich positions with live calculations
   const enrichedPositions = useMemo(() => {
     return rawPositions.map(p => {
+      // Overwrite product_type if there is an in-flight conversion for this position
+      const product_type = inFlightConversions[p.id] || p.product_type;
+
       const seg = (p.settlement || '').toUpperCase();
       let ltp = p.ltp || p.entry_price;
       
@@ -115,13 +140,22 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       return {
         ...p,
+        product_type,
         current_ltp: ltp,
         unrealised_pnl: (p.status === 'closed') ? 0 : unrealised,
         total_pnl,
         pnl_percent: parseFloat(pnl_percent.toFixed(2))
       } as EnrichedPosition;
     });
-  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes]);
+  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, inFlightConversions]);
 
-  return { positions: enrichedPositions, loading, error, refresh: fetchPositions };
+  return {
+    positions: enrichedPositions,
+    loading,
+    error,
+    refresh: fetchPositions,
+    updatePositionLocally,
+    startConversion,
+    endConversion
+  };
 }

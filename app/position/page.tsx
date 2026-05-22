@@ -15,7 +15,7 @@ import './page.css';
 export default function PositionPage() {
   const router = useRouter();
   useAuth();
-  const { positions, loading: posLoading, error: posError, refresh } = useMyPositions(1000);
+  const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(1000);
   const { closePosition, loading: closingPos } = useOrderEntry();
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
@@ -115,6 +115,65 @@ export default function PositionPage() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const toggleProductType = async (pos: EnrichedPosition) => {
+    const originalType = pos.product_type;
+    const newType = originalType === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
+
+    // 1. Optimistic Update (Immediate)
+    if (startConversion) {
+      startConversion(pos.id, newType);
+    }
+    if (selectedPos && selectedPos.id === pos.id) {
+      setSelectedPos(prev => prev ? { ...prev, product_type: newType } : null);
+    }
+
+    try {
+      const session = await getSession();
+      if (!session) {
+        showToast('Unauthorized. Please login again.');
+        // Revert on auth error
+        if (endConversion) {
+          endConversion(pos.id);
+        }
+        if (selectedPos && selectedPos.id === pos.id) {
+          setSelectedPos(prev => prev ? { ...prev, product_type: originalType } : null);
+        }
+        return;
+      }
+
+      const res = await fetch(`/api/positions/${pos.id}/convert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ product_type: newType })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to convert position product type');
+      }
+
+      showToast(`Position converted to ${newType} successfully`);
+      // Await refresh to guarantee that rawPositions contains the updated DB value before we clear in-flight state
+      await refresh();
+    } catch (err: any) {
+      console.error('Failed to convert position:', err);
+      showToast(`Conversion failed: ${err.message}`);
+
+      // Revert bottom sheet state on server/network failure
+      if (selectedPos && selectedPos.id === pos.id) {
+        setSelectedPos(prev => prev ? { ...prev, product_type: originalType } : null);
+      }
+    } finally {
+      // 2. End in-flight conversion lock
+      if (endConversion) {
+        endConversion(pos.id);
+      }
+    }
   };
 
   const handleRowClick = (pos: EnrichedPosition) => {
@@ -318,13 +377,56 @@ export default function PositionPage() {
                         <div key={pos.id} className={`pos-card${expandedPosId === pos.id ? ' pos-card--expanded' : ''}`} onClick={() => toggleExpand(pos.id)}>
                           <div className="pos-card-main">
                             <div className="pos-card-left">
-                              <div className="pos-card-symbol">{pos.symbol}</div>
+                              <div className="pos-card-symbol">
+                                <span className="pos-symbol-text">{pos.symbol}</span>
+                                {pos.product_type && (
+                                  <span
+                                    className="exchange-badge"
+                                    style={{
+                                      fontSize: '0.55rem',
+                                      fontWeight: '700',
+                                      padding: '1px 6px',
+                                      borderRadius: '20px',
+                                      marginLeft: '6px',
+                                      verticalAlign: 'middle',
+                                      lineHeight: '1.6',
+                                      display: 'inline-block',
+                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
+                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
+                                    }}
+                                  >
+                                    {pos.product_type}
+                                  </span>
+                                )}
+                              </div>
                               <div className="pos-card-details">
                                 <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                                 <span>Qty: <strong>{pos.qty_open}</strong></span>
                               </div>
                               {pos.product_type && (
-                                <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`} style={{ marginTop: '5px', display: 'inline-block' }}>{pos.product_type}</span>
+                                <div
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await toggleProductType(pos);
+                                  }}
+                                  style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: '700',
+                                    color: pos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
+                                    background: pos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                    padding: '2px 8px',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    marginTop: '5px',
+                                    userSelect: 'none',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                                </div>
                               )}
                             </div>
                             <div className="pos-card-right">
@@ -356,14 +458,20 @@ export default function PositionPage() {
                       ) : closedPositions.map(pos => (
                         <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)}>
                           <div className="pos-card-left">
-                            <div className="pos-card-symbol">{pos.symbol}</div>
+                            <div className="pos-card-symbol">
+                              <span className="pos-symbol-text">{pos.symbol}</span>
+                            </div>
                             <div className="pos-card-details">
                               <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                               <span>Qty: <strong>{pos.qty_total}</strong></span>
-                              {pos.product_type && (
-                                <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`}>{pos.product_type}</span>
-                              )}
                             </div>
+                            {pos.product_type && (
+                              <div style={{ marginTop: '5px' }}>
+                                <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`}>
+                                  {pos.product_type}
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="pos-card-right">
                             <span className={`pos-badge${pos.side === 'BUY' ? ' long' : ' short'}`}>
@@ -405,7 +513,27 @@ export default function PositionPage() {
                             {/* Left Side: Symbol and Metadata */}
                             <div className="pos-detail-left-col">
                               <div className="pos-detail-symbol">
-                                {pos.symbol} <span className="pos-detail-side">{pos.side}</span>
+                                <span className="pos-symbol-text">{pos.symbol}</span>{' '}
+                                <span className="pos-detail-side">{pos.side}</span>
+                                {pos.product_type && (
+                                  <span
+                                    className="exchange-badge"
+                                    style={{
+                                      fontSize: '0.55rem',
+                                      fontWeight: '700',
+                                      padding: '1px 6px',
+                                      borderRadius: '20px',
+                                      marginLeft: '6px',
+                                      verticalAlign: 'middle',
+                                      lineHeight: '1.6',
+                                      display: 'inline-block',
+                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
+                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
+                                    }}
+                                  >
+                                    {pos.product_type}
+                                  </span>
+                                )}
                               </div>
                               <div className="pos-detail-meta">
                                 <div className="pos-detail-meta-row">
@@ -419,13 +547,34 @@ export default function PositionPage() {
                                 <div className="pos-detail-meta-row">
                                   <span>Time: <strong>{timeStr}</strong></span>
                                   <span>Date: <strong>{dateStr}</strong></span>
-                                  {pos.product_type && (
-                                    <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`} style={{ marginLeft: 'auto' }}>
-                                      {pos.product_type}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
+                              {pos.product_type && (
+                                <div
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await toggleProductType(pos);
+                                  }}
+                                  style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: '700',
+                                    color: pos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
+                                    background: pos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                    padding: '2px 8px',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    marginTop: '5px',
+                                    userSelect: 'none',
+                                    whiteSpace: 'nowrap',
+                                    alignSelf: 'flex-start',
+                                  }}
+                                >
+                                  {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                                </div>
+                              )}
                             </div>
 
                             {/* Right Side: P&L and Status Badge */}
@@ -586,8 +735,56 @@ export default function PositionPage() {
                       {/* Header */}
                       <div className="ps-header-row">
                         <div className="ps-header-left">
-                          <div className="ps-symbol">{selectedPos.symbol}</div>
-                          <div className="ps-segment">INTERNAL POSITION</div>
+                          <div className="ps-symbol">
+                            <span className="pos-symbol-text">{selectedPos.symbol}</span>
+                            {selectedPos.product_type && (
+                              <span
+                                className="exchange-badge"
+                                style={{
+                                  fontSize: '0.55rem',
+                                  fontWeight: '700',
+                                  padding: '1px 6px',
+                                  borderRadius: '20px',
+                                  marginLeft: '6px',
+                                  verticalAlign: 'middle',
+                                  lineHeight: '1.6',
+                                  display: 'inline-block',
+                                  color: selectedPos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
+                                  background: selectedPos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
+                                }}
+                              >
+                                {selectedPos.product_type}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                            <div className="ps-segment" style={{ margin: 0 }}>INTERNAL POSITION</div>
+                            {selectedPos.product_type && (
+                              <div
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await toggleProductType(selectedPos);
+                                  setSelectedPos(prev => prev ? { ...prev, product_type: prev.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY' } : null);
+                                }}
+                                style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: '700',
+                                  color: selectedPos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
+                                  background: selectedPos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                  padding: '2px 8px',
+                                  borderRadius: '20px',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  userSelect: 'none',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {selectedPos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="ps-header-right">
                           <div className={`ps-price ${selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}`}>

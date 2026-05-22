@@ -259,16 +259,9 @@ interface InstrumentRowProps {
 
 function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetail, basketMode, onBasketBuy, onBasketSell }: InstrumentRowProps) {
   const [priceView, setPriceView] = useState<'kite' | 'comex'>('kite');
-  const [productTypeView, setProductTypeView] = useState<'INTRADAY' | 'CARRY'>((item as any).productType || 'INTRADAY');
 
   const isCrypto = !!item.binanceSymbol;
   const hasDualView = !!item.kiteSymbol && !!item.comexSymbol;
-  const isEquity =
-    !isCrypto &&
-    !hasDualView &&
-    !item.segment.startsWith('MCX') &&
-    !item.segment.startsWith('CDS') &&
-    item.segment !== 'Crypto';
   const showComex = hasDualView && priceView === 'comex';
 
   let ltp = 0;
@@ -290,12 +283,12 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
 
   const handleLeftClick = () => {
     if (basketMode) return;
-    onDetail({ ...item, productType: productTypeView } as WatchlistItem);
+    onDetail(item);
   };
 
   const handleRightClick = () => {
     if (basketMode) return;
-    onDetail({ ...item, productType: productTypeView } as WatchlistItem);
+    onDetail(item);
   };
 
   return (
@@ -330,19 +323,6 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
               {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
             </div>
           )}
-          {isEquity && (
-            <div
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextType = productTypeView === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
-                setProductTypeView(nextType);
-                (item as any).productType = nextType;
-              }}
-              style={{ fontSize: '0.62rem', fontWeight: '700', color: '#2C8E5A', background: '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
-            >
-              {productTypeView === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-            </div>
-          )}
         </div>
         <div className="instr-row__right" onClick={handleRightClick} style={{ cursor: 'pointer' }}>
           {isLoading ? (
@@ -368,8 +348,8 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
         </div>
         {basketMode && (
           <div className="wc-basket-actions" onClick={(e) => e.stopPropagation()}>
-            <button className="wc-basket-buy" onClick={() => onBasketBuy?.({ ...item, productType: productTypeView } as WatchlistItem)}>BUY</button>
-            <button className="wc-basket-sell" onClick={() => onBasketSell?.({ ...item, productType: productTypeView } as WatchlistItem)}>SELL</button>
+            <button className="wc-basket-buy" onClick={() => onBasketBuy?.(item)}>BUY</button>
+            <button className="wc-basket-sell" onClick={() => onBasketSell?.(item)}>SELL</button>
           </div>
         )}
       </div>
@@ -732,7 +712,7 @@ function WatchlistContent() {
         setOrderQty(isIndex ? 25 : 1);
         setOrderUnit('qty');
         setOrderType('MARKET');
-        setProductType((item as any).productType || 'INTRADAY');
+        setProductType('INTRADAY');
         const detailSheet = document.getElementById('detailSheet');
         const detailOverlay = document.getElementById('detailSheetOverlay');
         if (detailSheet) detailSheet.classList.remove('open');
@@ -761,7 +741,7 @@ function WatchlistContent() {
       setOrderQty(computedLot);
       setOrderUnit('qty');
       setOrderType('MARKET');
-      setProductType((item as any).productType || 'INTRADAY');
+      setProductType('INTRADAY');
       const detailSheet = document.getElementById('detailSheet');
       const detailOverlay = document.getElementById('detailSheetOverlay');
       if (detailSheet) detailSheet.classList.remove('open');
@@ -838,7 +818,7 @@ function WatchlistContent() {
     setOrderQty(computedLot);
     setOrderUnit('qty');
     setOrderType('MARKET');
-    setProductType((item as any).productType || 'INTRADAY');
+    setProductType('INTRADAY');
     setSlTpOpen(false);
     setSlPrice('');
     setTpPrice('');
