@@ -321,7 +321,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
-  padding: 12px 16px 80px 16px;
+  padding: 12px 16px var(--scroll-clearance, 140px) 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -527,10 +527,10 @@
 }
 
 .pos-card-symbol {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   color: #111827;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -547,7 +547,7 @@
 .pos-card-details {
   display: flex;
   gap: 14px;
-  font-size: 11px;
+  font-size: 10px;
   color: #6B7280;
   font-weight: 500;
   flex-wrap: wrap;
@@ -555,7 +555,7 @@
 
 .pos-card-details strong {
   color: #1F2937;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .pos-card-right {
@@ -617,14 +617,17 @@
 }
 
 .pos-card-ltp {
-  font-size: 11px;
+  font-size: 10px;
   color: #6B7280;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .pos-card-ltp strong {
   color: #1F2937;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── Section Label (Detailed) ─────────────────── */

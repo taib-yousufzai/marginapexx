@@ -379,25 +379,6 @@ export default function PositionPage() {
                             <div className="pos-card-left">
                               <div className="pos-card-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>
-                                {pos.product_type && (
-                                  <span
-                                    className="exchange-badge"
-                                    style={{
-                                      fontSize: '0.55rem',
-                                      fontWeight: '700',
-                                      padding: '1px 6px',
-                                      borderRadius: '20px',
-                                      marginLeft: '6px',
-                                      verticalAlign: 'middle',
-                                      lineHeight: '1.6',
-                                      display: 'inline-block',
-                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
-                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
-                                    }}
-                                  >
-                                    {pos.product_type}
-                                  </span>
-                                )}
                               </div>
                               <div className="pos-card-details">
                                 <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
@@ -434,7 +415,26 @@ export default function PositionPage() {
                               <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
                                 P&amp;L: {fmtUSD(pos.total_pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
                               </div>
-                              <div className="pos-card-ltp">LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></div>
+                              <div className="pos-card-ltp">
+                                {pos.product_type && (
+                                  <span
+                                    className="exchange-badge"
+                                    style={{
+                                      fontSize: '0.55rem',
+                                      fontWeight: '700',
+                                      padding: '1px 6px',
+                                      borderRadius: '20px',
+                                      lineHeight: '1.6',
+                                      display: 'inline-block',
+                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
+                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
+                                    }}
+                                  >
+                                    {pos.product_type}
+                                  </span>
+                                )}
+                                <span>LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
+                              </div>
                             </div>
                           </div>
                           {expandedPosId === pos.id && (

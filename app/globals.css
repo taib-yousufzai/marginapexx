@@ -62,6 +62,7 @@ body {
     max-width: 100% !important;
     width: 100vw !important;
     height: 100dvh !important;
+    max-height: 100% !important;
     margin: 0 !important;
     box-shadow: none !important;
   }
@@ -128,6 +129,7 @@ body {
   --expiry-drawer-overlay: rgba(0, 0, 0, 0.5);
   --footer-nav-height: 65px;
   --sidebar-width: 0px;
+  --scroll-clearance: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 60px);
 }
 
 @media (min-width: 1024px) {

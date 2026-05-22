@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         .eq('underlying_symbol', parsed.underlying)
         .eq('strike_price', parsed.strike)
         .order('expiry', { ascending: true })
-        .limit(50);
+        .limit(150);
 
       if (parsed.optionType) {
         dbQuery = dbQuery.eq('option_type', parsed.optionType);
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
         .or(`tradingsymbol.ilike.%${qNoSpace}%,tradingsymbol.ilike.%${q}%,name.ilike.%${q}%`)
         .order('expiry', { ascending: true })
-        .limit(50));
+        .limit(150));
     }
 
     if (error) {

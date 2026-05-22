@@ -1829,7 +1829,7 @@ function buildInlineScript(): string {
       function renderSearchResults(results) {
         searchResultCount.textContent = results.length + ' RESULTS';
         var html = '';
-        results.slice(0, 50).forEach(function(item) {
+        results.slice(0, 150).forEach(function(item) {
           var rawPrice = item.price || 0;
           var priceStr = rawPrice > 0 ? rawPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '---';
           var kiteId = item.kiteSymbol || item.symbol || '';
@@ -1847,7 +1847,7 @@ function buildInlineScript(): string {
         if (watchlistSection) watchlistSection.style.display = 'none';
 
         // Fetch live prices for all results that have a kiteSymbol
-        var kiteIds = results.slice(0, 50)
+        var kiteIds = results.slice(0, 150)
           .map(function(r) { return r.kiteSymbol || ''; })
           .filter(function(id) { return id.includes(':'); });
         if (kiteIds.length === 0) return;

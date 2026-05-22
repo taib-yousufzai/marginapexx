@@ -24,7 +24,7 @@ export async function GET(request: Request): Promise<Response> {
       .from('instruments')
       .select('id, tradingsymbol, exchange, name, instrument_type, segment')
       .or(`tradingsymbol.ilike.%${query}%,name.ilike.%${query}%`)
-      .limit(50);
+      .limit(150);
 
     // Optional: filter by tab mapping to segment/instrument_type
     if (tab === 'NSE-EQ') {

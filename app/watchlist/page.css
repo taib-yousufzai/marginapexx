@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100dvh;
+    max-height: 100%;
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
@@ -132,7 +133,7 @@
     background: #F5F7FB;
     display: flex;
     flex-direction: column;
-    padding-bottom: 80px;
+    padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 15px) !important;
 }
 
 .search-results-section {
@@ -280,10 +281,8 @@
 }
 
 .watchlist-section {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
 }
 
 .watchlist-header {
@@ -2568,6 +2567,7 @@ body.dark .instrument-delete-btn:hover {
         max-width: 100%;
         width: 100%;
         height: 100dvh;
+        max-height: 100%;
         margin: 0;
         padding-left: var(--sidebar-width, 80px);
         display: flex;
