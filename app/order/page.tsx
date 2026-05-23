@@ -189,12 +189,6 @@ export default function OrderPage() {
                           <span className="ord-label">QTY:</span>
                           <span className="ord-val">{fmtQty(order.qty)} ({order.lots} Lot)</span>
                         </div>
-                        <div className="ord-info-inline center">
-                          <span className="ord-label">TYPE:</span>
-                          <span className="ord-type-pill">
-                            <i className="fas fa-tag" /> {order.order_type}
-                          </span>
-                        </div>
                         <div className="ord-info-inline right">
                           <span className="ord-label">TIME:</span>
                           <span className="ord-val">{fmtTime(order.created_at)}</span>
@@ -205,14 +199,21 @@ export default function OrderPage() {
                         <span className="ord-date-val">{fmtDate(order.created_at)}</span>
                       </div>
                       {/* Product + variety tags */}
-                      <div className="ord-row" style={{ gap: 6, marginTop: 4 }}>
-                        <span className="ord-type-pill" style={{ fontSize: '0.6rem' }}>{order.product_type}</span>
-                        <span className="ord-type-pill" style={{ fontSize: '0.6rem' }}>{order.segment}</span>
-                        {order.info && (
-                          <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
-                            {order.info}
+                      <div className="ord-row" style={{ marginTop: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span className="ord-type-pill" style={{ fontSize: '0.6rem' }}>{order.product_type}</span>
+                          {order.info && (
+                            <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
+                              {order.info}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span className="ord-label" style={{ fontSize: '0.6rem', letterSpacing: '0.3px' }}>TYPE:</span>
+                          <span className="ord-type-pill" style={{ fontSize: '0.6rem' }}>
+                            <i className="fas fa-tag" style={{ fontSize: '7px' }} /> {order.order_type}
                           </span>
-                        )}
+                        </div>
                       </div>
                       <div className="ord-row ord-row-status">
                         <div className={`ord-status-text ${isPending ? 'status-open' : isExecuted ? 'status-filled' : 'status-rejected'}`}>
