@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, UserListItem } from '../AdminUtils';
-import { SegSettings } from '../UpdatePage'; // We will define this type locally to avoid circular dependencies
 
 const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
@@ -47,15 +46,90 @@ const defaultSeg = (): SegmentSettingsType => ({
   exitBuffer: '0.0017', tradeAllowed: true,
 });
 
-function SegmentBlock({ name, value, onChange }: { name: string; value: SegmentSettingsType; onChange: (k: keyof SegmentSettingsType, v: string | boolean) => void }) {
+function SegmentBlock({ 
+  name, 
+  value, 
+  onChange,
+  availableBlocks,
+  onPerformCopy
+}: { 
+  name: string; 
+  value: SegmentSettingsType; 
+  onChange: (k: keyof SegmentSettingsType, v: string | boolean) => void;
+  availableBlocks: string[];
+  onPerformCopy: (sourceName: string) => void;
+}) {
+  const [showCopyDropdown, setShowCopyDropdown] = useState(false);
   const upd = (k: keyof SegmentSettingsType, v: string | boolean) => onChange(k, v);
 
   return (
-    <div className="adm-upd-seg-block">
+    <div className="adm-upd-seg-block" style={{ marginBottom: '20px', position: 'relative' }}>
       <div className="adm-upd-seg-header">
-        <span className="adm-upd-seg-name">{name}</span>
+        <span className="adm-upd-seg-name" style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+        
+        {/* Copy From Button */}
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="adm-upd-copy-btn" 
+            onClick={(e) => { e.preventDefault(); setShowCopyDropdown(!showCopyDropdown); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <i className="far fa-copy"></i> Copy From
+          </button>
+          
+          {showCopyDropdown && (
+            <div 
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 'calc(100% + 5px)',
+                background: '#161b22',
+                border: '1px solid #30363d',
+                borderRadius: '8px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                zIndex: 10,
+                minWidth: '160px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: '6px 0'
+              }}
+              onMouseLeave={() => setShowCopyDropdown(false)}
+            >
+              <div style={{ padding: '6px 12px', fontSize: '11px', color: '#8b949e', borderBottom: '1px solid #30363d', fontWeight: 600 }}>Select Segment</div>
+              {availableBlocks.filter(b => b !== name).length === 0 ? (
+                <div style={{ padding: '8px 12px', fontSize: '12px', color: '#8b949e' }}>No other segments</div>
+              ) : (
+                availableBlocks.filter(b => b !== name).map(b => (
+                  <button
+                    key={b}
+                    onClick={() => {
+                      onPerformCopy(b);
+                      setShowCopyDropdown(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#c9d1d9',
+                      textAlign: 'left',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#21262d'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {b}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Row 1: Commission Type & Value */}
       <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Commission Type</label>
@@ -69,17 +143,19 @@ function SegmentBlock({ name, value, onChange }: { name: string; value: SegmentS
         </div>
       </div>
 
+      {/* Row 2: Profit Hold Sec & Loss Hold Sec */}
       <div className="adm-upd-grid2">
         <div className="adm-upd-field">
-          <label className="adm-upd-label">Profit Hold (sec)</label>
+          <label className="adm-upd-label">Profit Hold Sec</label>
           <input className="adm-upd-input" type="number" value={value.profitHoldSec} onChange={e => upd('profitHoldSec', e.target.value)} />
         </div>
         <div className="adm-upd-field">
-          <label className="adm-upd-label">Loss Hold (sec)</label>
+          <label className="adm-upd-label">Loss Hold Sec</label>
           <input className="adm-upd-input" type="number" value={value.loss_hold_sec} onChange={e => upd('loss_hold_sec', e.target.value)} />
         </div>
       </div>
 
+      {/* Row 3: Strike Range & Max Lot */}
       <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Strike Range</label>
@@ -91,6 +167,7 @@ function SegmentBlock({ name, value, onChange }: { name: string; value: SegmentS
         </div>
       </div>
 
+      {/* Row 4: Max Order Lot & Intraday Leverage */}
       <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Max Order Lot</label>
@@ -102,41 +179,62 @@ function SegmentBlock({ name, value, onChange }: { name: string; value: SegmentS
         </div>
       </div>
 
+      {/* Row 5: Intraday Type on Right (Left side blank) */}
       <div className="adm-upd-grid2">
+        <div></div>
         <div className="adm-upd-field">
           <label className="adm-upd-label">Intraday Type</label>
           <select className="adm-upd-input adm-upd-select" value={value.intradayType} onChange={e => upd('intradayType', e.target.value)}>
             <option>Multiplier</option><option>Direct</option>
           </select>
+          <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+            Req Funds = (Qty &times; Market Price) &divide; Leverage
+          </span>
         </div>
+      </div>
+
+      {/* Row 6: Holding Leverage & Entry Buffer */}
+      <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Holding Leverage</label>
           <input className="adm-upd-input" type="number" value={value.holdingLeverage} onChange={e => upd('holdingLeverage', e.target.value)} />
         </div>
-      </div>
-
-      <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Entry Buffer</label>
           <input className="adm-upd-input" type="number" step="0.0001" value={value.entryBuffer} onChange={e => upd('entryBuffer', e.target.value)} />
         </div>
+      </div>
+
+      {/* Row 7: Holding Type on Left (Right side blank) */}
+      <div className="adm-upd-grid2">
         <div className="adm-upd-field">
           <label className="adm-upd-label">Holding Type</label>
           <select className="adm-upd-input adm-upd-select" value={value.holdingType} onChange={e => upd('holdingType', e.target.value)}>
             <option>Multiplier</option><option>Direct</option>
           </select>
+          <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+            Req Funds = (Qty &times; Market Price) &divide; Leverage
+          </span>
         </div>
+        <div></div>
       </div>
 
-      <div className="adm-upd-grid2" style={{ alignItems: 'center' }}>
+      {/* Row 8: Exit Buffer & Trade Allowed */}
+      <div className="adm-upd-grid2" style={{ alignItems: 'flex-start' }}>
         <div className="adm-upd-field">
           <label className="adm-upd-label">Exit Buffer</label>
           <input className="adm-upd-input" type="number" step="0.0001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
         </div>
-        <div className="adm-upd-toggle-item" style={{ marginTop: 14 }}>
+        <div className="adm-upd-toggle-item" style={{ marginTop: 2 }}>
           <span className="adm-upd-label">Trade Allowed</span>
-          <div className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`} onClick={() => upd('tradeAllowed', !value.tradeAllowed)}>
-            <div className="adm-toggle-thumb" />
+          <div style={{ display: 'flex', alignItems: 'center', height: '40px', marginTop: '4px' }}>
+            <div 
+              className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`} 
+              style={value.tradeAllowed ? { background: '#14b8a6' } : {}}
+              onClick={() => upd('tradeAllowed', !value.tradeAllowed)}
+            >
+              <div className="adm-toggle-thumb" style={{ background: '#fff' }} />
+            </div>
           </div>
         </div>
       </div>
@@ -201,7 +299,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
     });
   }, [uid]);
 
-  const segBlocks = ALL_SEGMENTS.filter(s => segments.includes(s)).flatMap(s => [`${s}-BUY`, `${s}-SELL`]);
+  const segBlocks = ALL_SEGMENTS.flatMap(s => [`${s}-BUY`, `${s}-SELL`]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -246,12 +344,13 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   };
 
   if (loading) return <div style={{ color: '#8b949e', padding: 20 }}>Loading...</div>;
-  if (segBlocks.length === 0) return <div style={{ color: '#8b949e', padding: 20 }}>No active segments for this user. Enable segments in the Profile tab first.</div>;
 
   return (
     <div className="adm-upd-root" style={{ padding: '0 0 40px 0' }}>
-      <div className="adm-upd-section-title">Segment Configuration</div>
-      <p style={{ color: '#8b949e', fontSize: '14px', marginBottom: 20 }}>Configure leverage, commission, and buffers for the user&apos;s active exchange segments.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>Segment Settings</span>
+        <i className="fas fa-bars" style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}></i>
+      </div>
       
       {segBlocks.map(name => (
         <SegmentBlock 
@@ -259,6 +358,8 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
           name={name} 
           value={segSettings[name] ?? defaultSeg()} 
           onChange={(k, v) => setSegSettings(prev => ({ ...prev, [name]: { ...(prev[name] ?? defaultSeg()), [k]: v } }))} 
+          availableBlocks={segBlocks}
+          onPerformCopy={(sourceName) => setSegSettings(prev => ({ ...prev, [name]: { ...(prev[sourceName] ?? defaultSeg()) } }))}
         />
       ))}
 
