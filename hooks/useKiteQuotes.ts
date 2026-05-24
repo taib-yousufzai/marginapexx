@@ -84,8 +84,9 @@ export function useKiteQuotes(
       }
     } catch (err) {
       clearTimeout(timeoutId);
-      // AbortError = timeout, ignore silently
-      if (err instanceof Error && err.name === 'AbortError') return true;
+      if (err instanceof Error && err.name === 'AbortError') return true; // expected timeout
+      // "Failed to fetch" = network unreachable / Kite not configured — suppress silently
+      if (err instanceof TypeError) return true;
       throw err;
     } finally {
       clearTimeout(timeoutId);
@@ -186,11 +187,12 @@ export function useKiteQuotes(
         await doFetch(); // one retry with the fresh cookie
       }
     } catch (err) {
-      // Silently ignore AbortError (timeout) - it's expected behavior
-      if (err instanceof Error && err.name === 'AbortError') {
+      // AbortError and TypeError ("Failed to fetch") are expected when Kite is not
+      // connected — swallow silently so the Next.js dev overlay stays quiet.
+      if (err instanceof Error && (err.name === 'AbortError' || err instanceof TypeError)) {
         return;
       }
-      console.error('[useKiteQuotes] Error:', err);
+      console.warn('[useKiteQuotes] Unexpected error:', err);
       setError('Network error fetching quotes');
     } finally {
       setLoading(false);

@@ -37,7 +37,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       if (!session) return;
 
       const token = session.access_token;
-      
+
       // Fetch balance
       const balRes = await fetch('/api/pay/balance', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -59,7 +59,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         setUsedMargin(used);
       }
     } catch (err) {
-      console.error('Footer fetchSummary failed', err);
+      if (err instanceof TypeError) return;
+      console.warn('Footer fetchSummary failed', err);
     }
   };
 
@@ -196,43 +197,43 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
             <i className={`fas fa-chevron-up toggle-arrow${isOpen ? ' rotated' : ''}`}></i>
           </div>
           <div className="drawer-inner-scroll" ref={contentRef}>
-              <div className="drawer-account-summary">
-                <div className="summary-grid">
-                  <div className="summary-item">
-                    <span className="summary-label">Balance</span>
-                    <span className="summary-value">₹{fmt(balance)}</span>
-                  </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Free Margin</span>
-                    <span className="summary-value">₹{fmt(freeMargin)}</span>
-                  </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Floating P/L</span>
-                    <span className={`summary-value ${floatingPnl >= 0 ? 'positive' : 'negative'}`}>
-                      ₹<TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : ''}{fmt(floatingPnl)}</TickFlash>
-                    </span>
-                  </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Equity</span>
-                    <span className="summary-value highlight">
-                      ₹<TickFlash value={equity}>{fmt(equity)}</TickFlash>
-                    </span>
-                  </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Used Margin</span>
-                    <span className="summary-value">
-                      ₹<TickFlash value={usedMargin}>{fmt(usedMargin)}</TickFlash>
-                    </span>
-                  </div>
-                  <div className="summary-item">
-                    <span className="summary-label">Margin Limit</span>
-                    <span className="summary-value">
-                      ₹<TickFlash value={balance}>{fmt(balance)}</TickFlash>
-                    </span>
-                  </div>
+            <div className="drawer-account-summary">
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <span className="summary-label">Balance</span>
+                  <span className="summary-value">₹{fmt(balance)}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Free Margin</span>
+                  <span className="summary-value">₹{fmt(freeMargin)}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Floating P/L</span>
+                  <span className={`summary-value ${floatingPnl >= 0 ? 'positive' : 'negative'}`}>
+                    ₹<TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : ''}{fmt(floatingPnl)}</TickFlash>
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Equity</span>
+                  <span className="summary-value highlight">
+                    ₹<TickFlash value={equity}>{fmt(equity)}</TickFlash>
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Used Margin</span>
+                  <span className="summary-value">
+                    ₹<TickFlash value={usedMargin}>{fmt(usedMargin)}</TickFlash>
+                  </span>
+                </div>
+                <div className="summary-item">
+                  <span className="summary-label">Margin Limit</span>
+                  <span className="summary-value">
+                    ₹<TickFlash value={balance}>{fmt(balance)}</TickFlash>
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
         </div>
       )}
 

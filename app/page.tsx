@@ -20,7 +20,7 @@ const KITE_INSTRUMENTS_ROW1 = [
   'CDS:USDINR26MAYFUT',
 ];
 const KITE_INSTRUMENTS_ROW2 = [
-  'MCX:CRUDEOIL26MAYFUT',
+  'MCX:CRUDEOIL26JUNFUT',
   'MCX:GOLD26JUNFUT',
   'MCX:SILVER26JULFUT',
   'MCX:NATURALGAS26MAYFUT',
@@ -31,7 +31,7 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
   'CDS:USDINR26MAYFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
-  'MCX:CRUDEOIL26MAYFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
+  'MCX:CRUDEOIL26JUNFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
   'MCX:GOLD26JUNFUT': { name: 'GOLD', icon: 'fas fa-coins' },
   'MCX:SILVER26JULFUT': { name: 'SILVER', icon: 'fas fa-gem' },
   'MCX:NATURALGAS26MAYFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
