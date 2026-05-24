@@ -184,6 +184,52 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Step 6.5: Initialize default segment_settings for active segments if specified
+    const activeSegments = body.segments;
+    if (Array.isArray(activeSegments) && activeSegments.length > 0) {
+      const defaultSettingsRows = [];
+      for (const seg of activeSegments) {
+        for (const side of ['BUY', 'SELL'] as const) {
+          defaultSettingsRows.push({
+            user_id: newUser.id,
+            segment: seg,
+            side,
+            commission_type: 'Per Crore',
+            commission_value: 4500,
+            profit_hold_sec: 120,
+            loss_hold_sec: 0,
+            strike_range: 0,
+            max_lot: 50,
+            max_order_lot: 50,
+            intraday_leverage: 50,
+            intraday_type: 'Multiplier',
+            holding_leverage: 5,
+            holding_type: 'Multiplier',
+            entry_buffer: 0.003,
+            exit_buffer: 0.0017,
+            trade_allowed: true,
+          });
+        }
+      }
+
+      if (defaultSettingsRows.length > 0) {
+        const { error: segInitError } = await adminClient
+          .from('segment_settings')
+          .insert(defaultSettingsRows);
+
+        if (segInitError) {
+          console.error('[POST /api/admin/users] Segment settings initialization error:', segInitError);
+          // Rollback: delete the profiles row and auth user
+          await adminClient.from('profiles').delete().eq('id', newUser.id);
+          await adminClient.auth.admin.deleteUser(newUser.id);
+          return Response.json(
+            { error: `Database error (Segment Settings): ${segInitError.message}` },
+            { status: 500 },
+          );
+        }
+      }
+    }
+
     // Step 7: Return 201 with id and email
     // Validates: Requirement 3.6
     return Response.json({ id: newUser.id, email: newUser.email }, { status: 201 });

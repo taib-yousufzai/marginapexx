@@ -206,6 +206,29 @@ describe('POST /api/admin/users', () => {
       const body = await res.json();
       expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com' });
     });
+
+    it('returns 201 and inserts default segment settings when active segments are specified', async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: makeUser('admin') },
+        error: null,
+      });
+      mockCreateUser.mockResolvedValue({
+        data: { user: { id: 'new-user-uuid', email: 'newuser@example.com' } },
+        error: null,
+      });
+      mockInsert.mockResolvedValue({ data: [], error: null });
+
+      const req = makePostRequest(
+        { email: 'newuser@example.com', password: 'securepass', role: 'user', segments: ['NSE-EQ', 'CRYPTO'] },
+        'Bearer valid-token',
+      );
+      const res = await POST(req);
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com' });
+      expect(mockInsert).toHaveBeenCalled();
+    });
   });
 
   // -------------------------------------------------------------------------

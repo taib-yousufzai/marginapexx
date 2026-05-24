@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
 
     if (pError) throw pError;
 
-    const targetUserIds: string[] = [];
+    const targetUserIds: string[] = [broker];
     const findDescendants = (parentId: string) => {
       profiles.forEach(p => {
         if (p.parent_id === parentId) {
@@ -35,36 +35,44 @@ export async function POST(request: Request): Promise<Response> {
       });
     };
     
-    // Start with the broker itself if it's a valid ID, or just find its descendants
     findDescendants(broker);
-    // Include the broker's direct children if the broker string is a name/code
-    // This assumes 'broker' is the parent_id value used in the database.
 
     if (targetUserIds.length === 0) {
       return Response.json({ error: 'No users found under this broker' }, { status: 404 });
     }
 
-    // 2. Perform bulk update in segment_settings
+    // 2. Build list of rows to upsert to ensure 100% of target users get settings applied
+    const upsertRows = [];
+    for (const userId of targetUserIds) {
+      for (const seg of segments) {
+        for (const side of ['BUY', 'SELL'] as const) {
+          upsertRows.push({
+            user_id: userId,
+            segment: seg,
+            side,
+            commission_type: config.commissionType,
+            commission_value: Number(config.commissionValue),
+            profit_hold_sec: Number(config.profitHoldSec),
+            loss_hold_sec: Number(config.loss_hold_sec),
+            strike_range: Number(config.strikeRange),
+            max_lot: Number(config.maxLot),
+            max_order_lot: Number(config.maxOrderLot),
+            intraday_leverage: Number(config.intradayLeverage),
+            intraday_type: config.intradayType,
+            holding_leverage: Number(config.holdingLeverage),
+            holding_type: config.holdingType,
+            entry_buffer: Number(config.entryBuffer),
+            exit_buffer: Number(config.exitBuffer),
+            trade_allowed: config.tradeAllowed
+          });
+        }
+      }
+    }
+
+    // Perform bulk upsert in segment_settings table using unique key constraint
     const { error: uError } = await adminClient
       .from('segment_settings')
-      .update({
-        commission_type: config.commissionType,
-        commission_value: Number(config.commissionValue),
-        profit_hold_sec: Number(config.profitHoldSec),
-        loss_hold_sec: Number(config.loss_hold_sec),
-        strike_range: Number(config.strikeRange),
-        max_lot: Number(config.maxLot),
-        max_order_lot: Number(config.maxOrderLot),
-        intraday_leverage: Number(config.intradayLeverage),
-        intraday_type: config.intradayType,
-        holding_leverage: Number(config.holdingLeverage),
-        holding_type: config.holdingType,
-        entry_buffer: Number(config.entryBuffer),
-        exit_buffer: Number(config.exitBuffer),
-        trade_allowed: config.tradeAllowed
-      })
-      .in('user_id', targetUserIds)
-      .in('segment_name', segments);
+      .upsert(upsertRows, { onConflict: 'user_id,segment,side' });
 
     if (uError) throw uError;
 
