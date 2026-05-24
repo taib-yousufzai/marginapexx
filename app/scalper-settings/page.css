@@ -1,50 +1,54 @@
-/* Premium Back Button */
-.back-button {
-  color: var(--text-primary);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--card-alt-bg, #F8F9FB);
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 1px solid var(--border-light, #E8ECF0);
-  font-size: 1rem;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.back-button:hover {
-  transform: scale(1.06);
-  background: var(--border-light, #E8ECF0);
-}
-
-.back-button:active {
-  transform: scale(0.94);
-}
-
-body.dark .back-button {
-  background: #252A38;
-  border-color: #2F3646;
-  color: #E2E8F0;
-}
-
-body.dark .back-button:hover {
-  background: #2F3646;
-}
-
-/* Page Layout */
-.margin-settings-content {
+/* Scalper Settings Page Layout */
+.scalper-settings-content {
   padding: 20px 16px;
   flex: 1;
   overflow-y: auto;
   background: #F8FAFC;
   min-height: calc(100vh - 76px);
-  padding-bottom: 80px; /* Space for the footer */
+  padding-bottom: 80px;
 }
 
-body.dark .margin-settings-content {
+body.dark .scalper-settings-content {
   background: #0F172A;
+}
+
+/* Premium Info banner */
+.scalper-intro {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(22, 163, 74, 0.06);
+  border: 1px solid rgba(22, 163, 74, 0.12);
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+body.dark .scalper-intro {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.15);
+}
+
+.scalper-intro .info-icon {
+  color: #16A34A;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+body.dark .scalper-intro .info-icon {
+  color: #4ade80;
+}
+
+.scalper-intro p {
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+
+body.dark .scalper-intro p {
+  color: #94A3B8;
 }
 
 /* Grid & Segment Cards List */
@@ -98,13 +102,40 @@ body.dark .card-top-header {
 .segment-label {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #0F172A; /* slate-900 */
-  letter-spacing: -0.1px;
+  color: #0F172A;
   margin: 0;
+  letter-spacing: -0.1px;
 }
 
 body.dark .segment-label {
   color: #F8FAFC;
+}
+
+/* Subsection Settings Grouping */
+.settings-section {
+  margin-top: 14px;
+}
+
+.settings-section:not(:last-child) {
+  border-bottom: 1px solid #F1F5F9;
+  padding-bottom: 14px;
+}
+
+body.dark .settings-section:not(:last-child) {
+  border-bottom-color: #334155;
+}
+
+.section-title-faint {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94A3B8; /* slate-400 */
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+body.dark .section-title-faint {
+  color: #64748B;
 }
 
 /* 8 Items Grid styling */
@@ -143,6 +174,91 @@ body.dark .detail-label {
 body.dark .detail-value {
   color: #F8FAFC;
 }
+
+.detail-value.text-active {
+  color: #16A34A;
+}
+
+body.dark .detail-value.text-active {
+  color: #4ade80;
+}
+
+/* Back Button & status badge */
+.back-button {
+  color: var(--text-primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-alt-bg, #F8F9FB);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border-light, #E8ECF0);
+  font-size: 1rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.back-button:hover {
+  transform: scale(1.06);
+  background: var(--border-light, #E8ECF0);
+}
+
+body.dark .back-button {
+  background: #252A38;
+  border-color: #2F3646;
+  color: #E2E8F0;
+}
+
+.badge-transaction {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-transaction.buy {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #DCFCE7;
+}
+
+.badge-transaction.sell {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FEE2E2;
+}
+
+body.dark .badge-transaction.buy {
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ADE80;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+body.dark .badge-transaction.sell {
+  background: rgba(220, 38, 38, 0.15);
+  color: #F87171;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.scalper-card-active-badge {
+  background: #F0FDF4;
+  color: #16A34A;
+  border: 1px solid #DCFCE7;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+body.dark .scalper-card-active-badge {
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ADE80;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
 /* Loading & Empty States */
 .loading-container,
 .empty-container {
@@ -152,30 +268,30 @@ body.dark .detail-value {
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
-  background: var(--card-bg, #FFFFFF);
-  border: 1px solid var(--border-light, #E8ECF0);
-  border-radius: 24px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
 }
 
 body.dark .loading-container,
 body.dark .empty-container {
-  background: #1E1E1E;
-  border-color: #2F3646;
+  background: #1E293B;
+  border-color: #334155;
 }
 
 .premium-spinner {
   width: 44px;
   height: 44px;
-  border: 3.5px solid var(--border-light, #E8ECF0);
-  border-top-color: #006400;
+  border: 3.5px solid #E2E8F0;
+  border-top-color: #0F172A;
   border-radius: 50%;
   animation: spin 0.85s linear infinite;
   margin-bottom: 18px;
 }
 
 body.dark .premium-spinner {
-  border-color: #2F3646;
-  border-top-color: #4ade80;
+  border-color: #334155;
+  border-top-color: #F8FAFC;
 }
 
 @keyframes spin {
@@ -183,29 +299,41 @@ body.dark .premium-spinner {
 }
 
 .loading-container p {
-  color: var(--text-secondary);
+  color: #64748B;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
+body.dark .loading-container p {
+  color: #94A3B8;
+}
+
 .empty-icon {
   font-size: 2.8rem;
-  color: var(--text-muted);
+  color: #94A3B8;
   margin-bottom: 16px;
 }
 
 .empty-container h3 {
   font-size: 1.2rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: #0F172A;
   margin-bottom: 8px;
 }
 
+body.dark .empty-container h3 {
+  color: #F8FAFC;
+}
+
 .empty-container p {
-  color: var(--text-secondary);
+  color: #64748B;
   font-size: 0.88rem;
   max-width: 280px;
   line-height: 1.5;
+}
+
+body.dark .empty-container p {
+  color: #94A3B8;
 }
 
 /* Blocked Overlay Mode */
@@ -254,92 +382,6 @@ body.dark .blocked-content {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-/* Subsection Settings Grouping */
-.settings-section {
-  margin-top: 14px;
-}
-
-.settings-section:not(:last-child) {
-  border-bottom: 1px solid #F1F5F9;
-  padding-bottom: 14px;
-}
-
-body.dark .settings-section:not(:last-child) {
-  border-bottom-color: #334155;
-}
-
-.section-title-faint {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #94A3B8; /* slate-400 */
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-body.dark .section-title-faint {
-  color: #64748B;
-}
-
-/* Premium Transaction Badge */
-.badge-transaction {
-  font-size: 0.6rem;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-.badge-transaction.buy {
-  background: #F0FDF4;
-  color: #16A34A;
-  border: 1px solid #DCFCE7;
-}
-
-.badge-transaction.sell {
-  background: #FEF2F2;
-  color: #DC2626;
-  border: 1px solid #FEE2E2;
-}
-
-body.dark .badge-transaction.buy {
-  background: rgba(22, 163, 74, 0.15);
-  color: #4ADE80;
-  border-color: rgba(22, 163, 74, 0.2);
-}
-
-body.dark .badge-transaction.sell {
-  background: rgba(220, 38, 38, 0.15);
-  color: #F87171;
-  border-color: rgba(220, 38, 38, 0.2);
-}
-
-/* ── Tablet (501px+) ── */
-@media (min-width: 501px) {
-  .margin-settings-content {
-    max-width: 900px;
-    margin: 0 auto;
-  }
-
-  .segments-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* ── Desktop (1024px+) ── */
-@media (min-width: 1024px) {
-  .margin-settings-content {
-    max-width: 100%;
-    width: 100%;
-    margin: 0;
-    padding-left: var(--sidebar-width);
-  }
-
-  .segments-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 /* Scalper Modal Styles */
@@ -590,5 +632,27 @@ body.dark .scalper-trigger-btn:hover {
   .scalper-trigger-btn {
     font-size: 0.65rem;
     padding: 7px 11px;
+  }
+}
+
+@media (min-width: 501px) {
+  .scalper-settings-content {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .segments-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .scalper-settings-content {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding-left: var(--sidebar-width);
+  }
+  .segments-list {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
