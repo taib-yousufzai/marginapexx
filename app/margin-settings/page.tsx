@@ -167,7 +167,7 @@ export default function MarginSettingsPage() {
                     </div>
                   </div>
 
-                  {/* Details Grid - Exactly 8 Items */}
+                  {/* Details Grid - Exactly 10 Items (including Hold Timers) */}
                   <div className="segment-details-grid">
                     
                     {/* 1. Trading Allowed */}
@@ -234,6 +234,26 @@ export default function MarginSettingsPage() {
                         <i className="fas fa-coins"></i> Commission Value
                       </span>
                       <span className="detail-value text-highlight">{item.commission_value}</span>
+                    </div>
+
+                    {/* 9. Min Hold Profit (Hold Timer) */}
+                    <div className="detail-item">
+                      <span className="detail-label">
+                        <i className="fas fa-history"></i> Min Hold Profit
+                      </span>
+                      <span className="detail-value">
+                        {item.profit_hold_sec ? `${item.profit_hold_sec}s` : 'None'}
+                      </span>
+                    </div>
+
+                    {/* 10. Min Hold Loss (Hold Timer) */}
+                    <div className="detail-item">
+                      <span className="detail-label">
+                        <i className="fas fa-hourglass-half"></i> Min Hold Loss
+                      </span>
+                      <span className="detail-value">
+                        {item.loss_hold_sec ? `${item.loss_hold_sec}s` : 'None'}
+                      </span>
                     </div>
                     
                   </div>
