@@ -1,0 +1,116 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
+
+const ALL_SEGMENTS = [
+  'INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT',
+  'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'
+];
+
+export async function GET(request: NextRequest) {
+  const user = await getUserFromRequest(request);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const admin = getAdminClient();
+
+  // 1. Fetch user's profile to get allowed segments list
+  const { data: profile, error: profileErr } = await admin
+    .from('profiles')
+    .select('segments')
+    .eq('id', user.id)
+    .single();
+
+  if (profileErr || !profile) {
+    console.error('[GET /api/user/segments] Error querying user profile:', profileErr);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+
+  // If segments is null or empty, it means the user is unrestricted and allowed to trade ALL segments!
+  const allowedSegments: string[] = profile.segments && profile.segments.length > 0 
+    ? profile.segments 
+    : ALL_SEGMENTS;
+
+  // 2. Fetch current segment settings from DB
+  const { data: currentSettings, error: queryErr } = await admin
+    .from('segment_settings')
+    .select(
+      'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, created_at, updated_at'
+    )
+    .eq('user_id', user.id);
+
+  if (queryErr) {
+    console.error('[GET /api/user/segments] Error querying segment_settings:', queryErr);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+
+  let finalSettings = currentSettings ?? [];
+
+  // 3. Find which of the allowed segments are missing settings in the database and auto-initialize them
+  const existingSegmentKeys = new Set(finalSettings.map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`));
+  const defaultSettingsRows = [];
+  
+  for (const seg of allowedSegments) {
+    const segUpper = seg.toUpperCase();
+    let intraday_leverage = 50;
+    let holding_leverage = 5;
+    let commission_value = 4500;
+    
+    if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
+      intraday_leverage = 100;
+      holding_leverage = 10;
+      commission_value = 2000;
+    } else if (segUpper.includes('COMEX')) {
+      intraday_leverage = 50;
+      holding_leverage = 5;
+      commission_value = 4500;
+    } else if (segUpper.includes('CRYPTO')) {
+      intraday_leverage = 10;
+      holding_leverage = 1;
+      commission_value = 1000;
+    }
+
+    for (const side of ['BUY', 'SELL'] as const) {
+      const key = `${segUpper}-${side}`;
+      if (!existingSegmentKeys.has(key)) {
+        defaultSettingsRows.push({
+          user_id: user.id,
+          segment: seg,
+          side,
+          commission_type: 'Per Crore',
+          commission_value,
+          profit_hold_sec: 120,
+          loss_hold_sec: 0,
+          strike_range: 0,
+          max_lot: 50,
+          max_order_lot: 50,
+          intraday_leverage,
+          intraday_type: 'Multiplier',
+          holding_leverage,
+          holding_type: 'Multiplier',
+          entry_buffer: 0.003,
+          exit_buffer: 0.0017,
+          trade_allowed: true,
+        });
+      }
+    }
+  }
+
+  // Insert missing rows atomically in background/parallel to fetch
+  if (defaultSettingsRows.length > 0) {
+    const { data: insertedData, error: insertErr } = await admin
+      .from('segment_settings')
+      .insert(defaultSettingsRows)
+      .select();
+
+    if (!insertErr && insertedData) {
+      finalSettings = [...finalSettings, ...insertedData];
+    } else {
+      console.error('[GET /api/user/segments] Failed to initialize default settings:', insertErr);
+    }
+  }
+
+  // 4. Filter the final list to only include allowed segments (handling cases where profile has restrictions)
+  const allowedUpper = allowedSegments.map(s => s.toUpperCase());
+  const filteredSettings = finalSettings.filter(s => allowedUpper.includes(s.segment.toUpperCase()));
+
+  return NextResponse.json(filteredSettings);
+}
