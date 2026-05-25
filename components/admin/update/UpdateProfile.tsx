@@ -21,6 +21,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
   const [intradaySqOff, setIntradaySqOff] = useState(false);
   const [autoSqoff, setAutoSqoff] = useState('90');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
+  const [tradingMode, setTradingMode] = useState('normal');
   const [segments, setSegments] = useState<string[]>([]);
   
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
       setIntradaySqOff(p.intraday_sq_off ?? false);
       setAutoSqoff(String(p.auto_sqoff ?? 90));
       setSqoffMethod(p.sqoff_method ?? 'Credit');
+      setTradingMode(p.trading_mode ?? 'normal');
       setSegments(p.segments ?? []);
     }).catch((err: unknown) => {
       setLoading(false);
@@ -78,6 +80,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
         intraday_sq_off: intradaySqOff,
         auto_sqoff: Number(autoSqoff),
         sqoff_method: sqoffMethod,
+        trading_mode: tradingMode,
         segments,
       }),
     });
@@ -129,6 +132,13 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
           <label className="adm-upd-label">Role</label>
           <select className="adm-upd-input adm-upd-select" value={role} onChange={e => setRole(e.target.value)}>
             <option>User</option><option>Sub Broker</option><option>Broker</option><option>Admin</option>
+          </select>
+        </div>
+        <div className="adm-upd-field">
+          <label className="adm-upd-label">Trading Mode</label>
+          <select className="adm-upd-input adm-upd-select" value={tradingMode} onChange={e => setTradingMode(e.target.value)}>
+            <option value="normal">Normal</option>
+            <option value="scalper">Scalper</option>
           </select>
         </div>
         <div className="adm-upd-field">

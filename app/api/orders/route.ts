@@ -172,15 +172,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingResult, quotesMap] = await Promise.all([
+  const [profileResult, segSettingResult, scalperSegSettingResult, quotesMap] = await Promise.all([
     // Profile
     admin.from('profiles')
-      .select('id, active, read_only, segments, parent_id, balance')
+      .select('id, active, read_only, segments, parent_id, balance, trading_mode')
       .eq('id', user.id)
       .single(),
 
     // Segment settings (we don't know parent_id yet, so we'll refetch if needed)
     admin.from('segment_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('segment', dbSegment)
+      .eq('side', side)
+      .maybeSingle(),
+
+    // Scalper segment settings
+    admin.from('scalper_segment_settings')
       .select('*')
       .eq('user_id', user.id)
       .eq('segment', dbSegment)
@@ -211,11 +219,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Trading not allowed in segment: ${segment}` }, { status: 403 });
   }
 
-  // 6. Segment settings — if parallel fetch missed parent_id broker settings, retry once
-  let segSetting = segSettingResult.data;
+  // 6. Segment settings — choose based on active trading mode
+  const isScalper = profile.trading_mode === 'scalper';
+  let segSetting = isScalper ? scalperSegSettingResult.data : segSettingResult.data;
+
   if (!segSetting && profile.parent_id && profile.parent_id !== user.id) {
+    const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
     const { data } = await admin
-      .from('segment_settings')
+      .from(targetTable)
       .select('*')
       .eq('user_id', profile.parent_id)
       .eq('segment', dbSegment)
@@ -253,7 +264,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       exit_buffer: 0.0017,
       strike_range: 0,
       commission_type: 'Per Crore',
-      commission_value: segUpper.includes('FOREX') || segUpper.includes('CDS') ? 2000 : (segUpper.includes('CRYPTO') ? 1000 : 4500),
+      commission_value: isScalper ? 8500 : (segUpper.includes('FOREX') || segUpper.includes('CDS') ? 2000 : (segUpper.includes('CRYPTO') ? 1000 : 4500)),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

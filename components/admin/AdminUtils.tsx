@@ -43,6 +43,8 @@ export type UserListItem = {
   auto_sqoff: number;
   sqoff_method: string;
   created_at: string;
+  trading_mode?: string;
+  mode_locked_until?: string | null;
   openPnl?: number;
   m2m?: number;
   weeklyPnl?: number;

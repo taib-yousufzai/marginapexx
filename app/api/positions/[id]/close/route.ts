@@ -73,7 +73,7 @@ export async function POST(
       .eq('status', 'open')
       .single(),
     admin.from('profiles')
-      .select('parent_id')
+      .select('parent_id, trading_mode')
       .eq('id', user.id)
       .single(),
   ]);
@@ -84,9 +84,11 @@ export async function POST(
   }
 
   // 2. Parallel fetch segment settings and LTP
+  const isScalper = profileResult.data?.trading_mode === 'scalper';
+  const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
   const lookupId = profileResult.data?.parent_id ?? user.id;
   const [segSettingResult, kiteLtp] = await Promise.all([
-    admin.from('segment_settings')
+    admin.from(targetTable)
       .select('exit_buffer, profit_hold_sec, loss_hold_sec')
       .eq('user_id', lookupId)
       .eq('segment', pos.settlement ?? '')

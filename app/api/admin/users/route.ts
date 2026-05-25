@@ -26,7 +26,7 @@ export async function GET(request: Request): Promise<Response> {
     // 1. Fetch all profiles
     const { data: profiles, error: pError } = await adminClient
       .from('profiles')
-      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at');
+      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
 
     if (pError) throw pError;
 
@@ -99,6 +99,8 @@ const PROFILE_FIELDS = [
   'intraday_sq_off',
   'auto_sqoff',
   'sqoff_method',
+  'trading_mode',
+  'mode_locked_until',
 ] as const;
 
 export async function POST(request: Request): Promise<Response> {
@@ -184,10 +186,11 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
-    // Step 6.5: Initialize default segment_settings for active segments if specified
+    // Step 6.5: Initialize default segment_settings and scalper_segment_settings for active segments if specified
     const activeSegments = body.segments;
     if (Array.isArray(activeSegments) && activeSegments.length > 0) {
       const defaultSettingsRows = [];
+      const defaultScalperSettingsRows = [];
       for (const seg of activeSegments) {
         for (const side of ['BUY', 'SELL'] as const) {
           defaultSettingsRows.push({
@@ -209,21 +212,42 @@ export async function POST(request: Request): Promise<Response> {
             exit_buffer: 0.0017,
             trade_allowed: true,
           });
+
+          defaultScalperSettingsRows.push({
+            user_id: newUser.id,
+            segment: seg,
+            side,
+            commission_type: 'Per Crore',
+            commission_value: 8500,
+            profit_hold_sec: 15,
+            loss_hold_sec: 0,
+            strike_range: 0,
+            max_lot: 50,
+            max_order_lot: 50,
+            intraday_leverage: 50,
+            intraday_type: 'Multiplier',
+            holding_leverage: 5,
+            holding_type: 'Multiplier',
+            entry_buffer: 0.003,
+            exit_buffer: 0.0017,
+            trade_allowed: true,
+          });
         }
       }
 
       if (defaultSettingsRows.length > 0) {
-        const { error: segInitError } = await adminClient
-          .from('segment_settings')
-          .insert(defaultSettingsRows);
+        const [segInitRes, scalperInitRes] = await Promise.all([
+          adminClient.from('segment_settings').insert(defaultSettingsRows),
+          adminClient.from('scalper_segment_settings').insert(defaultScalperSettingsRows)
+        ]);
 
-        if (segInitError) {
-          console.error('[POST /api/admin/users] Segment settings initialization error:', segInitError);
+        if (segInitRes.error || scalperInitRes.error) {
+          console.error('[POST /api/admin/users] Settings initialization error:', segInitRes.error || scalperInitRes.error);
           // Rollback: delete the profiles row and auth user
           await adminClient.from('profiles').delete().eq('id', newUser.id);
           await adminClient.auth.admin.deleteUser(newUser.id);
           return Response.json(
-            { error: `Database error (Segment Settings): ${segInitError.message}` },
+            { error: `Database error (Segment Settings): ${(segInitRes.error || scalperInitRes.error)?.message}` },
             { status: 500 },
           );
         }

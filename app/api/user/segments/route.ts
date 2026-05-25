@@ -12,10 +12,10 @@ export async function GET(request: NextRequest) {
 
   const admin = getAdminClient();
 
-  // 1. Fetch user's profile to get allowed segments list
+  // 1. Fetch user's profile to get allowed segments list and active trading mode
   const { data: profile, error: profileErr } = await admin
     .from('profiles')
-    .select('segments')
+    .select('segments, trading_mode')
     .eq('id', user.id)
     .single();
 
@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
+  // Determine which settings table to use
+  const queryMode = request.nextUrl.searchParams.get('mode');
+  const targetMode = (queryMode === 'normal' || queryMode === 'scalper') 
+    ? queryMode 
+    : (profile.trading_mode || 'normal');
+  const settingsTable = targetMode === 'scalper' ? 'scalper_segment_settings' : 'segment_settings';
+
   // If segments is null or empty, it means the user is unrestricted and allowed to trade ALL segments!
   const allowedSegments: string[] = profile.segments && profile.segments.length > 0 
     ? profile.segments 
@@ -31,14 +38,14 @@ export async function GET(request: NextRequest) {
 
   // 2. Fetch current segment settings from DB
   const { data: currentSettings, error: queryErr } = await admin
-    .from('segment_settings')
+    .from(settingsTable)
     .select(
       'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, created_at, updated_at'
     )
     .eq('user_id', user.id);
 
   if (queryErr) {
-    console.error('[GET /api/user/segments] Error querying segment_settings:', queryErr);
+    console.error(`[GET /api/user/segments] Error querying ${settingsTable}:`, queryErr);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
@@ -68,6 +75,11 @@ export async function GET(request: NextRequest) {
       commission_value = 1000;
     }
 
+    // Default settings are slightly adjusted if it's scalper mode initialization
+    const isScalper = targetMode === 'scalper';
+    const profit_hold_sec = isScalper ? 15 : 120;
+    const commission_val = isScalper ? 8500 : commission_value; // Brokerage increased to ₹85/crore for scalper (approx 8500 per crore equivalent)
+
     for (const side of ['BUY', 'SELL'] as const) {
       const key = `${segUpper}-${side}`;
       if (!existingSegmentKeys.has(key)) {
@@ -76,8 +88,8 @@ export async function GET(request: NextRequest) {
           segment: seg,
           side,
           commission_type: 'Per Crore',
-          commission_value,
-          profit_hold_sec: 120,
+          commission_value: commission_val,
+          profit_hold_sec,
           loss_hold_sec: 0,
           strike_range: 0,
           max_lot: 50,
@@ -97,14 +109,14 @@ export async function GET(request: NextRequest) {
   // Insert missing rows atomically in background/parallel to fetch
   if (defaultSettingsRows.length > 0) {
     const { data: insertedData, error: insertErr } = await admin
-      .from('segment_settings')
+      .from(settingsTable)
       .insert(defaultSettingsRows)
       .select();
 
     if (!insertErr && insertedData) {
       finalSettings = [...finalSettings, ...insertedData];
     } else {
-      console.error('[GET /api/user/segments] Failed to initialize default settings:', insertErr);
+      console.error(`[GET /api/user/segments] Failed to initialize default settings in ${settingsTable}:`, insertErr);
     }
   }
 

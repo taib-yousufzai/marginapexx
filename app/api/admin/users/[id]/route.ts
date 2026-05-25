@@ -22,6 +22,8 @@ const PROFILE_FIELDS = [
   'intraday_sq_off',
   'auto_sqoff',
   'sqoff_method',
+  'trading_mode',
+  'mode_locked_until',
 ] as const;
 
 export async function GET(
@@ -44,7 +46,7 @@ export async function GET(
     const { data, error } = await adminClient
       .from('profiles')
       .select(
-        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at',
+        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at, trading_mode, mode_locked_until',
       )
       .eq('id', id)
       .single();
@@ -124,16 +126,21 @@ export async function PATCH(
     // Sync segment_settings for newly added segments if segments is updated in body
     const activeSegments = body.segments;
     if (Array.isArray(activeSegments) && activeSegments.length > 0) {
-      const { data: existingSettings } = await adminClient
-        .from('segment_settings')
-        .select('segment, side')
-        .eq('user_id', id);
+      const [existingSegResult, existingScalperResult] = await Promise.all([
+        adminClient.from('segment_settings').select('segment, side').eq('user_id', id),
+        adminClient.from('scalper_segment_settings').select('segment, side').eq('user_id', id),
+      ]);
 
       const existingKeys = new Set(
-        (existingSettings ?? []).map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`)
+        (existingSegResult.data ?? []).map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`)
+      );
+      const existingScalperKeys = new Set(
+        (existingScalperResult.data ?? []).map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`)
       );
 
       const defaultSettingsRows = [];
+      const defaultScalperSettingsRows = [];
+
       for (const seg of activeSegments) {
         const segUpper = seg.toUpperCase();
         let intraday_leverage = 50;
@@ -177,17 +184,39 @@ export async function PATCH(
               trade_allowed: true,
             });
           }
+
+          if (!existingScalperKeys.has(key)) {
+            defaultScalperSettingsRows.push({
+              user_id: id,
+              segment: seg,
+              side,
+              commission_type: 'Per Crore',
+              commission_value: 8500,
+              profit_hold_sec: 15,
+              loss_hold_sec: 0,
+              strike_range: 0,
+              max_lot: 50,
+              max_order_lot: 50,
+              intraday_leverage,
+              intraday_type: 'Multiplier',
+              holding_leverage,
+              holding_type: 'Multiplier',
+              entry_buffer: 0.003,
+              exit_buffer: 0.0017,
+              trade_allowed: true,
+            });
+          }
         }
       }
 
-      if (defaultSettingsRows.length > 0) {
-        const { error: segInitError } = await adminClient
-          .from('segment_settings')
-          .insert(defaultSettingsRows);
-        if (segInitError) {
-          console.error('[PATCH /api/admin/users/[id]] Segment settings initialization error:', segInitError);
-        }
-      }
+      await Promise.all([
+        defaultSettingsRows.length > 0
+          ? adminClient.from('segment_settings').insert(defaultSettingsRows)
+          : Promise.resolve(),
+        defaultScalperSettingsRows.length > 0
+          ? adminClient.from('scalper_segment_settings').insert(defaultScalperSettingsRows)
+          : Promise.resolve(),
+      ]);
     }
 
     // Step 5: Sync role/active to auth user_metadata if present in body

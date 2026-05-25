@@ -33,6 +33,8 @@ export default function UnifiedSettingsPage() {
   const [loading, setLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState<'normal' | 'scalper'>('normal');
+  const [actualMode, setActualMode] = useState<'normal' | 'scalper'>('normal');
+  const [modeLockedUntil, setModeLockedUntil] = useState<string | null>(null);
   const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
   const [isGoToScalperModalOpen, setIsGoToScalperModalOpen] = useState(false);
   const [isGoToNormalModalOpen, setIsGoToNormalModalOpen] = useState(false);
@@ -55,8 +57,38 @@ export default function UnifiedSettingsPage() {
     }
   }, []);
 
+  // Fetch current user trading mode on mount
   useEffect(() => {
     let cancelled = false;
+    getSession().then(async (session) => {
+      if (cancelled || !session) return;
+
+      try {
+        const res = await fetch('/api/user/trading-mode', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            setActualMode(data.trading_mode);
+            setActiveTab(data.trading_mode);
+            setModeLockedUntil(data.mode_locked_until);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching trading mode:', err);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Fetch segment settings whenever the viewed tab (activeTab) changes
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
     getSession().then(async (session) => {
       if (cancelled) return;
       if (!session) {
@@ -65,7 +97,7 @@ export default function UnifiedSettingsPage() {
       }
 
       try {
-        const res = await fetch('/api/user/segments', {
+        const res = await fetch(`/api/user/segments?mode=${activeTab}`, {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
@@ -89,7 +121,7 @@ export default function UnifiedSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeTab]);
 
   const formatCommissionType = (type: string) => {
     if (!type) return 'per crore';
@@ -98,7 +130,15 @@ export default function UnifiedSettingsPage() {
 
   const handleChooseNormal = () => {
     setIsChoiceModalOpen(false);
-    if (activeTab === 'scalper') {
+    if (actualMode === 'scalper') {
+      if (modeLockedUntil) {
+        const lockedTime = new Date(modeLockedUntil).getTime();
+        if (lockedTime > Date.now()) {
+          const hours = ((lockedTime - Date.now()) / (1000 * 60 * 60)).toFixed(1);
+          showAlert("Mode Locked", `Cannot switch back to Normal Mode yet. Scalper Mode is locked for another ${hours} hours (until ${new Date(modeLockedUntil).toLocaleString()}).`);
+          return;
+        }
+      }
       setIsGoToNormalModalOpen(true);
     } else {
       showAlert("Notice", "You are already in Normal Mode.");
@@ -107,23 +147,75 @@ export default function UnifiedSettingsPage() {
 
   const handleChooseScalper = () => {
     setIsChoiceModalOpen(false);
-    if (activeTab === 'normal') {
+    if (actualMode === 'normal') {
       setIsGoToScalperModalOpen(true);
     } else {
       showAlert("Notice", "You are already in Scalper Mode. 48-hour lock is active.");
     }
   };
 
-  const confirmScalperMode = () => {
+  const confirmScalperMode = async () => {
     setIsGoToScalperModalOpen(false);
-    setActiveTab('scalper');
-    showAlert("Scalper Mode Activated!", "Brokerage increased to ₹85/crore\nAuto-exit timer: 15 seconds\n48-hour lock period started");
+    setLoading(true);
+    try {
+      const session = await getSession();
+      if (!session) throw new Error('Not logged in');
+
+      const res = await fetch('/api/user/trading-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ trading_mode: 'scalper' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to activate Scalper Mode');
+      }
+
+      setActualMode('scalper');
+      setActiveTab('scalper');
+      setModeLockedUntil(data.mode_locked_until);
+      showAlert("Scalper Mode Activated!", "Brokerage increased to ₹85/crore\nAuto-exit timer: 15 seconds\n48-hour lock period started");
+    } catch (err: any) {
+      showAlert("Activation Failed", err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const confirmNormalMode = () => {
+  const confirmNormalMode = async () => {
     setIsGoToNormalModalOpen(false);
-    setActiveTab('normal');
-    showAlert("Normal Mode Activated!", "Brokerage reduced to ₹20/crore\nStandard execution timing restored");
+    setLoading(true);
+    try {
+      const session = await getSession();
+      if (!session) throw new Error('Not logged in');
+
+      const res = await fetch('/api/user/trading-mode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ trading_mode: 'normal' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to activate Normal Mode');
+      }
+
+      setActualMode('normal');
+      setActiveTab('normal');
+      setModeLockedUntil(null);
+      showAlert("Normal Mode Activated!", "Brokerage reduced to ₹20/crore\nStandard execution timing restored");
+    } catch (err: any) {
+      showAlert("Switch Failed", err.message || "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -140,13 +232,13 @@ export default function UnifiedSettingsPage() {
               className={`rect-toggle-btn ${activeTab === 'normal' ? 'active-toggle' : ''}`} 
               onClick={() => setActiveTab('normal')}
             >
-              Normal Mode
+              Normal Mode {actualMode === 'normal' && <span style={{ color: '#10b981', marginLeft: '4px' }}>●</span>}
             </button>
             <button 
               className={`rect-toggle-btn ${activeTab === 'scalper' ? 'active-toggle' : ''}`} 
               onClick={() => setActiveTab('scalper')}
             >
-              Scalper Mode
+              Scalper Mode {actualMode === 'scalper' && <span style={{ color: '#10b981', marginLeft: '4px' }}>●</span>}
             </button>
           </div>
         </div>
