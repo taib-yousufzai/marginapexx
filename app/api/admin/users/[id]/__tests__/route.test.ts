@@ -392,10 +392,11 @@ describe('POST /api/admin/users', () => {
         data: { user: { id: 'new-user-uuid', email: 'test@example.com' } },
         error: null,
       });
-      mockInsert.mockResolvedValue({
+      mockEq.mockResolvedValue({
         data: null,
         error: { message: 'insert failed' },
       });
+      mockUpdate.mockReturnValue({ eq: mockEq });
 
       const req = makePostRequest(
         { email: 'test@example.com', password: 'securepass', role: 'user' },
@@ -406,7 +407,7 @@ describe('POST /api/admin/users', () => {
       expect(res.status).toBe(500);
       const body = await res.json();
       expect(body).toEqual({
-        error: 'Failed to create profile. User creation rolled back.',
+        error: 'Database error: insert failed',
       });
       // Rollback: deleteUser must have been called with the new user's id
       expect(mockDeleteUser).toHaveBeenCalledWith('new-user-uuid');

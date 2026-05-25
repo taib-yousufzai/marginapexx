@@ -105,9 +105,29 @@ interface TradingSegmentsDrawerProps {
 export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: TradingSegmentsDrawerProps) {
   const [mounted, setMounted] = React.useState(false);
   const [expandedSegment, setExpandedSegment] = useState<string | null>(null);
+  const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
 
   React.useEffect(() => {
     setMounted(true);
+    async function fetchAllowedSegments() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/user/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile && profile.segments) {
+            setAllowedSegments(profile.segments);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch allowed segments', err);
+      }
+    }
+    fetchAllowedSegments();
   }, []);
 
   if (!mounted) return null;
@@ -115,6 +135,23 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
   const handleSegmentClick = (name: string) => {
     setExpandedSegment(expandedSegment === name ? null : name);
   };
+
+  const mapCategoryToDbSegment = (name: string): string => {
+    const n = name.toUpperCase();
+    if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
+    if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
+    if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
+    if (n === 'MCX - FUTURE') return 'MCX-FUT';
+    if (n === 'CRYPTO') return 'CRYPTO';
+    if (n === 'FOREX') return 'FOREX';
+    if (n === 'COMEX') return 'COMEX';
+    return name;
+  };
+
+  const visibleSegments = TRADING_SEGMENTS.filter(seg => {
+    if (allowedSegments.length === 0) return true;
+    return allowedSegments.includes(mapCategoryToDbSegment(seg.name));
+  });
 
   return (
     <>
@@ -134,7 +171,7 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
         </div>
 
         <div className="lib-scroll-content">
-          {TRADING_SEGMENTS.map((seg) => (
+          {visibleSegments.map((seg) => (
             <div key={seg.name} className="lib-seg-group">
               <div 
                 className={`lib-seg-header ${expandedSegment === seg.name ? 'is-expanded' : ''}`}

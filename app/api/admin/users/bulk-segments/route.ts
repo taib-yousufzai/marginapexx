@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<Response> {
     // 1. Find all users under this broker (including sub-brokers and clients)
     const { data: profiles, error: pError } = await adminClient
       .from('profiles')
-      .select('id, parent_id');
+      .select('id, parent_id, segments');
 
     if (pError) throw pError;
 
@@ -75,6 +75,27 @@ export async function POST(request: Request): Promise<Response> {
       .upsert(upsertRows, { onConflict: 'user_id,segment,side' });
 
     if (uError) throw uError;
+
+    // 3. Sync profiles segments to ensure these segments are actually allowed/active
+    const profileUpdatePromises = [];
+    for (const p of profiles) {
+      if (targetUserIds.includes(p.id)) {
+        const existingSegments: string[] = p.segments ?? [];
+        const updatedSegments = Array.from(new Set([...existingSegments, ...segments]));
+        if (updatedSegments.length !== existingSegments.length) {
+          profileUpdatePromises.push(
+            adminClient
+              .from('profiles')
+              .update({ segments: updatedSegments })
+              .eq('id', p.id)
+          );
+        }
+      }
+    }
+
+    if (profileUpdatePromises.length > 0) {
+      await Promise.all(profileUpdatePromises);
+    }
 
     return Response.json({ 
       success: true, 

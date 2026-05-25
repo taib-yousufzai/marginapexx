@@ -104,6 +104,10 @@ export async function PATCH(
       }
     }
 
+    if (profileFields.parent_id === '') {
+      profileFields.parent_id = null;
+    }
+
     // Step 4: Update profile row
     // Validates: Requirements 4.2, 4.6
     const { data: profileData, error: profileError } = await adminClient
@@ -115,6 +119,75 @@ export async function PATCH(
 
     if (profileError || profileData === null) {
       return Response.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Sync segment_settings for newly added segments if segments is updated in body
+    const activeSegments = body.segments;
+    if (Array.isArray(activeSegments) && activeSegments.length > 0) {
+      const { data: existingSettings } = await adminClient
+        .from('segment_settings')
+        .select('segment, side')
+        .eq('user_id', id);
+
+      const existingKeys = new Set(
+        (existingSettings ?? []).map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`)
+      );
+
+      const defaultSettingsRows = [];
+      for (const seg of activeSegments) {
+        const segUpper = seg.toUpperCase();
+        let intraday_leverage = 50;
+        let holding_leverage = 5;
+        let commission_value = 4500;
+        
+        if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
+          intraday_leverage = 100;
+          holding_leverage = 10;
+          commission_value = 2000;
+        } else if (segUpper.includes('COMEX')) {
+          intraday_leverage = 50;
+          holding_leverage = 5;
+          commission_value = 4500;
+        } else if (segUpper.includes('CRYPTO')) {
+          intraday_leverage = 10;
+          holding_leverage = 1;
+          commission_value = 1000;
+        }
+
+        for (const side of ['BUY', 'SELL'] as const) {
+          const key = `${segUpper}-${side}`;
+          if (!existingKeys.has(key)) {
+            defaultSettingsRows.push({
+              user_id: id,
+              segment: seg,
+              side,
+              commission_type: 'Per Crore',
+              commission_value,
+              profit_hold_sec: 120,
+              loss_hold_sec: 0,
+              strike_range: 0,
+              max_lot: 50,
+              max_order_lot: 50,
+              intraday_leverage,
+              intraday_type: 'Multiplier',
+              holding_leverage,
+              holding_type: 'Multiplier',
+              entry_buffer: 0.003,
+              exit_buffer: 0.0017,
+              trade_allowed: true,
+            });
+          }
+        }
+      }
+
+      if (defaultSettingsRows.length > 0) {
+        const { error: segInitError } = await adminClient
+          .from('segment_settings')
+          .insert(defaultSettingsRows);
+        if (segInitError) {
+          console.error('[PATCH /api/admin/users/[id]] Segment settings initialization error:', segInitError);
+        }
+      }
     }
 
     // Step 5: Sync role/active to auth user_metadata if present in body
@@ -135,10 +208,11 @@ export async function PATCH(
     // Step 7: Return success
     // Validates: Requirement 4.7
     return Response.json({ success: true }, { status: 200 });
-  } catch {
+  } catch (err: any) {
     // Outer catch: unhandled exceptions
     // Validates: Requirement 6.1
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[PATCH /api/admin/users/[id]] Unhandled error:', err);
+    return Response.json({ error: 'Internal server error', detail: err?.message }, { status: 500 });
   }
 }
 
@@ -157,16 +231,25 @@ export async function DELETE(
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
 
-    // Step 2: Hard-delete the user from auth (cascades to profiles)
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(id);
+    // Step 2: Soft-delete: update scheduled_delete_at in profiles table to 30 days from now
+    const scheduledDeleteAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: profileData, error: deleteError } = await adminClient
+      .from('profiles')
+      .update({ scheduled_delete_at: scheduledDeleteAt })
+      .eq('id', id)
+      .select('scheduled_delete_at')
+      .single();
 
-    if (deleteError) {
-      console.error('[DELETE /api/admin/users/[id]] delete error:', deleteError.message);
-      return Response.json({ error: 'Failed to delete user' }, { status: 500 });
+    if (deleteError || profileData === null) {
+      console.error('[DELETE /api/admin/users/[id]] soft delete error:', deleteError?.message);
+      return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Step 3: Return success
-    return Response.json({ success: true }, { status: 200 });
+    return Response.json({
+      success: true,
+      scheduled_delete_at: profileData.scheduled_delete_at,
+    }, { status: 200 });
   } catch {
     // Outer catch: unhandled exceptions
     // Validates: Requirement 6.1

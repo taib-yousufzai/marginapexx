@@ -61,6 +61,25 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
   }
 }
 
+/**
+ * Map UI display segment to database segment key.
+ */
+function mapSegmentToDbSegment(s: string): string {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+}
+
 // ─── GET /api/orders ──────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -139,13 +158,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Quantity must be positive' }, { status: 400 });
   }
 
+  const dbSegment = mapSegmentToDbSegment(segment);
   const admin = getAdminClient();
   const kiteInst = kite_instrument || symbol;
 
   // Identify all instruments needed for this order to batch the Kite API call
   const instrumentsToFetch = [kiteInst];
-  const isOption = segment.includes('OPT');
-  const underlyingId = segment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
+  const isOption = dbSegment.includes('OPT');
+  const underlyingId = dbSegment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
   if (isOption && underlyingId !== kiteInst) {
     instrumentsToFetch.push(underlyingId);
   }
@@ -163,7 +183,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     admin.from('segment_settings')
       .select('*')
       .eq('user_id', user.id)
-      .eq('segment', segment)
+      .eq('segment', dbSegment)
       .eq('side', side)
       .maybeSingle(),
 
@@ -187,7 +207,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 5. Segment permission check
   const allowedSegments: string[] = profile.segments ?? [];
-  if (allowedSegments.length > 0 && !allowedSegments.includes(segment)) {
+  if (allowedSegments.length > 0 && !allowedSegments.includes(dbSegment)) {
     return NextResponse.json({ error: `Trading not allowed in segment: ${segment}` }, { status: 403 });
   }
 
@@ -198,36 +218,69 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('segment_settings')
       .select('*')
       .eq('user_id', profile.parent_id)
-      .eq('segment', segment)
+      .eq('segment', dbSegment)
       .eq('side', side)
       .maybeSingle();
     segSetting = data;
   }
 
-  // 7. Validate lot / qty limits & Strike Range
-  if (segSetting) {
-    if (!segSetting.trade_allowed) {
-      return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
+  // If there are still no settings in database, construct safety fallback defaults based on segment
+  if (!segSetting) {
+    const segUpper = dbSegment.toUpperCase();
+    let intraday_leverage = 50;
+    let holding_leverage = 5;
+    if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
+      intraday_leverage = 100;
+      holding_leverage = 10;
+    } else if (segUpper.includes('CRYPTO')) {
+      intraday_leverage = 10;
+      holding_leverage = 1;
     }
-    const maxQty = (segSetting.max_order_lot as number) * (lots > 0 ? qty / lots : 1);
-    if (qty > maxQty) {
-      return NextResponse.json({
-        error: `Order exceeds maximum allowed quantity of ${maxQty} units`,
-      }, { status: 400 });
-    }
+    
+    segSetting = {
+      id: '',
+      user_id: user.id,
+      segment: dbSegment,
+      side: side as 'BUY' | 'SELL',
+      trade_allowed: true,
+      max_lot: 50,
+      max_order_lot: 50,
+      intraday_leverage,
+      holding_leverage,
+      intraday_type: 'Multiplier',
+      holding_type: 'Multiplier',
+      entry_buffer: 0.003,
+      exit_buffer: 0.0017,
+      strike_range: 0,
+      commission_type: 'Per Crore',
+      commission_value: segUpper.includes('FOREX') || segUpper.includes('CDS') ? 2000 : (segUpper.includes('CRYPTO') ? 1000 : 4500),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
 
-    // Strike Range check — reuse the already-fetched quotes (no second Kite call)
-    if (isOption && segSetting.strike_range > 0 && kiteLtp) {
-      const strikePrice = parseFloat(symbol.match(/\d+/)?.[0] || '0');
-      if (strikePrice > 0) {
-        const spot = quotesMap[underlyingId];
-        if (spot) {
-          const diff = Math.abs(strikePrice - spot);
-          if (diff > segSetting.strike_range) {
-            return NextResponse.json({
-              error: `Strike price ${strikePrice} is outside the allowed range of ${segSetting.strike_range} from spot (${spot.toFixed(2)})`,
-            }, { status: 403 });
-          }
+  // 7. Validate lot / qty limits & Strike Range
+  if (!segSetting.trade_allowed) {
+    return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
+  }
+  const maxQty = (segSetting.max_order_lot as number) * (lots > 0 ? qty / lots : 1);
+  if (qty > maxQty) {
+    return NextResponse.json({
+      error: `Order exceeds maximum allowed quantity of ${maxQty} units`,
+    }, { status: 400 });
+  }
+
+  // Strike Range check — reuse the already-fetched quotes (no second Kite call)
+  if (isOption && segSetting.strike_range > 0 && kiteLtp) {
+    const strikePrice = parseFloat(symbol.match(/\d+/)?.[0] || '0');
+    if (strikePrice > 0) {
+      const spot = quotesMap[underlyingId];
+      if (spot) {
+        const diff = Math.abs(strikePrice - spot);
+        if (diff > segSetting.strike_range) {
+          return NextResponse.json({
+            error: `Strike price ${strikePrice} is outside the allowed range of ${segSetting.strike_range} from spot (${spot.toFixed(2)})`,
+          }, { status: 403 });
         }
       }
     }
@@ -235,7 +288,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 8. Balance check — use the balance from the profile query
   const balance = Number(profile.balance ?? 0);
-  const leverage      = segSetting?.intraday_leverage ?? 1;
+  const targetProductType = product_type ?? 'INTRADAY';
+  const leverage = targetProductType === 'CARRY'
+    ? (segSetting.holding_leverage ?? 1)
+    : (segSetting.intraday_leverage ?? 1);
   const exposure      = qty * client_price;
   const requiredMargin = exposure / leverage;
 
@@ -279,7 +335,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     p_user_id:      user.id,
     p_symbol:       symbol,
     p_kite_inst:    kiteInst,
-    p_segment:      segment,
+    p_segment:      dbSegment,
     p_side:         side,
     p_order_type:   rpcOrderType,
     p_product_type: product_type ?? 'INTRADAY',

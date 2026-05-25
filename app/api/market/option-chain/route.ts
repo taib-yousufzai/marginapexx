@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getUserFromRequest } from '@/lib/adminClient';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -12,6 +13,41 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     let symbol = (searchParams.get('symbol') || 'NIFTY').toUpperCase();
     if (symbol === 'MIDCAP') symbol = 'MIDCPNIFTY';
+
+    // Helper function to map option symbol to DB key segment
+    function getOptionChainSegment(sym: string): string {
+      const s = sym.toUpperCase().trim();
+      if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(s)) {
+        return 'INDEX-OPT';
+      }
+      if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(s)) {
+        return 'MCX-OPT';
+      }
+      return 'STOCK-OPT';
+    }
+
+    // Enforce allowed segments check if token is provided
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      if (token) {
+        const { data: userData } = await supabase.auth.getUser(token);
+        if (userData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('segments')
+            .eq('id', userData.user.id)
+            .single();
+          if (profile?.segments && profile.segments.length > 0) {
+            const dbSeg = getOptionChainSegment(symbol);
+            if (!profile.segments.includes(dbSeg)) {
+              return NextResponse.json({ error: `Access denied to segment: ${dbSeg}` }, { status: 403 });
+            }
+          }
+        }
+      }
+    }
+
     const expiry = searchParams.get('expiry');
     const today = new Date().toISOString().split('T')[0];
     

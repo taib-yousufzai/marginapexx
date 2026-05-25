@@ -470,6 +470,33 @@ function WatchlistContent() {
   const [searchText, setSearchText] = useState<string>('');
   const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
+  const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function fetchAllowedSegments() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        
+        // Also save to window for easy inline script access
+        (window as any).__accessToken = session.access_token;
+        
+        const res = await fetch('/api/user/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile && profile.segments) {
+            setAllowedSegments(profile.segments);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch allowed segments', err);
+      }
+    }
+    fetchAllowedSegments();
+  }, []);
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
@@ -522,7 +549,28 @@ function WatchlistContent() {
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
   const [showBasketConfirm, setShowBasketConfirm] = useState(false);
 
-  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
+  // Map a segment label to DB key segment
+  const mapSegmentToDbSegment = (s: string): string => {
+    if (!s) return '';
+    const trimmed = s.trim();
+    if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+    if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+    if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+    if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+    if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+    if (trimmed === 'MCX - Options') return 'MCX-OPT';
+    if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+    if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+    if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+    if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+    return trimmed;
+  };
+
+  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText).filter(item => {
+    if (allowedSegments.length === 0) return true;
+    const dbSeg = mapSegmentToDbSegment(item.segment);
+    return allowedSegments.includes(dbSeg);
+  });
   const scriptMountedRef = useRef(false);
 
   // Available Balance State
@@ -967,14 +1015,14 @@ function WatchlistContent() {
     window.__watchlistItems = window.__watchlistItems || [];
 
     const script = document.createElement('script');
-    script.innerHTML = buildInlineScript();
+    script.innerHTML = buildInlineScript(allowedSegments);
     document.body.appendChild(script);
     scriptMountedRef.current = true;
     return () => {
       if (document.body.contains(script)) document.body.removeChild(script);
       scriptMountedRef.current = false;
     };
-  }, []);
+  }, [allowedSegments]);
 
   return (
     <div className="mobile-app" suppressHydrationWarning>
@@ -1512,70 +1560,87 @@ function WatchlistContent() {
           <button className="close-drawer" onClick={() => setIsFolderDrawerOpen(false)} suppressHydrationWarning><i className="fas fa-times"></i></button>
         </div>
         <div className="folder-tree-scroll">
-          {TRADING_SEGMENTS.map((seg) => {
-            const count = (seg.instruments?.length ?? 0) + (seg.subCategories?.reduce((a, s) => a + s.instruments.length, 0) ?? 0);
-            const isOpen = !!expandedSegments[seg.name];
-            return (
-              <div key={seg.name} className="tree-item-li">
-                <div
-                  className="tree-label-row"
-                  onClick={() => setExpandedSegments(prev => ({ ...prev, [seg.name]: !prev[seg.name] }))}
-                >
-                  <i className="fas fa-chevron-right chevron-icon" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}></i>
-                  <i className={`fas ${seg.icon} folder-icon`}></i>
-                  <span style={{ flex: 1, fontWeight: 700, fontSize: '0.88rem' }}>{seg.name}</span>
-                  <span className="segment-count">{count}</span>
-                </div>
-                {isOpen && (
-                  <div className="children-container" style={{ display: 'block' }}>
-                    {seg.instruments?.map((inst) => (
-                      <div key={inst.symbol} className="script-item">
-                        <span>{inst.name}</span>
-                        <button className="add-script-btn" onClick={() => {
-                          if (typeof window.__addToWatchlistCallback === 'function') {
-                            window.__addToWatchlistCallback(inst as WatchlistItem);
-                            showToast('Added to watchlist', false);
-                          }
-                        }}>+ Add</button>
-                      </div>
-                    ))}
-                    {seg.subCategories?.map((sub) => {
-                      const subKey = `${seg.name}__${sub.name}`;
-                      const subOpen = !!expandedSegments[subKey];
-                      return (
-                        <div key={sub.name} className="tree-item-li">
-                          <div
-                            className="tree-label-row"
-                            style={{ paddingTop: '8px', paddingBottom: '8px' }}
-                            onClick={(e) => { e.stopPropagation(); setExpandedSegments(prev => ({ ...prev, [subKey]: !prev[subKey] })); }}
-                          >
-                            <i className="fas fa-chevron-right chevron-icon" style={{ fontSize: '0.55rem', transform: subOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}></i>
-                            <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary, #5B677E)' }}>{sub.name}</span>
-                            <span className="segment-count">{sub.instruments.length}</span>
-                          </div>
-                          {subOpen && (
-                            <div className="children-container" style={{ display: 'block' }}>
-                              {sub.instruments.map((inst) => (
-                                <div key={inst.symbol} className="script-item">
-                                  <span>{inst.name}</span>
-                                  <button className="add-script-btn" onClick={() => {
-                                    if (typeof window.__addToWatchlistCallback === 'function') {
-                                      window.__addToWatchlistCallback(inst as WatchlistItem);
-                                      showToast('Added to watchlist', false);
-                                    }
-                                  }}>+ Add</button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+          {(() => {
+            const mapCategoryToDbSegment = (name: string): string => {
+              const n = name.toUpperCase();
+              if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
+              if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
+              if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
+              if (n === 'MCX - FUTURE') return 'MCX-FUT';
+              if (n === 'CRYPTO') return 'CRYPTO';
+              if (n === 'FOREX') return 'FOREX';
+              if (n === 'COMEX') return 'COMEX';
+              return name;
+            };
+            const visibleSegments = TRADING_SEGMENTS.filter(seg => {
+              if (allowedSegments.length === 0) return true;
+              return allowedSegments.includes(mapCategoryToDbSegment(seg.name));
+            });
+            return visibleSegments.map((seg) => {
+              const count = (seg.instruments?.length ?? 0) + (seg.subCategories?.reduce((a, s) => a + s.instruments.length, 0) ?? 0);
+              const isOpen = !!expandedSegments[seg.name];
+              return (
+                <div key={seg.name} className="tree-item-li">
+                  <div
+                    className="tree-label-row"
+                    onClick={() => setExpandedSegments(prev => ({ ...prev, [seg.name]: !prev[seg.name] }))}
+                  >
+                    <i className="fas fa-chevron-right chevron-icon" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}></i>
+                    <i className={`fas ${seg.icon} folder-icon`}></i>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: '0.88rem' }}>{seg.name}</span>
+                    <span className="segment-count">{count}</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  {isOpen && (
+                    <div className="children-container" style={{ display: 'block' }}>
+                      {seg.instruments?.map((inst) => (
+                        <div key={inst.symbol} className="script-item">
+                          <span>{inst.name}</span>
+                          <button className="add-script-btn" onClick={() => {
+                            if (typeof window.__addToWatchlistCallback === 'function') {
+                              window.__addToWatchlistCallback(inst as WatchlistItem);
+                              showToast('Added to watchlist', false);
+                            }
+                          }}>+ Add</button>
+                        </div>
+                      ))}
+                      {seg.subCategories?.map((sub) => {
+                        const subKey = `${seg.name}__${sub.name}`;
+                        const subOpen = !!expandedSegments[subKey];
+                        return (
+                          <div key={sub.name} className="tree-item-li">
+                            <div
+                              className="tree-label-row"
+                              style={{ paddingTop: '8px', paddingBottom: '8px' }}
+                              onClick={(e) => { e.stopPropagation(); setExpandedSegments(prev => ({ ...prev, [subKey]: !prev[subKey] })); }}
+                            >
+                              <i className="fas fa-chevron-right chevron-icon" style={{ fontSize: '0.55rem', transform: subOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}></i>
+                              <span style={{ flex: 1, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary, #5B677E)' }}>{sub.name}</span>
+                              <span className="segment-count">{sub.instruments.length}</span>
+                            </div>
+                            {subOpen && (
+                              <div className="children-container" style={{ display: 'block' }}>
+                                {sub.instruments.map((inst) => (
+                                  <div key={inst.symbol} className="script-item">
+                                    <span>{inst.name}</span>
+                                    <button className="add-script-btn" onClick={() => {
+                                      if (typeof window.__addToWatchlistCallback === 'function') {
+                                        window.__addToWatchlistCallback(inst as WatchlistItem);
+                                        showToast('Added to watchlist', false);
+                                      }
+                                    }}>+ Add</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
         <div className="drawer-footer"><i className="fas fa-plus-circle"></i> Tap <span style={{ color: '#C62E2E' }}>+ Add</span> to watchlist | Browse all segments</div>
       </div>
@@ -1626,9 +1691,10 @@ function WatchlistContent() {
 }
 
 
-function buildInlineScript(): string {
+function buildInlineScript(allowedSegments: string[]): string {
   return `
     (function() {
+      var allowedSegments = ${JSON.stringify(allowedSegments)};
       var tradingSegments = [
         {
           name: 'INDEX - FUTURE',
@@ -1729,6 +1795,23 @@ function buildInlineScript(): string {
           ]
         }
       ];
+
+      function mapCategoryToDbSegment(name) {
+        var n = name.toUpperCase();
+        if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
+        if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
+        if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
+        if (n === 'MCX - FUTURE') return 'MCX-FUT';
+        if (n === 'CRYPTO') return 'CRYPTO';
+        if (n === 'FOREX') return 'FOREX';
+        if (n === 'COMEX') return 'COMEX';
+        return name;
+      }
+      if (allowedSegments && allowedSegments.length > 0) {
+        tradingSegments = tradingSegments.filter(function(seg) {
+          return allowedSegments.indexOf(mapCategoryToDbSegment(seg.name)) !== -1;
+        });
+      }
 
       function getAllScripts() {
         var scripts = [];
@@ -1904,7 +1987,11 @@ function buildInlineScript(): string {
           // Live DB results 300ms debounce ke saath fetch karo
           if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
           searchDebounceTimer = setTimeout(function() {
-            fetch('/api/market/instruments/search?q=' + encodeURIComponent(query))
+            fetch('/api/market/instruments/search?q=' + encodeURIComponent(query), {
+              headers: {
+                'Authorization': 'Bearer ' + (window.__accessToken || '')
+              }
+            })
               .then(function(res) {
                 var ct = res.headers.get('content-type');
                 if (res.ok && ct && ct.indexOf('application/json') !== -1) {

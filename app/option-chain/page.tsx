@@ -164,6 +164,7 @@ function OptionChainContent() {
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   // Normalization for MIDCAP
   const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
@@ -173,18 +174,34 @@ function OptionChainContent() {
     async function fetchData() {
       setLoading(true);
       setData(null);
+      setLoadingError(null);
       try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        const headers: Record<string, string> = {};
+        if (session) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
         const url = `/api/market/option-chain?symbol=${normalizedSymbol}${selectedExpiry ? `&expiry=${selectedExpiry}` : ''}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { headers });
+        if (res.status === 403) {
+          setLoadingError('locked');
+          return;
+        }
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
             setData(json);
             if (!selectedExpiry) setSelectedExpiry(json.expiry);
+          } else {
+            setLoadingError(json.error || 'Failed to fetch option chain');
           }
+        } else {
+          setLoadingError('Failed to fetch option chain');
         }
       } catch (err) {
         console.error('Failed to fetch option chain', err);
+        setLoadingError('Failed to fetch option chain');
       } finally {
         setLoading(false);
       }
@@ -351,6 +368,25 @@ function OptionChainContent() {
                 <div className="red-spinner"></div>
                 <p>Gathering strikes...</p>
               </div>
+            ) : loadingError === 'locked' ? (
+              <div className="premium-lock-container">
+                <div className="premium-lock-card">
+                  <div className="premium-lock-icon">
+                    <i className="fas fa-lock"></i>
+                  </div>
+                  <h3 className="premium-lock-title">Segment Restricted</h3>
+                  <p className="premium-lock-text">
+                    You do not have access to trade in <strong>{symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE Options' : 'NSE Options'}</strong>.
+                  </p>
+                  <div className="premium-lock-divider"></div>
+                  <p className="premium-lock-hint">
+                    Please contact your administrator or update your profile settings to enable this trading segment.
+                  </p>
+                  <button className="premium-lock-btn" onClick={() => router.push('/profile')}>
+                    <i className="fas fa-user-cog"></i> Go to Profile Settings
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 {(data?.strikes || []).length === 0 ? (
@@ -449,6 +485,107 @@ function OptionChainContent() {
         .os-btn-buy { background: #2C8E5A; color: white; }
         .os-btn-sell { background: #C62E2E; color: white; }
         .os-btn-buy:disabled, .os-btn-sell:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .premium-lock-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+          min-height: 400px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .premium-lock-card {
+          background: #ffffff;
+          border: 1px solid var(--border-light, #e8ecf0);
+          border-radius: 24px;
+          padding: 32px 24px;
+          width: 100%;
+          max-width: 380px;
+          text-align: center;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+          transition: transform 0.3s ease;
+        }
+        :global(.dark) .premium-lock-card {
+          background: #1f2937;
+          border-color: #374151;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .premium-lock-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 20px;
+          font-size: 1.5rem;
+          color: #e11d48;
+          box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15);
+          animation: pulseGlow 2s infinite ease-in-out;
+        }
+        @keyframes pulseGlow {
+          0% { transform: scale(1); box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15); }
+          50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(225, 29, 72, 0.3); }
+          100% { transform: scale(1); box-shadow: 0 8px 20px rgba(225, 29, 72, 0.15); }
+        }
+        .premium-lock-title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: var(--text-primary, #111827);
+          margin: 0 0 10px 0;
+        }
+        :global(.dark) .premium-lock-title {
+          color: #f9fafb;
+        }
+        .premium-lock-text {
+          font-size: 0.88rem;
+          color: var(--text-secondary, #4b5563);
+          line-height: 1.5;
+          margin: 0 0 20px 0;
+        }
+        :global(.dark) .premium-lock-text {
+          color: #d1d5db;
+        }
+        .premium-lock-divider {
+          height: 1px;
+          background: var(--border-light, #e8ecf0);
+          margin: 20px 0;
+        }
+        :global(.dark) .premium-lock-divider {
+          background: #374151;
+        }
+        .premium-lock-hint {
+          font-size: 0.78rem;
+          color: var(--text-muted, #9ca3af);
+          line-height: 1.4;
+          margin: 0 0 24px 0;
+        }
+        .premium-lock-btn {
+          width: 100%;
+          padding: 14px;
+          background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+          color: white;
+          border: none;
+          border-radius: 30px;
+          font-size: 0.88rem;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .premium-lock-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(225, 29, 72, 0.35);
+        }
+        .premium-lock-btn:active {
+          transform: translateY(0);
+        }
       `}</style>
 
       {/* Contract Order Sheet Overlay */}

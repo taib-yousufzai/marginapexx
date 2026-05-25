@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { getUserFromRequest } from '@/lib/adminClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -180,7 +181,53 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json(results);
+    // Helper function to map UI display segment to DB key segment
+    function mapSegmentToDbSegment(s: string): string {
+      if (!s) return '';
+      const trimmed = s.trim();
+      if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+      if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+      if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+      if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+      if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+      if (trimmed === 'MCX - Options') return 'MCX-OPT';
+      if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+      if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+      if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+      if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+      return trimmed;
+    }
+
+    // Enforce allowed segments if user is authenticated
+    const authHeader = request.headers.get('Authorization');
+    let allowedSegments: string[] = [];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      if (token) {
+        const { data: userData } = await supabase.auth.getUser(token);
+        if (userData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('segments')
+            .eq('id', userData.user.id)
+            .single();
+          if (profile?.segments && profile.segments.length > 0) {
+            allowedSegments = profile.segments;
+          }
+        }
+      }
+    }
+
+    let filteredResults = results;
+    if (allowedSegments.length > 0) {
+      const allowedUpper = allowedSegments.map(s => s.toUpperCase());
+      filteredResults = results.filter((item: any) => {
+        const dbSeg = mapSegmentToDbSegment(item.segment);
+        return allowedUpper.includes(dbSeg.toUpperCase());
+      });
+    }
+
+    return NextResponse.json(filteredResults);
   } catch (err: any) {
     console.error('[GET /api/market/instruments/search] Unexpected error:', err);
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });

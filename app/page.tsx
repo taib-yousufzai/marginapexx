@@ -94,6 +94,7 @@ export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
 
   useEffect(() => {
     getSession().then((session) => {
@@ -107,6 +108,28 @@ export default function Page() {
   useEffect(() => {
     if (containerRef.current) containerRef.current.scrollTop = 0;
   }, [pathname]);
+
+  useEffect(() => {
+    async function fetchAllowedSegments() {
+      try {
+        const { supabase } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/user/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const profile = await res.json();
+          if (profile && profile.segments) {
+            setAllowedSegments(profile.segments);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch allowed segments', err);
+      }
+    }
+    fetchAllowedSegments();
+  }, []);
 
   const [activeCategory, setActiveCategory] = useState<'equity' | 'commodity'>('equity');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -161,7 +184,36 @@ export default function Page() {
     localStorage.setItem('marginApexTheme', newTheme);
   };
 
-  const instruments = activeCategory === 'equity' ? equityInstruments : commodityInstruments;
+  const mapOptionChainSymbolToDbSegment = (sym: string): string => {
+    const s = sym.toUpperCase().trim();
+    if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCAP', 'SENSEX', 'BANKEX'].includes(s)) {
+      return 'INDEX-OPT';
+    }
+    if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLD MINI', 'SILVER MINI', 'CRUDE MINI', 'NG MINI'].includes(s)) {
+      return 'MCX-OPT';
+    }
+    return 'STOCK-OPT';
+  };
+
+  const filteredEquityInstruments = equityInstruments.filter(inst => {
+    if (allowedSegments.length === 0) return true;
+    const dbSeg = mapOptionChainSymbolToDbSegment(inst.name);
+    return allowedSegments.includes(dbSeg);
+  });
+
+  const filteredCommodityInstruments = commodityInstruments.filter(inst => {
+    if (allowedSegments.length === 0) return true;
+    const dbSeg = mapOptionChainSymbolToDbSegment(inst.name);
+    return allowedSegments.includes(dbSeg);
+  });
+
+  const instruments = activeCategory === 'equity' ? filteredEquityInstruments : filteredCommodityInstruments;
+
+  const filteredExpiryIndexes = getExpiryIndexes().filter(item => {
+    if (allowedSegments.length === 0) return true;
+    const dbSeg = mapOptionChainSymbolToDbSegment(item.name);
+    return allowedSegments.includes(dbSeg);
+  });
 
   return (
     <div className="desktop-layout">
@@ -355,7 +407,7 @@ export default function Page() {
             </div>
             {/* List */}
             <div className="ew-list">
-              {getExpiryIndexes().map((item, i) => (
+              {filteredExpiryIndexes.map((item, i) => (
                 <div
                   key={i}
                   className={`ew-item${item.expiry.isToday ? ' ew-item--today' : ''}`}
