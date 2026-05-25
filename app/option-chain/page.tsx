@@ -43,6 +43,12 @@ function addToWatchlist(item: {
   }
 }
 
+declare global {
+  interface Window {
+    __optionChainCache?: Record<string, any>;
+  }
+}
+
 function OptionChainContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -156,18 +162,23 @@ function OptionChainContent() {
     }, 3500);
   };
 
+  // Normalization for MIDCAP
+  const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
+
+  const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
+
+  const cacheKey = `${normalizedSymbol}_${selectedExpiry || 'default'}`;
+  
   const [data, setData] = useState<{
     expiries: string[];
     strikes: any[];
     expiry: string;
-  } | null>(null);
-  const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  } | null>(typeof window !== 'undefined' ? window.__optionChainCache?.[cacheKey] || null : null);
+  
+  const [loading, setLoading] = useState(!(typeof window !== 'undefined' && window.__optionChainCache?.[cacheKey]));
   const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
-  // Normalization for MIDCAP
-  const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
 
   // Fetch initial option chain data
   useEffect(() => {
@@ -191,6 +202,8 @@ function OptionChainContent() {
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
+            window.__optionChainCache = window.__optionChainCache || {};
+            window.__optionChainCache[cacheKey] = json;
             setData(json);
             if (!selectedExpiry) setSelectedExpiry(json.expiry);
           } else {
@@ -207,7 +220,7 @@ function OptionChainContent() {
       }
     }
     fetchData();
-  }, [normalizedSymbol, selectedExpiry]);
+  }, [normalizedSymbol, selectedExpiry, cacheKey]);
 
   // Extract all instrument IDs for real-time quotes
   const instrumentIds = React.useMemo(() => {

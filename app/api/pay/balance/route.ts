@@ -62,28 +62,19 @@ export async function GET(request: Request): Promise<Response> {
     }
     const user = userData.user;
 
-    // Step 2: Query transactions table for all APPROVED rows belonging to this user
-    // Validates: Requirements 4.2
-    const { data: transactions, error: txnError } = await adminClient
-      .from('transactions')
-      .select('type, amount')
-      .eq('user_id', user.id)
-      .eq('status', 'APPROVED');
+    // Fetch balance directly from profiles table
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('balance')
+      .eq('id', user.id)
+      .single();
 
-    if (txnError) {
-      console.error('[GET /api/pay/balance] transactions fetch error:', txnError.message);
+    if (profileError) {
+      console.error('[GET /api/pay/balance] profile fetch error:', profileError.message);
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Step 3: Compute balance using the pure helper
-    // Validates: Requirements 4.3, 4.5
-    // computeBalance handles empty array naturally, returning 0
-    const balance = computeBalance(
-      (transactions ?? []).map((t) => ({
-        type: t.type as string,
-        amount: Number(t.amount),
-      })),
-    );
+    const balance = Number(profile?.balance || 0);
 
     // Step 4: Return 200 with the computed balance
     // Validates: Requirements 4.4, 4.5

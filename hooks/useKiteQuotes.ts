@@ -40,15 +40,17 @@ interface UseKiteQuotesResult {
   refresh: () => void;
 }
 
+let globalKiteQuotesCache: Record<string, QuoteData> = {};
+
 export function useKiteQuotes(
   instruments: string[],
   refreshInterval = 5000,
 ): UseKiteQuotesResult {
-  const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
+  const [quotes, setQuotes] = useState<Record<string, QuoteData>>(globalKiteQuotesCache);
   const [connected, setConnected] = useState(false);
   // Start in loading=true so the UI shows a spinner, not "No live data",
   // while we check the session status on mount.
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Object.keys(globalKiteQuotesCache).length === 0);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const instrumentsKey = instruments.join(',');
@@ -165,7 +167,8 @@ export function useKiteQuotes(
       }
     }
 
-    setQuotes(mapped);
+    Object.assign(globalKiteQuotesCache, mapped);
+    setQuotes(prev => ({...prev, ...mapped}));
     setConnected(true);
     setError(null);
     return true;

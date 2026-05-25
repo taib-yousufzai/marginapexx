@@ -37,6 +37,15 @@ export default function UnifiedSettingsPage() {
   const [isGoToScalperModalOpen, setIsGoToScalperModalOpen] = useState(false);
   const [isGoToNormalModalOpen, setIsGoToNormalModalOpen] = useState(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
+  
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [alertModalContent, setAlertModalContent] = useState<{ title: string, bullets: string[] } | null>(null);
+
+  const showAlert = (title: string, message: string) => {
+    const lines = message.split('\n').filter(l => l.trim() !== '');
+    setAlertModalContent({ title, bullets: lines });
+    setIsAlertModalOpen(true);
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
@@ -92,7 +101,7 @@ export default function UnifiedSettingsPage() {
     if (activeTab === 'scalper') {
       setIsGoToNormalModalOpen(true);
     } else {
-      alert("You are already in Normal Mode.");
+      showAlert("Notice", "You are already in Normal Mode.");
     }
   };
 
@@ -101,20 +110,20 @@ export default function UnifiedSettingsPage() {
     if (activeTab === 'normal') {
       setIsGoToScalperModalOpen(true);
     } else {
-      alert("You are already in Scalper Mode. 48-hour lock is active.");
+      showAlert("Notice", "You are already in Scalper Mode. 48-hour lock is active.");
     }
   };
 
   const confirmScalperMode = () => {
     setIsGoToScalperModalOpen(false);
     setActiveTab('scalper');
-    alert("Scalper Mode Activated!\n\n• Brokerage increased to ₹85/crore\n• Auto-exit timer: 15 seconds\n• 48-hour lock period started");
+    showAlert("Scalper Mode Activated!", "Brokerage increased to ₹85/crore\nAuto-exit timer: 15 seconds\n48-hour lock period started");
   };
 
   const confirmNormalMode = () => {
     setIsGoToNormalModalOpen(false);
     setActiveTab('normal');
-    alert("Normal Mode Activated!\n\n• Brokerage reduced to ₹20/crore\n• Standard execution timing restored");
+    showAlert("Normal Mode Activated!", "Brokerage reduced to ₹20/crore\nStandard execution timing restored");
   };
 
   return (
@@ -242,30 +251,30 @@ export default function UnifiedSettingsPage() {
                     </div>
 
                     <div className="settings-section">
-                      <div className="section-title-faint">SCALPER EXECUTION CONTROL</div>
+                      <div className="section-title-faint">LEVERAGE & RISK LIMITS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Scalper Engine</span><span className={`detail-value ${isAllowed ? 'text-active' : ''}`}>{isAllowed ? 'ENABLED' : 'DISABLED'}</span></div>
-                        <div className="detail-item"><span className="detail-label">Auto Exit Buffer</span><span className="detail-value">{item.exit_buffer || 15} seconds</span></div>
-                        <div className="detail-item"><span className="detail-label">Tick Refresh Speed</span><span className="detail-value">100ms</span></div>
-                        <div className="detail-item"><span className="detail-label">Routing Gateway</span><span className="detail-value">Direct Liquidity Node</span></div>
+                        <div className="detail-item"><span className="detail-label">Intraday Leverage</span><span className="detail-value">{item.intraday_leverage}</span></div>
+                        <div className="detail-item"><span className="detail-label">Holding Leverage</span><span className="detail-value">{item.holding_leverage}</span></div>
+                        <div className="detail-item"><span className="detail-label">Max Lot</span><span className="detail-value">{item.max_lot}</span></div>
+                        <div className="detail-item"><span className="detail-label">Max Order Lot</span><span className="detail-value">{item.max_order_lot}</span></div>
+                        <div className="detail-item"><span className="detail-label">Strike Range</span><span className="detail-value">{item.strike_range || '0'}</span></div>
                       </div>
                     </div>
 
                     <div className="settings-section">
-                      <div className="section-title-faint">SAFETY RISK CEILINGS</div>
+                      <div className="section-title-faint">TRADING & COMMISSIONS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Max Orders Per Minute</span><span className="detail-value">12 / min</span></div>
-                        <div className="detail-item"><span className="detail-label">Max Slippage Tolerance</span><span className="detail-value">0.05%</span></div>
-                        <div className="detail-item"><span className="detail-label">Pre-configured Lot Multiplier</span><span className="detail-value">2x Multiplier</span></div>
-                        <div className="detail-item"><span className="detail-label">Execution Guard Buffer</span><span className="detail-value">Active</span></div>
+                        <div className="detail-item"><span className="detail-label">Trading Allowed</span><span className="detail-value">{item.trade_allowed ? 'Yes' : 'No'}</span></div>
+                        <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
+                        <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
                       </div>
                     </div>
 
                     <div className="settings-section">
-                      <div className="section-title-faint">AUTO TARGETS & TRAILING TRIGGERS</div>
+                      <div className="section-title-faint">SYSTEM RISK TIMERS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Trailing Profit Trigger</span><span className="detail-value">+0.50%</span></div>
-                        <div className="detail-item"><span className="detail-label">Hard Risk Stop Loss</span><span className="detail-value">-0.25%</span></div>
+                        <div className="detail-item"><span className="detail-label">Min Hold Profit</span><span className="detail-value">{item.profit_hold_sec ? `${item.profit_hold_sec}s` : 'None'}</span></div>
+                        <div className="detail-item"><span className="detail-label">Min Hold Loss</span><span className="detail-value">{item.loss_hold_sec ? `${item.loss_hold_sec}s` : 'None'}</span></div>
                       </div>
                     </div>
 
@@ -388,6 +397,49 @@ export default function UnifiedSettingsPage() {
           <div className="modal-footer">
             <button className="modal-btn confirm" onClick={() => setIsRulesModalOpen(false)}>I Understand</button>
           </div>
+        </div>
+      </div>
+
+      {/* 5. Custom Alert / Success Modal (Professional Minimal) */}
+      <div className={`scalper-modal-overlay ${isAlertModalOpen ? 'active' : ''}`} onClick={() => setIsAlertModalOpen(false)}>
+        <div className="scalper-modal-card" onClick={e => e.stopPropagation()} style={{ padding: 0, borderRadius: '16px', overflow: 'hidden', maxWidth: '340px' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              {alertModalContent?.title || 'Notice'}
+            </h3>
+            <button onClick={() => setIsAlertModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', color: '#94a3b8', cursor: 'pointer', padding: '0 4px' }}>✕</button>
+          </div>
+
+          <div style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {alertModalContent?.bullets.map((bullet, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ 
+                    minWidth: '20px', height: '20px', background: '#22c55e', borderRadius: '6px', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', 
+                    fontSize: '0.75rem', marginTop: '1px' 
+                  }}>
+                    <i className="fas fa-check"></i>
+                  </div>
+                  <div style={{ color: '#334155', fontSize: '0.95rem', fontWeight: 500, lineHeight: '1.4' }}>
+                    {bullet.replace('• ', '')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: '0 24px 24px 24px' }}>
+            <button onClick={() => setIsAlertModalOpen(false)} style={{ 
+              width: '100%', padding: '14px', background: '#0f172a', color: 'white', 
+              border: 'none', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 600, 
+              cursor: 'pointer' 
+            }}>
+              OK
+            </button>
+          </div>
+
         </div>
       </div>
 

@@ -23,13 +23,19 @@ interface HistoryItem {
   brokerage: number;
 }
 
+declare global {
+  interface Window {
+    __historyCache?: HistoryItem[];
+  }
+}
+
 export default function HistoryPage() {
   useAuth();
   const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [historyData, setHistoryData] = useState<HistoryItem[]>(typeof window !== 'undefined' && window.__historyCache ? window.__historyCache : []);
+  const [loading, setLoading] = useState(!(typeof window !== 'undefined' && window.__historyCache));
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Scroll reset - runs synchronously before browser paint via ref callback
@@ -95,7 +101,9 @@ export default function HistoryPage() {
           brokerage: 40
         }));
 
-        setHistoryData([...formattedOrders, ...formattedPos]);
+        const merged = [...formattedOrders, ...formattedPos];
+        if (typeof window !== 'undefined') window.__historyCache = merged;
+        setHistoryData(merged);
       } catch (err) {
         console.error('Failed to fetch history:', err);
       } finally {

@@ -46,12 +46,14 @@ interface UseComexQuotesResult {
   refresh: () => void;
 }
 
+let globalComexQuotesCache: Record<string, ComexQuoteData> = {};
+
 export function useComexQuotes(
   symbols: string[],
   refreshInterval = 30_000,
 ): UseComexQuotesResult {
-  const [quotes, setQuotes] = useState<Record<string, ComexQuoteData>>({});
-  const [loading, setLoading] = useState(true);
+  const [quotes, setQuotes] = useState<Record<string, ComexQuoteData>>(globalComexQuotesCache);
+  const [loading, setLoading] = useState(Object.keys(globalComexQuotesCache).length === 0);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const symbolsKey = symbols.join(',');
@@ -80,7 +82,8 @@ export function useComexQuotes(
         return;
       }
 
-      setQuotes(data.quotes ?? {});
+      Object.assign(globalComexQuotesCache, data.quotes ?? {});
+      setQuotes(prev => ({...prev, ...(data.quotes ?? {})}));
       setError(null);
     } catch {
       setError('Network error — check connection');

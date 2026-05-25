@@ -38,12 +38,14 @@ interface UseBinanceQuotesResult {
 
 const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 
+let globalBinanceQuotesCache: Record<string, BinanceQuoteData> = {};
+
 export function useBinanceQuotes(
   symbols: string[],
   refreshInterval = 5000,
 ): UseBinanceQuotesResult {
-  const [quotes, setQuotes] = useState<Record<string, BinanceQuoteData>>({});
-  const [loading, setLoading] = useState(true);
+  const [quotes, setQuotes] = useState<Record<string, BinanceQuoteData>>(globalBinanceQuotesCache);
+  const [loading, setLoading] = useState(Object.keys(globalBinanceQuotesCache).length === 0);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const symbolsKey = symbols.join(',');
@@ -96,7 +98,8 @@ export function useBinanceQuotes(
         };
       }
 
-      setQuotes(mapped);
+      Object.assign(globalBinanceQuotesCache, mapped);
+      setQuotes(prev => ({...prev, ...mapped}));
       setError(null);
     } catch {
       setError('Network error — check connection');

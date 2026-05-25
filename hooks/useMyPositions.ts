@@ -31,9 +31,11 @@ interface UseMyPositionsResult {
   endConversion?: (posId: string) => void;
 }
 
+let globalPositionsCache: MyPosition[] = [];
+
 export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
-  const [rawPositions, setRawPositions] = useState<MyPosition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rawPositions, setRawPositions] = useState<MyPosition[]>(globalPositionsCache);
+  const [loading, setLoading] = useState(globalPositionsCache.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [inFlightConversions, setInFlightConversions] = useState<Record<string, string>>({});
 
@@ -67,7 +69,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       if (!res.ok) throw new Error('Failed to fetch positions');
       const data = await res.json();
-      setRawPositions(data.positions || []);
+      globalPositionsCache = data.positions || [];
+      setRawPositions(globalPositionsCache);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {

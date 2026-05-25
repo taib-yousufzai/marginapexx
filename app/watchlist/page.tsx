@@ -1915,13 +1915,27 @@ function buildInlineScript(allowedSegments: string[]): string {
         searchResultCount.textContent = results.length + ' RESULTS';
         var html = '';
         results.slice(0, 150).forEach(function(item) {
-          var rawPrice = item.price || 0;
-          var priceStr = rawPrice > 0 ? rawPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '---';
           var kiteId = item.kiteSymbol || item.symbol || '';
-          html += '<div class="search-result-item">' +
-            '<div class="sri-left"><div class="sri-name">' + escapeHtml(item.name) + '</div><div class="sri-symbol">' + escapeHtml(item.symbol || '') + '</div></div>' +
-            '<div class="sri-right"><div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '">' + priceStr + '</div>' +
-            '<button class="add-script-btn sri-add-btn" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
+          
+          var mainName = item.name;
+          
+          var segMap = {
+            'NSE - Options': 'NFO',
+            'NSE - Futures': 'NFO',
+            'MCX - Futures': 'MCX',
+            'BSE - Options': 'BFO',
+            'Crypto': 'CRYPTO',
+            'CDS - Futures': 'CDS'
+          };
+          var badgeStr = segMap[item.segment] || 'NSE';
+          var dateStr = (item.contractDate || '').replace(/ 20\d\d$/, '');
+          var bottomHtml = dateStr ? escapeHtml(dateStr) + '<span style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">' + escapeHtml(badgeStr) + '</span>' : escapeHtml(badgeStr);
+
+          html += '<div class="search-result-item" style="padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">' +
+            '<div class="sri-left"><div class="sri-name" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 4px;">' + escapeHtml(mainName) + '</div><div class="sri-symbol" style="color: #94a3b8; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center;">' + bottomHtml + '</div></div>' +
+            '<div class="sri-right" style="display: flex; align-items: center; gap: 12px;">' +
+            '<div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '" style="display:none;"></div>' +
+            '<button class="add-script-btn sri-add-btn" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
             '</div></div>';
         });
         searchResultsList.innerHTML = html;

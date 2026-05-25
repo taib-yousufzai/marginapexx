@@ -28,9 +28,11 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+let globalOrdersCache: MyOrder[] = [];
+
 export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
-  const [orders,  setOrders]  = useState<MyOrder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders,  setOrders]  = useState<MyOrder[]>(globalOrdersCache);
+  const [loading, setLoading] = useState(globalOrdersCache.length === 0);
   const [error,   setError]   = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -49,7 +51,8 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
       }
 
       const data = await res.json() as { orders: MyOrder[] };
-      setOrders(data.orders ?? []);
+      globalOrdersCache = data.orders ?? [];
+      setOrders(globalOrdersCache);
       setError(null);
     } catch {
       setError('Network error loading orders');

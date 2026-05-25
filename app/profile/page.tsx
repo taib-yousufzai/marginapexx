@@ -3,14 +3,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { pageCache } from '@/lib/pageCache';
 import type { Session } from '@supabase/supabase-js';
 import './page.css';
 export default function ProfilePage() {
     useAuth();
     const [isDark, setIsDark] = useState(false);
     const [session, setSession] = useState<Session | null>(null);
-    const [balance, setBalance] = useState<number | null>(null);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('profile:balance'));
+    const [unreadCount, setUnreadCount] = useState<number>(() => pageCache.get<number>('profile:unread') || 0);
 
     // Quick-edit modal state
     const [modalOpen, setModalOpen] = useState(false);
@@ -20,8 +21,8 @@ export default function ProfilePage() {
     const [saveMsg, setSaveMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     // Profile data
-    const [profileName, setProfileName] = useState<string>('');
-    const [profilePhone, setProfilePhone] = useState<string>('');
+    const [profileName, setProfileName] = useState<string>(() => pageCache.get<string>('profile:name') || '');
+    const [profilePhone, setProfilePhone] = useState<string>(() => pageCache.get<string>('profile:phone') || '');
 
     const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +39,8 @@ export default function ProfilePage() {
             });
             if (!cancelled && profileRes.ok) {
                 const data = await profileRes.json();
+                pageCache.set('profile:name', data.full_name ?? '');
+                pageCache.set('profile:phone', data.phone ?? '');
                 setProfileName(data.full_name ?? '');
                 setProfilePhone(data.phone ?? '');
             }
@@ -48,8 +51,10 @@ export default function ProfilePage() {
             });
             if (!cancelled && balanceRes.ok) {
                 const data = await balanceRes.json();
+                pageCache.set('profile:balance', data.balance ?? 0);
                 setBalance(data.balance ?? 0);
             } else if (!cancelled) {
+                pageCache.set('profile:balance', 0);
                 setBalance(0);
             }
 
@@ -59,6 +64,7 @@ export default function ProfilePage() {
             });
             if (!cancelled && notifRes.ok) {
                 const data = await notifRes.json();
+                pageCache.set('profile:unread', data.unread_count ?? 0);
                 setUnreadCount(data.unread_count ?? 0);
             }
         });
