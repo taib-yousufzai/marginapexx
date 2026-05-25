@@ -250,6 +250,9 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [segmentMode, setSegmentMode] = useState<'normal' | 'scalper'>('normal');
+  const [expandedMenu, setExpandedMenu] = useState<'normal' | 'scalper' | null>(null);
 
   const rowToSegSettings = (row: SegmentRow): SegmentSettingsType => ({
     commissionType: row.commission_type,
@@ -271,10 +274,13 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   useEffect(() => {
     if (!uid) return;
     
+    setLoading(true);
+    const endpoint = segmentMode === 'scalper' ? `/api/admin/users/${uid}/scalper-segments` : `/api/admin/users/${uid}/segments`;
+
     // Fetch both user segments and the settings
     Promise.all([
       apiCall(`/api/admin/users/${uid}`, { method: 'GET' }),
-      apiCall(`/api/admin/users/${uid}/segments`, { method: 'GET' })
+      apiCall(endpoint, { method: 'GET' })
     ]).then(([userRes, segRes]) => {
       setLoading(false);
       
@@ -297,9 +303,29 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
       setLoading(false);
       setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
     });
-  }, [uid]);
+  }, [uid, segmentMode]);
 
   const segBlocks = ALL_SEGMENTS.flatMap(s => [`${s}-BUY`, `${s}-SELL`]);
+
+  const handleCopySettings = () => {
+    localStorage.setItem('copiedSegmentSettings', JSON.stringify(segSettings));
+    setToast({ message: 'Settings copied successfully', type: 'success' });
+  };
+
+  const handlePasteSettings = () => {
+    const saved = localStorage.getItem('copiedSegmentSettings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSegSettings(parsed);
+        setToast({ message: 'Settings pasted successfully. Click Save to apply.', type: 'success' });
+      } catch(e) {
+        setToast({ message: 'Failed to parse copied settings', type: 'error' });
+      }
+    } else {
+      setToast({ message: 'No copied settings found', type: 'error' });
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -330,7 +356,8 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
       };
     });
     
-    const segRes = await apiCall(`/api/admin/users/${uid}/segments`, {
+    const endpoint = segmentMode === 'scalper' ? `/api/admin/users/${uid}/scalper-segments` : `/api/admin/users/${uid}/segments`;
+    const segRes = await apiCall(endpoint, {
       method: 'POST',
       body: JSON.stringify(segRows),
     });
@@ -340,7 +367,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
     if (segRes.status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
     if (!segRes.ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
 
-    setToast({ message: 'Segment settings saved successfully', type: 'success' });
+    setToast({ message: `${segmentMode === 'scalper' ? 'Scalper' : 'Normal'} segment settings saved successfully`, type: 'success' });
   };
 
   if (loading) return <div style={{ color: '#8b949e', padding: 20 }}>Loading...</div>;
@@ -348,9 +375,137 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   return (
     <div className="adm-upd-root" style={{ padding: '0 0 40px 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>Segment Settings</span>
-        <i className="fas fa-bars" style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}></i>
+        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>
+          {segmentMode === 'scalper' ? 'Scalper Segment Settings' : 'Normal Segment Settings'}
+        </span>
+        <i 
+          className="fas fa-bars" 
+          style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}
+          onClick={() => setShowMenu(true)}
+        ></i>
       </div>
+
+      {showMenu && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Overlay */}
+          <div 
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }} 
+            onClick={() => setShowMenu(false)}
+          />
+          
+          {/* Sidebar */}
+          <div style={{ 
+            position: 'relative', 
+            width: '280px', 
+            background: '#0d1117', 
+            borderLeft: '1px solid #30363d',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '-8px 0 24px rgba(0,0,0,0.5)',
+            animation: 'slideInRight 0.2s ease-out'
+          }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid #30363d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc' }}>Select Segment Type</span>
+              <button 
+                onClick={() => setShowMenu(false)}
+                style={{ background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer', fontSize: '1.2rem', padding: '4px' }}
+              >×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', transition: 'all 0.15s' }}>
+                  <button
+                    onClick={() => { setSegmentMode('normal'); setShowMenu(false); setToast({ message: 'Normal mode selected', type: 'success' }); }}
+                    style={{
+                      flex: 1, padding: '14px 20px', background: 'transparent',
+                      border: 'none', color: segmentMode === 'normal' ? '#60a5fa' : '#94a3b8', textAlign: 'left', fontSize: '14px', 
+                      cursor: 'pointer', fontWeight: 600, letterSpacing: '0.6px'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = segmentMode === 'normal' ? '#60a5fa' : '#f8fafc'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = segmentMode === 'normal' ? '#60a5fa' : '#94a3b8'; }}
+                  >
+                    NORMAL SEGMENT
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setExpandedMenu(expandedMenu === 'normal' ? null : 'normal'); }}
+                    style={{
+                      padding: '14px 20px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                  >
+                    <i className={`fas fa-chevron-${expandedMenu === 'normal' ? 'down' : 'left'}`} style={{ fontSize: '12px' }}></i>
+                  </button>
+                </div>
+                {expandedMenu === 'normal' && (
+                  <div style={{ padding: '4px 20px 12px 20px', display: 'flex', flexDirection: 'row', gap: '10px' }}>
+                    <button 
+                      onClick={handleCopySettings}
+                      style={{ flex: 1, background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer', fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 600, transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                    ><i className="far fa-copy"></i> Copy</button>
+                    <button 
+                      onClick={handlePasteSettings}
+                      style={{ flex: 1, background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer', fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 600, transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                    ><i className="far fa-clipboard"></i> Paste</button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '0 20px' }} />
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%', transition: 'all 0.15s' }}>
+                  <button
+                    onClick={() => { setSegmentMode('scalper'); setShowMenu(false); setToast({ message: 'Scalper mode selected', type: 'success' }); }}
+                    style={{
+                      flex: 1, padding: '14px 20px', background: 'transparent',
+                      border: 'none', color: segmentMode === 'scalper' ? '#60a5fa' : '#94a3b8', textAlign: 'left', fontSize: '14px', 
+                      cursor: 'pointer', fontWeight: 600, letterSpacing: '0.6px'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = segmentMode === 'scalper' ? '#60a5fa' : '#f8fafc'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = segmentMode === 'scalper' ? '#60a5fa' : '#94a3b8'; }}
+                  >
+                    SCALPER SEGMENT
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setExpandedMenu(expandedMenu === 'scalper' ? null : 'scalper'); }}
+                    style={{
+                      padding: '14px 20px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                  >
+                    <i className={`fas fa-chevron-${expandedMenu === 'scalper' ? 'down' : 'left'}`} style={{ fontSize: '12px' }}></i>
+                  </button>
+                </div>
+                {expandedMenu === 'scalper' && (
+                  <div style={{ padding: '4px 20px 12px 20px', display: 'flex', flexDirection: 'row', gap: '10px' }}>
+                    <button 
+                      onClick={handleCopySettings}
+                      style={{ flex: 1, background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer', fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 600, transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                    ><i className="far fa-copy"></i> Copy</button>
+                    <button 
+                      onClick={handlePasteSettings}
+                      style={{ flex: 1, background: '#3b82f6', border: 'none', borderRadius: '6px', color: '#ffffff', cursor: 'pointer', fontSize: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 600, transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                    ><i className="far fa-clipboard"></i> Paste</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <style>{`
+            @keyframes slideInRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}</style>
+        </div>
+      )}
       
       {segBlocks.map(name => (
         <SegmentBlock 
