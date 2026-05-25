@@ -239,23 +239,23 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
       <div className="footer-section">
         <div className="footer-nav" data-active={activeTab}>
-          <Link href="/" className={`footer-tab ${activeTab === 'home' ? 'active' : ''}`}>
+          <Link href="/" prefetch={true} className={`footer-tab ${activeTab === 'home' ? 'active' : ''}`}>
             <i className="fas fa-home footer-icon"></i>
             <span className="footer-label">Home</span>
           </Link>
-          <Link href="/watchlist" className={`footer-tab ${activeTab === 'watchlist' ? 'active' : ''}`}>
+          <Link href="/watchlist" prefetch={true} className={`footer-tab ${activeTab === 'watchlist' ? 'active' : ''}`}>
             <i className="fas fa-list footer-icon"></i>
             <span className="footer-label">Watchlist</span>
           </Link>
-          <Link href="/order" className={`footer-tab ${activeTab === 'order' ? 'active' : ''}`}>
+          <Link href="/order" prefetch={true} className={`footer-tab ${activeTab === 'order' ? 'active' : ''}`}>
             <i className="fas fa-file-invoice-dollar footer-icon"></i>
             <span className="footer-label">Order</span>
           </Link>
-          <Link href="/position" className={`footer-tab ${activeTab === 'position' ? 'active' : ''}`}>
+          <Link href="/position" prefetch={true} className={`footer-tab ${activeTab === 'position' ? 'active' : ''}`}>
             <i className="fas fa-chart-line footer-icon"></i>
             <span className="footer-label">Position</span>
           </Link>
-          <Link href="/history" className={`footer-tab ${activeTab === 'history' ? 'active' : ''}`}>
+          <Link href="/history" prefetch={true} className={`footer-tab ${activeTab === 'history' ? 'active' : ''}`}>
             <i className="fas fa-history footer-icon"></i>
             <span className="footer-label">History</span>
           </Link>
