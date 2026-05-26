@@ -217,6 +217,7 @@
     align-items: flex-start;
     gap: 6px;
     flex: 1;
+    min-width: 0;
 }
 
 .history-root .script-badges {
@@ -230,6 +231,10 @@
     font-weight: 700;
     font-size: 0.9rem;
     color: #1A1E2B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .history-root .order-type-badge {

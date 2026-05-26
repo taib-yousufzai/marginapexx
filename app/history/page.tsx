@@ -336,6 +336,48 @@ export default function HistoryPage() {
           </span>
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .history-root .history-card-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            margin-bottom: 10px !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+        }
+        .history-root .script-info {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+        }
+        .history-root .script-badges {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
+        }
+        .history-root .script-name {
+            font-weight: 700 !important;
+            font-size: 0.9rem !important;
+            color: #1A1E2B !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+        }
+        body.dark .history-root .script-name {
+            color: #E2E8F0 !important;
+        }
+        .history-root .pnl {
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            flex-shrink: 0 !important;
+            text-align: right !important;
+        }
+      `}} />
     </div>
   );
 }
