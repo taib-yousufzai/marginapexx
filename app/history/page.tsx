@@ -34,8 +34,8 @@ export default function HistoryPage() {
   const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
-  const [historyData, setHistoryData] = useState<HistoryItem[]>(typeof window !== 'undefined' && window.__historyCache ? window.__historyCache : []);
-  const [loading, setLoading] = useState(!(typeof window !== 'undefined' && window.__historyCache));
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const mainContentRef = useRef<HTMLDivElement>(null);
 
   // Scroll reset - runs synchronously before browser paint via ref callback
@@ -54,6 +54,11 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.__historyCache && window.__historyCache.length > 0) {
+      setHistoryData(window.__historyCache);
+      setLoading(false);
+    }
+    
     async function fetchHistory() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -265,13 +270,15 @@ export default function HistoryPage() {
                         <div className="history-card-header">
                           <div className="script-info">
                             <span className="script-name">{item.scriptName}</span>
-                            <span className={`order-type-badge ${item.type.toLowerCase()}`}>{item.type}</span>
-                            <span style={{ fontSize: '0.55rem', color: '#9AA4BF' }}>{item.orderType}</span>
-                            {currentTab === 'order' && (
-                              <span className={`order-type-badge ${item.status === 'executed' ? 'completed' : 'pending'}`}>
-                                {item.status}
-                              </span>
-                            )}
+                            <div className="script-badges">
+                              <span className={`order-type-badge ${item.type.toLowerCase()}`}>{item.type}</span>
+                              <span style={{ fontSize: '0.55rem', color: '#9AA4BF' }}>{item.orderType}</span>
+                              {currentTab === 'order' && (
+                                <span className={`order-type-badge ${item.status === 'executed' ? 'completed' : 'pending'}`}>
+                                  {item.status}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className={currentTab === 'position' ? `pnl ${isPositive ? 'positive' : 'negative'}` : 'price-value'}>
                             {currentTab === 'position'

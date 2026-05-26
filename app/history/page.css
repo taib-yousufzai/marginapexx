@@ -205,13 +205,21 @@
 .history-root .history-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
 }
 
 .history-root .script-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    flex: 1;
+}
+
+.history-root .script-badges {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -252,8 +260,10 @@
 }
 
 .history-root .pnl {
+    font-size: 1rem;
     font-weight: 700;
-    font-size: 0.85rem;
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .history-root .pnl.positive {

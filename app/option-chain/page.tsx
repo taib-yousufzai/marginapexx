@@ -646,13 +646,10 @@ function OptionChainContent() {
               <div style={{ padding: '0' }}>
                 <div className="sheet-handle" style={{ display: 'flex' }}><div className="handle-bar" style={{ display: 'block' }}></div></div>
                 <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--icon-bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => setSelectedContract(null)}>
-                      <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}></i>
-                    </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div>
-                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
-                      <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedContract.symbol}</span>
+                      <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '3px', lineHeight: '1.1', letterSpacing: '-0.3px' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                      <span style={{ fontSize: '0.55rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '3px 8px', borderRadius: '20px', lineHeight: '1', display: 'inline-block', letterSpacing: '0.5px' }}>{selectedContract.symbol}</span>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>

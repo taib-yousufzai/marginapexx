@@ -9,11 +9,13 @@ interface StrikeData {
     token: number;
     symbol: string;
     id: string;
+    price?: number;
   };
   pe?: {
     token: number;
     symbol: string;
     id: string;
+    price?: number;
   };
 }
 
@@ -108,13 +110,16 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const peQuote = getQuote(s.pe?.id, s.pe?.token);
             const isAtm = s.strike === atmStrike?.strike;
 
-            const ceBid = ceQuote ? (ceQuote.lastPrice - 0.05).toFixed(1) : '---';
-            const ceAsk = ceQuote ? (ceQuote.lastPrice + 0.05).toFixed(1) : '---';
-            const peBid = peQuote ? (peQuote.lastPrice - 0.05).toFixed(1) : '---';
-            const peAsk = peQuote ? (peQuote.lastPrice + 0.05).toFixed(1) : '---';
+            const ceLtpVal = ceQuote ? ceQuote.lastPrice : s.ce?.price;
+            const peLtpVal = peQuote ? peQuote.lastPrice : s.pe?.price;
 
-            const ceLtp = ceQuote ? `₹${ceQuote.lastPrice.toFixed(1)}` : '---';
-            const peLtp = peQuote ? `₹${peQuote.lastPrice.toFixed(1)}` : '---';
+            const ceBid = ceLtpVal ? (ceLtpVal - 0.05).toFixed(1) : '---';
+            const ceAsk = ceLtpVal ? (ceLtpVal + 0.05).toFixed(1) : '---';
+            const peBid = peLtpVal ? (peLtpVal - 0.05).toFixed(1) : '---';
+            const peAsk = peLtpVal ? (peLtpVal + 0.05).toFixed(1) : '---';
+
+            const ceLtp = ceLtpVal ? `₹${ceLtpVal.toFixed(1)}` : '---';
+            const peLtp = peLtpVal ? `₹${peLtpVal.toFixed(1)}` : '---';
 
             return (
               <div

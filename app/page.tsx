@@ -252,7 +252,7 @@ export default function Page() {
                   <div className="margin-settings-row" onClick={() => router.push('/margin-settings')}>
                     <div className="margin-settings-left">
                       <div className="margin-settings-icon"><i className="fas fa-chart-line"></i></div>
-                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check margin &amp; trading rules</p></div>
+                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check margin &amp; trading rules before trading</p></div>
                     </div>
                     <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
                   </div>

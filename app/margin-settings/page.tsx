@@ -243,7 +243,9 @@ export default function UnifiedSettingsPage() {
           </div>
         </div>
         <div className="header-row-bottom">
-          <span className="instruction-label">Choose your margin settings</span>
+          <span className="instruction-label">
+            {actualMode === 'scalper' ? 'Scalper Mode Active' : 'Normal Mode Active'}
+          </span>
           <div className="action-buttons-wrapper">
             <button className="select-mode-btn" onClick={() => setIsChoiceModalOpen(true)}>SELECT MODE →</button>
             <button className="rules-trigger-btn" onClick={() => setIsRulesModalOpen(true)}>RULES</button>
