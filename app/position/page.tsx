@@ -413,7 +413,7 @@ export default function PositionPage() {
                             <div className="pos-card-right">
                               <span className={`pos-badge${pos.side === 'BUY' ? ' long' : ' short'}`}>{pos.side}</span>
                               <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                                P&amp;L: {fmtUSD(pos.total_pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                                {fmtUSD(pos.total_pnl, pos.settlement)}
                               </div>
                               <div className="pos-card-ltp">
                                 {pos.product_type && (
@@ -478,7 +478,7 @@ export default function PositionPage() {
                               {pos.side}
                             </span>
                             <div className={`pos-card-pnl${pos.pnl >= 0 ? ' green' : ' red'}`}>
-                              P&amp;L: {fmtUSD(pos.pnl, pos.settlement)} ({pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%)
+                              {fmtUSD(pos.pnl, pos.settlement)}
                             </div>
                             <div className="pos-card-ltp">Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></div>
                           </div>

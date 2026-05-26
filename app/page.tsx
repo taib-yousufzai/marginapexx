@@ -37,7 +37,7 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'MCX:NATURALGAS26JUNFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 
-type MarketItem = { name: string; price: number; change: number; type: string; icon: string };
+type MarketItem = { name: string; price: number; change: number; changeAmt?: number; type: string; icon: string };
 
 const learningData = [
   { id: 1, name: "Try Algo", icon: "fas fa-chart-line", iconClass: "algo", badge: "Free", action: "algo" },
@@ -153,11 +153,12 @@ export default function Page() {
     return instruments.map((key) => {
       const q = quotes[key];
       const display = KITE_DISPLAY_MAP[key] ?? { name: key, icon: 'fas fa-chart-line' };
-      if (!q) return { name: display.name, price: 0, change: 0, type: 'positive', icon: display.icon };
+      if (!q) return { name: display.name, price: 0, change: 0, changeAmt: 0, type: 'positive', icon: display.icon };
       return {
         name: display.name,
         price: q.lastPrice,
         change: q.changePercent,
+        changeAmt: q.change,
         type: q.changePercent >= 0 ? 'positive' : 'negative',
         icon: display.icon,
       };
@@ -343,7 +344,9 @@ export default function Page() {
                                     {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <div className={`market-rect-change ${market.type}`}>
-                                    {market.change > 0 ? `+${market.change.toFixed(2)}%` : `${market.change.toFixed(2)}%`}
+                                    {market.change >= 0 
+                                      ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)` 
+                                      : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
                                   </div>
                                 </div>
                               ))}
