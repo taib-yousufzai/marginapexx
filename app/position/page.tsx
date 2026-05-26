@@ -515,25 +515,6 @@ export default function PositionPage() {
                               <div className="pos-detail-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>{' '}
                                 <span className="pos-detail-side">{pos.side}</span>
-                                {pos.product_type && (
-                                  <span
-                                    className="exchange-badge"
-                                    style={{
-                                      fontSize: '0.55rem',
-                                      fontWeight: '700',
-                                      padding: '1px 6px',
-                                      borderRadius: '20px',
-                                      marginLeft: '6px',
-                                      verticalAlign: 'middle',
-                                      lineHeight: '1.6',
-                                      display: 'inline-block',
-                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
-                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
-                                    }}
-                                  >
-                                    {pos.product_type}
-                                  </span>
-                                )}
                               </div>
                               <div className="pos-detail-meta">
                                 <div className="pos-detail-meta-row">
@@ -585,9 +566,28 @@ export default function PositionPage() {
                                 </div>
                                 <div className="pos-detail-pct">{pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%</div>
                               </div>
-                              <span className={`pos-status-badge ${pos.status}`}>
-                                {pos.status.toUpperCase()}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {pos.product_type && (
+                                  <span
+                                    className="exchange-badge"
+                                    style={{
+                                      fontSize: '0.55rem',
+                                      fontWeight: '700',
+                                      padding: '1px 6px',
+                                      borderRadius: '20px',
+                                      lineHeight: '1.6',
+                                      display: 'inline-block',
+                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
+                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
+                                    }}
+                                  >
+                                    {pos.product_type}
+                                  </span>
+                                )}
+                                <span className={`pos-status-badge ${pos.status}`}>
+                                  {pos.status.toUpperCase()}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (

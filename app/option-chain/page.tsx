@@ -264,11 +264,13 @@ function OptionChainContent() {
       setOrderUnit('qty');
       setSheetView('DETAILS');
       setSheetSide(side);
+      setShowWatchlistSelector(false);
     }
   };
 
   const closeTradeSheet = () => {
     setSelectedContract(null);
+    setShowWatchlistSelector(false);
   };
 
   const handlePlaceOrder = async (side: OrderSide) => {
@@ -653,10 +655,12 @@ function OptionChainContent() {
                       <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedContract.symbol}</span>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '0.47rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
-                    <div style={{ fontSize: '0.935rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.1' }}>₹{ltp.toFixed(2)}</div>
-                    <span className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
+                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <div style={{ fontSize: '0.5rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '3px', letterSpacing: '0.5px' }}>CMP</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px', lineHeight: '1', letterSpacing: '-0.5px' }}>₹{ltp.toFixed(2)}</div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '4px 8px', borderRadius: '6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626', background: chgPct >= 0 ? '#ECFDF5' : '#FEF2F2' }}>
+                      {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
+                    </span>
                   </div>
                 </div>
                 <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>

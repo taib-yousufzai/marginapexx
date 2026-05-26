@@ -252,7 +252,7 @@ export default function Page() {
                   <div className="margin-settings-row" onClick={() => router.push('/margin-settings')}>
                     <div className="margin-settings-left">
                       <div className="margin-settings-icon"><i className="fas fa-chart-line"></i></div>
-                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check requirements &amp; limits</p></div>
+                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check margin &amp; trading rules</p></div>
                     </div>
                     <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
                   </div>
@@ -340,14 +340,10 @@ export default function Page() {
                                     <span className="market-rect-name">{market.name}</span>
                                   </div>
                                   <div className="market-rect-price">
-                                    <TickFlash value={market.price}>
-                                      {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </TickFlash>
+                                    {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <div className={`market-rect-change ${market.type}`}>
-                                    <TickFlash value={market.change}>
-                                      {market.change > 0 ? `+${market.change.toFixed(2)}%` : `${market.change.toFixed(2)}%`}
-                                    </TickFlash>
+                                    {market.change > 0 ? `+${market.change.toFixed(2)}%` : `${market.change.toFixed(2)}%`}
                                   </div>
                                 </div>
                               ))}
