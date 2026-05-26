@@ -1,0 +1,176 @@
+import { getAdminClient } from '../../lib/adminClient';
+import pino from 'pino';
+
+const logger = pino({ name: 'ticker-subscription-manager' });
+
+export interface InstrumentMapping {
+  token: number;
+  symbolKey: string; // e.g. "NSE:INFY"
+}
+
+export class SubscriptionManager {
+  private activeTokens: Set<number> = new Set();
+  private tokenToSymbol: Map<number, string> = new Map();
+  private symbolToToken: Map<string, number> = new Map();
+
+  /**
+   * Fetches active instruments from watchlists, open positions, and pending orders,
+   * then maps them to their respective instrument_tokens from the database.
+   */
+  public async getActiveInstruments(): Promise<InstrumentMapping[]> {
+    try {
+      const admin = getAdminClient();
+      const symbolsToResolve = new Set<string>([
+        // Always subscribe to core index and default instruments for home/overview dashboards
+        'NSE:NIFTY 50',
+        'BSE:SENSEX',
+        'NSE:NIFTY BANK',
+        'CDS:USDINR26JUNFUT',
+        'MCX:CRUDEOIL26JUNFUT',
+        'MCX:GOLD26JUNFUT',
+        'MCX:SILVER26JULFUT',
+        'MCX:NATURALGAS26JUNFUT',
+        'NSE:NIFTY FIN SERVICE',
+        'NSE:NIFTY MID SELECT',
+        'BSE:BANKEX',
+      ]);
+
+      // 1. Fetch symbols from watchlists
+      const { data: watchlists, error: wlError } = await admin
+        .from('watchlists')
+        .select('symbol');
+      
+      if (wlError) {
+        logger.error({ err: wlError }, 'Error fetching watchlists');
+      } else if (watchlists) {
+        watchlists.forEach(w => {
+          if (w.symbol) symbolsToResolve.add(w.symbol.trim());
+        });
+      }
+
+      // 2. Fetch symbols from open positions
+      const { data: openPositions, error: posError } = await admin
+        .from('positions')
+        .select('symbol, settlement')
+        .eq('status', 'open');
+
+      if (posError) {
+        logger.error({ err: posError }, 'Error fetching open positions');
+      } else if (openPositions) {
+        openPositions.forEach(p => {
+          if (!p.symbol) return;
+          const sym = p.symbol.trim();
+          if (sym.includes(':')) {
+            symbolsToResolve.add(sym);
+          } else {
+            const exchange = p.settlement && (p.settlement.startsWith('OPT') || p.settlement.startsWith('FUT') || p.settlement.startsWith('NFO')) 
+              ? 'NFO' 
+              : 'NSE';
+            symbolsToResolve.add(`${exchange}:${sym}`);
+          }
+        });
+      }
+
+      // 3. Fetch symbols from pending orders
+      const { data: pendingOrders, error: orderError } = await admin
+        .from('orders')
+        .select('symbol, kite_instrument, segment')
+        .eq('status', 'PENDING');
+
+      if (orderError) {
+        logger.error({ err: orderError }, 'Error fetching pending orders');
+      } else if (pendingOrders) {
+        pendingOrders.forEach(o => {
+          if (o.kite_instrument) {
+            symbolsToResolve.add(o.kite_instrument.trim());
+          } else if (o.symbol) {
+            const sym = o.symbol.trim();
+            if (sym.includes(':')) {
+              symbolsToResolve.add(sym);
+            } else {
+              const exchange = o.segment && (o.segment.startsWith('OPT') || o.segment.startsWith('FUT') || o.segment.startsWith('NFO')) 
+                ? 'NFO' 
+                : 'NSE';
+              symbolsToResolve.add(`${exchange}:${sym}`);
+            }
+          }
+        });
+      }
+
+      if (symbolsToResolve.size === 0) {
+        return [];
+      }
+
+      // 4. Resolve symbols to instrument_tokens using instruments table
+      const { data: resolvedInstruments, error: resolveError } = await admin
+        .from('instruments')
+        .select('id, instrument_token')
+        .in('id', Array.from(symbolsToResolve));
+
+      if (resolveError) {
+        logger.error({ err: resolveError }, 'Error resolving instrument tokens from db');
+        return [];
+      }
+
+      const mappings: InstrumentMapping[] = [];
+      this.tokenToSymbol.clear();
+      this.symbolToToken.clear();
+
+      if (resolvedInstruments) {
+        resolvedInstruments.forEach(row => {
+          const token = Number(row.instrument_token);
+          const symbolKey = row.id;
+          
+          mappings.push({ token, symbolKey });
+          this.tokenToSymbol.set(token, symbolKey);
+          this.symbolToToken.set(symbolKey, token);
+        });
+      }
+
+      logger.info({ count: mappings.length }, 'Successfully resolved active instruments to tokens');
+      return mappings;
+    } catch (err) {
+      logger.error({ err }, 'Unexpected error in subscription manager');
+      return [];
+    }
+  }
+
+  /**
+   * Translates an instrument_token number to its symbol key (e.g. 256001 -> "NSE:NIFTY 50")
+   */
+  public getSymbolKey(token: number): string | undefined {
+    return this.tokenToSymbol.get(token);
+  }
+
+  /**
+   * Compares the newly active tokens with currently subscribed tokens, returning the lists to subscribe and unsubscribe.
+   */
+  public calculateSubscriptionDelta(newTokens: number[]): { toSubscribe: number[]; toUnsubscribe: number[] } {
+    const newTokensSet = new Set(newTokens);
+    const toSubscribe: number[] = [];
+    const toUnsubscribe: number[] = [];
+
+    // Tokens to subscribe: in newTokens but not in activeTokens
+    for (const token of newTokens) {
+      if (!this.activeTokens.has(token)) {
+        toSubscribe.push(token);
+      }
+    }
+
+    // Tokens to unsubscribe: in activeTokens but not in newTokens
+    for (const token of this.activeTokens) {
+      if (!newTokensSet.has(token)) {
+        toUnsubscribe.push(token);
+      }
+    }
+
+    // Update internal state
+    this.activeTokens = newTokensSet;
+
+    return { toSubscribe, toUnsubscribe };
+  }
+
+  public getSubscribedTokens(): number[] {
+    return Array.from(this.activeTokens);
+  }
+}

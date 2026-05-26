@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including devDeps for tsx + typescript)
+RUN npm ci
+
+# Copy only the files the ticker needs
+COPY tsconfig.json ./
+COPY lib/ ./lib/
+COPY scripts/ ./scripts/
+
+# Run the ticker daemon
+CMD ["npx", "tsx", "scripts/ticker/index.ts"]

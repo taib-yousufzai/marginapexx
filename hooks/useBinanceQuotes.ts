@@ -47,14 +47,13 @@ export function useBinanceQuotes(
   const [quotes, setQuotes] = useState<Record<string, BinanceQuoteData>>(globalBinanceQuotesCache);
   const [loading, setLoading] = useState(Object.keys(globalBinanceQuotesCache).length === 0);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const symbolsKey = symbols.join(',');
 
+  // Initial REST fetch for instant data on page load
   const fetchQuotes = useCallback(async () => {
     if (symbols.length === 0) return;
 
     try {
-      // Binance supports bulk fetch: ?symbols=["BTCUSDT","ETHUSDT"]
       const symbolsParam = encodeURIComponent(JSON.stringify(symbols));
       const res = await fetch(`${BINANCE_API}?symbols=${symbolsParam}`, {
         cache: 'no-store',
@@ -102,28 +101,90 @@ export function useBinanceQuotes(
       setQuotes(prev => ({...prev, ...mapped}));
       setError(null);
     } catch {
-      setError('Network error — check connection');
+      setError('REST fetch failed');
     } finally {
       setLoading(false);
     }
-  }, [symbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbolsKey]);
 
+  // Real-time WebSocket connection
   useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      await fetchQuotes();
-      if (cancelled) return;
-      intervalRef.current = setInterval(fetchQuotes, refreshInterval);
+    if (symbols.length === 0) {
+      setLoading(false);
+      return;
     }
 
-    init();
+    // Do REST lookup first to populate cache immediately
+    fetchQuotes();
+
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let isCancelled = false;
+
+    function connect() {
+      if (isCancelled) return;
+
+      const streams = symbols.map(s => `${s.toLowerCase()}@ticker`).join('/');
+      const wsUrl = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        if (isCancelled) return;
+        setError(null);
+      };
+
+      ws.onmessage = (event) => {
+        if (isCancelled) return;
+        try {
+          const payload = JSON.parse(event.data);
+          const data = payload.data;
+          if (!data || data.e !== '24hrTicker') return;
+
+          const symbol = data.s;
+          const quoteData: BinanceQuoteData = {
+            symbol,
+            lastPrice: parseFloat(data.c),
+            change: parseFloat(data.p),
+            changePercent: parseFloat(data.P),
+            open: parseFloat(data.o),
+            high: parseFloat(data.h),
+            low: parseFloat(data.l),
+            close: parseFloat(data.x),
+            volume: parseFloat(data.v),
+            quoteVolume: parseFloat(data.q),
+            bid: parseFloat(data.b),
+            ask: parseFloat(data.a),
+          };
+
+          setQuotes(prev => {
+            const updated = { ...prev };
+            updated[symbol] = quoteData;
+            return updated;
+          });
+        } catch (err) {
+          console.error('[Binance WS] Parse error:', err);
+        }
+      };
+
+      ws.onerror = () => {
+        setError('Binance WebSocket error');
+      };
+
+      ws.onclose = () => {
+        if (isCancelled) return;
+        reconnectTimeout = setTimeout(connect, 3000); // Reconnect in 3s
+      };
+    }
+
+    connect();
 
     return () => {
-      cancelled = true;
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      isCancelled = true;
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
-  }, [fetchQuotes, refreshInterval]);
+  }, [symbolsKey, fetchQuotes]);
 
   return { quotes, loading, error, refresh: fetchQuotes };
 }

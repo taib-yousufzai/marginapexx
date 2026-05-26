@@ -31,37 +31,6 @@ export interface KiteQuote {
   oi: number;
 }
 
-async function getFallbackQuotes(instruments: string[]) {
-  try {
-    const admin = getAdminClient();
-    const { data, error } = await admin
-      .from('market_quotes')
-      .select('*')
-      .in('id', instruments);
-        
-    if (error || !data) return null;
-    
-    const mappedData: Record<string, any> = {};
-    for (const row of data) {
-      mappedData[row.id] = {
-        timestamp: row.quote_timestamp,
-        last_price: Number(row.last_price),
-        volume: Number(row.volume),
-        ohlc: {
-          open: Number(row.open),
-          high: Number(row.high),
-          low: Number(row.low),
-          close: Number(row.close),
-        },
-        net_change: Number(row.last_price) - Number(row.close),
-      };
-    }
-    return { data: mappedData };
-  } catch (err) {
-    return null;
-  }
-}
-
 async function fetchKiteQuotesBatch(
   kiteRequestInstruments: string[],
   apiKey: string,
@@ -70,14 +39,12 @@ async function fetchKiteQuotesBatch(
   const allKiteData: Record<string, any> = {};
   let tokenExpired = false;
 
-  // Split into batches of 100 to avoid URL length limits (approx 8KB) in proxies/CDNs
   const batchSize = 100;
   const batches: string[][] = [];
   for (let i = 0; i < kiteRequestInstruments.length; i += batchSize) {
     batches.push(kiteRequestInstruments.slice(i, i + batchSize));
   }
 
-  // Fetch batches in parallel for speed (Kite allows up to 10 req/sec)
   const results = await Promise.all(
     batches.map(async (batch) => {
       const params = new URLSearchParams();
@@ -114,41 +81,28 @@ async function fetchKiteQuotesBatch(
 }
 
 async function handleQuotesRequest(instruments: string[], request: NextRequest): Promise<NextResponse> {
-  const apiKey = process.env.KITE_API_KEY;
-  if (!apiKey || instruments.length === 0) {
+  if (instruments.length === 0) {
     return NextResponse.json({ data: {} });
   }
 
-  // Get token
-  let accessToken = request.cookies.get('kite_access_token')?.value;
-  if (!accessToken) {
-    const sharedSession = await getSharedKiteSession();
-    accessToken = sharedSession?.accessToken;
-  }
-
-  if (!accessToken) {
-    const fallback = await getFallbackQuotes(instruments);
-    return NextResponse.json(fallback || { data: {} });
-  }
-
   try {
+    const admin = getAdminClient();
     const realToRequestedMap: Record<string, string> = {};
-    const kiteRequestInstruments: string[] = [];
+    const directKiteIds: string[] = [];
     const dbRequestIds: string[] = [];
 
-    // Separate direct IDs (with colon) from DB IDs (no colon)
+    // Separate direct IDs (with colon e.g. NSE:RELIANCE) from DB ID numbers
     for (const id of instruments) {
       if (id.includes(':')) {
-        kiteRequestInstruments.push(id);
+        directKiteIds.push(id);
         realToRequestedMap[id] = id;
       } else {
         dbRequestIds.push(id);
       }
     }
 
-    // Resolve DB IDs to Kite IDs if needed
+    // Resolve internal DB IDs to Kite IDs
     if (dbRequestIds.length > 0) {
-      const admin = getAdminClient();
       const { data } = await admin
         .from('instruments')
         .select('id, tradingsymbol, exchange')
@@ -158,50 +112,159 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
         for (const row of data) {
           const kiteId = `${row.exchange}:${row.tradingsymbol}`;
           realToRequestedMap[kiteId] = row.id;
-          kiteRequestInstruments.push(kiteId);
+          directKiteIds.push(kiteId);
         }
       }
       
-      // Add missing ones as-is just in case
+      // Keep unresolved ones as-is as fallback
       for (const id of dbRequestIds) {
         if (!Object.values(realToRequestedMap).includes(id)) {
           realToRequestedMap[id] = id;
-          kiteRequestInstruments.push(id);
+          directKiteIds.push(id);
         }
       }
     }
 
-    // Fetch from Kite
-    let { data: allKiteData, tokenExpired } = await fetchKiteQuotesBatch(
-      kiteRequestInstruments, apiKey, accessToken
-    );
+    // 1. Fetch from database market_quotes table (populated in real-time by WebSockets Ticker Daemon)
+    const { data: dbQuotes, error: dbError } = await admin
+      .from('market_quotes')
+      .select('*')
+      .in('id', directKiteIds);
 
-    // If expired, try shared session as fallback
-    if (tokenExpired) {
-      const freshSession = await getSharedKiteSession();
-      if (freshSession && freshSession.accessToken !== accessToken) {
-        const retry = await fetchKiteQuotesBatch(kiteRequestInstruments, apiKey, freshSession.accessToken);
-        allKiteData = retry.data;
+    const finalMappedData: Record<string, any> = {};
+    const foundKiteIds = new Set<string>();
+
+    if (!dbError && dbQuotes) {
+      for (const row of dbQuotes) {
+        const reqId = realToRequestedMap[row.id];
+        if (!reqId) continue;
+
+        foundKiteIds.add(row.id);
+        finalMappedData[reqId] = {
+          timestamp: row.quote_timestamp,
+          last_price: Number(row.last_price),
+          volume: Number(row.volume || 0),
+          ohlc: {
+            open: Number(row.open || 0),
+            high: Number(row.high || 0),
+            low: Number(row.low || 0),
+            close: Number(row.close || 0),
+          },
+          net_change: Number(row.last_price) - Number(row.close || 0),
+        };
       }
     }
 
-    // Map back to requested IDs
-    const finalMappedData: Record<string, any> = {};
-    for (const [kiteId, quote] of Object.entries(allKiteData)) {
-      const reqId = realToRequestedMap[kiteId];
-      if (reqId) finalMappedData[reqId] = quote;
-    }
+    // 2. Find missing instruments that aren't in the database cache yet
+    const missingKiteIds = directKiteIds.filter(id => !foundKiteIds.has(id));
 
-    // Fallback if no data
-    if (Object.keys(finalMappedData).length === 0) {
-      const fallback = await getFallbackQuotes(instruments);
-      if (fallback) return NextResponse.json(fallback);
+    // 3. Fallback: Fetch missing instruments from Kite REST API on-demand
+    if (missingKiteIds.length > 0) {
+      let accessToken = request.cookies.get('kite_access_token')?.value;
+      if (!accessToken) {
+        const sharedSession = await getSharedKiteSession();
+        accessToken = sharedSession?.accessToken;
+      }
+      const apiKey = process.env.KITE_API_KEY;
+
+      if (accessToken && apiKey) {
+        const { data: kiteData, tokenExpired } = await fetchKiteQuotesBatch(missingKiteIds, apiKey, accessToken);
+        
+        let activeKiteData = kiteData;
+        if (tokenExpired) {
+          const freshSession = await getSharedKiteSession();
+          if (freshSession && freshSession.accessToken !== accessToken) {
+            const retry = await fetchKiteQuotesBatch(missingKiteIds, apiKey, freshSession.accessToken);
+            activeKiteData = retry.data;
+          }
+        }
+
+        if (activeKiteData && Object.keys(activeKiteData).length > 0) {
+          const instrumentUpserts: any[] = [];
+          const dbUpserts: any[] = [];
+
+          for (const [kiteId, quote] of Object.entries(activeKiteData)) {
+            const reqId = realToRequestedMap[kiteId];
+            if (!reqId || !quote) continue;
+
+            const closePrice = quote.ohlc?.close || 0;
+            const netChange = quote.net_change ?? (quote.last_price - closePrice);
+
+            finalMappedData[reqId] = {
+              timestamp: quote.timestamp,
+              last_price: quote.last_price,
+              volume: quote.volume || 0,
+              ohlc: {
+                open: quote.ohlc?.open || 0,
+                high: quote.ohlc?.high || 0,
+                low: quote.ohlc?.low || 0,
+                close: closePrice,
+              },
+              net_change: netChange,
+            };
+
+            const parts = kiteId.split(':');
+            const exchange = parts[0] || 'NSE';
+            const tradingsymbol = parts[1] || '';
+
+            instrumentUpserts.push({
+              id: kiteId,
+              instrument_token: quote.instrument_token || 0,
+              tradingsymbol: tradingsymbol,
+              exchange: exchange,
+              instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
+              segment: exchange,
+              updated_at: new Date().toISOString()
+            });
+
+            dbUpserts.push({
+              id: kiteId,
+              last_price: quote.last_price,
+              open: quote.ohlc?.open || 0,
+              high: quote.ohlc?.high || 0,
+              low: quote.ohlc?.low || 0,
+              close: closePrice,
+              volume: quote.volume || 0,
+              quote_timestamp: quote.timestamp || new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          }
+
+          // Cache on-demand fetched instruments and quotes in background
+          if (instrumentUpserts.length > 0) {
+            (async () => {
+              try {
+                // Upsert instruments first to satisfy foreign key
+                const { error: instErr } = await admin
+                  .from('instruments')
+                  .upsert(instrumentUpserts, { onConflict: 'id' });
+
+                if (instErr) {
+                  console.error('[Quotes API] Background instruments upsert error:', instErr);
+                  return;
+                }
+
+                // Now upsert quotes
+                const { error: quoteErr } = await admin
+                  .from('market_quotes')
+                  .upsert(dbUpserts, { onConflict: 'id' });
+
+                if (quoteErr) {
+                  console.error('[Quotes API] Background cache upsert error:', quoteErr);
+                }
+              } catch (err) {
+                console.error('[Quotes API] Background cache sync error:', err);
+              }
+            })();
+          }
+        }
+      }
     }
 
     return NextResponse.json({ data: finalMappedData });
   } catch (err) {
-    const fallback = await getFallbackQuotes(instruments);
-    return NextResponse.json(fallback || { data: {} });
+    console.error('[Quotes API] Error:', err);
+    return NextResponse.json({ data: {} });
   }
 }
 

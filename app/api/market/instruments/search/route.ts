@@ -53,39 +53,123 @@ function buildDisplayName(tradingsymbol: string, underlying: string, strike: num
 
 /**
  * Fetch live last_price for a list of kite IDs like "NFO:NIFTY26MAY24050CE"
+ * Checks local database cache first, and falls back to Kite REST on-demand for missing.
  */
 async function fetchLivePrices(kiteIds: string[], request: NextRequest): Promise<Record<string, number>> {
+  if (kiteIds.length === 0) return {};
+  const priceMap: Record<string, number> = {};
+
   try {
-    const apiKey = process.env.KITE_API_KEY;
-    if (!apiKey || kiteIds.length === 0) return {};
+    // 1. Fetch from database market_quotes table
+    const { data: dbQuotes, error: dbError } = await supabase
+      .from('market_quotes')
+      .select('id, last_price')
+      .in('id', kiteIds);
 
-    let accessToken = request.cookies.get('kite_access_token')?.value;
-    if (!accessToken) {
-      const session = await getSharedKiteSession();
-      accessToken = session?.accessToken;
+    const foundKiteIds = new Set<string>();
+    if (!dbError && dbQuotes) {
+      for (const row of dbQuotes) {
+        priceMap[row.id] = Number(row.last_price);
+        foundKiteIds.add(row.id);
+      }
     }
-    if (!accessToken) return {};
 
-    const params = new URLSearchParams();
-    kiteIds.forEach(id => params.append('i', id));
+    // 2. Identify missing instruments
+    const missingKiteIds = kiteIds.filter(id => !foundKiteIds.has(id));
 
-    const res = await fetch(`https://api.kite.trade/quote?${params.toString()}`, {
-      headers: {
-        'X-Kite-Version': '3',
-        'Authorization': `token ${apiKey}:${accessToken}`,
-      },
-      cache: 'no-store',
-    });
+    // 3. Fallback on-demand fetch from Kite REST API for missing instruments
+    if (missingKiteIds.length > 0) {
+      const apiKey = process.env.KITE_API_KEY;
+      if (!apiKey) return priceMap;
 
-    if (!res.ok) return {};
-    const json = await res.json();
-    const priceMap: Record<string, number> = {};
-    for (const [id, quote] of Object.entries(json.data || {})) {
-      priceMap[id] = (quote as any).last_price ?? 0;
+      let accessToken = request.cookies.get('kite_access_token')?.value;
+      if (!accessToken) {
+        const session = await getSharedKiteSession();
+        accessToken = session?.accessToken;
+      }
+      if (!accessToken) return priceMap;
+
+      const batchSize = 100;
+      const batches: string[][] = [];
+      for (let i = 0; i < missingKiteIds.length; i += batchSize) {
+        batches.push(missingKiteIds.slice(i, i + batchSize));
+      }
+
+      const results = await Promise.all(
+        batches.map(async (batch) => {
+          const params = new URLSearchParams();
+          batch.forEach(id => params.append('i', id));
+
+          try {
+            const res = await fetch(`https://api.kite.trade/quote?${params.toString()}`, {
+              headers: {
+                'X-Kite-Version': '3',
+                'Authorization': `token ${apiKey}:${accessToken}`,
+              },
+              cache: 'no-store',
+            });
+
+            if (res.ok) {
+              const json = await res.json();
+              return json.data || {};
+            }
+          } catch (err) {
+            console.error('[Search Quotes Fallback] error:', err);
+          }
+          return {};
+        })
+      );
+
+      const instrumentUpserts: any[] = [];
+      const dbUpserts: any[] = [];
+
+      for (const resData of results) {
+        for (const [id, quote] of Object.entries(resData)) {
+          if (!quote) continue;
+          const ltp = (quote as any).last_price ?? 0;
+          priceMap[id] = ltp;
+
+          const parts = id.split(':');
+          const exchange = parts[0] || 'NSE';
+          const tradingsymbol = parts[1] || '';
+
+          instrumentUpserts.push({
+            id,
+            instrument_token: (quote as any).instrument_token || 0,
+            tradingsymbol,
+            exchange,
+            instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
+            segment: exchange,
+            updated_at: new Date().toISOString()
+          });
+
+          dbUpserts.push({
+            id,
+            last_price: ltp,
+            close: (quote as any).ohlc?.close || 0,
+            quote_timestamp: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+      }
+
+      // Cache missing instruments and quotes asynchronously in background
+      if (instrumentUpserts.length > 0) {
+        (async () => {
+          try {
+            await supabase.from('instruments').upsert(instrumentUpserts, { onConflict: 'id' });
+            await supabase.from('market_quotes').upsert(dbUpserts, { onConflict: 'id' });
+          } catch (err) {
+            console.error('[fetchLivePrices] Background cache error:', err);
+          }
+        })();
+      }
     }
+
     return priceMap;
-  } catch {
-    return {};
+  } catch (err) {
+    console.error('[fetchLivePrices] Unexpected error:', err);
+    return priceMap;
   }
 }
 

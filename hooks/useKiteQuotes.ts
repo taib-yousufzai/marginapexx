@@ -16,8 +16,9 @@
  *   ]);
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { kiteRestore, kiteStatus } from '@/lib/kiteClient';
+import { supabase } from '@/lib/supabaseClient';
 
 export interface QuoteData {
   lastPrice: number;
@@ -40,7 +41,19 @@ interface UseKiteQuotesResult {
   refresh: () => void;
 }
 
-let globalKiteQuotesCache: Record<string, QuoteData> = {};
+interface MarketQuoteRow {
+  id: string;
+  last_price?: number | null;
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  close?: number | null;
+  volume?: number | null;
+  quote_timestamp?: string | null;
+  updated_at?: string | null;
+}
+
+const globalKiteQuotesCache: Record<string, QuoteData> = {};
 
 export function useKiteQuotes(
   instruments: string[],
@@ -52,7 +65,8 @@ export function useKiteQuotes(
   // while we check the session status on mount.
   const [loading, setLoading] = useState(Object.keys(globalKiteQuotesCache).length === 0);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
   const instrumentsKey = instruments.join(',');
 
   const doFetch = useCallback(async (): Promise<boolean> => {
@@ -233,9 +247,102 @@ export function useKiteQuotes(
     return () => {
       cancelled = true;
       if (timerId) clearTimeout(timerId);
-      if (intervalRef.current) clearInterval(intervalRef.current); // Cleanup old interval ref if any
     };
   }, [fetchQuotes, refreshInterval]);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(() => {
+      if (active) {
+        setIsAuthReady(true);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      if (active) {
+        setIsAuthReady(true);
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) return;
+    const currentInstruments = instrumentsKey.split(',').filter(Boolean);
+    if (currentInstruments.length === 0) return;
+
+    console.log(`[useKiteQuotes] Subscribing to Supabase Realtime for ${currentInstruments.length} instruments:`, currentInstruments);
+
+    // Subscribe to Postgres changes on market_quotes table
+    // Use a unique channel ID to avoid conflicts between multiple instances of the hook
+    const channelId = `mq-realtime-${Math.random().toString(36).substring(2, 11)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to INSERT, UPDATE, etc.
+          schema: 'public',
+          table: 'market_quotes',
+        },
+        (payload) => {
+          const row = payload.new as MarketQuoteRow;
+          if (!row || !row.id) return;
+
+          // Check if this updated quote is one of our requested instruments
+          const matchDirect = currentInstruments.includes(row.id);
+          const symbolPart = row.id.includes(':') ? row.id.split(':')[1] : row.id;
+          const matchSymbol = currentInstruments.includes(symbolPart);
+
+          if (!matchDirect && !matchSymbol) return;
+
+          const closePrice = Number(row.close || 0);
+          const lastPrice = Number(row.last_price || 0);
+          const changePercent = closePrice > 0
+            ? ((lastPrice - closePrice) / closePrice) * 100
+            : 0;
+
+          const quoteData: QuoteData = {
+            lastPrice,
+            change: lastPrice - closePrice,
+            changePercent: parseFloat(changePercent.toFixed(2)),
+            open: Number(row.open || 0),
+            high: Number(row.high || 0),
+            low: Number(row.low || 0),
+            close: closePrice,
+            volume: Number(row.volume || 0),
+            bid: lastPrice,
+            ask: lastPrice,
+          };
+
+          console.log(`[useKiteQuotes Realtime] Received update for ${row.id}: price = ${lastPrice}`);
+
+          // Update both the global cache and the local state
+          globalKiteQuotesCache[row.id] = quoteData;
+          globalKiteQuotesCache[symbolPart] = quoteData;
+
+          setQuotes(prev => {
+            const updated = { ...prev };
+            updated[row.id] = quoteData;
+            updated[symbolPart] = quoteData;
+            return updated;
+          });
+        }
+      );
+
+    channel.subscribe((status) => {
+      console.log(`[useKiteQuotes Realtime] Subscription status for ${channelId}: ${status}`);
+    });
+
+    return () => {
+      console.log(`[useKiteQuotes Realtime] Cleaning up subscription for ${channelId}`);
+      supabase.removeChannel(channel);
+    };
+  }, [instrumentsKey, isAuthReady]);
 
   return { quotes, connected, loading, error, refresh: fetchQuotes };
 }

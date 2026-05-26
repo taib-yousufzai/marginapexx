@@ -24,40 +24,103 @@ import type {
 
 /**
  * Fetch the Kite LTP for one or more instruments server-side.
+ * Resolves from local market_quotes DB cache first, falling back on-demand.
  * Returns a map of instrument -> last_price.
  */
 async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, number>> {
   if (instruments.length === 0) return {};
-  const apiKey = process.env.KITE_API_KEY;
-  if (!apiKey) return {};
+  const result: Record<string, number> = {};
 
   try {
-    const session = await getSharedKiteSession();
-    if (!session) return {};
+    const admin = getAdminClient();
 
-    const params = new URLSearchParams();
-    instruments.forEach(i => params.append('i', i));
+    // 1. Fetch available quotes from database market_quotes
+    const { data: dbQuotes, error: dbError } = await admin
+      .from('market_quotes')
+      .select('id, last_price')
+      .in('id', instruments);
 
-    const res = await fetch(`https://api.kite.trade/quote?${params}`, {
-      headers: {
-        'X-Kite-Version': '3',
-        Authorization: `token ${apiKey}:${session.accessToken}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (!res.ok) return {};
-
-    const data = await res.json() as { data?: Record<string, { last_price: number }> };
-    const result: Record<string, number> = {};
-    for (const inst of instruments) {
-      if (data.data?.[inst]) {
-        result[inst] = data.data[inst].last_price;
+    const foundKiteIds = new Set<string>();
+    if (!dbError && dbQuotes) {
+      for (const row of dbQuotes) {
+        result[row.id] = Number(row.last_price);
+        foundKiteIds.add(row.id);
       }
     }
+
+    // 2. Identify missing instruments
+    const missingKiteIds = instruments.filter(id => !foundKiteIds.has(id));
+
+    // 3. Fallback on-demand fetch from Kite REST API for missing instruments only
+    if (missingKiteIds.length > 0) {
+      const apiKey = process.env.KITE_API_KEY;
+      if (!apiKey) return result;
+      const session = await getSharedKiteSession();
+      if (!session) return result;
+
+      const params = new URLSearchParams();
+      missingKiteIds.forEach(i => params.append('i', i));
+
+      const res = await fetch(`https://api.kite.trade/quote?${params}`, {
+        headers: {
+          'X-Kite-Version': '3',
+          Authorization: `token ${apiKey}:${session.accessToken}`,
+        },
+        cache: 'no-store',
+      });
+
+      if (!res.ok) return result;
+
+      const data = await res.json() as { data?: Record<string, { last_price: number; instrument_token?: number; ohlc?: { close?: number } }> };
+      const instrumentUpserts: any[] = [];
+      const dbUpserts: any[] = [];
+
+      for (const inst of missingKiteIds) {
+        const quote = data.data?.[inst];
+        if (quote) {
+          result[inst] = quote.last_price;
+
+          const parts = inst.split(':');
+          const exchange = parts[0] || 'NSE';
+          const tradingsymbol = parts[1] || '';
+
+          instrumentUpserts.push({
+            id: inst,
+            instrument_token: quote.instrument_token || 0,
+            tradingsymbol,
+            exchange,
+            instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
+            segment: exchange,
+            updated_at: new Date().toISOString()
+          });
+
+          dbUpserts.push({
+            id: inst,
+            last_price: quote.last_price,
+            close: quote.ohlc?.close || 0,
+            quote_timestamp: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+      }
+
+      // Cache missing instruments and quotes asynchronously in background
+      if (instrumentUpserts.length > 0) {
+        (async () => {
+          try {
+            await admin.from('instruments').upsert(instrumentUpserts, { onConflict: 'id' });
+            await admin.from('market_quotes').upsert(dbUpserts, { onConflict: 'id' });
+          } catch (err) {
+            console.error('[fetchKiteQuotes] Background cache error:', err);
+          }
+        })();
+      }
+    }
+
     return result;
-  } catch {
-    return {};
+  } catch (err) {
+    console.error('[fetchKiteQuotes] Error:', err);
+    return result;
   }
 }
 

@@ -20,13 +20,26 @@ import type { ClosePositionResponse } from '@/lib/types/order';
 
 /**
  * Fetch the Kite LTP for a single instrument key server-side.
- * Falls back to null if Kite is not connected or returns an error.
+ * Resolves from local market_quotes DB cache if available, falling back on-demand.
  */
 async function fetchKiteLtp(instrument: string): Promise<number | null> {
-  const apiKey = process.env.KITE_API_KEY;
-  if (!apiKey) return null;
-
   try {
+    const admin = getAdminClient();
+    
+    // 1. Check local db cache
+    const { data: dbQuote, error: dbError } = await admin
+      .from('market_quotes')
+      .select('last_price')
+      .eq('id', instrument)
+      .maybeSingle();
+
+    if (!dbError && dbQuote) {
+      return Number(dbQuote.last_price);
+    }
+
+    // 2. On-demand fallback to Kite REST API
+    const apiKey = process.env.KITE_API_KEY;
+    if (!apiKey) return null;
     const session = await getSharedKiteSession();
     if (!session) return null;
 
@@ -41,9 +54,42 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
 
     if (!res.ok) return null;
 
-    const data = await res.json() as { data?: Record<string, { last_price: number }> };
-    return data.data?.[instrument]?.last_price ?? null;
-  } catch {
+    const data = await res.json() as { data?: Record<string, { last_price: number; instrument_token?: number; ohlc?: { close?: number } }> };
+    const quote = data.data?.[instrument];
+    if (!quote) return null;
+
+    // Cache the instrument and quote asynchronously in background
+    (async () => {
+      try {
+        const parts = instrument.split(':');
+        const exchange = parts[0] || 'NSE';
+        const tradingsymbol = parts[1] || '';
+
+        await admin.from('instruments').upsert({
+          id: instrument,
+          instrument_token: quote.instrument_token || 0,
+          tradingsymbol: tradingsymbol,
+          exchange: exchange,
+          instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
+          segment: exchange,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+
+        await admin.from('market_quotes').upsert({
+          id: instrument,
+          last_price: quote.last_price,
+          close: quote.ohlc?.close || 0,
+          quote_timestamp: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (err) {
+        console.error('[fetchKiteLtp] Background cache error:', err);
+      }
+    })();
+
+    return quote.last_price;
+  } catch (err) {
+    console.error('[fetchKiteLtp] Unexpected error:', err);
     return null;
   }
 }
