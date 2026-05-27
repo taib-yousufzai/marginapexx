@@ -76,18 +76,10 @@ describe('orderMatching', () => {
       })
     );
 
-    // Verify position was created
-    expect(mockSupabase.from).toHaveBeenCalledWith('positions');
-    expect(mockInsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        symbol: 'INFY',
-        side: 'BUY',
-        qty_open: 10,
-        avg_price: 1500,
-        stop_loss: 1450,
-        target: 1600
-      })
-    );
+    // Verify process_executed_position RPC was called
+    expect(mockRpc).toHaveBeenCalledWith('process_executed_position', {
+      p_order_id: 'ord-1'
+    });
   });
 
   it('does NOT trigger a LIMIT BUY order when ltp > price', async () => {

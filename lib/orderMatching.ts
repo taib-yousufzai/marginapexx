@@ -113,30 +113,13 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
           continue;
         }
 
-        // 2. Open a position for the user
-        const { error: insertPosErr } = await admin
-          .from('positions')
-          .insert({
-            user_id: order.user_id,
-            symbol: order.symbol,
-            side: order.side,
-            status: 'open',
-            qty_total: order.qty,
-            qty_open: order.qty,
-            avg_price: fillPrice,
-            entry_price: fillPrice,
-            ltp: ltp,
-            settlement: order.segment,
-            stop_loss: order.stop_loss,
-            sl: order.stop_loss, // Populate both sl and stop_loss for safety
-            target: order.target,
-            tp: order.target, // Populate both tp and target for safety
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+        // 2. Call the unified Postgres RPC to process positions atomically
+        const { error: rpcErr } = await admin.rpc('process_executed_position', {
+          p_order_id: order.id,
+        });
 
-        if (insertPosErr) {
-          console.error(`[Order Matching] Failed to create position for order ${order.id}:`, insertPosErr);
+        if (rpcErr) {
+          console.error(`[Order Matching] Failed to process executed position for order ${order.id}:`, rpcErr);
         }
 
         // 3. Write audit log

@@ -70,6 +70,7 @@ function OptionChainContent() {
 
   const [selectedContract, setSelectedContract] = useState<{ symbol: string, type: 'CE' | 'PE', strike: number } | null>(null);
   const [orderQty, setOrderQty] = useState(25);
+  const [activePositions, setActivePositions] = useState<any[]>([]);
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
@@ -180,6 +181,30 @@ function OptionChainContent() {
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
 
+  // Load active positions regularly for guards
+  useEffect(() => {
+    async function loadActivePositions() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/positions', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setActivePositions(json.positions || []);
+        }
+      } catch (err) {
+        console.error('Failed to load active positions', err);
+      }
+    }
+    loadActivePositions();
+    const interval = setInterval(loadActivePositions, 5000);
+    return () => clearInterval(interval);
+  }, [selectedContract]);
+
   // Fetch initial option chain data
   useEffect(() => {
     async function fetchData() {
@@ -286,7 +311,8 @@ function OptionChainContent() {
       lots: 0,
       order_type: orderType,
       product_type: productType,
-      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice
+      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice,
+      is_exit: false
     });
     if (result.success) {
       showToast(`No. ${side} Order Executed!`, false);
@@ -641,6 +667,13 @@ function OptionChainContent() {
           const bid = ltp > 0 ? ltp - 0.05 : 0;
           const ask = ltp > 0 ? ltp + 0.05 : 0;
 
+          // Find active opposite positions for options direction guards
+          const activePos = activePositions.find(p => {
+            if (p.status !== 'open' || p.qty_open <= 0) return false;
+            const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+            return pMatch && parseFloat(pMatch[1]) === selectedContract.strike && pMatch[2].toUpperCase() === selectedContract.type;
+          });
+
           if (sheetView === 'DETAILS') {
             return (
               <div style={{ padding: '0' }}>
@@ -763,11 +796,73 @@ function OptionChainContent() {
                     </div>
                   </div>
 
+                  {/* Option Chain Block Warning */}
+                  {activePos && (
+                    <div style={{
+                      background: '#FEF2F2',
+                      border: '1.5px solid #FEE2E2',
+                      color: '#991B1B',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      marginBottom: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}>
+                      <i className="fas fa-exclamation-triangle" style={{ color: '#B91C1C' }}></i>
+                      <span>
+                        {activePos.side === 'BUY'
+                          ? 'Cannot open SELL position while BUY position is active'
+                          : 'Cannot open BUY position while SELL position is active'}
+                      </span>
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => { setSheetSide('BUY'); setSheetView('ORDER'); }}>
+                    <button 
+                      style={{ 
+                        flex: 1, 
+                        background: activePos?.side === 'SELL' ? '#9CA3AF' : '#15803D', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '11px 0', 
+                        borderRadius: '30px', 
+                        fontSize: '0.9rem', 
+                        fontWeight: '800', 
+                        cursor: activePos?.side === 'SELL' ? 'not-allowed' : 'pointer', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        opacity: activePos?.side === 'SELL' ? 0.6 : 1
+                      }} 
+                      disabled={activePos?.side === 'SELL'}
+                      onClick={() => { setSheetSide('BUY'); setSheetView('ORDER'); }}
+                    >
                       <i className="fas fa-arrow-up"></i> BUY
                     </button>
-                    <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => { setSheetSide('SELL'); setSheetView('ORDER'); }}>
+                    <button 
+                      style={{ 
+                        flex: 1, 
+                        background: activePos?.side === 'BUY' ? '#9CA3AF' : '#B91C1C', 
+                        color: 'white', 
+                        border: 'none', 
+                        padding: '11px 0', 
+                        borderRadius: '30px', 
+                        fontSize: '0.9rem', 
+                        fontWeight: '800', 
+                        cursor: activePos?.side === 'BUY' ? 'not-allowed' : 'pointer', 
+                        display: 'flex', 
+                        justifyContent: 'center', 
+                        alignItems: 'center', 
+                        gap: '6px',
+                        opacity: activePos?.side === 'BUY' ? 0.6 : 1
+                      }} 
+                      disabled={activePos?.side === 'BUY'}
+                      onClick={() => { setSheetSide('SELL'); setSheetView('ORDER'); }}
+                    >
                       <i className="fas fa-arrow-down"></i> SELL
                     </button>
                   </div>
@@ -983,7 +1078,7 @@ function OptionChainContent() {
                 {sheetSide === 'BUY' ? (
                   <button
                     className="ts-btn ts-btn-buy"
-                    disabled={placingOrder}
+                    disabled={placingOrder || activePos?.side === 'SELL'}
                     onClick={() => handlePlaceOrder('BUY')}
                   >
                     {placingOrder ? 'PLACING...' : 'BUY'}
@@ -991,7 +1086,7 @@ function OptionChainContent() {
                 ) : (
                   <button
                     className="ts-btn ts-btn-sell"
-                    disabled={placingOrder}
+                    disabled={placingOrder || activePos?.side === 'BUY'}
                     onClick={() => handlePlaceOrder('SELL')}
                   >
                     {placingOrder ? 'PLACING...' : 'SELL'}

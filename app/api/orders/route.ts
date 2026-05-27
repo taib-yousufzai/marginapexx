@@ -208,7 +208,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target } = body;
+  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit } = body;
 
   // 3. Basic field validation
   if (!symbol || !side || !qty || !segment) {
@@ -420,12 +420,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     p_info:         null,
     p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null,
     p_stop_loss:    stop_loss ? parseFloat(stop_loss.toString()) : null,
-    p_target:       target ? parseFloat(target.toString()) : null
+    p_target:       target ? parseFloat(target.toString()) : null,
+    p_is_exit:      is_exit ?? false
   });
 
   if (rpcErr) {
     console.error('[POST /api/orders] RPC error:', rpcErr);
-    return NextResponse.json({ error: 'Order execution failed. Please try again.' }, { status: 500 });
+    return NextResponse.json({ error: rpcErr.message || 'Order execution failed. Please try again.' }, { status: 400 });
   }
 
   // Update order_type to 'SLM' in the database if it was an SLM order

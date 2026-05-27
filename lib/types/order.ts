@@ -33,6 +33,8 @@ export interface PlaceOrderRequest {
   stop_loss?: number;
   /** Optional target price for GTT and limit orders */
   target?: number;
+  /** Optional flag indicating if this is an exit order */
+  is_exit?: boolean;
 }
 
 // ─── Response (POST /api/orders) ─────────────────────────────────────────────

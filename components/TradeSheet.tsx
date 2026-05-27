@@ -46,6 +46,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [tpPrice, setTpPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [activePositions, setActivePositions] = useState<any[]>([]);
 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name) : 1;
@@ -88,17 +89,27 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   }, [item?.symbol]);
 
-  // Fetch balance
+  // Fetch balance and active positions
   useEffect(() => {
     if (!isOpen) return;
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token;
       if (!token) return;
+      
+      // Fetch balance
       fetch('/api/pay/balance', {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.json())
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
+        .catch(() => {});
+
+      // Fetch positions
+      fetch('/api/positions', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(r => r.json())
+        .then(data => { if (data.positions) setActivePositions(data.positions); })
         .catch(() => {});
     });
   }, [isOpen]);
@@ -123,6 +134,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
       target: parseFloat(tpPrice) || undefined,
+      is_exit: exitMode,
     });
     if (res.success) {
       showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
@@ -595,12 +607,63 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               </div>
             </div>
 
+            {/* Block Warnings */}
+            {(() => {
+              if (!item || !item.symbol) return null;
+              const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+              if (!match) return null;
+              const strike = parseFloat(match[1]);
+              const optType = match[2].toUpperCase();
+              
+              const activePos = activePositions.find(p => {
+                if (p.status !== 'open' || p.qty_open <= 0) return false;
+                const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+                return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType;
+              });
+
+              if (!activePos || exitMode) return null;
+
+              return (
+                <div style={{
+                  margin: '10px 14px 0',
+                  background: '#FEF2F2',
+                  border: '1.5px solid #FEE2E2',
+                  color: '#991B1B',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <i className="fas fa-exclamation-triangle" style={{ color: '#B91C1C' }}></i>
+                  <span>
+                    {activePos.side === 'BUY' 
+                      ? 'Cannot open SELL position while BUY position is active'
+                      : 'Cannot open BUY position while SELL position is active'}
+                  </span>
+                </div>
+              );
+            })()}
+
             {/* Footer */}
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
                 <button
                   className={`ts2-btn${exitMode ? ' ts2-btn-sell' : ' ts2-btn-buy'}`}
-                  disabled={placingOrder}
+                  disabled={placingOrder || (() => {
+                    if (exitMode || !item || !item.symbol) return false;
+                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+                    if (!match) return false;
+                    const strike = parseFloat(match[1]);
+                    const optType = match[2].toUpperCase();
+                    return activePositions.some(p => {
+                      if (p.status !== 'open' || p.qty_open <= 0) return false;
+                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'SELL';
+                    });
+                  })()}
                   onClick={() => handlePlace('BUY')}
                 >
                   {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'BUY'}
@@ -609,7 +672,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               {(side === 'SELL' || side === 'BOTH') && (
                 <button
                   className="ts2-btn ts2-btn-sell"
-                  disabled={placingOrder}
+                  disabled={placingOrder || (() => {
+                    if (exitMode || !item || !item.symbol) return false;
+                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+                    if (!match) return false;
+                    const strike = parseFloat(match[1]);
+                    const optType = match[2].toUpperCase();
+                    return activePositions.some(p => {
+                      if (p.status !== 'open' || p.qty_open <= 0) return false;
+                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'BUY';
+                    });
+                  })()}
                   onClick={() => handlePlace('SELL')}
                 >
                   {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'SELL'}
