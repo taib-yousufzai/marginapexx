@@ -2,6 +2,7 @@
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS is_exit boolean DEFAULT false;
 
 -- ─── 2. Create parse_option_symbol utility function ───
+DROP FUNCTION IF EXISTS public.parse_option_symbol(text);
 CREATE OR REPLACE FUNCTION public.parse_option_symbol(
   p_symbol text,
   OUT strike numeric,
