@@ -1926,6 +1926,10 @@ body.dark .watchlist-count {
     background: #2a2a2a;
 }
 
+body.dark .watchlist-title {
+    color: #B0B0B0;
+}
+
 body.dark .action-hint {
     background: #2a2a2a;
     color: #888;
@@ -2926,7 +2930,7 @@ body.dark .instrument-delete-btn:hover {
 
 /* ── Dark mode overrides for new components ── */
 .dark .seg-tab {
-    color: #6B728E;
+    color: #B0B0B0;
 }
 
 .dark .seg-tab--active {

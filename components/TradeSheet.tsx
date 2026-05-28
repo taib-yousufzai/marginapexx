@@ -607,86 +607,26 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               </div>
             </div>
 
-            {/* Block Warnings */}
-            {(() => {
-              if (!item || !item.symbol) return null;
-              const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-              if (!match) return null;
-              const strike = parseFloat(match[1]);
-              const optType = match[2].toUpperCase();
-              
-              const activePos = activePositions.find(p => {
-                if (p.status !== 'open' || p.qty_open <= 0) return false;
-                const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType;
-              });
-
-              if (!activePos || exitMode) return null;
-
-              return (
-                <div style={{
-                  margin: '10px 14px 0',
-                  background: '#FEF2F2',
-                  border: '1.5px solid #FEE2E2',
-                  color: '#991B1B',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  <i className="fas fa-exclamation-triangle" style={{ color: '#B91C1C' }}></i>
-                  <span>
-                    {activePos.side === 'BUY' 
-                      ? 'Cannot open SELL position while BUY position is active'
-                      : 'Cannot open BUY position while SELL position is active'}
-                  </span>
-                </div>
-              );
-            })()}
+            {/* Block Warnings Removed - Hedging is now supported */}
 
             {/* Footer */}
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
                 <button
-                  className={`ts2-btn${exitMode ? ' ts2-btn-sell' : ' ts2-btn-buy'}`}
-                  disabled={placingOrder || (() => {
-                    if (exitMode || !item || !item.symbol) return false;
-                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                    if (!match) return false;
-                    const strike = parseFloat(match[1]);
-                    const optType = match[2].toUpperCase();
-                    return activePositions.some(p => {
-                      if (p.status !== 'open' || p.qty_open <= 0) return false;
-                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'SELL';
-                    });
-                  })()}
+                  className={`ts2-btn${exitMode ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
+                  disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : exitMode ? 'SELL EXIT' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
                 <button
                   className="ts2-btn ts2-btn-sell"
-                  disabled={placingOrder || (() => {
-                    if (exitMode || !item || !item.symbol) return false;
-                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                    if (!match) return false;
-                    const strike = parseFloat(match[1]);
-                    const optType = match[2].toUpperCase();
-                    return activePositions.some(p => {
-                      if (p.status !== 'open' || p.qty_open <= 0) return false;
-                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'BUY';
-                    });
-                  })()}
+                  disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : exitMode ? 'BUY EXIT' : 'SELL'}
                 </button>
               )}
             </div>

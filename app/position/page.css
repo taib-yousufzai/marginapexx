@@ -339,8 +339,14 @@
   background: linear-gradient(135deg, #F8FAFE 0%, #FFFFFF 100%);
   border: 1.5px solid #EDF2F7;
   border-radius: 20px;
-  padding: 14px 16px 12px 16px;
+  padding: 14px 8px 12px 8px;
   flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+  .pos-pnl-card {
+    padding: 14px 16px 12px 16px;
+  }
 }
 
 .pos-pnl-card-title {
@@ -359,6 +365,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
 }
 
 .pos-pnl-col {
@@ -393,6 +400,8 @@
 .pos-pnl-val {
   font-size: 14px;
   font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: -0.3px;
 }
 
 .pos-pnl-val.green {
@@ -406,6 +415,8 @@
 .pos-pnl-total {
   font-size: 22px;
   font-weight: 800;
+  white-space: nowrap;
+  letter-spacing: -0.8px;
 }
 
 .pos-pnl-total.green {
@@ -909,14 +920,27 @@ body.dark .pos-detail-margin-val { color: #D0D0D0; }
     overflow: visible;
   }
 
+  .pos-pnl-card {
+    padding: 14px 16px 12px 16px;
+  }
+
   .pos-pnl-card-body {
     justify-content: space-between;
+    gap: 16px;
   }
 
   .pos-pnl-col.left,
   .pos-pnl-col.center,
   .pos-pnl-col.right {
     flex: 1;
+  }
+
+  .pos-pnl-val {
+    letter-spacing: normal;
+  }
+
+  .pos-pnl-total {
+    letter-spacing: normal;
   }
 
   .pos-sheet {

@@ -681,29 +681,29 @@ function OptionChainContent() {
                 <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '3px', lineHeight: '1.1', letterSpacing: '-0.3px' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
-                      <span style={{ fontSize: '0.55rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '3px 8px', borderRadius: '20px', lineHeight: '1', display: 'inline-block', letterSpacing: '0.5px' }}>{selectedContract.symbol}</span>
+                      <div style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '3px', lineHeight: '1.1', letterSpacing: '-0.3px' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
+                      <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '3px 8px', borderRadius: '20px', lineHeight: '1', display: 'inline-block', letterSpacing: '0.5px' }}>{selectedContract.symbol}</span>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <div style={{ fontSize: '0.5rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '3px', letterSpacing: '0.5px' }}>CMP</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px', lineHeight: '1', letterSpacing: '-0.5px' }}>₹{ltp.toFixed(2)}</div>
-                    <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '4px 8px', borderRadius: '6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626', background: chgPct >= 0 ? '#ECFDF5' : '#FEF2F2' }}>
+                    <div style={{ fontSize: '0.6rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.5px' }}>CMP</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '3px', lineHeight: '1', letterSpacing: '-0.5px' }}>₹{ltp.toFixed(2)}</div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '800', padding: '4px 8px', borderRadius: '6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626', background: chgPct >= 0 ? '#ECFDF5' : '#FEF2F2' }}>
                       {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
                     </span>
                   </div>
                 </div>
                 <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
                 <div style={{ padding: '0 12px 10px 12px' }}>
-                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '10px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                     <div style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>₹{bid.toFixed(2)}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#059669' }}>₹{bid.toFixed(2)}</div>
                     </div>
-                    <div style={{ width: '1px', background: 'var(--border-card)', height: '24px' }}></div>
+                    <div style={{ width: '1px', background: 'var(--border-card)', height: '28px' }}></div>
                     <div style={{ flex: 1, textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>₹{ask.toFixed(2)}</div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#DC2626' }}>₹{ask.toFixed(2)}</div>
                     </div>
                   </div>
 
