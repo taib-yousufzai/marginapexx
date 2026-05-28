@@ -103,7 +103,7 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
               onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
               style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
             >
-              {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
+              {showComex ? '₹ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ ₹ COMEX'}
             </div>
           )}
         </div>
@@ -115,9 +115,9 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
               <div className="instr-row__ltp">
                 <TickFlash value={ltp}>
                   {isCrypto
-                    ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     : showComex
-                      ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                       : `LTP: ${ltp.toFixed(2)}`}
                 </TickFlash>
               </div>

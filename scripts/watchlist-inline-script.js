@@ -32,7 +32,7 @@ var toastEl=document.getElementById('toastMessageMobile');
 
 function showToast(msg,isError){if(toastTimeout)clearTimeout(toastTimeout);toastEl.textContent=msg;toastEl.style.background=isError?'#C62E2E':'#2C8E5A';toastEl.style.opacity='1';toastEl.style.visibility='visible';toastTimeout=setTimeout(function(){toastEl.style.opacity='0';toastEl.style.visibility='hidden';},2000);}
 
-function formatPrice(price,isCrypto){var numPrice=typeof price==='number'?price:parseFloat(price);if(isCrypto)return '$'+numPrice.toFixed(2);return'₹'+numPrice.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function formatPrice(price,isCrypto){var numPrice=typeof price==='number'?price:parseFloat(price);return'₹'+numPrice.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 function getLiveData(item){if(item.binanceSymbol&&window.__binanceQuotes&&window.__binanceQuotes[item.binanceSymbol]){var q=window.__binanceQuotes[item.binanceSymbol];return{price:q.price,change:q.change+'%',open:q.open,high:q.high,low:q.low,close:q.close};}if(item.comexSymbol&&window.__comexQuotes&&window.__comexQuotes[item.comexSymbol]){var q=window.__comexQuotes[item.comexSymbol];return{price:q.price,change:q.change+'%',open:q.open,high:q.high,low:q.low,close:q.close};}if(item.kiteSymbol&&window.__kiteQuotes&&window.__kiteQuotes[item.kiteSymbol]){var q=window.__kiteQuotes[item.kiteSymbol];return{price:q.lastPrice,change:(q.changePercent>=0?'+':'')+q.changePercent.toFixed(2)+'%',open:q.open,high:q.high,low:q.low,close:q.close};}return{price:item.price,change:item.change,open:item.open,high:item.high,low:item.low,close:item.close};}
 

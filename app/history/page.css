@@ -298,6 +298,7 @@
 
 .history-root .detail-item {
     display: flex;
+    flex-direction: row !important;
     align-items: center;
     gap: 4px;
 }
@@ -459,7 +460,7 @@ body.dark .history-footer .footer-label {
     color: #B0B0B0 !important;
 }
 
-body.dark .history-footer .footer-value {
+body.dark .history-footer .footer-value:not(.net-profit):not(.net-loss) {
     color: #F5F5F5 !important;
 }
 

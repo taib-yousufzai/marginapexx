@@ -35,7 +35,18 @@ export async function POST(
       return NextResponse.json({ error: 'Position not found' }, { status: 404 });
     }
 
-    // 2. Update all EXECUTED orders for this user, symbol, and side
+    // 2. Update the position row itself in the positions table
+    const { error: posUpdateErr } = await admin.from('positions')
+      .update({ product_type })
+      .eq('id', positionId)
+      .eq('user_id', user.id);
+
+    if (posUpdateErr) {
+      console.error('[Positions Convert API] Error updating position:', posUpdateErr);
+      return NextResponse.json({ error: 'Failed to convert position product type' }, { status: 500 });
+    }
+
+    // 3. Update all EXECUTED orders for this user, symbol, and side (as fallback / consistency)
     const { error: ordErr } = await admin.from('orders')
       .update({ product_type })
       .eq('user_id', user.id)
@@ -45,7 +56,6 @@ export async function POST(
 
     if (ordErr) {
       console.error('[Positions Convert API] Error updating orders:', ordErr);
-      return NextResponse.json({ error: 'Failed to convert position product type' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, product_type }, { status: 200 });

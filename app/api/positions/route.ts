@@ -25,17 +25,17 @@ export async function GET(request: NextRequest) {
 
     if (posResult.error) throw posResult.error;
 
-    // Build a map: "SYMBOL|SIDE" -> product_type (first executed order wins)
+    // Build a map: "SYMBOL|SIDE" -> product_type (first executed order wins) as fallback
     const productTypeMap: Record<string, string> = {};
     for (const o of (ordResult.data ?? [])) {
       const key = `${o.symbol}|${o.side}`;
       if (!productTypeMap[key]) productTypeMap[key] = o.product_type ?? 'INTRADAY';
     }
 
-    // Attach product_type to each position
+    // Attach product_type to each position, prioritizing position's own stored product_type
     const positions = (posResult.data ?? []).map(p => ({
       ...p,
-      product_type: productTypeMap[`${p.symbol}|${p.side}`] ?? 'INTRADAY',
+      product_type: p.product_type || productTypeMap[`${p.symbol}|${p.side}`] || 'INTRADAY',
     }));
 
     return NextResponse.json({ positions });

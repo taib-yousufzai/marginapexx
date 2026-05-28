@@ -232,14 +232,12 @@ export default function PositionPage() {
   const unrealized = positions.filter(p => p.status === 'open' || p.status === 'active').reduce((acc, p) => acc + (p.total_pnl || 0), 0);
 
   const fmtUSD = (val: number, settlement?: string) => {
-    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
     const sign = val >= 0 ? '+' : '-';
-    return `${sign}${isUSD ? '$' : '₹'}${Math.abs(val).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const fmtPrice = (val: number, settlement?: string) => {
-    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
-    return `${isUSD ? '$' : '₹'}${val.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (

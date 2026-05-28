@@ -320,7 +320,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
               onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
               style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
             >
-              {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
+              {showComex ? '₹ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ ₹ COMEX'}
             </div>
           )}
         </div>
@@ -331,9 +331,9 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
             <>
               <div className="instr-row__ltp">
                 {isCrypto
-                  ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : showComex
-                    ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     : `LTP: ${ltp.toFixed(2)}`}
               </div>
               <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
@@ -964,7 +964,7 @@ function WatchlistContent() {
 
     if (result.success) {
       closeTradeSheet();
-      const symbol = (selectedItem.binanceSymbol || selectedItem.comexSymbol) ? '$' : '₹';
+      const symbol = '₹';
       showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
       showToast(`❌ Order Failed: ${result.error}`, true);
@@ -1005,7 +1005,6 @@ function WatchlistContent() {
 
   const formatPrice = (price: number | undefined | null) => {
     if (price === undefined || price === null || isNaN(price as number)) return '--';
-    if (isCrypto || isComex) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -1440,7 +1439,7 @@ function WatchlistContent() {
               const q = legIsCrypto ? binanceQuotes[leg.item.binanceSymbol!] : (legIsComex ? comexQuotes[leg.item.comexSymbol!] : quotes[leg.item.kiteSymbol]);
               const ltp = q?.lastPrice ?? leg.item.price;
               const totalVal = ltp * leg.qty;
-              const legSymbol = (legIsCrypto || legIsComex) ? '$' : '₹';
+              const legSymbol = '₹';
               return (
                 <div key={i} style={{ background: 'var(--card-alt-bg, #F8FAFF)', border: '1px solid var(--border-card, #EEF2F8)', borderRadius: '16px', padding: '14px' }}>
                   {/* Header row */}
@@ -1852,7 +1851,6 @@ function buildInlineScript(allowedSegments: string[]): string {
 
       function formatPrice(price, isCrypto) {
         var numPrice = typeof price === 'number' ? price : parseFloat(price);
-        if (isCrypto) return '$' + numPrice.toFixed(2);
         return '₹' + numPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
 
