@@ -285,22 +285,22 @@ function OptionChainContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedContract) return;
     
-    const activePos = activePositions.find(p => {
-      if (p.status !== 'open' || p.qty_open <= 0) return false;
-      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-      return pMatch && parseFloat(pMatch[1]) === selectedContract.strike && pMatch[2].toUpperCase() === selectedContract.type;
-    });
+    const activePos = activePositions.find(p =>
+      (p.status === 'open' || p.status === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
+    );
     const isExitOrder = (side === 'BUY' && activePos?.side === 'SELL') || (side === 'SELL' && activePos?.side === 'BUY');
 
     const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
     const currentPrice = kiteId ? (quotes[kiteId]?.lastPrice || 0) : 0;
+    const actualQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+    const actualLots = orderUnit === 'lot' ? orderQty : Math.floor(orderQty / lotSize);
     const result = await placeOrder({
       symbol: selectedContract.symbol,
       kite_instrument: kiteId || selectedContract.symbol,
       segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BFO' : 'NFO',
       side,
-      qty: orderQty,
-      lots: 0,
+      qty: actualQty,
+      lots: actualLots,
       order_type: orderType,
       product_type: productType,
       client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice,
@@ -660,11 +660,9 @@ function OptionChainContent() {
           const ask = ltp > 0 ? ltp + 0.05 : 0;
 
           // Find active opposite positions for options direction guards
-          const activePos = activePositions.find(p => {
-            if (p.status !== 'open' || p.qty_open <= 0) return false;
-            const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-            return pMatch && parseFloat(pMatch[1]) === selectedContract.strike && pMatch[2].toUpperCase() === selectedContract.type;
-          });
+          const activePos = activePositions.find(p =>
+            (p.status === 'open' || p.status === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
+          );
 
           if (sheetView === 'DETAILS') {
             return (
@@ -838,8 +836,8 @@ function OptionChainContent() {
           }
 
           // ORDER / TRADE SHEET VIEW
-          const calculatedRequiredMargin = (ltp || 10) * orderQty;
           const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+          const calculatedRequiredMargin = (ltp || 10) * totalQty;
 
           return (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
