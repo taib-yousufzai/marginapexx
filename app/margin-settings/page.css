@@ -8,7 +8,7 @@
 }
 
 body.dark {
-  background: #0F172A; /* Fallback if dark mode is active, but we stick to premium white mostly */
+  background: var(--bg-body); /* Fallback if dark mode is active */
 }
 
 /* Page Layout */
@@ -22,7 +22,7 @@ body.dark {
 }
 
 body.dark .margin-settings-content {
-  background: #0F172A;
+  background: var(--bg-body);
 }
 
 /* Premium Back Button */
@@ -43,9 +43,9 @@ body.dark .margin-settings-content {
 }
 
 body.dark .back-button {
-  background: #1E293B;
-  border-color: #334155;
-  color: #F8FAFC;
+  background: var(--card-bg);
+  border-color: var(--border-light);
+  color: var(--text-primary);
 }
 
 .back-button:hover {
@@ -54,7 +54,7 @@ body.dark .back-button {
 }
 
 body.dark .back-button:hover {
-  background: #334155;
+  background: var(--card-alt-bg);
 }
 
 /* Grid & Segment Cards List */
@@ -77,8 +77,8 @@ body.dark .back-button:hover {
 }
 
 body.dark .segment-premium-card {
-  background: #1E293B;
-  border-color: #334155;
+  background: var(--card-bg);
+  border-color: var(--border-light);
 }
 
 .segment-premium-card:hover {
@@ -87,7 +87,7 @@ body.dark .segment-premium-card {
 }
 
 body.dark .segment-premium-card:hover {
-  border-color: #475569;
+  border-color: var(--border-card);
 }
 
 /* Card Header */
@@ -101,7 +101,7 @@ body.dark .segment-premium-card:hover {
 }
 
 body.dark .card-top-header {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--border-light);
 }
 
 .segment-label {
@@ -339,8 +339,8 @@ body.dark .badge-transaction.sell {
 }
 
 body.dark .scalper-modal-card {
-  background: #1E293B;
-  border-color: #334155;
+  background: var(--card-bg);
+  border-color: var(--border-light);
 }
 
 .scalper-modal-overlay.active .scalper-modal-card {
@@ -356,7 +356,7 @@ body.dark .scalper-modal-card {
 }
 
 body.dark .modal-header {
-  border-bottom-color: #334155;
+  border-bottom-color: var(--border-light);
 }
 
 .modal-title {
@@ -415,8 +415,8 @@ body.dark .modal-intro-text {
 }
 
 body.dark .mode-option-card {
-  background: #1E293B;
-  border-color: #334155;
+  background: var(--card-bg);
+  border-color: var(--border-light);
 }
 
 .mode-option-card:hover {
@@ -425,8 +425,8 @@ body.dark .mode-option-card {
 }
 
 body.dark .mode-option-card:hover {
-  border-color: #475569;
-  background: #0F172A;
+  border-color: var(--border-card);
+  background: var(--card-alt-bg);
 }
 
 .mode-option-title {
@@ -494,8 +494,8 @@ body.dark .warning-48h {
 }
 
 body.dark .modal-footer {
-  background: #1E293B;
-  border-top-color: #334155;
+  background: var(--card-bg);
+  border-top-color: var(--border-light);
 }
 
 .modal-btn {
@@ -524,7 +524,7 @@ body.dark .modal-btn.cancel {
 }
 
 body.dark .modal-btn.cancel:hover {
-  background: #0F172A;
+  background: var(--card-alt-bg);
 }
 
 .modal-btn.confirm {
@@ -555,8 +555,8 @@ body.dark .modal-btn.confirm:hover {
 }
 
 body.dark .compact-header {
-  background: #1E293B;
-  border-bottom-color: #334155;
+  background: var(--bg-body);
+  border-bottom-color: var(--border-light);
 }
 
 .header-row-top {
@@ -601,7 +601,7 @@ body.dark .instruction-label {
 }
 
 body.dark .rectangle-toggle-group {
-  background: #0F172A;
+  background: var(--card-alt-bg);
 }
 
 .rect-toggle-btn {
@@ -631,8 +631,8 @@ body.dark .rect-toggle-btn {
 }
 
 body.dark .rect-toggle-btn.active-toggle {
-  background: #334155;
-  color: #F8FAFC;
+  background: var(--border-card);
+  color: var(--text-primary);
 }
 
 .select-mode-btn {
@@ -719,8 +719,8 @@ body.dark .rules-trigger-btn {
 }
 
 body.dark .condition-num {
-  background: #0F172A;
-  color: #94A3B8;
+  background: var(--card-alt-bg);
+  color: var(--text-secondary);
 }
 
 .condition-desc strong {
