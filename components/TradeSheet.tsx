@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
+import { useActivePositions } from '@/hooks/useActivePositions';
 
 export interface TradeSheetItem {
   name: string;
@@ -46,7 +47,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [tpPrice, setTpPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [activePositions, setActivePositions] = useState<any[]>([]);
+  
+  const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name) : 1;
@@ -92,6 +94,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   // Fetch balance and active positions
   useEffect(() => {
     if (!isOpen) return;
+    refreshPositions();
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token;
       if (!token) return;
@@ -103,21 +106,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .then(r => r.json())
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
         .catch(() => {});
-
-      // Fetch positions
-      fetch('/api/positions', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(r => r.json())
-        .then(data => { if (data.positions) setActivePositions(data.positions); })
-        .catch(() => {});
     });
-  }, [isOpen]);
+  }, [isOpen, refreshPositions]);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
+
+  const existingPos = activePositions.find(p => p.symbol === item?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+  const hasBuyPos = existingPos?.side === 'BUY';
+  const hasSellPos = existingPos?.side === 'SELL';
 
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
     if (!item) return;
@@ -134,7 +133,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
       target: parseFloat(tpPrice) || undefined,
-      is_exit: exitMode,
+      is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
     });
     if (res.success) {
       showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
@@ -252,7 +251,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           cursor: pointer; border: none; background: transparent; transition: all 0.2s;
         }
         .ts2-toggle-opt.active {
-          background: var(--chip-active-bg, #fff); color: var(--chip-active-text, #111827);
+          background: #FFFFFF; color: #111827;
           box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
 
@@ -382,7 +381,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
       <div className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
 
-      <div className={`ts2-sheet${isOpen ? ' open' : ''}`}>
+      <div className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''}`}>
         {item && (
           <>
             {/* Header */}
@@ -625,11 +624,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
                 <button
-                  className={`ts2-btn${exitMode ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
+                  className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
                   disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'SELL EXIT' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : (exitMode || hasSellPos) ? 'EXIT SELL' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
@@ -638,7 +637,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'BUY EXIT' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : (exitMode || hasBuyPos) ? 'EXIT BUY' : 'SELL'}
                 </button>
               )}
             </div>

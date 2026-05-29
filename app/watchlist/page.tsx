@@ -7,6 +7,7 @@ import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
+import { useActivePositions } from '@/hooks/useActivePositions';
 import './page.css';
 
 interface WatchlistItem {
@@ -464,6 +465,7 @@ function WatchlistContent() {
   const searchParams = useSearchParams();
   useAuth();
   const { placeOrder, loading: placingOrder, error: placeOrderError } = useOrderEntry();
+  const { positions: activePositions } = useActivePositions();
 
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
@@ -938,6 +940,11 @@ function WatchlistContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
+    const existingPos = activePositions.find(p => p.symbol === selectedItem.symbol && (p.status === 'open' || p.status === 'OPEN'));
+    const hasBuyPos = existingPos?.side === 'BUY';
+    const hasSellPos = existingPos?.side === 'SELL';
+    const isExitOrder = (side === 'BUY' && hasSellPos) || (side === 'SELL' && hasBuyPos);
+
     // Resolve live LTP from correct source (mirrors the trade sheet display logic)
     const isCryptoItem = !!(selectedItem.binanceSymbol);
     let livePrice = selectedItem.price;
@@ -959,7 +966,8 @@ function WatchlistContent() {
       client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) : livePrice,
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
-      target: parseFloat(tpPrice) || undefined
+      target: parseFloat(tpPrice) || undefined,
+      is_exit: isExitOrder
     });
 
     if (result.success) {
@@ -1328,26 +1336,36 @@ function WatchlistContent() {
       </div>
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
-        {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
-          <button
-            className="ts-btn ts-btn-buy"
-            id="sheetBuyBtn"
-            disabled={placingOrder}
-            onClick={() => handlePlaceOrder('BUY')}
-          >
-            {placingOrder ? 'PLACING...' : 'BUY'}
-          </button>
-        )}
-        {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
-          <button
-            className="ts-btn ts-btn-sell"
-            id="sheetSellBtn"
-            disabled={placingOrder}
-            onClick={() => handlePlaceOrder('SELL')}
-          >
-            {placingOrder ? 'PLACING...' : 'SELL'}
-          </button>
-        )}
+        {(() => {
+          const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+          const hasBuyPos = existingPos?.side === 'BUY';
+          const hasSellPos = existingPos?.side === 'SELL';
+
+          return (
+            <>
+              {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
+                <button
+                  className="ts-btn ts-btn-buy"
+                  id="sheetBuyBtn"
+                  disabled={placingOrder}
+                  onClick={() => handlePlaceOrder('BUY')}
+                >
+                  {placingOrder ? 'PLACING...' : hasSellPos ? 'EXIT SELL' : 'BUY'}
+                </button>
+              )}
+              {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
+                <button
+                  className="ts-btn ts-btn-sell"
+                  id="sheetSellBtn"
+                  disabled={placingOrder}
+                  onClick={() => handlePlaceOrder('SELL')}
+                >
+                  {placingOrder ? 'PLACING...' : hasBuyPos ? 'EXIT BUY' : 'SELL'}
+                </button>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>

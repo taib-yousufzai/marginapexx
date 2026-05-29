@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
+import { useActivePositions } from '@/hooks/useActivePositions';
 import { useKiteQuotes } from '@/hooks/useKiteQuotes';
 import OptionChainTable from './OptionChainTable';
 import Footer from '@/components/Footer';
@@ -70,7 +71,7 @@ function OptionChainContent() {
 
   const [selectedContract, setSelectedContract] = useState<{ symbol: string, type: 'CE' | 'PE', strike: number } | null>(null);
   const [orderQty, setOrderQty] = useState(25);
-  const [activePositions, setActivePositions] = useState<any[]>([]);
+  const { positions: activePositions, refreshPositions } = useActivePositions();
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
@@ -181,29 +182,12 @@ function OptionChainContent() {
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
 
-  // Load active positions regularly for guards
+  // Refresh positions when selected contract changes
   useEffect(() => {
-    async function loadActivePositions() {
-      try {
-        const { supabase: sb } = await import('@/lib/supabaseClient');
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) return;
-        const res = await fetch('/api/positions', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-          cache: 'no-store'
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setActivePositions(json.positions || []);
-        }
-      } catch (err) {
-        console.error('Failed to load active positions', err);
-      }
-    }
-    loadActivePositions();
-    const interval = setInterval(loadActivePositions, 5000);
+    refreshPositions();
+    const interval = setInterval(refreshPositions, 5000);
     return () => clearInterval(interval);
-  }, [selectedContract]);
+  }, [selectedContract, refreshPositions]);
 
   // Fetch initial option chain data
   useEffect(() => {
@@ -300,6 +284,14 @@ function OptionChainContent() {
 
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedContract) return;
+    
+    const activePos = activePositions.find(p => {
+      if (p.status !== 'open' || p.qty_open <= 0) return false;
+      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
+      return pMatch && parseFloat(pMatch[1]) === selectedContract.strike && pMatch[2].toUpperCase() === selectedContract.type;
+    });
+    const isExitOrder = (side === 'BUY' && activePos?.side === 'SELL') || (side === 'SELL' && activePos?.side === 'BUY');
+
     const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
     const currentPrice = kiteId ? (quotes[kiteId]?.lastPrice || 0) : 0;
     const result = await placeOrder({
@@ -312,7 +304,7 @@ function OptionChainContent() {
       order_type: orderType,
       product_type: productType,
       client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice,
-      is_exit: false
+      is_exit: isExitOrder
     });
     if (result.success) {
       showToast(`No. ${side} Order Executed!`, false);
@@ -796,74 +788,48 @@ function OptionChainContent() {
                     </div>
                   </div>
 
-                  {/* Option Chain Block Warning */}
-                  {activePos && (
-                    <div style={{
-                      background: '#FEF2F2',
-                      border: '1.5px solid #FEE2E2',
-                      color: '#991B1B',
-                      padding: '10px 12px',
-                      borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      marginBottom: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}>
-                      <i className="fas fa-exclamation-triangle" style={{ color: '#B91C1C' }}></i>
-                      <span>
-                        {activePos.side === 'BUY'
-                          ? 'Cannot open SELL position while BUY position is active'
-                          : 'Cannot open BUY position while SELL position is active'}
-                      </span>
-                    </div>
-                  )}
+
 
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button 
                       style={{ 
                         flex: 1, 
-                        background: activePos?.side === 'SELL' ? '#9CA3AF' : '#15803D', 
+                        background: activePos?.side === 'SELL' ? '#C62E2E' : '#15803D', 
                         color: 'white', 
                         border: 'none', 
                         padding: '11px 0', 
                         borderRadius: '30px', 
                         fontSize: '0.9rem', 
                         fontWeight: '800', 
-                        cursor: activePos?.side === 'SELL' ? 'not-allowed' : 'pointer', 
+                        cursor: 'pointer', 
                         display: 'flex', 
                         justifyContent: 'center', 
                         alignItems: 'center', 
-                        gap: '6px',
-                        opacity: activePos?.side === 'SELL' ? 0.6 : 1
+                        gap: '6px'
                       }} 
-                      disabled={activePos?.side === 'SELL'}
                       onClick={() => { setSheetSide('BUY'); setSheetView('ORDER'); }}
                     >
-                      <i className="fas fa-arrow-up"></i> BUY
+                      {activePos?.side === 'SELL' ? 'EXIT SELL' : <><i className="fas fa-arrow-up"></i> BUY</>}
                     </button>
                     <button 
                       style={{ 
                         flex: 1, 
-                        background: activePos?.side === 'BUY' ? '#9CA3AF' : '#B91C1C', 
+                        background: activePos?.side === 'BUY' ? '#2C8E5A' : '#B91C1C', 
                         color: 'white', 
                         border: 'none', 
                         padding: '11px 0', 
                         borderRadius: '30px', 
                         fontSize: '0.9rem', 
                         fontWeight: '800', 
-                        cursor: activePos?.side === 'BUY' ? 'not-allowed' : 'pointer', 
+                        cursor: 'pointer', 
                         display: 'flex', 
                         justifyContent: 'center', 
                         alignItems: 'center', 
-                        gap: '6px',
-                        opacity: activePos?.side === 'BUY' ? 0.6 : 1
+                        gap: '6px'
                       }} 
-                      disabled={activePos?.side === 'BUY'}
                       onClick={() => { setSheetSide('SELL'); setSheetView('ORDER'); }}
                     >
-                      <i className="fas fa-arrow-down"></i> SELL
+                      {activePos?.side === 'BUY' ? 'EXIT BUY' : <><i className="fas fa-arrow-down"></i> SELL</>}
                     </button>
                   </div>
                 </div>
@@ -1078,18 +1044,18 @@ function OptionChainContent() {
                 {sheetSide === 'BUY' ? (
                   <button
                     className="ts-btn ts-btn-buy"
-                    disabled={placingOrder || activePos?.side === 'SELL'}
+                    disabled={placingOrder}
                     onClick={() => handlePlaceOrder('BUY')}
                   >
-                    {placingOrder ? 'PLACING...' : 'BUY'}
+                    {placingOrder ? 'PLACING...' : activePos?.side === 'SELL' ? 'EXIT SELL' : 'BUY'}
                   </button>
                 ) : (
                   <button
                     className="ts-btn ts-btn-sell"
-                    disabled={placingOrder || activePos?.side === 'BUY'}
+                    disabled={placingOrder}
                     onClick={() => handlePlaceOrder('SELL')}
                   >
-                    {placingOrder ? 'PLACING...' : 'SELL'}
+                    {placingOrder ? 'PLACING...' : activePos?.side === 'BUY' ? 'EXIT BUY' : 'SELL'}
                   </button>
                 )}
               </div>
