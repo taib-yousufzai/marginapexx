@@ -107,10 +107,11 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, 1000);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
 
-  // Live P&L and Used Margin calculations
-  const { floatingPnl, usedMargin } = useMemo(() => {
+  // Live P&L, Used Margin and Equity (Position Value) calculations
+  const { floatingPnl, usedMargin, positionValue } = useMemo(() => {
     let totalUnrealised = 0;
     let totalUsedMargin = 0;
+    let totalPositionValue = 0;
 
     rawPositions.forEach(p => {
       if (p.status === 'open' || p.status === 'active') {
@@ -136,17 +137,19 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         }
         totalUnrealised += unrealised;
         totalUsedMargin += Number(p.margin_required || p.margin_used || 0);
+        totalPositionValue += p.qty_open * ltp;
       }
     });
 
     return {
       floatingPnl: totalUnrealised,
-      usedMargin: totalUsedMargin
+      usedMargin: totalUsedMargin,
+      positionValue: totalPositionValue
     };
   }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes]);
 
-  const equity = balance + floatingPnl;
-  const freeMargin = equity - usedMargin;
+  const equity = positionValue;
+  const freeMargin = (balance + floatingPnl) - usedMargin;
   const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const [openHeight, setOpenHeight] = useState(0);
