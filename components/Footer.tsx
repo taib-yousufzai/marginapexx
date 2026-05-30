@@ -1,8 +1,11 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import TickFlash from '@/components/TickFlash';
+import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
+import { useComexQuotes } from '@/hooks/useComexQuotes';
 import './Footer.css';
 
 interface FooterProps {
@@ -28,8 +31,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   }, []);
 
   const [balance, setBalance] = useState(0);
-  const [floatingPnl, setFloatingPnl] = useState(0);
-  const [usedMargin, setUsedMargin] = useState(0);
+  const [rawPositions, setRawPositions] = useState<any[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -47,16 +49,13 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         setBalance(balance);
       }
 
-      // Fetch positions for Floating P/L
+      // Fetch positions
       const posRes = await fetch('/api/positions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (posRes.ok) {
         const { positions } = await posRes.json();
-        const pnl = (positions || []).reduce((acc: number, p: any) => acc + (p.pnl || 0), 0);
-        const used = (positions || []).reduce((acc: number, p: any) => acc + (p.margin_used || 0), 0);
-        setFloatingPnl(pnl);
-        setUsedMargin(used);
+        setRawPositions(positions || []);
       }
     } catch (err) {
       if (err instanceof TypeError) return;
@@ -82,6 +81,69 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       if (timerId) clearTimeout(timerId);
     };
   }, []);
+
+  // Group instrument keys by segment for active positions
+  const { kiteKeys, binanceKeys, comexKeys } = useMemo(() => {
+    const kite: string[] = [];
+    const binance: string[] = [];
+    const comex: string[] = [];
+
+    rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
+      const seg = (p.settlement || '').toUpperCase();
+      if (seg.includes('CRYPTO')) {
+        binance.push(p.symbol.replace('/', ''));
+      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+        comex.push(p.symbol);
+      } else {
+        kite.push(p.symbol);
+      }
+    });
+
+    return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
+  }, [rawPositions]);
+
+  // Use the respective quote hooks (polling every 1000ms)
+  const { quotes: kiteQuotes } = useKiteQuotes(kiteKeys, 1000);
+  const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, 1000);
+  const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
+
+  // Live P&L and Used Margin calculations
+  const { floatingPnl, usedMargin } = useMemo(() => {
+    let totalUnrealised = 0;
+    let totalUsedMargin = 0;
+
+    rawPositions.forEach(p => {
+      if (p.status === 'open' || p.status === 'active') {
+        const seg = (p.settlement || '').toUpperCase();
+        let ltp = p.ltp || p.entry_price;
+        
+        if (seg.includes('CRYPTO')) {
+          const binanceKey = p.symbol.replace('/', '');
+          ltp = binanceQuotes[binanceKey]?.lastPrice ?? ltp;
+        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+          ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
+        } else {
+          ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
+        }
+
+        let unrealised = 0;
+        if (p.qty_open !== 0) {
+          if (p.side === 'BUY') {
+            unrealised = (ltp - p.entry_price) * p.qty_open;
+          } else {
+            unrealised = (p.entry_price - ltp) * p.qty_open;
+          }
+        }
+        totalUnrealised += unrealised;
+        totalUsedMargin += Number(p.margin_required || p.margin_used || 0);
+      }
+    });
+
+    return {
+      floatingPnl: totalUnrealised,
+      usedMargin: totalUsedMargin
+    };
+  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes]);
 
   const equity = balance + floatingPnl;
   const freeMargin = equity - usedMargin;

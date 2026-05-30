@@ -33,6 +33,22 @@ function getLotSize(name: string): number {
   return 1;
 }
 
+function mapSegmentToDbSegment(s: string): string {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+}
+
 export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
@@ -47,18 +63,30 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [tpPrice, setTpPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name) : 1;
   const currentLtp = item?.price ?? 0;
+
+  const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
+  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+
   const bidPrice = currentLtp > 0 ? currentLtp - currentLtp * 0.001 : 0;
-  const askPrice = currentLtp > 0 ? currentLtp + currentLtp * 0.001 : 0;
+  const askPrice = currentLtp > 0 ? (currentLtp * 1.001) + (currentLtp * entryBuffer) : 0;
+
+  const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
+  const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;
+  const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
+
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+  const effectivePrice = side === 'SELL' ? bidPrice : askPrice;
   const requiredMargin = orderType === 'LIMIT' && limitPrice
-    ? totalQty * parseFloat(limitPrice)
-    : totalQty * currentLtp;
+    ? (totalQty * parseFloat(limitPrice)) / leverage
+    : (totalQty * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
   // Sync qtyInput → orderQty when input is a valid number
   const handleQtyChange = (val: string) => {
@@ -91,12 +119,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   }, [item?.symbol]);
 
-  // Fetch balance and active positions
+  // Fetch balance, active positions, and segment settings
   useEffect(() => {
     if (!isOpen) return;
     refreshPositions();
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token;
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const token = session?.access_token;
       if (!token) return;
       
       // Fetch balance
@@ -106,6 +134,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .then(r => r.json())
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
         .catch(() => {});
+
+      // Fetch segment settings
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('trading_mode')
+          .eq('id', session.user.id)
+          .single();
+        const mode = profile?.trading_mode || 'normal';
+        const res = await fetch(`/api/user/segments?mode=${mode}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const sData = await res.json();
+          setSegmentSettings(sData || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
     });
   }, [isOpen, refreshPositions]);
 

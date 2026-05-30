@@ -391,11 +391,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     fillPrice = trigger_price ? Number(trigger_price) : client_price;
   } else {
     const entryBuffer = segSetting?.entry_buffer ?? 0.003;
-    const exitBuffer  = segSetting?.exit_buffer  ?? 0.0017;
     if (side === 'BUY') {
-      fillPrice = baseLtp * (1 + entryBuffer);
+      // Always buy at Asking Price (LTP * 1.001) + Margin (LTP * entry_buffer)
+      fillPrice = baseLtp * (1.001 + entryBuffer);
     } else {
-      fillPrice = baseLtp * (1 - exitBuffer);
+      // Always sell at Bid Price (LTP * 0.999)
+      fillPrice = baseLtp * (1 - 0.001);
     }
   }
 

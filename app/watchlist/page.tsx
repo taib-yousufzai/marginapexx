@@ -331,11 +331,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
           ) : (
             <>
               <div className="instr-row__ltp">
-                {isCrypto
-                  ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : showComex
-                    ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : `LTP: ${ltp.toFixed(2)}`}
+                {`₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </div>
               <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
               <div className={`instr-row__pct-change ${getPctClass(percentChange)}`}>
@@ -479,6 +475,7 @@ function WatchlistContent() {
   const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
   const [allowedSegments, setAllowedSegments] = useState<string[] | null>(null);
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchAllowedSegments() {
@@ -497,6 +494,16 @@ function WatchlistContent() {
           const profile = await res.json();
           // Use profile.segments if set, otherwise empty array means all allowed
           setAllowedSegments(profile?.segments ?? []);
+
+          // Fetch segment settings
+          const mode = profile?.trading_mode || 'normal';
+          const resSettings = await fetch(`/api/user/segments?mode=${mode}`, {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+          if (resSettings.ok) {
+            const settingsData = await resSettings.json();
+            setSegmentSettings(settingsData || []);
+          }
         } else {
           // On error, fall back to allowing all
           setAllowedSegments([]);
@@ -819,8 +826,16 @@ function WatchlistContent() {
       if (item) {
         // Directly set state - avoid stale closure
         setSelectedItem(item);
-        const isIndex = item.name.includes('NIFTY') || item.name.includes('BANKNIFTY');
-        setOrderQty(isIndex ? 25 : 1);
+        const name = (item.name || item.symbol).toUpperCase();
+        let computedLot = 1;
+        if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
+        else if (name.includes('BANKNIFTY')) computedLot = 15;
+        else if (name.includes('FINNIFTY')) computedLot = 40;
+        else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
+        else if (name.includes('SENSEX')) computedLot = 10;
+        else if (name.includes('BANKEX')) computedLot = 15;
+        setOrderQty(computedLot);
+        setQtyInput(String(computedLot));
         setOrderUnit('qty');
         setOrderType('MARKET');
         setProductType('INTRADAY');
@@ -850,6 +865,7 @@ function WatchlistContent() {
       else if (name.includes('SENSEX')) computedLot = 10;
       else if (name.includes('BANKEX')) computedLot = 15;
       setOrderQty(computedLot);
+      setQtyInput(String(computedLot));
       setOrderUnit('qty');
       setOrderType('MARKET');
       setProductType('INTRADAY');
@@ -927,6 +943,7 @@ function WatchlistContent() {
     else if (name.includes('BANKEX')) computedLot = 15;
     
     setOrderQty(computedLot);
+    setQtyInput(String(computedLot));
     setOrderUnit('qty');
     setOrderType('MARKET');
     setProductType('INTRADAY');
@@ -1070,12 +1087,21 @@ function WatchlistContent() {
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const bidPrice = currentLtp - (currentLtp * 0.001);
-  const askPrice = currentLtp + (currentLtp * 0.001);
+  const dbSeg = selectedItem ? mapSegmentToDbSegment(selectedItem.segment) : '';
+  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
 
+  const bidPrice = currentLtp - (currentLtp * 0.001);
+  const askPrice = (currentLtp * 1.001) + (currentLtp * entryBuffer);
+
+  const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
+  const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;
+  const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
+
+  const effectivePrice = tradeSide === 'SELL' ? bidPrice : askPrice;
   const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice
-    ? (orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)
-    : (orderUnit === 'lot' ? orderQty * lotSize : orderQty) * currentLtp;
+    ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
+    : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
@@ -1085,14 +1111,14 @@ function WatchlistContent() {
     window.__watchlistItems = window.__watchlistItems || [];
 
     const script = document.createElement('script');
-    script.innerHTML = buildInlineScript(allowedSegments);
+    script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
     document.body.appendChild(script);
     scriptMountedRef.current = true;
     return () => {
       if (document.body.contains(script)) document.body.removeChild(script);
       scriptMountedRef.current = false;
     };
-  }, [allowedSegments]);
+  }, [allowedSegments, segmentSettings]);
 
   return (
     <div className="mobile-app" suppressHydrationWarning>
@@ -1779,10 +1805,11 @@ function WatchlistContent() {
 }
 
 
-function buildInlineScript(allowedSegments: string[]): string {
+function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): string {
   return `
     (function() {
       var allowedSegments = ${JSON.stringify(allowedSegments)};
+      var segmentSettings = ${JSON.stringify(segmentSettings)};
       var tradingSegments = [
         {
           name: 'INDEX - FUTURE',

@@ -36,7 +36,7 @@ function formatPrice(price,isCrypto){var numPrice=typeof price==='number'?price:
 
 function getLiveData(item){if(item.binanceSymbol&&window.__binanceQuotes&&window.__binanceQuotes[item.binanceSymbol]){var q=window.__binanceQuotes[item.binanceSymbol];return{price:q.price,change:q.change+'%',open:q.open,high:q.high,low:q.low,close:q.close};}if(item.comexSymbol&&window.__comexQuotes&&window.__comexQuotes[item.comexSymbol]){var q=window.__comexQuotes[item.comexSymbol];return{price:q.price,change:q.change+'%',open:q.open,high:q.high,low:q.low,close:q.close};}if(item.kiteSymbol&&window.__kiteQuotes&&window.__kiteQuotes[item.kiteSymbol]){var q=window.__kiteQuotes[item.kiteSymbol];return{price:q.lastPrice,change:(q.changePercent>=0?'+':'')+q.changePercent.toFixed(2)+'%',open:q.open,high:q.high,low:q.low,close:q.close};}return{price:item.price,change:item.change,open:item.open,high:item.high,low:item.low,close:item.close};}
 
-function generateBidAsk(price){var spread=price*0.001;return{bid:price-spread,ask:price+spread};}
+function generateBidAsk(price){var spread=price*0.001;return{bid:price-spread,ask:(price+spread)+(price*0.003)};}
 
 function escapeHtml(str){if(!str)return'';return str.replace(/[&<>]/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[m];});}
 

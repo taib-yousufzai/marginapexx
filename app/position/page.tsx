@@ -324,7 +324,9 @@ export default function PositionPage() {
                       </div>
                     )}
                     <div className="pos-pnl-col center">
-                      <div className={`pos-pnl-total${totalPnl >= 0 ? ' green' : ' red'}`}>{fmtUSD(totalPnl)}</div>
+                      <div className={`pos-pnl-total${(currentMain === 'detailed' ? unrealized : (currentSub === 'open' ? unrealized : realized)) >= 0 ? ' green' : ' red'}`}>
+                        {fmtUSD(currentMain === 'detailed' ? unrealized : (currentSub === 'open' ? unrealized : realized))}
+                      </div>
                     </div>
                     {currentMain === 'cumulative' && currentSub === 'closed' && (
                       <div className="pos-pnl-col right">
