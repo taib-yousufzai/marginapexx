@@ -126,6 +126,11 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
     }
 
     // 1. Fetch from database market_quotes table (populated in real-time by WebSockets Ticker Daemon)
+    // Only use DB rows that are fresh (updated within the last 30 seconds).
+    // Stale rows fall through to the Kite live REST API fallback below.
+    const STALE_THRESHOLD_MS = 30_000;
+    const now = Date.now();
+
     const { data: dbQuotes, error: dbError } = await admin
       .from('market_quotes')
       .select('*')
@@ -138,6 +143,10 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
       for (const row of dbQuotes) {
         const reqId = realToRequestedMap[row.id];
         if (!reqId) continue;
+
+        // Skip stale rows — they'll be refreshed via Kite live API
+        const ageMs = now - new Date(row.updated_at).getTime();
+        if (ageMs > STALE_THRESHOLD_MS) continue;
 
         foundKiteIds.add(row.id);
         finalMappedData[reqId] = {
