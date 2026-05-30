@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getAdminClient } from './adminClient';
+import { getAdminClient } from './adminClient.ts';
 
 export interface Quote {
   id: string; // e.g. "NSE:INFY"
@@ -98,7 +98,33 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       if (shouldTrigger) {
         console.log(`[Order Matching] Triggering order ${order.id} (${side} ${orderType} ${order.symbol}) at LTP: ${ltp}, Fill: ${fillPrice}`);
 
-        // 1. Mark order as EXECUTED and set fill_price
+          const { data: existingPos, error: posErrorCheck } = await admin
+            .from('positions')
+            .eq('symbol', symbolKey)
+            .eq('status', 'open')
+            .select('id, side');
+
+        if (posErrorCheck) {
+          console.error('[Order Matching] Error checking existing positions for', symbolKey, ':', posErrorCheck);
+          // Skip processing this order due to error
+          continue;
+        }
+
+        // Determine if order should proceed based on existing positions
+        if (order.side === 'BUY') {
+          // BUY orders can proceed unless there is an opposite SELL position open
+          if (existingPos && existingPos.some(p => p.side === 'SELL')) {
+            console.log(`[Order Matching] Skipping BUY order ${order.id} due to existing opposite SELL position`);
+            continue;
+          }
+        } else if (order.side === 'SELL') {
+          // SELL orders require an existing BUY position
+          if (!existingPos || !existingPos.some(p => p.side === 'BUY')) {
+            console.log(`[Order Matching] Skipping SELL order ${order.id} as no open BUY position exists`);
+            continue;
+          }
+        }
+
         const { error: updateOrderErr } = await admin
           .from('orders')
           .update({

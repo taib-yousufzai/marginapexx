@@ -1,4 +1,4 @@
-import { getAdminClient } from '../../lib/adminClient';
+import { getAdminClient } from '../../lib/adminClient.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'ticker-subscription-manager' });

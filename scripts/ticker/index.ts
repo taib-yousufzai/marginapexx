@@ -7,10 +7,10 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 // @ts-ignore
 import { KiteTicker } from 'kiteconnect';
 import pino from 'pino';
-import { getSharedKiteSession } from '../../lib/kiteSession';
-import { SubscriptionManager } from './subscriptionManager';
-import { DbBatchWriter } from './dbWriter';
-import { TickProcessor } from './processor';
+import { getSharedKiteSession } from '../../lib/kiteSession.ts';
+import { SubscriptionManager } from './subscriptionManager.ts';
+import { DbBatchWriter } from './dbWriter.ts';
+import { TickProcessor } from './processor.ts';
 
 const logger = pino({ name: 'ticker-daemon', level: process.env.LOG_LEVEL || 'info' });
 
@@ -95,7 +95,7 @@ class TickerDaemon {
 
     this.ticker.on('noreconnect', () => {
       logger.error('Auto-reconnect failed. Retries exhausted.');
-      this.handleCriticalFailure();
+      this.reconnectFromScratch();
     });
 
     this.ticker.on('error', (error: any) => {
@@ -147,6 +147,56 @@ class TickerDaemon {
     // Exit process so that container/process manager (PM2/Docker) can restart it with clean state.
     logger.fatal('Critical failure detected. Exiting process...');
     process.exit(1);
+  }
+
+  private async reconnectFromScratch() {
+    if (this.isStopping) return;
+
+    logger.warn('Attempting a full connection reset in 1 minute to keep process alive...');
+    this.isReconnecting = true;
+
+    // 1. Cleanly disconnect existing ticker instance if present
+    if (this.ticker) {
+      try {
+        this.ticker.disconnect();
+      } catch (e) {
+        // Ignore errors during disconnect
+      }
+      this.ticker = null;
+    }
+
+    // 2. Schedule reconnection after 1 minute (to avoid spamming during market-closed/offline periods)
+    setTimeout(async () => {
+      if (this.isStopping) return;
+      logger.info('Re-initializing KiteTicker connection...');
+
+      try {
+        const session = await getSharedKiteSession();
+        if (!session || !session.accessToken) {
+          logger.error('No active Kite session found during reconnect. Retrying in 1 minute...');
+          this.reconnectFromScratch();
+          return;
+        }
+
+        const apiKey = process.env.KITE_API_KEY;
+        if (!apiKey) {
+          logger.error('KITE_API_KEY not configured. Retrying in 1 minute...');
+          this.reconnectFromScratch();
+          return;
+        }
+
+        this.ticker = new KiteTicker({
+          api_key: apiKey,
+          access_token: session.accessToken,
+        });
+
+        this.setupTickerCallbacks();
+        this.ticker.connect();
+      } catch (err) {
+        logger.error({ err }, 'Error during full reconnection. Retrying in 1 minute...');
+        this.reconnectFromScratch();
+      }
+    }, 60000);
   }
 
   private setupGracefulShutdown() {

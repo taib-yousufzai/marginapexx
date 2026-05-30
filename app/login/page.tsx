@@ -66,6 +66,11 @@ export default function LoginPage() {
     const result = await signIn('demo@gmail.com', 'demo123');
 
     if (!result.error) {
+      try {
+        localStorage.setItem('marginApex_watchlist', '[]');
+      } catch (e) {
+        console.error('Failed to clear demo watchlist:', e);
+      }
       const role = getRole(result.user ?? null);
       router.push(role === 'admin' ? '/admin' : '/');
     } else {

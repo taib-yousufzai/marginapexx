@@ -629,6 +629,15 @@ function WatchlistContent() {
           segment: 'INR',
           price: 0,
         } as WatchlistItem;
+
+        // Auto-add fallback to watchlist state and storage
+        setWatchlistItems(prev => {
+          const newItem = { ...item!, category: activeTab };
+          if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
+          const next = [...prev, newItem];
+          saveWatchlistToStorage(next);
+          return next;
+        });
       }
 
       const itemTab = getTabForItem(item);
@@ -640,9 +649,7 @@ function WatchlistContent() {
       return () => clearTimeout(timer);
     };
 
-    if (watchlistItems.length > 0) {
-      return tryOpen(watchlistItems);
-    }
+    return tryOpen(watchlistItems);
   }, [deepLinkSymbol, watchlistItems]);
 
   useEffect(() => {

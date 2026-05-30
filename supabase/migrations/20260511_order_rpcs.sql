@@ -143,7 +143,7 @@ BEGIN
   INSERT INTO public.orders (
     user_id, symbol, segment, side, status,
     qty, price, fill_price, ltp_at_entry,
-    order_type, product_type, info
+    order_type, product_type, info, is_exit
   )
   VALUES (
     p_user_id, v_pos.symbol, v_pos.settlement, 
@@ -151,7 +151,8 @@ BEGIN
     'EXECUTED',
     v_pos.qty_open, p_exit_price, p_exit_price, p_ltp,
     'MARKET', 'INTRADAY',
-    'Exit - ' || p_closed_by
+    'Exit - ' || p_closed_by,
+    true
   );
 
   -- 3. P&L settlement transaction

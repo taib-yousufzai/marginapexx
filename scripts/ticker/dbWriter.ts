@@ -1,5 +1,5 @@
-import { getAdminClient } from '../../lib/adminClient';
-import { processPendingOrdersAndPositions } from '../../lib/orderMatching';
+import { getAdminClient } from '../../lib/adminClient.ts';
+import { processPendingOrdersAndPositions } from '../../lib/orderMatching.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'ticker-db-writer' });
@@ -86,23 +86,13 @@ export class DbBatchWriter {
         };
       });
 
-      // Only upsert rows where the price has actually changed.
-      // This prevents Supabase Realtime from broadcasting no-op events
-      // (where old.last_price === new.last_price) which cause the UI to
-      // receive updates but show no visual change.
-      const changedQuotes = allQuotes.filter(q => {
-        const lastWritten = this.lastWrittenPrices.get(q.id);
-        return lastWritten === undefined || lastWritten !== q.last_price;
-      });
+      // Upsert all quotes to ensure realtime updates even if price unchanged.
+      // This keeps UI timestamp fresh and allows downstream listeners to react.
+      const changedQuotes = allQuotes; // retain variable name for later use
 
-      if (changedQuotes.length === 0) {
-        logger.debug('No price changes in batch — skipping upsert');
-        return;
-      }
+      logger.debug({ total: allQuotes.length }, 'Flushing full tick batch to Supabase');
 
-      logger.debug({ total: allQuotes.length, changed: changedQuotes.length }, 'Flushing changed tick batch to Supabase');
-
-      // 1. Bulk Upsert into Supabase market_quotes table
+      // 1. Bulk Upsert into Supabase market_quotes table (on conflict id)
       const { error: upsertError } = await admin
         .from('market_quotes')
         .upsert(changedQuotes, { onConflict: 'id' });
@@ -118,7 +108,7 @@ export class DbBatchWriter {
         return;
       }
 
-      // Update last-written price cache on success
+      // Update last-written price cache on success (even if unchanged)
       for (const q of changedQuotes) {
         this.lastWrittenPrices.set(q.id, q.last_price);
       }

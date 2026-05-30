@@ -1,7 +1,8 @@
 import { EventEmitter } from 'events';
 import pino from 'pino';
-import { DbBatchWriter, TickData } from './dbWriter';
-import { SubscriptionManager } from './subscriptionManager';
+import { DbBatchWriter } from './dbWriter.ts';
+import type { TickData } from './dbWriter.ts';
+import { SubscriptionManager } from './subscriptionManager.ts';
 
 const logger = pino({ name: 'ticker-processor' });
 

@@ -5,17 +5,37 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS is_exit boolean DEFAULT false
 DROP FUNCTION IF EXISTS public.parse_option_symbol(text);
 CREATE OR REPLACE FUNCTION public.parse_option_symbol(
   p_symbol text,
-  OUT strike numeric,
-  OUT opt_type text
+  OUT o_strike numeric,
+  OUT o_option_type text,
+  OUT o_underlying text
 )
 AS $$
+DECLARE
+  v_upper text;
 BEGIN
-  IF p_symbol ~ '(\d+(?:\.\d+)?)(CE|PE)$' THEN
-    strike := (substring(p_symbol from '(\d+(?:\.\d+)?)(?:CE|PE)$'))::numeric;
-    opt_type := substring(p_symbol from '(?:CE|PE)$');
+  v_upper := upper(p_symbol);
+  
+  -- Parse strike and option type
+  IF v_upper ~ '(\d+(?:\.\d+)?)(CE|PE)$' THEN
+    o_strike := (substring(v_upper from '(\d+(?:\.\d+)?)(?:CE|PE)$'))::numeric;
+    o_option_type := substring(v_upper from '(?:CE|PE)$');
   ELSE
-    strike := NULL;
-    opt_type := NULL;
+    o_strike := NULL;
+    o_option_type := NULL;
+  END IF;
+
+  -- Parse underlying symbol
+  IF v_upper LIKE 'BANKNIFTY%' THEN o_underlying := 'BANKNIFTY';
+  ELSIF v_upper LIKE 'FINNIFTY%' THEN o_underlying := 'FINNIFTY';
+  ELSIF v_upper LIKE 'MIDCPNIFTY%' THEN o_underlying := 'MIDCPNIFTY';
+  ELSIF v_upper LIKE 'NIFTY%' THEN o_underlying := 'NIFTY';
+  ELSIF v_upper LIKE 'BANKEX%' THEN o_underlying := 'BANKEX';
+  ELSIF v_upper LIKE 'SENSEX%' THEN o_underlying := 'SENSEX';
+  ELSIF v_upper LIKE 'CRUDEOIL%' THEN o_underlying := 'CRUDEOIL';
+  ELSIF v_upper LIKE 'GOLD%' THEN o_underlying := 'GOLD';
+  ELSIF v_upper LIKE 'SILVER%' THEN o_underlying := 'SILVER';
+  ELSIF v_upper LIKE 'NATURALGAS%' THEN o_underlying := 'NATURALGAS';
+  ELSE o_underlying := NULL;
   END IF;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;

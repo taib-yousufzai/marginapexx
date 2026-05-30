@@ -505,7 +505,7 @@ export default function FundsPage() {
                             </div>
                             <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={(e) => setScreenshot(e.target.files?.[0] || null)} />
                           </div>
-                          <button className="submit-funds-btn" disabled={utr.length !== 12 || !screenshot || submitting} onClick={handleConfirmDeposit}>
+                          <button className="submit-funds-btn" disabled={(utr.length > 0 && utr.length !== 12) || !screenshot || submitting} onClick={handleConfirmDeposit}>
                             {submitting ? 'Processing...' : 'Submit Deposit Request'}
                           </button>
                           {submitError && <p style={{ fontSize: '0.7rem', color: '#c0392b', marginTop: '12px', textAlign: 'center' }}>{submitError}</p>}
