@@ -232,14 +232,12 @@ export default function PositionPage() {
   const unrealized = positions.filter(p => p.status === 'open' || p.status === 'active').reduce((acc, p) => acc + (p.total_pnl || 0), 0);
 
   const fmtUSD = (val: number, settlement?: string) => {
-    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
-    const sign = val >= 0 ? '+' : '';
-    return `${sign}${isUSD ? '$' : '₹'}${Math.abs(val).toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const sign = val >= 0 ? '+' : '-';
+    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const fmtPrice = (val: number, settlement?: string) => {
-    const isUSD = settlement && (settlement.toUpperCase().includes('CRYPTO') || settlement.toUpperCase().includes('COMEX'));
-    return `${isUSD ? '$' : '₹'}${val.toLocaleString(isUSD ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -652,7 +650,7 @@ export default function PositionPage() {
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Realised P&amp;L</div>
                           <div style={{ fontSize: '2rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626', lineHeight: 1 }}>
-                            {selectedPos.pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.pnl, selectedPos.settlement)}
+                            {fmtUSD(selectedPos.pnl, selectedPos.settlement)}
                           </div>
                           <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary, #6B7280)', marginTop: '4px' }}>
                             {selectedPos.pnl_percent >= 0 ? '+' : ''}{selectedPos.pnl_percent.toFixed(2)}%
@@ -696,7 +694,7 @@ export default function PositionPage() {
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626' }}>
-                            {selectedPos.pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.pnl, selectedPos.settlement)}
+                            {fmtUSD(selectedPos.pnl, selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
@@ -829,7 +827,7 @@ export default function PositionPage() {
                         <div>
                           <div className="ps-pnl-label">Current P&amp;L</div>
                           <div className={`ps-pnl-value ${selectedPos.total_pnl >= 0 ? 'ps-green' : 'ps-red'}`}>
-                            {selectedPos.total_pnl >= 0 ? '+' : ''}{fmtUSD(selectedPos.total_pnl, selectedPos.settlement)}
+                            {fmtUSD(selectedPos.total_pnl, selectedPos.settlement)}
                           </div>
                         </div>
                         <button className="ps-btn-exit" onClick={() => handleExit(selectedPos.id)}>Exit All</button>

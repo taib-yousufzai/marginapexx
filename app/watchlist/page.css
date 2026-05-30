@@ -2926,7 +2926,7 @@ body.dark .instrument-delete-btn:hover {
 
 /* ── Dark mode overrides for new components ── */
 .dark .seg-tab {
-    color: #6B728E;
+    color: #B0B0B0;
 }
 
 .dark .seg-tab--active {

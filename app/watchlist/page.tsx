@@ -7,6 +7,7 @@ import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
+import { useActivePositions } from '@/hooks/useActivePositions';
 import './page.css';
 
 interface WatchlistItem {
@@ -320,7 +321,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
               onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
               style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
             >
-              {showComex ? '$ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ $ COMEX'}
+              {showComex ? '₹ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ ₹ COMEX'}
             </div>
           )}
         </div>
@@ -331,9 +332,9 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
             <>
               <div className="instr-row__ltp">
                 {isCrypto
-                  ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   : showComex
-                    ? `$${ltp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    ? `₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     : `LTP: ${ltp.toFixed(2)}`}
               </div>
               <div className="instr-row__abs-change">{absoluteChange >= 0 ? '+' : ''}{absoluteChange.toFixed(2)}</div>
@@ -464,6 +465,7 @@ function WatchlistContent() {
   const searchParams = useSearchParams();
   useAuth();
   const { placeOrder, loading: placingOrder, error: placeOrderError } = useOrderEntry();
+  const { positions: activePositions } = useActivePositions();
 
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
@@ -945,6 +947,11 @@ function WatchlistContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
+    const existingPos = activePositions.find(p => p.symbol === selectedItem.symbol && (p.status === 'open' || p.status === 'OPEN'));
+    const hasBuyPos = existingPos?.side === 'BUY';
+    const hasSellPos = existingPos?.side === 'SELL';
+    const isExitOrder = (side === 'BUY' && hasSellPos) || (side === 'SELL' && hasBuyPos);
+
     // Resolve live LTP from correct source (mirrors the trade sheet display logic)
     const isCryptoItem = !!(selectedItem.binanceSymbol);
     let livePrice = selectedItem.price;
@@ -966,12 +973,13 @@ function WatchlistContent() {
       client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) : livePrice,
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
-      target: parseFloat(tpPrice) || undefined
+      target: parseFloat(tpPrice) || undefined,
+      is_exit: isExitOrder
     });
 
     if (result.success) {
       closeTradeSheet();
-      const symbol = (selectedItem.binanceSymbol || selectedItem.comexSymbol) ? '$' : '₹';
+      const symbol = '₹';
       showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
       showToast(`❌ Order Failed: ${result.error}`, true);
@@ -1012,7 +1020,6 @@ function WatchlistContent() {
 
   const formatPrice = (price: number | undefined | null) => {
     if (price === undefined || price === null || isNaN(price as number)) return '--';
-    if (isCrypto || isComex) return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
@@ -1336,26 +1343,36 @@ function WatchlistContent() {
       </div>
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
-        {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
-          <button
-            className="ts-btn ts-btn-buy"
-            id="sheetBuyBtn"
-            disabled={placingOrder}
-            onClick={() => handlePlaceOrder('BUY')}
-          >
-            {placingOrder ? 'PLACING...' : 'BUY'}
-          </button>
-        )}
-        {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
-          <button
-            className="ts-btn ts-btn-sell"
-            id="sheetSellBtn"
-            disabled={placingOrder}
-            onClick={() => handlePlaceOrder('SELL')}
-          >
-            {placingOrder ? 'PLACING...' : 'SELL'}
-          </button>
-        )}
+        {(() => {
+          const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+          const hasBuyPos = existingPos?.side === 'BUY';
+          const hasSellPos = existingPos?.side === 'SELL';
+
+          return (
+            <>
+              {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
+                <button
+                  className="ts-btn ts-btn-buy"
+                  id="sheetBuyBtn"
+                  disabled={placingOrder}
+                  onClick={() => handlePlaceOrder('BUY')}
+                >
+                  {placingOrder ? 'PLACING...' : hasSellPos ? 'EXIT SELL' : 'BUY'}
+                </button>
+              )}
+              {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
+                <button
+                  className="ts-btn ts-btn-sell"
+                  id="sheetSellBtn"
+                  disabled={placingOrder}
+                  onClick={() => handlePlaceOrder('SELL')}
+                >
+                  {placingOrder ? 'PLACING...' : hasBuyPos ? 'EXIT BUY' : 'SELL'}
+                </button>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
@@ -1369,20 +1386,22 @@ function WatchlistContent() {
           const fmt = (v: number) => formatPrice(v);
           return (
             <div style={{ padding: '0' }}>
-              <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
                   <button style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--icon-bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: '0', flexShrink: 0 }} onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}>
                     <i className="fas fa-chevron-left" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}></i>
                   </button>
-                  <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.15' }}>{selectedItem.name}</div>
-                    <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1' }}>{selectedItem.segment}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)', lineHeight: '1.15' }}>{selectedItem.name}</div>
+                    <div>
+                      <span style={{ fontSize: '0.51rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '2px 6px', borderRadius: '20px', lineHeight: '1', display: 'inline-block' }}>{selectedItem.segment}</span>
+                    </div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '0.47rem', fontWeight: '600', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</div>
-                  <div style={{ fontSize: '0.935rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', lineHeight: '1.1' }}>{fmt(ltp)}</div>
-                  <span className="sheet-change" style={{ fontSize: '0.55rem', fontWeight: '700', padding: '2px 6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', lineHeight: '1' }}>CMP</span>
+                  <div style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-primary)', lineHeight: '1.1', letterSpacing: '-0.3px' }}>{fmt(ltp)}</div>
+                  <span className="sheet-change" style={{ fontSize: '0.78rem', fontWeight: '700', padding: '0', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626' }}>{chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%</span>
                 </div>
               </div>
               <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
@@ -1445,7 +1464,7 @@ function WatchlistContent() {
               const q = legIsCrypto ? binanceQuotes[leg.item.binanceSymbol!] : (legIsComex ? comexQuotes[leg.item.comexSymbol!] : quotes[leg.item.kiteSymbol]);
               const ltp = q?.lastPrice ?? leg.item.price;
               const totalVal = ltp * leg.qty;
-              const legSymbol = (legIsCrypto || legIsComex) ? '$' : '₹';
+              const legSymbol = '₹';
               return (
                 <div key={i} style={{ background: 'var(--card-alt-bg, #F8FAFF)', border: '1px solid var(--border-card, #EEF2F8)', borderRadius: '16px', padding: '14px' }}>
                   {/* Header row */}
@@ -1857,7 +1876,6 @@ function buildInlineScript(allowedSegments: string[]): string {
 
       function formatPrice(price, isCrypto) {
         var numPrice = typeof price === 'number' ? price : parseFloat(price);
-        if (isCrypto) return '$' + numPrice.toFixed(2);
         return '₹' + numPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
 

@@ -1424,7 +1424,7 @@ function BrokerAccounts({ apiCall }: any) {
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: '#161b22', border: '1px solid #21262d', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>
-                {s.value >= 0 ? '+' : ''}₹{fmt(Math.abs(s.value))}
+                {s.value >= 0 ? '+' : '-'}₹{fmt(Math.abs(s.value))}
               </div>
               <div style={{ fontSize: '0.58rem', color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 4 }}>{s.label}</div>
             </div>

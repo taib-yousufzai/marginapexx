@@ -136,7 +136,8 @@ export default function HistoryPage() {
   }, [historyData]);
 
   const formatPrice = (val: number) => {
-    return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    const sign = val >= 0 ? '' : '-';
+    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
   };
 
   return (
@@ -282,7 +283,7 @@ export default function HistoryPage() {
                           </div>
                           <div className={currentTab === 'position' ? `pnl ${isPositive ? 'positive' : 'negative'}` : 'price-value'}>
                             {currentTab === 'position'
-                              ? `${isPositive ? '+' : ''}${formatPrice(Math.abs(item.pnl))} (${isPositive ? '+' : ''}${pnlPercent}%)`
+                              ? `${isPositive ? '+' : ''}${formatPrice(item.pnl)} (${isPositive ? '+' : ''}${pnlPercent}%)`
                               : formatPrice(item.price)}
                           </div>
                         </div>

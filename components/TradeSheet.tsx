@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
+import { useActivePositions } from '@/hooks/useActivePositions';
 
 export interface TradeSheetItem {
   name: string;
@@ -46,7 +47,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [tpPrice, setTpPrice] = useState('');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [activePositions, setActivePositions] = useState<any[]>([]);
+  
+  const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name) : 1;
@@ -92,6 +94,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   // Fetch balance and active positions
   useEffect(() => {
     if (!isOpen) return;
+    refreshPositions();
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token;
       if (!token) return;
@@ -103,21 +106,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .then(r => r.json())
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
         .catch(() => {});
-
-      // Fetch positions
-      fetch('/api/positions', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(r => r.json())
-        .then(data => { if (data.positions) setActivePositions(data.positions); })
-        .catch(() => {});
     });
-  }, [isOpen]);
+  }, [isOpen, refreshPositions]);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
+
+  const existingPos = activePositions.find(p => p.symbol === item?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+  const hasBuyPos = existingPos?.side === 'BUY';
+  const hasSellPos = existingPos?.side === 'SELL';
 
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
     if (!item) return;
@@ -134,7 +133,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
       target: parseFloat(tpPrice) || undefined,
-      is_exit: exitMode,
+      is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
     });
     if (res.success) {
       showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
@@ -163,7 +162,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-sheet {
           position: fixed; top: 0; left: 0; right: 0; bottom: 0;
           width: 100%; max-width: 500px; margin: 0 auto;
-          background: #F5F7FB;
+          background: var(--bg-body, #F5F7FB);
           z-index: 9999;
           transform: translateY(100%);
           transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05);
@@ -174,19 +173,19 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-sheet.open { transform: translateY(0); }
 
         .ts2-header {
-          background: #fff; padding: 10px 14px 12px;
+          background: var(--card-bg, #fff); padding: 10px 14px 12px;
           display: flex; align-items: center; gap: 12px;
-          border-bottom: 1px solid #EEF2F8; flex-shrink: 0;
+          border-bottom: 1px solid var(--border-light, #EEF2F8); flex-shrink: 0;
         }
         .ts2-back-btn {
           width: 36px; height: 36px; border-radius: 50%;
-          background: #F1F5F9; border: none;
+          background: var(--icon-bg, #F1F5F9); border: none;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; color: #374151; font-size: 0.9rem;
+          cursor: pointer; color: var(--text-secondary, #374151); font-size: 0.9rem;
         }
         .ts2-name-block { flex: 1; min-width: 0; }
         .ts2-instr-name {
-          font-size: 1rem; font-weight: 800; color: #111827;
+          font-size: 1rem; font-weight: 800; color: var(--text-primary, #111827);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .ts2-segment-badge {
@@ -195,94 +194,103 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           color: #C62E2E; background: #FEF2F2;
           padding: 2px 10px; border-radius: 30px;
         }
+        body.dark .ts2-segment-badge {
+          background: #3B2A2A; color: #F87171;
+        }
         .ts2-price-block { text-align: right; flex-shrink: 0; }
-        .ts2-price-value { font-size: 1.35rem; font-weight: 800; color: #111827; }
+        .ts2-price-value { font-size: 1.35rem; font-weight: 800; color: var(--text-primary, #111827); }
         .ts2-change-badge {
           display: inline-block; margin-top: 3px;
           font-size: 0.62rem; font-weight: 700;
           padding: 2px 8px; border-radius: 30px;
           background: #DCFCE7; color: #059669;
         }
+        body.dark .ts2-change-badge {
+          background: #1A3A2A; color: #4ADE80;
+        }
         .ts2-change-badge.neg { background: #FEF2F2; color: #C62E2E; }
+        body.dark .ts2-change-badge.neg { background: #3B2A2A; color: #F87171; }
 
         .ts2-bidask {
-          background: #fff; display: flex; align-items: center;
-          padding: 8px 16px; border-bottom: 1px solid #EEF2F8; flex-shrink: 0;
+          background: var(--card-bg, #fff); display: flex; align-items: center;
+          padding: 8px 16px; border-bottom: 1px solid var(--border-light, #EEF2F8); flex-shrink: 0;
         }
         .ts2-ba-cell {
           flex: 1; display: flex; justify-content: space-between;
           align-items: center; padding: 0 4px;
         }
         .ts2-ba-label {
-          font-size: 0.6rem; font-weight: 700; color: #6B7280;
+          font-size: 0.6rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; letter-spacing: 0.5px;
         }
         .ts2-ba-bid { font-size: 0.82rem; font-weight: 700; color: #059669; }
+        body.dark .ts2-ba-bid { color: #4ADE80; }
         .ts2-ba-ask { font-size: 0.82rem; font-weight: 700; color: #DC2626; }
-        .ts2-ba-divider { width: 1px; height: 20px; background: #E5E7EB; margin: 0 8px; }
+        body.dark .ts2-ba-ask { color: #F87171; }
+        .ts2-ba-divider { width: 1px; height: 20px; background: var(--border-light, #E5E7EB); margin: 0 8px; }
 
         .ts2-scroll { flex: 1; overflow-y: auto; padding-bottom: 90px; }
         .ts2-scroll::-webkit-scrollbar { display: none; }
         .ts2-body { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 
         .ts2-card {
-          background: #fff; border-radius: 14px;
-          padding: 12px 14px; border: 1px solid #F1F5F9;
+          background: var(--card-bg, #fff); border-radius: 14px;
+          padding: 12px 14px; border: 1px solid var(--border-light, #F1F5F9);
         }
         .ts2-label {
-          font-size: 0.62rem; font-weight: 700; color: #6B7280;
+          font-size: 0.62rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px;
         }
         .ts2-unit-row { display: flex; align-items: center; justify-content: space-between; }
         .ts2-toggle {
-          display: flex; background: #F1F5F9; border-radius: 30px; padding: 3px; gap: 2px;
+          display: flex; background: var(--card-alt-bg, #F1F5F9); border-radius: 30px; padding: 3px; gap: 2px;
         }
         .ts2-toggle-opt {
           padding: 5px 16px; border-radius: 30px;
-          font-size: 0.65rem; font-weight: 700; color: #6B7280;
+          font-size: 0.65rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           cursor: pointer; border: none; background: transparent; transition: all 0.2s;
         }
         .ts2-toggle-opt.active {
-          background: #fff; color: #111827;
+          background: #FFFFFF; color: #111827;
           box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
 
-        .ts2-info-wrap { background: #F1F5F9; border-radius: 14px; padding: 8px; }
+        .ts2-info-wrap { background: var(--card-alt-bg, #F1F5F9); border-radius: 14px; padding: 8px; }
         .ts2-info-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
-        .ts2-info-card { background: #fff; border-radius: 10px; padding: 8px 6px; text-align: center; }
+        .ts2-info-card { background: var(--card-bg, #fff); border-radius: 10px; padding: 8px 6px; text-align: center; }
         .ts2-ic-label {
-          font-size: 0.55rem; font-weight: 600; color: #6B7280;
+          font-size: 0.55rem; font-weight: 600; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; margin-bottom: 4px;
         }
-        .ts2-ic-val { font-size: 0.82rem; font-weight: 800; color: #111827; }
+        .ts2-ic-val { font-size: 0.82rem; font-weight: 800; color: var(--text-primary, #111827); }
 
         .ts2-stepper {
           display: flex; align-items: center;
-          background: #F8FAFF; border: 1.5px solid #E5E7EB;
+          background: var(--card-bg, #F8FAFF); border: 1.5px solid var(--border-light, #E5E7EB);
           border-radius: 50px; overflow: hidden; height: 52px;
         }
         .ts2-qty-btn {
           width: 52px; height: 52px; flex-shrink: 0;
           border: none; background: transparent;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; font-size: 1rem; color: #374151; border-radius: 50%;
+          cursor: pointer; font-size: 1rem; color: var(--text-primary, #374151); border-radius: 50%;
         }
-        .ts2-qty-btn:active { background: #E5E7EB; }
+        .ts2-qty-btn:active { background: var(--card-alt-bg, #E5E7EB); }
         .ts2-qty-val {
           flex: 1; text-align: center; font-size: 1.25rem; font-weight: 800;
-          color: #111827; border: none; background: transparent; outline: none;
+          color: var(--text-primary, #111827); border: none; background: transparent; outline: none;
           font-family: inherit; min-width: 0;
           -moz-appearance: textfield;
         }
         .ts2-qty-val::-webkit-outer-spin-button,
         .ts2-qty-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .ts2-qty-hint { font-size: 0.6rem; color: #9CA3AF; margin-top: 7px; text-align: center; }
+        .ts2-qty-hint { font-size: 0.6rem; color: var(--text-muted, #9CA3AF); margin-top: 7px; text-align: center; }
 
         .ts2-pills { display: flex; gap: 6px; flex-wrap: wrap; }
         .ts2-pill {
           flex: 1; min-width: 60px; padding: 8px 4px; border-radius: 50px;
           font-size: 0.65rem; font-weight: 700; text-align: center; cursor: pointer;
-          border: 1.5px solid #E5E7EB; background: #fff; color: #374151;
+          border: 1.5px solid var(--border-light, #E5E7EB); background: var(--card-bg, #fff); color: var(--text-primary, #374151);
           transition: all 0.18s; white-space: nowrap;
         }
         .ts2-pill.active {
@@ -293,19 +301,19 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-price-input {
           width: 100%; box-sizing: border-box; border-radius: 12px;
           padding: 12px 14px; font-size: 1rem; font-weight: 700;
-          border: 1.5px solid #E5E7EB; background: #F8FAFF;
-          color: #111827; outline: none; margin-top: 10px; font-family: inherit;
+          border: 1.5px solid var(--border-light, #E5E7EB); background: var(--card-bg, #F8FAFF);
+          color: var(--text-primary, #111827); outline: none; margin-top: 10px; font-family: inherit;
         }
 
         .ts2-field-input {
           width: 100%; box-sizing: border-box;
-          background: #FFFFFF;
-          border: 1px solid #DCE3EC;
+          background: var(--card-bg, #FFFFFF);
+          border: 1px solid var(--border-light, #DCE3EC);
           border-radius: 12px;
           padding: 10px 12px;
           font-size: 0.9rem;
           font-weight: 700;
-          color: #1A1E2B;
+          color: var(--text-primary, #1A1E2B);
           outline: none;
           transition: border-color 0.2s;
           font-family: inherit;
@@ -316,23 +324,26 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
 
         .ts2-margin-card {
-          background: #fff; border-radius: 14px; border: 1px solid #F1F5F9; overflow: hidden;
+          background: var(--card-bg, #fff); border-radius: 14px; border: 1px solid var(--border-light, #F1F5F9); overflow: hidden;
         }
         .ts2-margin-row {
           display: flex; justify-content: space-between; align-items: center; padding: 11px 14px;
         }
-        .ts2-margin-row + .ts2-margin-row { border-top: 1px solid #F1F5F9; }
-        .ts2-ml { font-size: 0.68rem; font-weight: 600; color: #6B7280; }
-        .ts2-mv { font-size: 0.78rem; font-weight: 700; color: #111827; }
+        .ts2-margin-row + .ts2-margin-row { border-top: 1px solid var(--border-light, #F1F5F9); }
+        .ts2-ml { font-size: 0.68rem; font-weight: 600; color: var(--text-secondary, #6B7280); }
+        .ts2-mv { font-size: 0.78rem; font-weight: 700; color: var(--text-primary, #111827); }
         .ts2-mv-avail {
           background: #DCFCE7; color: #15803D;
           padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+        }
+        body.dark .ts2-mv-avail {
+          background: #1A3A2A; color: #4ADE80;
         }
 
         .ts2-footer {
           position: fixed; bottom: 0; left: 0; right: 0;
           max-width: 500px; margin: 0 auto; z-index: 10001;
-          background: #fff; padding: 12px 14px 24px;
+          background: var(--card-bg, #fff); padding: 12px 14px 24px;
           display: flex; gap: 8px;
         }
         @media (max-width: 500px) { .ts2-footer { max-width: 100%; } }
@@ -370,7 +381,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
       <div className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
 
-      <div className={`ts2-sheet${isOpen ? ' open' : ''}`}>
+      <div className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''}`}>
         {item && (
           <>
             {/* Header */}
@@ -607,86 +618,26 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               </div>
             </div>
 
-            {/* Block Warnings */}
-            {(() => {
-              if (!item || !item.symbol) return null;
-              const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-              if (!match) return null;
-              const strike = parseFloat(match[1]);
-              const optType = match[2].toUpperCase();
-              
-              const activePos = activePositions.find(p => {
-                if (p.status !== 'open' || p.qty_open <= 0) return false;
-                const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType;
-              });
-
-              if (!activePos || exitMode) return null;
-
-              return (
-                <div style={{
-                  margin: '10px 14px 0',
-                  background: '#FEF2F2',
-                  border: '1.5px solid #FEE2E2',
-                  color: '#991B1B',
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  <i className="fas fa-exclamation-triangle" style={{ color: '#B91C1C' }}></i>
-                  <span>
-                    {activePos.side === 'BUY' 
-                      ? 'Cannot open SELL position while BUY position is active'
-                      : 'Cannot open BUY position while SELL position is active'}
-                  </span>
-                </div>
-              );
-            })()}
+            {/* Block Warnings Removed - Hedging is now supported */}
 
             {/* Footer */}
             <div className="ts2-footer">
               {(side === 'BUY' || side === 'BOTH') && (
                 <button
-                  className={`ts2-btn${exitMode ? ' ts2-btn-sell' : ' ts2-btn-buy'}`}
-                  disabled={placingOrder || (() => {
-                    if (exitMode || !item || !item.symbol) return false;
-                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                    if (!match) return false;
-                    const strike = parseFloat(match[1]);
-                    const optType = match[2].toUpperCase();
-                    return activePositions.some(p => {
-                      if (p.status !== 'open' || p.qty_open <= 0) return false;
-                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'SELL';
-                    });
-                  })()}
+                  className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
+                  disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : (exitMode || hasSellPos) ? 'EXIT SELL' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
                 <button
                   className="ts2-btn ts2-btn-sell"
-                  disabled={placingOrder || (() => {
-                    if (exitMode || !item || !item.symbol) return false;
-                    const match = item.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                    if (!match) return false;
-                    const strike = parseFloat(match[1]);
-                    const optType = match[2].toUpperCase();
-                    return activePositions.some(p => {
-                      if (p.status !== 'open' || p.qty_open <= 0) return false;
-                      const pMatch = p.symbol.match(/(\d+(?:\.\d+)?)(CE|PE)$/i);
-                      return pMatch && parseFloat(pMatch[1]) === strike && pMatch[2].toUpperCase() === optType && p.side === 'BUY';
-                    });
-                  })()}
+                  disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : exitMode ? 'EXIT' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : (exitMode || hasBuyPos) ? 'EXIT BUY' : 'SELL'}
                 </button>
               )}
             </div>
