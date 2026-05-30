@@ -5,7 +5,7 @@ import pino from 'pino';
 const logger = pino({ name: 'ticker-db-writer' });
 
 export interface TickData {
-  instrument_token: number;
+  instrument_token?: number;
   last_price: number;
   ohlc?: {
     open?: number;
