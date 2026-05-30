@@ -627,6 +627,33 @@ function WatchlistContent() {
     else document.body.classList.remove('dark');
   }, []);
 
+  // Sync maximum position quantity when side changes to SELL
+  useEffect(() => {
+    if (selectedItem && activePositions) {
+      if (tradeSide === 'SELL') {
+        const existingPos = activePositions.find(
+          p => p.symbol === selectedItem.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY'
+        );
+        if (existingPos) {
+          setOrderQty(existingPos.qty_open);
+          setQtyInput(String(existingPos.qty_open));
+        }
+      } else if (tradeSide === 'BUY') {
+        const name = selectedItem.name.toUpperCase();
+        let computedLot = 1;
+        if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
+        else if (name.includes('BANKNIFTY')) computedLot = 15;
+        else if (name.includes('FINNIFTY')) computedLot = 40;
+        else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
+        else if (name.includes('SENSEX')) computedLot = 10;
+        else if (name.includes('BANKEX')) computedLot = 15;
+        
+        setOrderQty(computedLot);
+        setQtyInput(String(computedLot));
+      }
+    }
+  }, [tradeSide, selectedItem?.symbol, activePositions]);
+
   // Handle deep linking from other screens (e.g. Home)
   const deepLinkSymbol = searchParams.get('symbol');
   useEffect(() => {

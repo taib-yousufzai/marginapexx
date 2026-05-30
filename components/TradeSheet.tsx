@@ -119,6 +119,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   }, [item?.symbol]);
 
+  // Sync maximum position quantity when side is SELL
+  useEffect(() => {
+    if (isOpen && activePositions && item) {
+      if (side === 'SELL') {
+        const existingPos = activePositions.find(
+          p => p.symbol === item.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY'
+        );
+        if (existingPos) {
+          setOrderQty(existingPos.qty_open);
+          setQtyInput(String(existingPos.qty_open));
+        }
+      } else if (side === 'BUY') {
+        const ls = getLotSize(item.name);
+        setOrderQty(ls);
+        setQtyInput(String(ls));
+      }
+    }
+  }, [side, activePositions, isOpen, item?.symbol]);
+
   // Fetch balance, active positions, and segment settings
   useEffect(() => {
     if (!isOpen) return;

@@ -200,6 +200,12 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
       const balance = Number(profile.balance || 0);
       const autoSqoffPercent = Number(profile.auto_sqoff ?? 90);
+
+      // Guard: Bypass if balance is 0/negative or auto_sqoff is disabled (<= 0)
+      if (balance <= 0 || autoSqoffPercent <= 0) {
+        continue;
+      }
+
       const drawdownLimit = - (autoSqoffPercent / 100.0) * balance;
 
       // 2. Fetch segment settings for this user (to get entry buffers for SELL exits)
