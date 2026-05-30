@@ -275,7 +275,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
     prevClose = comexQuote?.close ?? 0;
   } else {
     ltp = quote?.lastPrice ?? item.price;
-    prevClose = item.close;
+    prevClose = item.close ?? item.price ?? ltp;
   }
 
   const absoluteChange = ltp - prevClose;
@@ -344,6 +344,11 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
             </>
           )}
         </div>
+        {!basketMode && (
+          <button className="instrument-delete-btn" onClick={(e) => { e.stopPropagation(); (window as any).removeFromWatchlist?.(item.symbol); }}>
+            <i className="fas fa-trash-alt"></i>
+          </button>
+        )}
         <div className="wc-checkbox-wrapper" style={{ display: 'none' }}>
           <input type="checkbox" className="wc-checkbox" onClick={(e) => e.stopPropagation()} />
         </div>
@@ -468,18 +473,19 @@ function WatchlistContent() {
   const { positions: activePositions } = useActivePositions();
 
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
   const [searchText, setSearchText] = useState<string>('');
   const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
-  const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
+  const [allowedSegments, setAllowedSegments] = useState<string[] | null>(null);
 
   useEffect(() => {
     async function fetchAllowedSegments() {
       try {
         const { supabase: sb } = await import('@/lib/supabaseClient');
         const { data: { session } } = await sb.auth.getSession();
-        if (!session) return;
+        if (!session) { setAllowedSegments([]); return; }
         
         // Also save to window for easy inline script access
         (window as any).__accessToken = session.access_token;
@@ -489,12 +495,16 @@ function WatchlistContent() {
         });
         if (res.ok) {
           const profile = await res.json();
-          if (profile && profile.segments) {
-            setAllowedSegments(profile.segments);
-          }
+          // Use profile.segments if set, otherwise empty array means all allowed
+          setAllowedSegments(profile?.segments ?? []);
+        } else {
+          // On error, fall back to allowing all
+          setAllowedSegments([]);
         }
       } catch (err) {
         console.error('Failed to fetch allowed segments', err);
+        // On error, fall back to allowing all
+        setAllowedSegments([]);
       }
     }
     fetchAllowedSegments();
@@ -569,7 +579,8 @@ function WatchlistContent() {
   };
 
   const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText).filter(item => {
-    if (allowedSegments.length === 0) return true;
+    if (allowedSegments === null) return false; // still loading — show nothing
+    if (allowedSegments.length === 0) return true; // no restriction
     const dbSeg = mapSegmentToDbSegment(item.segment);
     return allowedSegments.includes(dbSeg);
   });
@@ -612,7 +623,7 @@ function WatchlistContent() {
   // Handle deep linking from other screens (e.g. Home)
   const deepLinkSymbol = searchParams.get('symbol');
   useEffect(() => {
-    if (!deepLinkSymbol) return;
+    if (!deepLinkSymbol || !hasLoaded) return;
     const query = deepLinkSymbol.toUpperCase();
 
     const tryOpen = (items: WatchlistItem[]) => {
@@ -622,17 +633,46 @@ function WatchlistContent() {
         (i.kiteSymbol && i.kiteSymbol.toUpperCase().includes(query))
       );
 
-      // Fallback: build a minimal item so the sheet still opens
+      // Fallback: Try to find in master segments lists first
       if (!item) {
-        item = {
-          name: deepLinkSymbol,
-          symbol: deepLinkSymbol,
-          kiteSymbol: deepLinkSymbol,
-          segment: 'INR',
-          price: 0,
-        } as WatchlistItem;
+        let masterFound: any = null;
+        for (const seg of TRADING_SEGMENTS) {
+          if (seg.instruments) {
+            const found = seg.instruments.find(i => 
+              i.symbol.toUpperCase() === query || 
+              i.name.toUpperCase() === query || 
+              (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
+              (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
+            );
+            if (found) { masterFound = found; break; }
+          }
+          if (seg.subCategories) {
+            for (const sub of seg.subCategories) {
+              const found = sub.instruments.find(i => 
+                i.symbol.toUpperCase() === query || 
+                i.name.toUpperCase() === query || 
+                (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
+                (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
+              );
+              if (found) { masterFound = found; break; }
+            }
+            if (masterFound) break;
+          }
+        }
 
-        // Auto-add fallback to watchlist state and storage
+        if (masterFound) {
+          item = { ...masterFound };
+        } else {
+          item = {
+            name: deepLinkSymbol,
+            symbol: deepLinkSymbol,
+            kiteSymbol: deepLinkSymbol,
+            segment: 'INR',
+            price: 0,
+          } as WatchlistItem;
+        }
+
+        // Auto-add fallback/master item to watchlist state and storage
         setWatchlistItems(prev => {
           const newItem = { ...item!, category: activeTab };
           if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
@@ -667,6 +707,12 @@ function WatchlistContent() {
       // MIGRATION: Update legacy items to new segments/symbols
       let migrated = false;
       const updated = loaded.map(item => {
+        // Clean up broken dummy deep link items (e.g. symbol "NIFTY 50" with segment "INR")
+        if (item.symbol === 'NIFTY 50' || item.segment === 'INR') {
+          const defaults = getDefaultWatchlistItems();
+          const match = defaults.find(d => d.symbol === 'NIFTY_FUT');
+          if (match) { migrated = true; return { ...match }; }
+        }
         // Upgrade legacy Forex (Frankfurter) to new CDS pairs
         if ((item.category === 'FOREX' || item.segment === 'Forex') && !item.kiteSymbol.startsWith('CDS:')) {
           const match = DEFAULT_FOREX_ITEMS.find(d => d.name === item.name || d.symbol === item.symbol);
@@ -694,6 +740,7 @@ function WatchlistContent() {
         setWatchlistItems(loaded);
       }
     }
+    setHasLoaded(true);
   }, []);
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
@@ -1031,6 +1078,9 @@ function WatchlistContent() {
     : (orderUnit === 'lot' ? orderQty * lotSize : orderQty) * currentLtp;
 
   useEffect(() => {
+    // Wait until segments have loaded before injecting the inline script
+    if (allowedSegments === null) return;
+
     window.__kiteQuotes = window.__kiteQuotes || {};
     window.__watchlistItems = window.__watchlistItems || [];
 
@@ -1093,7 +1143,12 @@ function WatchlistContent() {
             </div>
           </div>
           <div className="watchlist-card-list">
-            {filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
+            {allowedSegments === null ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', gap: '12px', color: 'var(--text-secondary, #6B7280)' }}>
+                <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '1.5rem', color: '#C62E2E', opacity: 0.6 }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading watchlist…</span>
+              </div>
+            ) : filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
               <InstrumentRow
                 key={item.symbol}
                 item={item}
@@ -1605,6 +1660,7 @@ function WatchlistContent() {
               return name;
             };
             const visibleSegments = TRADING_SEGMENTS.filter(seg => {
+              if (allowedSegments === null) return false; // still loading
               if (allowedSegments.length === 0) return true;
               return allowedSegments.includes(mapCategoryToDbSegment(seg.name));
             });
