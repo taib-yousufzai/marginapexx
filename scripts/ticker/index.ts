@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import http from 'http';
 
 // Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
@@ -68,6 +69,15 @@ class TickerDaemon {
 
     // 6. Register process shutdown handlers
     this.setupGracefulShutdown();
+
+    // 7. Start dummy HTTP server for Railway health checks
+    const port = process.env.PORT || 8080;
+    http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('OK');
+    }).listen(port, () => {
+      logger.info(`Health check server listening on port ${port}`);
+    });
   }
 
   private setupTickerCallbacks() {
