@@ -94,7 +94,7 @@ export default function PayinOutPage() {
         } else if (status === 'CLOSED') {
           console.log('Realtime subscription closed');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Realtime subscription error');
+          console.warn('Realtime subscription error');
         }
       });
     return () => {

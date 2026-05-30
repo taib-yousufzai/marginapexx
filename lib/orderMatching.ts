@@ -162,7 +162,7 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
     }
   }
 
-  // 2. PROCESS OPEN POSITIONS FOR STOP LOSS AND TARGET
+  // 2. PROCESS OPEN POSITIONS
   const { data: openPositions, error: posError } = await admin
     .from('positions')
     .select('*')
@@ -173,14 +173,127 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
   } else if (openPositions && openPositions.length > 0) {
     console.log(`[Order Matching] Found ${openPositions.length} open positions to evaluate.`);
 
+    // Group open positions by user_id
+    const userOpenPositions: Record<string, any[]> = {};
     for (const pos of openPositions) {
-      // Check if we have the symbol's LTP.
-      // Pos symbol might be just the name (e.g. INFY), or it could have exchange prefix.
-      // We check both the symbol directly and with the prefix from orders segment or settlement.
+      if (!userOpenPositions[pos.user_id]) {
+        userOpenPositions[pos.user_id] = [];
+      }
+      userOpenPositions[pos.user_id].push(pos);
+    }
+
+    const closedPositionIds = new Set<string>();
+
+    // Evaluate Drawdown Limit per user
+    for (const [userId, userPositions] of Object.entries(userOpenPositions)) {
+      // 1. Fetch user profile
+      const { data: profile, error: profileErr } = await admin
+        .from('profiles')
+        .select('balance, auto_sqoff')
+        .eq('id', userId)
+        .single();
+
+      if (profileErr || !profile) {
+        console.error(`[Order Matching] Error fetching profile for user ${userId}:`, profileErr);
+        continue;
+      }
+
+      const balance = Number(profile.balance || 0);
+      const autoSqoffPercent = Number(profile.auto_sqoff ?? 90);
+      const drawdownLimit = - (autoSqoffPercent / 100.0) * balance;
+
+      // 2. Fetch segment settings for this user (to get entry buffers for SELL exits)
+      const { data: segSettings } = await admin
+        .from('segment_settings')
+        .select('segment, side, entry_buffer')
+        .eq('user_id', userId);
+
+      const settingsMap = new Map<string, number>();
+      if (segSettings) {
+        for (const s of segSettings) {
+          settingsMap.set(`${s.segment}|${s.side}`, Number(s.entry_buffer ?? 0.003));
+        }
+      }
+
+      // 3. Compute live Floating P/L and resolve LTP/Prices for each position
+      let totalUnrealised = 0;
+      const resolvedPositions = [];
+
+      for (const pos of userPositions) {
+        let ltp = pricesMap.get(pos.symbol);
+
+        if (ltp === undefined && pos.settlement) {
+          const exchange = pos.settlement.startsWith('OPT') || pos.settlement.startsWith('FUT') ? 'NFO' : 'NSE';
+          ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
+        }
+
+        // Fallback
+        if (ltp === undefined || ltp <= 0) {
+          ltp = Number(pos.ltp ?? pos.entry_price);
+        }
+
+        const entryPrice = Number(pos.entry_price ?? pos.avg_price);
+        const qty = Number(pos.qty_open ?? 0);
+        const pnl = pos.side === 'BUY' 
+          ? (ltp - entryPrice) * qty 
+          : (entryPrice - ltp) * qty;
+
+        totalUnrealised += pnl;
+
+        resolvedPositions.push({
+          pos,
+          ltp,
+          pnl
+        });
+      }
+
+      // 4. Check if user hit drawdown limit
+      if (totalUnrealised <= drawdownLimit && userPositions.length > 0) {
+        console.log(`[Order Matching] DRAWDOWN TRIGGERED for user ${userId}. Total Unrealised: ${totalUnrealised}, Limit: ${drawdownLimit} (${autoSqoffPercent}% of ${balance}). Closing all positions.`);
+
+        for (const item of resolvedPositions) {
+          const pos = item.pos;
+          const ltp = item.ltp;
+
+          // Calculate exit price
+          let exitPrice = ltp;
+          if (pos.side === 'BUY') {
+            // Exiting BUY (Selling) -> executes at Bid Price = ltp * 0.999
+            exitPrice = ltp * 0.999;
+          } else {
+            // Exiting SELL (Buying) -> executes at Ask Price = ltp * (1.001 + entryBuffer)
+            const buffer = settingsMap.get(`${pos.settlement}|BUY`) ?? 0.003;
+            exitPrice = ltp * (1.001 + buffer);
+          }
+
+          console.log(`[Order Matching] Liquidation Close for position ${pos.id} (${pos.symbol}). LTP: ${ltp}, Exit Price: ${exitPrice}`);
+
+          const { error: closeRpcErr } = await admin.rpc('close_position', {
+            p_position_id: pos.id,
+            p_user_id: pos.user_id,
+            p_ltp: ltp,
+            p_exit_price: exitPrice,
+            p_closed_by: 'AUTO_SQOFF',
+          });
+
+          if (closeRpcErr) {
+            console.error(`[Order Matching] Failed to close position ${pos.id} via close_position RPC during drawdown:`, closeRpcErr);
+          } else {
+            closedPositionIds.add(pos.id);
+          }
+        }
+      }
+    }
+
+    // 5. PROCESS REMAINING OPEN POSITIONS FOR STOP LOSS AND TARGET
+    for (const pos of openPositions) {
+      if (closedPositionIds.has(pos.id)) {
+        continue; // Already closed by drawdown limit
+      }
+
       let ltp = pricesMap.get(pos.symbol);
 
       if (ltp === undefined && pos.settlement) {
-        // Try exchange:symbol format
         const exchange = pos.settlement.startsWith('OPT') || pos.settlement.startsWith('FUT') ? 'NFO' : 'NSE';
         ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
       }
@@ -222,12 +335,28 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       if (shouldClose) {
         console.log(`[Order Matching] Triggering auto-exit for position ${pos.id} (${side} ${pos.symbol}) due to ${closeReason}. LTP: ${ltp}, SL: ${stopLoss}, Target: ${target}`);
 
-        // Call the close_position RPC function to handle full settlement and exit order creation
+        // Calculate exit price
+        let exitPrice = ltp;
+        if (pos.side === 'BUY') {
+          exitPrice = ltp * 0.999;
+        } else {
+          // Fetch buffer for this user
+          const { data: segSet } = await admin
+            .from('segment_settings')
+            .select('entry_buffer')
+            .eq('user_id', pos.user_id)
+            .eq('segment', pos.settlement)
+            .eq('side', 'BUY')
+            .maybeSingle();
+          const buffer = Number(segSet?.entry_buffer ?? 0.003);
+          exitPrice = ltp * (1.001 + buffer);
+        }
+
         const { error: closeRpcErr } = await admin.rpc('close_position', {
           p_position_id: pos.id,
           p_user_id: pos.user_id,
           p_ltp: ltp,
-          p_exit_price: ltp,
+          p_exit_price: exitPrice,
           p_closed_by: closeReason,
         });
 
