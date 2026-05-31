@@ -222,23 +222,6 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   useEffect(() => {
     setIsOpen(false);
   }, [activeTab]);
-  useEffect(() => {
-    if (!isOpen) return;
-    const onOutside = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node;
-      if (
-        panelRef.current?.contains(target) ||
-        handleAreaRef.current?.contains(target)
-      ) return;
-      setIsOpen(false);
-    };
-    document.addEventListener('mousedown', onOutside);
-    document.addEventListener('touchstart', onOutside);
-    return () => {
-      document.removeEventListener('mousedown', onOutside);
-      document.removeEventListener('touchstart', onOutside);
-    };
-  }, [isOpen]);
 
   // Drag to open/close
   const handleTouchStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -330,9 +313,9 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                   </span>
                 </div>
                 <div className="summary-item">
-                  <span className="summary-label">Margin Limit</span>
+                  <span className="summary-label">Liquidation</span>
                   <span className="summary-value">
-                    ₹<TickFlash value={balance}>{fmt(balance)}</TickFlash>
+                    ₹<TickFlash value={balance * 0.9}>{fmt(balance * 0.9)}</TickFlash>
                   </span>
                 </div>
               </div>
