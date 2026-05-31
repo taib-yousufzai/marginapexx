@@ -13,6 +13,22 @@ interface FooterProps {
   hideDrawer?: boolean;
 }
 
+const mapSegmentToDbSegment = (s: string): string => {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+};
+
 const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -32,6 +48,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
   const [balance, setBalance] = useState(0);
   const [rawPositions, setRawPositions] = useState<any[]>([]);
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -56,6 +73,22 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       if (posRes.ok) {
         const { positions } = await posRes.json();
         setRawPositions(positions || []);
+      }
+
+      // Fetch profile and segment settings
+      const profRes = await fetch('/api/user/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (profRes.ok) {
+        const profile = await profRes.json();
+        const mode = profile?.trading_mode || 'normal';
+        const resSettings = await fetch(`/api/user/segments?mode=${mode}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (resSettings.ok) {
+          const settingsData = await resSettings.json();
+          setSegmentSettings(settingsData || []);
+        }
       }
     } catch (err) {
       if (err instanceof TypeError) return;
@@ -127,12 +160,18 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
           ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
         }
 
+        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
+        const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+        const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
-            unrealised = (ltp - p.entry_price) * p.qty_open;
+            const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
+            unrealised = (currentAsk - p.entry_price) * p.qty_open;
           } else {
-            unrealised = (p.entry_price - ltp) * p.qty_open;
+            const currentBid = ltp * 0.999;
+            unrealised = (p.entry_price - currentBid) * p.qty_open;
           }
         }
         totalUnrealised += unrealised;
@@ -146,7 +185,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       usedMargin: totalUsedMargin,
       positionValue: totalPositionValue
     };
-  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes]);
+  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, segmentSettings]);
 
   const equity = positionValue;
   const freeMargin = (balance + floatingPnl) - usedMargin;

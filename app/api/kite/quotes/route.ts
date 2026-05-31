@@ -137,6 +137,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
       .in('id', directKiteIds);
 
     const finalMappedData: Record<string, any> = {};
+    const fallbackData: Record<string, any> = {};
     const foundKiteIds = new Set<string>();
 
     if (!dbError && dbQuotes) {
@@ -144,12 +145,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
         const reqId = realToRequestedMap[row.id];
         if (!reqId) continue;
 
-        // Skip stale rows — they'll be refreshed via Kite live API
-        const ageMs = now - new Date(row.updated_at).getTime();
-        if (ageMs > STALE_THRESHOLD_MS) continue;
-
-        foundKiteIds.add(row.id);
-        finalMappedData[reqId] = {
+        const mappedRow = {
           timestamp: row.quote_timestamp,
           last_price: Number(row.last_price),
           volume: Number(row.volume || 0),
@@ -161,6 +157,16 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
           },
           net_change: Number(row.last_price) - Number(row.close || 0),
         };
+
+        // Skip stale rows — they'll be refreshed via Kite live API
+        const ageMs = now - new Date(row.updated_at).getTime();
+        if (ageMs > STALE_THRESHOLD_MS) {
+          fallbackData[reqId] = mappedRow;
+          continue;
+        }
+
+        foundKiteIds.add(row.id);
+        finalMappedData[reqId] = mappedRow;
       }
     }
 
@@ -267,6 +273,14 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
             })();
           }
         }
+      }
+    }
+
+    // 4. Stale fallback: If we found no fresh data, fall back to whatever cached DB data we have
+    for (const id of directKiteIds) {
+      const reqId = realToRequestedMap[id];
+      if (reqId && !finalMappedData[reqId] && fallbackData[reqId]) {
+        finalMappedData[reqId] = fallbackData[reqId];
       }
     }
 

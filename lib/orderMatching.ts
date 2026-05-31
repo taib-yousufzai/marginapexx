@@ -240,9 +240,10 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
         const entryPrice = Number(pos.entry_price ?? pos.avg_price);
         const qty = Number(pos.qty_open ?? 0);
+        const buffer = settingsMap.get(`${pos.settlement}|BUY`) ?? 0.003;
         const pnl = pos.side === 'BUY' 
-          ? (ltp - entryPrice) * qty 
-          : (entryPrice - ltp) * qty;
+          ? ((ltp * 1.001 + ltp * buffer) - entryPrice) * qty 
+          : (entryPrice - (ltp * 0.999)) * qty;
 
         totalUnrealised += pnl;
 
@@ -372,9 +373,20 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       } else {
         // If not closed, update the position's LTP and real-time P&L in the database
         const qty = Number(pos.qty_open ?? 0);
-        const pnl = side === 'BUY' 
-          ? (ltp - entryPrice) * qty 
-          : (entryPrice - ltp) * qty;
+        let pnl = 0;
+        if (side === 'BUY') {
+          const { data: segSet } = await admin
+            .from('segment_settings')
+            .select('entry_buffer')
+            .eq('user_id', pos.user_id)
+            .eq('segment', pos.settlement)
+            .eq('side', 'BUY')
+            .maybeSingle();
+          const buffer = Number(segSet?.entry_buffer ?? 0.003);
+          pnl = ((ltp * 1.001 + ltp * buffer) - entryPrice) * qty;
+        } else {
+          pnl = (entryPrice - (ltp * 0.999)) * qty;
+        }
 
         const { error: updatePosErr } = await admin
           .from('positions')

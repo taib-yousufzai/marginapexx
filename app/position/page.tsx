@@ -63,6 +63,7 @@ export default function PositionPage() {
   const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
   const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BUY');
   const [tradeSheetExitMode, setTradeSheetExitMode] = useState(false);
+  const [tradeSheetProductType, setTradeSheetProductType] = useState<'INTRADAY' | 'CARRY' | undefined>(undefined);
 
   // Inline expand for open positions
   const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export default function PositionPage() {
     });
     setTradeSheetSide(pos.side);
     setTradeSheetExitMode(false);
+    setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
   };
 
   const openTradeAgain = (pos: EnrichedPosition) => {
@@ -96,6 +98,7 @@ export default function PositionPage() {
     });
     setTradeSheetSide('BOTH');
     setTradeSheetExitMode(false);
+    setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
   };
 
   const openExitSheet = (pos: EnrichedPosition) => {
@@ -110,6 +113,7 @@ export default function PositionPage() {
     // Exit is the opposite side: BUY position → SELL to exit, SELL position → BUY to exit
     setTradeSheetSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
     setTradeSheetExitMode(true);
+    setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
   };
 
   const showToast = (msg: string) => {
@@ -891,9 +895,10 @@ export default function PositionPage() {
       <TradeSheet
         item={tradeSheetItem}
         side={tradeSheetSide}
-        onClose={() => { setTradeSheetItem(null); setTradeSheetExitMode(false); }}
+        onClose={() => { setTradeSheetItem(null); setTradeSheetExitMode(false); setTradeSheetProductType(undefined); }}
         onSuccess={refresh}
         exitMode={tradeSheetExitMode}
+        productType={tradeSheetProductType}
       />
     </div>
   );

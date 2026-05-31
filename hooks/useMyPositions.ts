@@ -33,11 +33,51 @@ interface UseMyPositionsResult {
 
 let globalPositionsCache: MyPosition[] = [];
 
+const mapSegmentToDbSegment = (s: string): string => {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+};
+
 export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
   const [rawPositions, setRawPositions] = useState<MyPosition[]>(globalPositionsCache);
   const [loading, setLoading] = useState(globalPositionsCache.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [inFlightConversions, setInFlightConversions] = useState<Record<string, string>>({});
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('trading_mode')
+          .eq('id', session.user.id)
+          .single();
+        const mode = profile?.trading_mode || 'normal';
+        const res = await fetch(`/api/user/segments?mode=${mode}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const sData = await res.json();
+          setSegmentSettings(sData || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch segment settings in useMyPositions', err);
+      }
+    });
+  }, []);
 
   const updatePositionLocally = useCallback((posId: string, updatedFields: Partial<MyPosition>) => {
     setRawPositions(prev =>
@@ -130,10 +170,18 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
+        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
+        const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+        const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+
         if (p.side === 'BUY') {
-          unrealised = (ltp - p.entry_price) * p.qty_open;
+          // BUY: evaluates at current Ask price
+          const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
+          unrealised = (currentAsk - p.entry_price) * p.qty_open;
         } else {
-          unrealised = (p.entry_price - ltp) * p.qty_open;
+          // SELL: evaluates at current Bid price
+          const currentBid = ltp * 0.999;
+          unrealised = (p.entry_price - currentBid) * p.qty_open;
         }
       }
 
@@ -150,7 +198,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         pnl_percent: parseFloat(pnl_percent.toFixed(2))
       } as EnrichedPosition;
     });
-  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, inFlightConversions]);
+  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, inFlightConversions, segmentSettings]);
 
   return {
     positions: enrichedPositions,

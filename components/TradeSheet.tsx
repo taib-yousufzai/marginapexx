@@ -21,6 +21,7 @@ interface TradeSheetProps {
   onSuccess?: () => void;
   /** When true: hides GTT order type and hides Product Type section entirely */
   exitMode?: boolean;
+  productType?: ProductType;
 }
 
 function getLotSize(name: string): number {
@@ -49,7 +50,7 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -111,20 +112,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       setQtyInput(String(ls));
       setOrderUnit('qty');
       setOrderType('MARKET');
-      setProductType('INTRADAY');
+      setProductType(propProductType || 'INTRADAY');
       setLimitPrice('');
       setTriggerPrice('');
       setSlPrice('');
       setTpPrice('');
     }
-  }, [item?.symbol]);
+  }, [item?.symbol, propProductType]);
 
   // Sync maximum position quantity when side is SELL
   useEffect(() => {
     if (isOpen && activePositions && item) {
       if (side === 'SELL') {
+        const targetPT = propProductType || productType;
         const existingPos = activePositions.find(
-          p => p.symbol === item.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY'
+          p => p.symbol === item.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY' && p.product_type === targetPT
         );
         if (existingPos) {
           setOrderQty(existingPos.qty_open);
@@ -136,7 +138,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         setQtyInput(String(ls));
       }
     }
-  }, [side, activePositions, isOpen, item?.symbol]);
+  }, [side, activePositions, isOpen, item?.symbol, propProductType, productType]);
 
   // Fetch balance, active positions, and segment settings
   useEffect(() => {
@@ -180,7 +182,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     setTimeout(() => setToast(null), 3000);
   };
 
-  const existingPos = activePositions.find(p => p.symbol === item?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+  const targetPT = propProductType || productType;
+  const existingPos = activePositions.find(p => p.symbol === item?.symbol && (p.status === 'open' || p.status === 'OPEN') && p.product_type === targetPT);
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 
@@ -194,7 +197,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       qty: totalQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
       order_type: orderType,
-      product_type: exitMode ? 'INTRADAY' : productType,
+      product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
       client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) || 0 : currentLtp,
       trigger_price: parseFloat(triggerPrice) || undefined,
       stop_loss: parseFloat(slPrice) || undefined,
