@@ -22,11 +22,11 @@ function addToWatchlist(item: {
   high: number;
   low: number;
   close: number;
-  category?: string;
-}) {
+}, userId?: string) {
   const WATCHLIST_KEY = 'marginApex_watchlist';
   try {
-    const raw = localStorage.getItem(WATCHLIST_KEY);
+    const key = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
+    const raw = localStorage.getItem(key);
     const list = raw ? JSON.parse(raw) : [];
 
     const targetCat = item.category || 'WATCHLIST';
@@ -36,7 +36,7 @@ function addToWatchlist(item: {
 
     const newItem = { ...item, category: targetCat };
     list.push(newItem);
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+    localStorage.setItem(key, JSON.stringify(list));
     return true;
   } catch (err) {
     console.error(err);
@@ -86,6 +86,22 @@ function OptionChainContent() {
   const [tpPrice, setTpPrice] = useState('');
   const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
   const [pendingWatchlistItem, setPendingWatchlistItem] = useState<any>(null);
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    async function fetchUserId() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+          setUserId(session.user.id);
+        }
+      } catch (err) {
+        console.error('Failed to get session user id', err);
+      }
+    }
+    fetchUserId();
+  }, []);
 
   const lotSize = symbol === 'NIFTY' ? 25 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
 
@@ -139,7 +155,7 @@ function OptionChainContent() {
   const confirmAddToWatchlist = (category: string) => {
     if (!pendingWatchlistItem) return;
 
-    const success = addToWatchlist({ ...pendingWatchlistItem, category });
+    const success = addToWatchlist({ ...pendingWatchlistItem, category }, userId);
 
     setShowWatchlistSelector(false);
     setPendingWatchlistItem(null);

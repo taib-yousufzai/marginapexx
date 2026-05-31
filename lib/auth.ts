@@ -72,9 +72,10 @@ export async function signIn(email: string, password: string): Promise<SignInRes
  */
 export async function signOut(): Promise<void> {
   try {
-    if (_cachedSession && (_cachedSession.user?.email === 'demo@gmail.com' || _cachedSession.user?.user_metadata?.demo_user)) {
-      localStorage.setItem('marginApex_watchlist', '[]');
-    }
+    // Keep the watchlist intact even after logging out
+    // if (_cachedSession && (_cachedSession.user?.email === 'demo@gmail.com' || _cachedSession.user?.user_metadata?.demo_user)) {
+    //   localStorage.setItem('marginApex_watchlist', '[]');
+    // }
   } catch (e) {
     console.error('Failed to clear demo watchlist on signout:', e);
   }

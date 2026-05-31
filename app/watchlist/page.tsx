@@ -41,16 +41,20 @@ declare global {
 
 const WATCHLIST_KEY = 'marginApex_watchlist';
 
-function loadWatchlistFromStorage(): WatchlistItem[] {
+function loadWatchlistFromStorage(userId?: string): WatchlistItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(WATCHLIST_KEY);
+    const key = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
+    const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as WatchlistItem[]) : [];
   } catch { return []; }
 }
 
-function saveWatchlistToStorage(items: WatchlistItem[]) {
-  try { localStorage.setItem(WATCHLIST_KEY, JSON.stringify(items)); } catch { }
+function saveWatchlistToStorage(items: WatchlistItem[], userId?: string) {
+  try {
+    const key = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
+    localStorage.setItem(key, JSON.stringify(items));
+  } catch { }
 }
 
 // ── Default Crypto Items (Binance) ──────────────────────────────────────────
@@ -476,6 +480,7 @@ function WatchlistContent() {
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
   const [allowedSegments, setAllowedSegments] = useState<string[] | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string>('');
 
   useEffect(() => {
     async function fetchAllowedSegments() {
@@ -484,6 +489,8 @@ function WatchlistContent() {
         const { data: { session } } = await sb.auth.getSession();
         if (!session) { setAllowedSegments([]); return; }
         
+        setUserId(session.user.id);
+
         // Also save to window for easy inline script access
         (window as any).__accessToken = session.access_token;
         
@@ -711,7 +718,7 @@ function WatchlistContent() {
           const newItem = { ...item!, category: activeTab };
           if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
           const next = [...prev, newItem];
-          saveWatchlistToStorage(next);
+          saveWatchlistToStorage(next, userId);
           return next;
         });
       }
@@ -729,53 +736,77 @@ function WatchlistContent() {
   }, [deepLinkSymbol, watchlistItems]);
 
   useEffect(() => {
-    const raw = localStorage.getItem(WATCHLIST_KEY);
+    if (allowedSegments === null) return; // Wait until session/allowedSegments are resolved to avoid premature loading/defaulting
 
-    if (raw === null) {
-      const defaults = getDefaultWatchlistItems();
-      setWatchlistItems(defaults);
-      saveWatchlistToStorage(defaults);
-    } else {
-      const loaded = loadWatchlistFromStorage();
+    const userKey = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
+    const rawUser = localStorage.getItem(userKey);
 
-      // MIGRATION: Update legacy items to new segments/symbols
-      let migrated = false;
-      const updated = loaded.map(item => {
-        // Clean up broken dummy deep link items (e.g. symbol "NIFTY 50" with segment "INR")
-        if (item.symbol === 'NIFTY 50' || item.segment === 'INR') {
-          const defaults = getDefaultWatchlistItems();
-          const match = defaults.find(d => d.symbol === 'NIFTY_FUT');
-          if (match) { migrated = true; return { ...match }; }
-        }
-        // Upgrade legacy Forex (Frankfurter) to new CDS pairs
-        if ((item.category === 'FOREX' || item.segment === 'Forex') && !item.kiteSymbol.startsWith('CDS:')) {
-          const match = DEFAULT_FOREX_ITEMS.find(d => d.name === item.name || d.symbol === item.symbol);
-          if (match) { migrated = true; return { ...match }; }
-        }
-        // Upgrade legacy COMEX to dual-source MCX pairs
-        // Also upgrade items that have a kiteSymbol but are missing comexSymbol
-        if (item.category === 'COI' && (!item.kiteSymbol || !item.kiteSymbol.startsWith('MCX:') || !item.comexSymbol)) {
-          const match = DEFAULT_COMEX_ITEMS.find(d => d.name === item.name || d.name.includes(item.name) || item.name.includes(d.name));
-          if (match) { migrated = true; return { ...match }; }
-        }
-        // Upgrade expired May 2026 contracts to active June 2026 contracts
-        if (item.kiteSymbol && (item.kiteSymbol.includes('26MAYFUT') || item.kiteSymbol.includes('26MAY'))) {
-          const allDefaults = [...DEFAULT_FOREX_ITEMS, ...DEFAULT_COMEX_ITEMS, ...getDefaultWatchlistItems()];
-          const match = allDefaults.find(d => d.name === item.name || d.symbol === item.symbol);
-          if (match) { migrated = true; return { ...match }; }
-        }
-        return item;
-      });
+    let itemsToLoad: WatchlistItem[];
 
-      if (migrated) {
-        setWatchlistItems(updated);
-        saveWatchlistToStorage(updated);
+    if (rawUser === null) {
+      // User-specific key doesn't exist yet. Check if we should migrate from the legacy global key
+      const rawLegacy = localStorage.getItem(WATCHLIST_KEY);
+      if (rawLegacy !== null) {
+        try {
+          itemsToLoad = JSON.parse(rawLegacy) as WatchlistItem[];
+        } catch {
+          itemsToLoad = getDefaultWatchlistItems();
+        }
       } else {
-        setWatchlistItems(loaded);
+        itemsToLoad = getDefaultWatchlistItems();
+      }
+      // Save it to the user-specific key
+      try {
+        localStorage.setItem(userKey, JSON.stringify(itemsToLoad));
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      try {
+        itemsToLoad = JSON.parse(rawUser) as WatchlistItem[];
+      } catch {
+        itemsToLoad = [];
       }
     }
+
+    // Apply migrations/upgrades on the loaded items
+    let migrated = false;
+    const updated = itemsToLoad.map(item => {
+      // Clean up broken dummy deep link items (e.g. symbol "NIFTY 50" with segment "INR")
+      if (item.symbol === 'NIFTY 50' || item.segment === 'INR') {
+        const defaults = getDefaultWatchlistItems();
+        const match = defaults.find(d => d.symbol === 'NIFTY_FUT');
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade legacy Forex (Frankfurter) to new CDS pairs
+      if ((item.category === 'FOREX' || item.segment === 'Forex') && !item.kiteSymbol.startsWith('CDS:')) {
+        const match = DEFAULT_FOREX_ITEMS.find(d => d.name === item.name || d.symbol === item.symbol);
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade legacy COMEX to dual-source MCX pairs
+      if (item.category === 'COI' && (!item.kiteSymbol || !item.kiteSymbol.startsWith('MCX:') || !item.comexSymbol)) {
+        const match = DEFAULT_COMEX_ITEMS.find(d => d.name === item.name || d.name.includes(item.name) || item.name.includes(d.name));
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade expired May 2026 contracts to active June 2026 contracts
+      if (item.kiteSymbol && (item.kiteSymbol.includes('26MAYFUT') || item.kiteSymbol.includes('26MAY'))) {
+        const allDefaults = [...DEFAULT_FOREX_ITEMS, ...DEFAULT_COMEX_ITEMS, ...getDefaultWatchlistItems()];
+        const match = allDefaults.find(d => d.name === item.name || d.symbol === item.symbol);
+        if (match) { migrated = true; return { ...match }; }
+      }
+      return item;
+    });
+
+    if (migrated) {
+      setWatchlistItems(updated);
+      try {
+        localStorage.setItem(userKey, JSON.stringify(updated));
+      } catch (e) {}
+    } else {
+      setWatchlistItems(itemsToLoad);
+    }
     setHasLoaded(true);
-  }, []);
+  }, [userId, allowedSegments]);
 
   const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
   const { quotes } = useKiteQuotes(kiteSymbols, 1000);
@@ -806,14 +837,14 @@ function WatchlistContent() {
         const newItem = { ...item, category: activeTab };
         if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
         const next = [...prev, newItem];
-        saveWatchlistToStorage(next);
+        saveWatchlistToStorage(next, userId);
         return next;
       });
     };
     window.__removeFromWatchlistCallback = (symbol: string) => {
       setWatchlistItems(prev => {
         const next = prev.filter(i => !(i.symbol === symbol && getTabForItem(i) === activeTab));
-        saveWatchlistToStorage(next);
+        saveWatchlistToStorage(next, userId);
         return next;
       });
     };
