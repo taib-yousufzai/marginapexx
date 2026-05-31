@@ -315,7 +315,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                 <div className="summary-item">
                   <span className="summary-label">Liquidation</span>
                   <span className="summary-value">
-                    ₹<TickFlash value={balance * 0.9}>{fmt(balance * 0.9)}</TickFlash>
+                    ₹<TickFlash value={-balance * 0.9}>{fmt(-balance * 0.9)}</TickFlash>
                   </span>
                 </div>
               </div>
