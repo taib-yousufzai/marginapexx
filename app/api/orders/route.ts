@@ -181,6 +181,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       order_type:   (r.order_type as MyOrder['order_type']) ?? 'MARKET',
       product_type: (r.product_type as MyOrder['product_type']) ?? 'INTRADAY',
       info:         (r.info as string) ?? null,
+      brokerage:    Number(r.brokerage ?? 0),
       created_at:   r.created_at as string,
     }));
 

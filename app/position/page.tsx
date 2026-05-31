@@ -698,9 +698,21 @@ export default function PositionPage() {
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Gross P&amp;L</div>
                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626' }}>
                             {fmtUSD(selectedPos.pnl, selectedPos.settlement)}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#C62E2E' }}>
+                            {fmtUSD(selectedPos.brokerage || 0, selectedPos.settlement)}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: (selectedPos.pnl - (selectedPos.brokerage || 0)) >= 0 ? '#059669' : '#DC2626' }}>
+                            {fmtUSD(selectedPos.pnl - (selectedPos.brokerage || 0), selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>

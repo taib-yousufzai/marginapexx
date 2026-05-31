@@ -62,6 +62,7 @@ export interface MyOrder {
   trigger_price?: number;
   stop_loss?: number;
   target?: number;
+  brokerage: number;
   created_at: string;
 }
 
@@ -85,6 +86,7 @@ export interface MyPosition {
   product_type?: ProductType;
   stop_loss?: number;
   target?: number;
+  brokerage: number;
   created_at: string;
 }
 

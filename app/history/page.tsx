@@ -87,7 +87,7 @@ export default function HistoryPage() {
           pnl: 0,
           date: new Date(o.created_at).toLocaleString(),
           status: o.status,
-          brokerage: 20
+          brokerage: o.brokerage || 0
         }));
 
         const formattedPos = (posData.positions || []).map((p: any) => ({
@@ -103,7 +103,7 @@ export default function HistoryPage() {
           date: new Date(p.created_at).toLocaleString(),
           exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
           status: 'closed',
-          brokerage: 40
+          brokerage: p.brokerage || 0
         }));
 
         const merged = [...formattedOrders, ...formattedPos];
