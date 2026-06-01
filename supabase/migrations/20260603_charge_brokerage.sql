@@ -59,6 +59,9 @@ DECLARE
   v_raw_brokerage numeric := 0;
   v_brokerage numeric := 0;
   v_closed_brokerage numeric := 0;
+  v_pos_found boolean;
+  v_lot_size numeric;
+  v_lots numeric;
 BEGIN
   -- Fetch the order
   SELECT * INTO v_order
@@ -82,9 +85,11 @@ BEGIN
     AND product_type = v_order.product_type
   FOR UPDATE;
 
+  v_pos_found := FOUND;
+
   IF v_order.is_exit THEN
     -- ─── EXIT ORDER LOGIC ───
-    IF NOT FOUND THEN
+    IF NOT v_pos_found THEN
       RAISE EXCEPTION 'No active position exists to exit';
     END IF;
 
@@ -181,10 +186,30 @@ BEGIN
       v_comm_val := CASE WHEN v_order.segment = 'FOREX' THEN 2000 WHEN v_order.segment = 'CRYPTO' THEN 1000 ELSE 4500 END;
     END IF;
 
+    -- Fetch lot size dynamically if needed
+    SELECT lot_size INTO v_lot_size FROM public.script_settings WHERE symbol = v_order.symbol;
+    IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
+      IF v_order.symbol LIKE '%BANKNIFTY%' OR v_order.symbol LIKE '%BANKEX%' THEN
+        v_lot_size := 15;
+      ELSIF v_order.symbol LIKE '%FINNIFTY%' THEN
+        v_lot_size := 40;
+      ELSIF v_order.symbol LIKE '%MIDCP%' OR v_order.symbol LIKE '%MIDCAP%' THEN
+        v_lot_size := 75;
+      ELSIF v_order.symbol LIKE '%SENSEX%' THEN
+        v_lot_size := 10;
+      ELSIF v_order.symbol LIKE '%NIFTY%' THEN
+        v_lot_size := 25;
+      ELSE
+        v_lot_size := 1;
+      END IF;
+    END IF;
+
+    v_lots := COALESCE(NULLIF(v_order.lots, 0), v_order.qty / v_lot_size);
+
     IF v_comm_type = 'Per Crore' THEN
       v_raw_brokerage := (v_order.qty * v_order.fill_price * v_comm_val) / 10000000;
     ELSIF v_comm_type = 'Per Lot' THEN
-      v_raw_brokerage := COALESCE(v_order.lots, 0) * v_comm_val;
+      v_raw_brokerage := v_lots * v_comm_val;
     ELSIF v_comm_type = 'Per Trade' THEN
       v_raw_brokerage := v_comm_val;
     ELSE
@@ -195,7 +220,8 @@ BEGIN
 
     -- B. Save brokerage to the order
     UPDATE public.orders
-    SET brokerage = v_brokerage
+    SET brokerage = v_brokerage,
+        lots = v_lots
     WHERE id = v_order.id;
 
     -- C. Debit user's balance immediately via transaction
@@ -205,7 +231,7 @@ BEGIN
     END IF;
 
     -- D. Accumulate/create position
-    IF FOUND THEN
+    IF v_pos_found THEN
       -- If same side, accumulate quantity & compute weighted average price
       IF v_pos.side = v_order.side THEN
         v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);

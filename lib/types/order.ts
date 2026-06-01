@@ -87,6 +87,7 @@ export interface MyPosition {
   stop_loss?: number;
   target?: number;
   brokerage: number;
+  margin_required?: number;
   created_at: string;
 }
 
