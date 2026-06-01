@@ -518,13 +518,13 @@
 .pca-add {
   background: #E9F6EF;
   color: #2C8E5A;
-  border: 1.5px solid #2C8E5A;
+  border: 1px solid rgba(44, 142, 90, 0.6);
 }
 
 .pca-exit {
   background: #FEF0F0;
   color: #C62E2E;
-  border: 1.5px solid #C62E2E;
+  border: 1px solid rgba(198, 46, 46, 0.6);
 }
 
 .pca-btn:disabled {

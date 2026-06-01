@@ -1598,8 +1598,8 @@ function WatchlistContent() {
                     width: '100%',
                     padding: '9px',
                     borderRadius: '50px',
-                    border: '1.5px solid #2C8E5A',
-                    background: '#ffffff',
+                    border: '1px solid rgba(44, 142, 90, 0.6)',
+                    background: 'transparent',
                     color: '#2C8E5A',
                     fontFamily: 'Inter, sans-serif',
                     fontSize: '0.8rem',
@@ -1614,7 +1614,40 @@ function WatchlistContent() {
                   }}
                   onClick={() => showToast("Opening Trading Chart for " + selectedItem.name, false)}
                 >
-                  <i className="fas fa-chart-line" />
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    style={{
+                      width: '1.1rem',
+                      height: '1.1rem',
+                      display: 'inline-block',
+                      verticalAlign: 'middle',
+                    }}
+                  >
+                    {/* Bars */}
+                    <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                    <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                    <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                    <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                    
+                    {/* Trendline */}
+                    <path 
+                      d="M 4 14 L 8 9 L 13 12 L 20 4" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                    />
+                    {/* Arrowhead */}
+                    <polyline 
+                      points="15 4 20 4 20 9" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                    />
+                  </svg>
                   Open Trading Chart
                 </button>
 

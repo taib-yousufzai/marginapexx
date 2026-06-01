@@ -454,9 +454,9 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '38px',
+                                  width: '52px',
                                   height: '38px',
-                                  borderRadius: '10px',
+                                  borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
                                   background: '#ffffff',
                                   color: '#1F2937',
@@ -466,7 +466,40 @@ export default function PositionPage() {
                                 }}
                                 onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
                               >
-                                <i className="fas fa-chart-line" style={{ fontSize: '1.1rem' }} />
+                                <svg 
+                                  viewBox="0 0 24 24" 
+                                  style={{
+                                    width: '1.25rem',
+                                    height: '1.25rem',
+                                    display: 'inline-block',
+                                    verticalAlign: 'middle',
+                                  }}
+                                >
+                                  {/* Bars */}
+                                  <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                                  <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                                  <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                                  <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                                  
+                                  {/* Trendline */}
+                                  <path 
+                                    d="M 4 14 L 8 9 L 13 12 L 20 4" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                  />
+                                  {/* Arrowhead */}
+                                  <polyline 
+                                    points="15 4 20 4 20 9" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                  />
+                                </svg>
                               </button>
                             </div>
                           )}
@@ -626,9 +659,9 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '38px',
+                                  width: '52px',
                                   height: '38px',
-                                  borderRadius: '10px',
+                                  borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
                                   background: '#ffffff',
                                   color: '#1F2937',
@@ -638,7 +671,40 @@ export default function PositionPage() {
                                 }}
                                 onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
                               >
-                                <i className="fas fa-chart-line" style={{ fontSize: '1.1rem' }} />
+                                <svg 
+                                  viewBox="0 0 24 24" 
+                                  style={{
+                                    width: '1.25rem',
+                                    height: '1.25rem',
+                                    display: 'inline-block',
+                                    verticalAlign: 'middle',
+                                  }}
+                                >
+                                  {/* Bars */}
+                                  <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                                  <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                                  <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                                  <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                                  
+                                  {/* Trendline */}
+                                  <path 
+                                    d="M 4 14 L 8 9 L 13 12 L 20 4" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                  />
+                                  {/* Arrowhead */}
+                                  <polyline 
+                                    points="15 4 20 4 20 9" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    strokeWidth="2" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                  />
+                                </svg>
                               </button>
                             </div>
                           )}
@@ -679,15 +745,48 @@ export default function PositionPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          width: '36px',
+                          width: '44px',
                           height: '36px',
-                          borderRadius: '10px',
+                          borderRadius: '15px',
                           border: '1.5px solid #2C8E5A',
                           background: '#ffffff',
                           color: '#2C8E5A',
                           cursor: 'pointer'
                         }}>
-                          <i className="fas fa-chart-line" style={{ fontSize: '1.2rem' }} />
+                          <svg 
+                            viewBox="0 0 24 24" 
+                            style={{
+                              width: '1.2rem',
+                              height: '1.2rem',
+                              display: 'inline-block',
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {/* Bars */}
+                            <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                            <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                            <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                            <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                            
+                            {/* Trendline */}
+                            <path 
+                              d="M 4 14 L 8 9 L 13 12 L 20 4" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                            />
+                            {/* Arrowhead */}
+                            <polyline 
+                              points="15 4 20 4 20 9" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="2" 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                            />
+                          </svg>
                         </div>
                       </div>
 
