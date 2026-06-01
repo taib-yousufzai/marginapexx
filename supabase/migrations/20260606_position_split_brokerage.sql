@@ -1,44 +1,8 @@
--- 1. Add brokerage column to public.orders table
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS brokerage numeric NOT NULL DEFAULT 0;
+-- 1. Add entry_brokerage and exit_brokerage columns to public.positions table
+ALTER TABLE public.positions ADD COLUMN IF NOT EXISTS entry_brokerage numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.positions ADD COLUMN IF NOT EXISTS exit_brokerage numeric NOT NULL DEFAULT 0;
 
--- 2. Update public.transactions type check constraint
-ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_type_check CHECK (type IN ('DEPOSIT','WITHDRAWAL','PNL_CREDIT','PNL_DEBIT','BROKERAGE_DEBIT'));
-
--- 3. Redefine sync_profile_balance trigger function to support PNL_CREDIT and DEPOSIT as positive additions, and others as subtractions
-CREATE OR REPLACE FUNCTION public.sync_profile_balance()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF (TG_OP = 'INSERT' AND NEW.status = 'APPROVED') THEN
-    UPDATE public.profiles
-    SET balance = balance + (CASE WHEN NEW.type IN ('DEPOSIT', 'PNL_CREDIT') THEN NEW.amount ELSE -NEW.amount END),
-        updated_at = now()
-    WHERE id = NEW.user_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    -- If status changed to APPROVED
-    IF (OLD.status <> 'APPROVED' AND NEW.status = 'APPROVED') THEN
-      UPDATE public.profiles
-      SET balance = balance + (CASE WHEN NEW.type IN ('DEPOSIT', 'PNL_CREDIT') THEN NEW.amount ELSE -NEW.amount END),
-          updated_at = now()
-      WHERE id = NEW.user_id;
-    -- If an APPROVED transaction is deleted
-    ELSIF (OLD.status = 'APPROVED' AND NEW.status <> 'APPROVED') THEN
-      UPDATE public.profiles
-      SET balance = balance - (CASE WHEN OLD.type IN ('DEPOSIT', 'PNL_CREDIT') THEN OLD.amount ELSE -OLD.amount END),
-          updated_at = now()
-      WHERE id = OLD.user_id;
-    END IF;
-  ELSIF (TG_OP = 'DELETE' AND OLD.status = 'APPROVED') THEN
-    UPDATE public.profiles
-    SET balance = balance - (CASE WHEN OLD.type IN ('DEPOSIT', 'PNL_CREDIT') THEN OLD.amount ELSE -OLD.amount END),
-        updated_at = now()
-    WHERE id = OLD.user_id;
-  END IF;
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 4. Redefine process_executed_position to charge brokerage on entry and split on partial exits
+-- 2. Update process_executed_position function to handle split brokerage recording on positions
 CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -59,6 +23,7 @@ DECLARE
   v_raw_brokerage numeric := 0;
   v_brokerage numeric := 0;
   v_closed_brokerage numeric := 0;
+  v_closed_entry_brokerage numeric := 0;
   v_pos_found boolean;
   v_lot_size numeric;
   v_lots numeric;
@@ -183,6 +148,7 @@ BEGIN
         exit_time = now(),
         pnl = v_pnl,
         duration_seconds = EXTRACT(EPOCH FROM (now() - entry_time))::integer,
+        exit_brokerage = exit_brokerage + v_brokerage,
         brokerage = brokerage + v_brokerage,
         updated_at = now()
       WHERE id = v_pos.id;
@@ -195,13 +161,15 @@ BEGIN
     ELSE
       -- PARTIAL EXIT: Split position
       -- Calculate proportional entry brokerage for the closed portion
+      v_closed_entry_brokerage := (v_pos.entry_brokerage * v_order.qty) / v_pos.qty_open;
       v_closed_brokerage := (v_pos.brokerage * v_order.qty) / v_pos.qty_open;
 
-      -- 1. Reduce quantity and entry brokerage of the active open position
+      -- 1. Reduce quantity, entry brokerage and total brokerage of the active open position
       UPDATE public.positions
       SET
         qty_open = qty_open - v_order.qty,
         qty_total = qty_total - v_order.qty,
+        entry_brokerage = entry_brokerage - v_closed_entry_brokerage,
         brokerage = brokerage - v_closed_brokerage,
         updated_at = now()
       WHERE id = v_pos.id;
@@ -211,14 +179,16 @@ BEGIN
         user_id, symbol, side, status,
         qty_total, qty_open,
         avg_price, entry_price, ltp,
-        settlement, product_type, exit_price, exit_time, pnl, duration_seconds, brokerage, created_at, updated_at
+        settlement, product_type, exit_price, exit_time, pnl, duration_seconds, 
+        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
       )
       VALUES (
         v_order.user_id, v_order.symbol, v_pos.side, 'closed',
         v_order.qty, 0,
         v_pos.avg_price, v_pos.entry_price, v_order.ltp_at_entry,
         v_order.segment, v_pos.product_type, v_order.fill_price, now(), v_pnl,
-        EXTRACT(EPOCH FROM (now() - v_pos.entry_time))::integer, v_closed_brokerage + v_brokerage, now(), now()
+        EXTRACT(EPOCH FROM (now() - v_pos.entry_time))::integer, 
+        v_closed_entry_brokerage, v_brokerage, v_closed_entry_brokerage + v_brokerage, now(), now()
       )
       RETURNING id INTO v_closed_pos_id;
 
@@ -243,6 +213,7 @@ BEGIN
           qty_total = qty_total + v_order.qty,
           avg_price = v_new_avg_price,
           entry_price = v_new_avg_price,
+          entry_brokerage = entry_brokerage + v_brokerage,
           brokerage = brokerage + v_brokerage,
           updated_at = now()
         WHERE id = v_pos.id;
@@ -255,13 +226,15 @@ BEGIN
         user_id, symbol, side, status,
         qty_total, qty_open,
         avg_price, entry_price, ltp,
-        settlement, product_type, stop_loss, target, brokerage, created_at, updated_at
+        settlement, product_type, stop_loss, target, 
+        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
       )
       VALUES (
         v_order.user_id, v_order.symbol, v_order.side, 'open',
         v_order.qty, v_order.qty,
         v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
-        v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, v_brokerage, now(), now()
+        v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
+        v_brokerage, 0, v_brokerage, now(), now()
       );
     END IF;
   END IF;

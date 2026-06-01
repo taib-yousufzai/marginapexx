@@ -704,7 +704,19 @@ export default function PositionPage() {
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage</div>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Buy Brokerage</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#C62E2E' }}>
+                            {fmtUSD(selectedPos.entry_brokerage != null ? selectedPos.entry_brokerage : (selectedPos.brokerage || 0) / 2, selectedPos.settlement)}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Sell Brokerage</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#C62E2E' }}>
+                            {fmtUSD(selectedPos.exit_brokerage != null ? selectedPos.exit_brokerage : (selectedPos.brokerage || 0) / 2, selectedPos.settlement)}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Total Brokerage</div>
                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#C62E2E' }}>
                             {fmtUSD(selectedPos.brokerage || 0, selectedPos.settlement)}
                           </div>

@@ -16,7 +16,7 @@
  *   ]);
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { kiteRestore, kiteStatus } from '@/lib/kiteClient';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -68,6 +68,9 @@ export function useKiteQuotes(
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   const instrumentsKey = instruments.join(',');
+
+  const isRealtimeActiveRef = useRef(false);
+  const pendingUpdatesRef = useRef<Record<string, QuoteData>>({});
 
   const doFetch = useCallback(async (): Promise<boolean> => {
     if (instruments.length === 0) {
@@ -222,7 +225,9 @@ export function useKiteQuotes(
 
     async function poll() {
       if (cancelled) return;
-      await fetchQuotes();
+      if (!isRealtimeActiveRef.current) {
+        await fetchQuotes();
+      }
       if (!cancelled) {
         timerId = setTimeout(poll, refreshInterval);
       }
@@ -239,6 +244,8 @@ export function useKiteQuotes(
       }
 
       if (cancelled) return;
+      // Do initial fetch regardless of realtime state to seed data immediately
+      await fetchQuotes();
       poll(); // Start the recursive polling chain
     }
 
@@ -274,8 +281,6 @@ export function useKiteQuotes(
     if (!isAuthReady) return;
     const currentInstruments = instrumentsKey.split(',').filter(Boolean);
     if (currentInstruments.length === 0) return;
-
-    console.log(`[useKiteQuotes] Subscribing to Supabase Realtime for ${currentInstruments.length} instruments:`, currentInstruments);
 
     // Subscribe to Postgres changes on market_quotes table
     // Use a unique channel ID to avoid conflicts between multiple instances of the hook
@@ -319,27 +324,37 @@ export function useKiteQuotes(
             ask: lastPrice,
           };
 
-          console.log(`[useKiteQuotes Realtime] Received update for ${row.id}: price = ${lastPrice}`);
-
-          // Update both the global cache and the local state
+          // Update both the global cache and the local buffer
           globalKiteQuotesCache[row.id] = quoteData;
           globalKiteQuotesCache[symbolPart] = quoteData;
 
-          setQuotes(prev => {
-            const updated = { ...prev };
-            updated[row.id] = quoteData;
-            updated[symbolPart] = quoteData;
-            return updated;
-          });
+          pendingUpdatesRef.current[row.id] = quoteData;
+          pendingUpdatesRef.current[symbolPart] = quoteData;
         }
       );
 
     channel.subscribe((status) => {
-      console.log(`[useKiteQuotes Realtime] Subscription status for ${channelId}: ${status}`);
+      if (status === 'SUBSCRIBED') {
+        isRealtimeActiveRef.current = true;
+      } else {
+        isRealtimeActiveRef.current = false;
+      }
     });
 
+    // Set up a throttled interval (every 250ms) to flush pending updates to React state
+    const flushInterval = setInterval(() => {
+      const pending = pendingUpdatesRef.current;
+      if (Object.keys(pending).length > 0) {
+        setQuotes(prev => ({
+          ...prev,
+          ...pending
+        }));
+        pendingUpdatesRef.current = {};
+      }
+    }, 250);
+
     return () => {
-      console.log(`[useKiteQuotes Realtime] Cleaning up subscription for ${channelId}`);
+      clearInterval(flushInterval);
       supabase.removeChannel(channel);
     };
   }, [instrumentsKey, isAuthReady]);

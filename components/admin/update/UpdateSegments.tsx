@@ -51,24 +51,35 @@ function SegmentBlock({
   value, 
   onChange,
   availableBlocks,
-  onPerformCopy
+  onPerformCopy,
+  isExpanded,
+  onToggleExpand
 }: { 
   name: string; 
   value: SegmentSettingsType; 
   onChange: (k: keyof SegmentSettingsType, v: string | boolean) => void;
   availableBlocks: string[];
   onPerformCopy: (sourceName: string) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 }) {
   const [showCopyDropdown, setShowCopyDropdown] = useState(false);
   const upd = (k: keyof SegmentSettingsType, v: string | boolean) => onChange(k, v);
 
   return (
     <div className="adm-upd-seg-block" style={{ marginBottom: '20px', position: 'relative' }}>
-      <div className="adm-upd-seg-header">
-        <span className="adm-upd-seg-name" style={{ fontSize: '1rem', fontWeight: 700 }}>{name}</span>
+      <div 
+        className="adm-upd-seg-header" 
+        onClick={onToggleExpand}
+        style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}
+      >
+        <span className="adm-upd-seg-name" style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {name}
+          <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`} style={{ fontSize: '0.8rem', color: '#8b949e' }}></i>
+        </span>
         
         {/* Copy From Button */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
           <button 
             className="adm-upd-copy-btn" 
             onClick={(e) => { e.preventDefault(); setShowCopyDropdown(!showCopyDropdown); }}
@@ -129,115 +140,119 @@ function SegmentBlock({
         </div>
       </div>
 
-      {/* Row 1: Commission Type & Value */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Commission Type</label>
-          <select className="adm-upd-input adm-upd-select" value={value.commissionType} onChange={e => upd('commissionType', e.target.value)}>
-            <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
-          </select>
-        </div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Commission Value</label>
-          <input className="adm-upd-input" type="number" value={value.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
-        </div>
-      </div>
-
-      {/* Row 2: Profit Hold Sec & Loss Hold Sec */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Profit Hold Sec</label>
-          <input className="adm-upd-input" type="number" value={value.profitHoldSec} onChange={e => upd('profitHoldSec', e.target.value)} />
-        </div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Loss Hold Sec</label>
-          <input className="adm-upd-input" type="number" value={value.loss_hold_sec} onChange={e => upd('loss_hold_sec', e.target.value)} />
-        </div>
-      </div>
-
-      {/* Row 3: Strike Range & Max Lot */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Strike Range</label>
-          <input className="adm-upd-input" type="number" value={value.strikeRange} onChange={e => upd('strikeRange', e.target.value)} />
-        </div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Max Lot</label>
-          <input className="adm-upd-input" type="number" value={value.maxLot} onChange={e => upd('maxLot', e.target.value)} />
-        </div>
-      </div>
-
-      {/* Row 4: Max Order Lot & Intraday Leverage */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Max Order Lot</label>
-          <input className="adm-upd-input" type="number" value={value.maxOrderLot} onChange={e => upd('maxOrderLot', e.target.value)} />
-        </div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Intraday Leverage</label>
-          <input className="adm-upd-input" type="number" value={value.intradayLeverage} onChange={e => upd('intradayLeverage', e.target.value)} />
-        </div>
-      </div>
-
-      {/* Row 5: Intraday Type on Right (Left side blank) */}
-      <div className="adm-upd-grid2">
-        <div></div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Intraday Type</label>
-          <select className="adm-upd-input adm-upd-select" value={value.intradayType} onChange={e => upd('intradayType', e.target.value)}>
-            <option>Multiplier</option><option>Direct</option>
-          </select>
-          <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-            Req Funds = (Qty &times; Market Price) &divide; Leverage
-          </span>
-        </div>
-      </div>
-
-      {/* Row 6: Holding Leverage & Entry Buffer */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Holding Leverage</label>
-          <input className="adm-upd-input" type="number" value={value.holdingLeverage} onChange={e => upd('holdingLeverage', e.target.value)} />
-        </div>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Entry Buffer</label>
-          <input className="adm-upd-input" type="number" step="0.0001" value={value.entryBuffer} onChange={e => upd('entryBuffer', e.target.value)} />
-        </div>
-      </div>
-
-      {/* Row 7: Holding Type on Left (Right side blank) */}
-      <div className="adm-upd-grid2">
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Holding Type</label>
-          <select className="adm-upd-input adm-upd-select" value={value.holdingType} onChange={e => upd('holdingType', e.target.value)}>
-            <option>Multiplier</option><option>Direct</option>
-          </select>
-          <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-            Req Funds = (Qty &times; Market Price) &divide; Leverage
-          </span>
-        </div>
-        <div></div>
-      </div>
-
-      {/* Row 8: Exit Buffer & Trade Allowed */}
-      <div className="adm-upd-grid2" style={{ alignItems: 'flex-start' }}>
-        <div className="adm-upd-field">
-          <label className="adm-upd-label">Exit Buffer</label>
-          <input className="adm-upd-input" type="number" step="0.0001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
-        </div>
-        <div className="adm-upd-toggle-item" style={{ marginTop: 2 }}>
-          <span className="adm-upd-label">Trade Allowed</span>
-          <div style={{ display: 'flex', alignItems: 'center', height: '40px', marginTop: '4px' }}>
-            <div 
-              className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`} 
-              style={value.tradeAllowed ? { background: '#14b8a6' } : {}}
-              onClick={() => upd('tradeAllowed', !value.tradeAllowed)}
-            >
-              <div className="adm-toggle-thumb" style={{ background: '#fff' }} />
+      {isExpanded && (
+        <>
+          {/* Row 1: Commission Type & Value */}
+          <div className="adm-upd-grid2" style={{ marginTop: '15px' }}>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Commission Type</label>
+              <select className="adm-upd-input adm-upd-select" value={value.commissionType} onChange={e => upd('commissionType', e.target.value)}>
+                <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
+              </select>
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Commission Value</label>
+              <input className="adm-upd-input" type="number" value={value.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
             </div>
           </div>
-        </div>
-      </div>
+
+          {/* Row 2: Profit Hold Sec & Loss Hold Sec */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Profit Hold Sec</label>
+              <input className="adm-upd-input" type="number" value={value.profitHoldSec} onChange={e => upd('profitHoldSec', e.target.value)} />
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Loss Hold Sec</label>
+              <input className="adm-upd-input" type="number" value={value.loss_hold_sec} onChange={e => upd('loss_hold_sec', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 3: Strike Range & Max Lot */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Strike Range</label>
+              <input className="adm-upd-input" type="number" value={value.strikeRange} onChange={e => upd('strikeRange', e.target.value)} />
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Max Lot</label>
+              <input className="adm-upd-input" type="number" value={value.maxLot} onChange={e => upd('maxLot', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 4: Max Order Lot & Intraday Leverage */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Max Order Lot</label>
+              <input className="adm-upd-input" type="number" value={value.maxOrderLot} onChange={e => upd('maxOrderLot', e.target.value)} />
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Intraday Leverage</label>
+              <input className="adm-upd-input" type="number" value={value.intradayLeverage} onChange={e => upd('intradayLeverage', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 5: Intraday Type on Right (Left side blank) */}
+          <div className="adm-upd-grid2">
+            <div></div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Intraday Type</label>
+              <select className="adm-upd-input adm-upd-select" value={value.intradayType} onChange={e => upd('intradayType', e.target.value)}>
+                <option>Multiplier</option><option>Direct</option>
+              </select>
+              <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+                Req Funds = (Qty &times; Market Price) &divide; Leverage
+              </span>
+            </div>
+          </div>
+
+          {/* Row 6: Holding Leverage & Entry Buffer */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Holding Leverage</label>
+              <input className="adm-upd-input" type="number" value={value.holdingLeverage} onChange={e => upd('holdingLeverage', e.target.value)} />
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Entry Buffer</label>
+              <input className="adm-upd-input" type="number" step="0.0001" value={value.entryBuffer} onChange={e => upd('entryBuffer', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 7: Holding Type on Left (Right side blank) */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Holding Type</label>
+              <select className="adm-upd-input adm-upd-select" value={value.holdingType} onChange={e => upd('holdingType', e.target.value)}>
+                <option>Multiplier</option><option>Direct</option>
+              </select>
+              <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+                Req Funds = (Qty &times; Market Price) &divide; Leverage
+              </span>
+            </div>
+            <div></div>
+          </div>
+
+          {/* Row 8: Exit Buffer & Trade Allowed */}
+          <div className="adm-upd-grid2" style={{ alignItems: 'flex-start' }}>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Exit Buffer</label>
+              <input className="adm-upd-input" type="number" step="0.0001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
+            </div>
+            <div className="adm-upd-toggle-item" style={{ marginTop: 2 }}>
+              <span className="adm-upd-label">Trade Allowed</span>
+              <div style={{ display: 'flex', alignItems: 'center', height: '40px', marginTop: '4px' }}>
+                <div 
+                  className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`} 
+                  style={value.tradeAllowed ? { background: '#14b8a6' } : {}}
+                  onClick={() => upd('tradeAllowed', !value.tradeAllowed)}
+                >
+                  <div className="adm-toggle-thumb" style={{ background: '#fff' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -253,6 +268,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   const [showMenu, setShowMenu] = useState(false);
   const [segmentMode, setSegmentMode] = useState<'normal' | 'scalper'>('normal');
   const [expandedMenu, setExpandedMenu] = useState<'normal' | 'scalper' | null>(null);
+  const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
 
   const rowToSegSettings = (row: SegmentRow): SegmentSettingsType => ({
     commissionType: row.commission_type,
@@ -374,7 +390,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
 
   return (
     <div className="adm-upd-root" style={{ padding: '0 0 40px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
         <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>
           {segmentMode === 'scalper' ? 'Scalper Segment Settings' : 'Normal Segment Settings'}
         </span>
@@ -383,6 +399,30 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
           style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}
           onClick={() => setShowMenu(true)}
         ></i>
+      </div>
+
+      {/* Expand / Collapse All Controls */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <button 
+          onClick={() => {
+            const next: Record<string, boolean> = {};
+            segBlocks.forEach(b => next[b] = true);
+            setExpandedSegments(next);
+          }}
+          className="adm-upd-copy-btn"
+          style={{ fontSize: '11px', padding: '5px 12px' }}
+        >
+          Expand All
+        </button>
+        <button 
+          onClick={() => {
+            setExpandedSegments({});
+          }}
+          className="adm-upd-copy-btn"
+          style={{ fontSize: '11px', padding: '5px 12px' }}
+        >
+          Collapse All
+        </button>
       </div>
 
       {showMenu && (
@@ -515,6 +555,8 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
           onChange={(k, v) => setSegSettings(prev => ({ ...prev, [name]: { ...(prev[name] ?? defaultSeg()), [k]: v } }))} 
           availableBlocks={segBlocks}
           onPerformCopy={(sourceName) => setSegSettings(prev => ({ ...prev, [name]: { ...(prev[sourceName] ?? defaultSeg()) } }))}
+          isExpanded={!!expandedSegments[name]}
+          onToggleExpand={() => setExpandedSegments(prev => ({ ...prev, [name]: !prev[name] }))}
         />
       ))}
 
