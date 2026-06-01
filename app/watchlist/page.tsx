@@ -841,6 +841,16 @@ function WatchlistContent() {
     .filter((s): s is string => !!s);
   const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 1000);
 
+  const getLegPrice = (legItem: WatchlistItem) => {
+    if (legItem.binanceSymbol) {
+      return binanceQuotes?.[legItem.binanceSymbol]?.lastPrice ?? legItem.price;
+    }
+    if (legItem.comexSymbol) {
+      return comexQuotes?.[legItem.comexSymbol]?.lastPrice ?? legItem.price;
+    }
+    return quotes?.[legItem.kiteSymbol]?.lastPrice ?? legItem.price;
+  };
+
   useEffect(() => {
     window.__kiteQuotes = quotes;
     window.__binanceQuotes = binanceQuotes;
@@ -1661,10 +1671,7 @@ function WatchlistContent() {
                 No items. Tap BUY/SELL on any stock.
               </div>
             ) : basketLegs.map((leg, i) => {
-              const legIsCrypto = !!leg.item.binanceSymbol;
-              const legIsComex  = !!leg.item.comexSymbol;
-              const q = legIsCrypto ? binanceQuotes[leg.item.binanceSymbol!] : (legIsComex ? comexQuotes[leg.item.comexSymbol!] : quotes[leg.item.kiteSymbol]);
-              const ltp = q?.lastPrice ?? leg.item.price;
+              const ltp = getLegPrice(leg.item);
               const totalVal = ltp * leg.qty;
               const legSymbol = '₹';
               return (
@@ -1718,8 +1725,8 @@ function WatchlistContent() {
 
           <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{(basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0) * 0.2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{(basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0) * 0.2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', width: '100%', padding: '0 4px' }}>
@@ -1753,10 +1760,10 @@ function WatchlistContent() {
               <div style={{ width: '56px', height: '56px', background: '#E9F6EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                 <i className="fas fa-bolt" style={{ fontSize: '1.4rem', color: '#2C8E5A' }}></i>
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '8px' }}>Confirm Execution</div>
+              <div className="sri-name" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '8px' }}>Confirm Execution</div>
               <div style={{ fontSize: '0.8rem', color: '#6B7280', lineHeight: '1.5' }}>
                 You are about to execute <strong>{basketLegs.length} order{basketLegs.length !== 1 ? 's' : ''}</strong> worth{' '}
-                <strong>₹{basketLegs.reduce((acc, l) => acc + ((quotes[l.item.kiteSymbol]?.lastPrice ?? l.item.price) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>.
+                <strong>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>.
                 <br />Are you sure?
               </div>
             </div>
