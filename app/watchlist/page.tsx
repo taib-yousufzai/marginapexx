@@ -271,19 +271,32 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
 
   let ltp = 0;
   let prevClose = 0;
+  let percentChange = 0;
+  let absoluteChange = 0;
+
   if (isCrypto) {
     ltp = binanceQuote?.lastPrice ?? 0;
     prevClose = binanceQuote?.close ?? 0;
+    absoluteChange = ltp - prevClose;
+    percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
   } else if (showComex) {
     ltp = comexQuote?.lastPrice ?? 0;
     prevClose = comexQuote?.close ?? 0;
+    absoluteChange = ltp - prevClose;
+    percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
   } else {
     ltp = quote?.lastPrice ?? item.price;
-    prevClose = item.close ?? item.price ?? ltp;
+    if (quote) {
+      prevClose = quote.close ?? ltp;
+      absoluteChange = ltp - prevClose;
+      percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
+    } else {
+      const match = item.change ? item.change.match(/([-+]?[0-9]*\.?[0-9]+)%/) : null;
+      percentChange = match ? parseFloat(match[1]) : 0;
+      prevClose = percentChange !== -100 ? (ltp / (1 + percentChange / 100)) : ltp;
+      absoluteChange = ltp - prevClose;
+    }
   }
-
-  const absoluteChange = ltp - prevClose;
-  const percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
   const isLoading = isCrypto ? !binanceQuote : (showComex && !comexQuote);
 
   const handleLeftClick = () => {
@@ -437,6 +450,13 @@ const TRADING_SEGMENTS: TradingSegment[] = [
       { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
       { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
       { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 },
+    ]
+  },
+  {
+    name: 'MCX - OPTIONS', icon: 'fa-chart-line',
+    instruments: [
+      { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: '', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 812, high: 828, low: 810, close: 820 },
+      { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: '', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 140, high: 152, low: 138, close: 145 }
     ]
   },
   {
@@ -1161,6 +1181,25 @@ function WatchlistContent() {
     ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
     : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
+  const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
+    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+    const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+      ? parseFloat(limitPrice)
+      : (currentLtp > 0 ? effectivePrice : 0);
+    const commType = matchingSetting.commission_type || 'Per Crore';
+    const commVal = matchingSetting.commission_value ?? 0;
+    if (commType === 'Per Crore') {
+      return (totalQty * price * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const lots = totalQty / lotSize;
+      return lots * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      return commVal;
+    } else {
+      return totalQty * price * 0.001;
+    }
+  })() : 0;
+
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
     if (allowedSegments === null) return;
@@ -1187,7 +1226,6 @@ function WatchlistContent() {
           </div>
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <div className="folder-btn" id="openFolderMobileBtn" onClick={() => setIsFolderDrawerOpen(true)}>
-              <i className="fas fa-folder"></i>
               <span>Scripts Library</span>
               <i className="fas fa-chevron-right"></i>
             </div>
@@ -1212,17 +1250,16 @@ function WatchlistContent() {
         <div className="watchlist-section">
           <div className="watchlist-header">
             <div className="watchlist-title-section">
-              <div className="watchlist-title"><i className="fas fa-chart-line"></i> MY WATCHLIST</div>
+              <div className="watchlist-title">MY WATCHLIST</div>
               <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
             </div>
             <div className="action-hint">Swipe | Hold to select | Tap to trade</div>
           </div>
           <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <span className="add-hint"><i className="fas fa-plus-circle"></i> Add scripts to watchlist from Scripts Library</span>
+            <span className="add-hint">Add scripts to watchlist from Scripts Library</span>
             <div className="folder-btn basket-btn" id="basketModeBtn"
               onClick={() => setBasketMode(b => !b)}
               style={{ cursor: 'pointer', background: '#E9F6EF', color: '#006400', border: '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <i className="fas fa-shopping-basket" style={{ color: '#006400' }}></i>
               <span>Basket</span>
             </div>
           </div>
@@ -1356,8 +1393,8 @@ function WatchlistContent() {
             <div className="ts-info-cards-wrap">
               <div className="ts-info-cards">
                 <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">{lotSize}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">--</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{orderUnit === 'lot' ? orderQty : '--'}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">{matchingSetting?.max_lot ?? '--'}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{matchingSetting?.max_order_lot ?? '--'}</div></div>
                 <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty * lotSize : orderQty}</div></div>
               </div>
             </div>
@@ -1474,7 +1511,7 @@ function WatchlistContent() {
             <div className="ts-margin-card">
               <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">{availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-              <div className="ts-margin-row"><span className="ts-ml">Carry Charges</span><span className="ts-mv carry">₹ 0.00</span></div>
+              <div className="ts-margin-row"><span className="ts-ml">Carry Charges</span><span className="ts-mv carry">₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             </div>
             <div style={{ height: '8px' }}></div>
           </div>
@@ -1753,7 +1790,7 @@ function WatchlistContent() {
       <div id="drawerOverlay" className={`drawer-overlay${isFolderDrawerOpen ? ' active' : ''}`} onClick={() => setIsFolderDrawerOpen(false)}></div>
       <div id="scriptsFolderDrawer" className={`folder-drawer${isFolderDrawerOpen ? ' open' : ''}`}>
         <div className="drawer-header">
-          <h3><i className="fas fa-folder"></i> Trading Segments</h3>
+          <h3>Trading Segments</h3>
           <button className="close-drawer" onClick={() => setIsFolderDrawerOpen(false)} suppressHydrationWarning><i className="fas fa-times"></i></button>
         </div>
         <div className="folder-tree-scroll">
@@ -1764,6 +1801,7 @@ function WatchlistContent() {
               if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
               if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
               if (n === 'MCX - FUTURE') return 'MCX-FUT';
+              if (n === 'MCX - OPTIONS') return 'MCX-OPT';
               if (n === 'CRYPTO') return 'CRYPTO';
               if (n === 'FOREX') return 'FOREX';
               if (n === 'COMEX') return 'COMEX';
@@ -1784,7 +1822,6 @@ function WatchlistContent() {
                     onClick={() => setExpandedSegments(prev => ({ ...prev, [seg.name]: !prev[seg.name] }))}
                   >
                     <i className="fas fa-chevron-right chevron-icon" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}></i>
-                    <i className={`fas ${seg.icon} folder-icon`}></i>
                     <span style={{ flex: 1, fontWeight: 700, fontSize: '0.88rem' }}>{seg.name}</span>
                     <span className="segment-count">{count}</span>
                   </div>
@@ -1969,6 +2006,14 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
+          name: 'MCX - OPTIONS',
+          icon: 'fa-chart-line',
+          instruments: [
+            { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: '', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 812, high: 828, low: 810, close: 820 },
+            { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: '', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 140, high: 152, low: 138, close: 145 }
+          ]
+        },
+        {
           name: 'CRYPTO',
           icon: 'fa-bitcoin',
           instruments: [
@@ -2001,6 +2046,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
         if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
         if (n === 'MCX - FUTURE') return 'MCX-FUT';
+        if (n === 'MCX - OPTIONS') return 'MCX-OPT';
         if (n === 'CRYPTO') return 'CRYPTO';
         if (n === 'FOREX') return 'FOREX';
         if (n === 'COMEX') return 'COMEX';
@@ -2087,7 +2133,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         var html = '';
         tradingSegments.forEach(function(seg) {
           html += '<div class="folder-item">';
-          html += '<div class="folder-header"><i class="fas ' + seg.icon + '"></i> ' + escapeHtml(seg.name) + '</div>';
+          html += '<div class="folder-header">' + escapeHtml(seg.name) + '</div>';
           if (seg.instruments) {
             seg.instruments.forEach(function(inst) {
               html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button></div>';

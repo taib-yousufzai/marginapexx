@@ -143,6 +143,33 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
+function getLotSize(symbol: string): number {
+  const n = symbol.toUpperCase();
+  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
+  if (n.includes('FINNIFTY')) return 40;
+  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
+  if (n.includes('SENSEX')) return 10;
+  if (n.includes('NIFTY')) return 25;
+  return 1;
+}
+
+function mapSymbolToSegment(symbol: string): string {
+  const n = symbol.toUpperCase();
+  if (n.includes('FUT') || n.includes('FUTURES')) {
+    if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX') || n.includes('FINNIFTY') || n.includes('MIDCP') || n.includes('MIDCAP')) {
+      return 'INDEX-FUT';
+    }
+    return 'STOCK-FUT';
+  }
+  if (n.includes('CE') || n.includes('PE')) {
+    if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX') || n.includes('FINNIFTY') || n.includes('MIDCP') || n.includes('MIDCAP')) {
+      return 'INDEX-OPT';
+    }
+    return 'STOCK-OPT';
+  }
+  return 'NSE-EQ'; // fallback default
+}
+
 // ─── GET /api/orders ──────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -236,7 +263,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingResult, scalperSegSettingResult, quotesMap] = await Promise.all([
+  const [profileResult, segSettingResult, scalperSegSettingResult, positionsResult, quotesMap] = await Promise.all([
     // Profile
     admin.from('profiles')
       .select('id, active, read_only, segments, parent_id, balance, trading_mode')
@@ -259,14 +286,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq('side', side)
       .maybeSingle(),
 
+    // Fetch active positions to verify total open lot limits (max_lot)
+    admin.from('positions')
+      .select('symbol, qty_open, status')
+      .eq('user_id', user.id)
+      .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
+
     // Kite LTP — batch fetch all needed quotes in one call
     fetchKiteQuotes(instrumentsToFetch),
   ]);
 
+  const profile = profileResult.data;
+  const profileErr = profileResult.error;
+  const openPositions = positionsResult?.data ?? [];
   const kiteLtp = quotesMap[kiteInst] ?? null;
 
   // 4. Profile checks
-  const { data: profile, error: profileErr } = profileResult;
   if (profileErr || !profile) {
     return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
   }
@@ -338,10 +373,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!segSetting.trade_allowed) {
     return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
   }
-  const maxQty = (segSetting.max_order_lot as number) * (lots > 0 ? qty / lots : 1);
+
+  const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol);
+  const maxQty = (segSetting.max_order_lot as number) * symbolLotSize;
   if (qty > maxQty) {
     return NextResponse.json({
-      error: `Order exceeds maximum allowed quantity of ${maxQty} units`,
+      error: `Order exceeds maximum allowed order limit of ${segSetting.max_order_lot} lots (${maxQty} units)`,
+    }, { status: 400 });
+  }
+
+  // Verify cumulative segment limits (max_lot)
+  let totalOpenLots = 0;
+  if (openPositions.length > 0) {
+    const symbols = openPositions.map((p: any) => p.symbol);
+    const { data: insts } = await admin
+      .from('instruments')
+      .select('id, segment')
+      .in('id', symbols);
+
+    for (const pos of openPositions) {
+      const inst = insts?.find(i => i.id === pos.symbol);
+      const posSegment = inst ? inst.segment : mapSymbolToSegment(pos.symbol);
+      if (posSegment === dbSegment) {
+        const size = getLotSize(pos.symbol);
+        totalOpenLots += Number(pos.qty_open) / size;
+      }
+    }
+  }
+
+  const newOrderLots = lots > 0 ? lots : (qty / symbolLotSize);
+  if (totalOpenLots + newOrderLots > (segSetting.max_lot as number)) {
+    return NextResponse.json({
+      error: `Order exceeds maximum segment limit of ${segSetting.max_lot} lots. Current open positions: ${totalOpenLots.toFixed(2)} lots.`,
     }, { status: 400 });
   }
 

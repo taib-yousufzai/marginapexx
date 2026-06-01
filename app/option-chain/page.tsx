@@ -87,20 +87,35 @@ function OptionChainContent() {
   const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
   const [pendingWatchlistItem, setPendingWatchlistItem] = useState<any>(null);
   const [userId, setUserId] = useState<string>('');
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetchUserId() {
+    async function fetchUserIdAndSettings() {
       try {
         const { supabase: sb } = await import('@/lib/supabaseClient');
         const { data: { session } } = await sb.auth.getSession();
         if (session) {
           setUserId(session.user.id);
+          const token = session.access_token;
+          const { data: profile } = await sb
+            .from('profiles')
+            .select('trading_mode')
+            .eq('id', session.user.id)
+            .single();
+          const mode = profile?.trading_mode || 'normal';
+          const res = await fetch(`/api/user/segments?mode=${mode}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const sData = await res.json();
+            setSegmentSettings(sData || []);
+          }
         }
       } catch (err) {
-        console.error('Failed to get session user id', err);
+        console.error('Failed to get session or settings', err);
       }
     }
-    fetchUserId();
+    fetchUserIdAndSettings();
   }, []);
 
   const lotSize = symbol === 'NIFTY' ? 25 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
@@ -866,6 +881,28 @@ function OptionChainContent() {
           const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
           const calculatedRequiredMargin = (ltp || 10) * totalQty;
 
+          const isIndexOption = symbol === 'NIFTY' || symbol === 'BANKNIFTY' || symbol === 'FINNIFTY' || symbol === 'SENSEX' || symbol === 'BANKEX' || symbol === 'MIDCPNIFTY';
+          const dbSeg = isIndexOption ? 'INDEX-OPT' : 'STOCK-OPT';
+          const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+
+          const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
+            const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+              ? parseFloat(limitPrice)
+              : (ltp || 0);
+            const commType = matchingSetting.commission_type || 'Per Crore';
+            const commVal = matchingSetting.commission_value ?? 0;
+            if (commType === 'Per Crore') {
+              return (totalQty * price * commVal) / 10000000;
+            } else if (commType === 'Per Lot') {
+              const lots = totalQty / lotSize;
+              return lots * commVal;
+            } else if (commType === 'Per Trade' || commType === 'Flat') {
+              return commVal;
+            } else {
+              return totalQty * price * 0.001;
+            }
+          })() : 0;
+
           return (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <div className="ts-header">
@@ -921,8 +958,8 @@ function OptionChainContent() {
                   <div className="ts-info-cards-wrap">
                     <div className="ts-info-cards">
                       <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val">{lotSize}</div></div>
-                      <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val">--</div></div>
-                      <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val">{orderUnit === 'lot' ? orderQty : '--'}</div></div>
+                      <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val">{matchingSetting?.max_lot ?? '--'}</div></div>
+                      <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val">{matchingSetting?.max_order_lot ?? '--'}</div></div>
                       <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val">{totalQty}</div></div>
                     </div>
                   </div>
@@ -1057,7 +1094,7 @@ function OptionChainContent() {
                     </div>
                     <div className="ts-margin-row">
                       <span className="ts-ml">Carry Charges</span>
-                      <span className="ts-mv carry">₹ 0.00</span>
+                      <span className="ts-mv carry">₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                   </div>
                   <div style={{ height: '8px' }}></div>

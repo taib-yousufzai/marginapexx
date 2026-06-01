@@ -89,6 +89,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     ? (totalQty * parseFloat(limitPrice)) / leverage
     : (totalQty * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
+  const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
+    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+    const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+      ? parseFloat(limitPrice)
+      : (currentLtp > 0 ? effectivePrice : 0);
+    const commType = matchingSetting.commission_type || 'Per Crore';
+    const commVal = matchingSetting.commission_value ?? 0;
+    if (commType === 'Per Crore') {
+      return (totalQty * price * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const lots = totalQty / lotSize;
+      return lots * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      return commVal;
+    } else {
+      return totalQty * price * 0.001;
+    }
+  })() : 0;
+
   // Sync qtyInput → orderQty when input is a valid number
   const handleQtyChange = (val: string) => {
     setQtyInput(val);
@@ -532,11 +551,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Max Lots</div>
-                      <div className="ts2-ic-val">--</div>
+                      <div className="ts2-ic-val">{matchingSetting?.max_lot ?? '--'}</div>
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Order Lots</div>
-                      <div className="ts2-ic-val">{orderUnit === 'lot' ? orderQty : '--'}</div>
+                      <div className="ts2-ic-val">{matchingSetting?.max_order_lot ?? '--'}</div>
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Total Qty</div>
@@ -679,7 +698,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Carry Charges</span>
-                    <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ 0.00</span>
+                    <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
