@@ -449,6 +449,25 @@ export default function PositionPage() {
                               <button className="pca-btn pca-exit" onClick={() => openExitSheet(pos)}>
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
+                              <button
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '38px',
+                                  height: '38px',
+                                  borderRadius: '10px',
+                                  border: '1.5px solid #CBD5E1',
+                                  background: '#ffffff',
+                                  color: '#1F2937',
+                                  cursor: 'pointer',
+                                  flexShrink: 0,
+                                  transition: 'all 0.15s'
+                                }}
+                                onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
+                              >
+                                <i className="fas fa-chart-line" style={{ fontSize: '1.1rem' }} />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -602,6 +621,25 @@ export default function PositionPage() {
                               <button className="pca-btn pca-exit" onClick={() => openExitSheet(pos)}>
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
+                              <button
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '38px',
+                                  height: '38px',
+                                  borderRadius: '10px',
+                                  border: '1.5px solid #CBD5E1',
+                                  background: '#ffffff',
+                                  color: '#1F2937',
+                                  cursor: 'pointer',
+                                  flexShrink: 0,
+                                  transition: 'all 0.15s'
+                                }}
+                                onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
+                              >
+                                <i className="fas fa-chart-line" style={{ fontSize: '1.1rem' }} />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -624,7 +662,7 @@ export default function PositionPage() {
                     /* ── CLOSED POSITION SHEET ── */
                     <>
                       {/* Header row */}
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                           <div className="ps-symbol" style={{ color: 'var(--text-primary, #1A1A1A)', margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{selectedPos.symbol}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -635,6 +673,21 @@ export default function PositionPage() {
                               <span className={`pos-product-badge${selectedPos.product_type === 'CARRY' ? ' carry' : ''}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>{selectedPos.product_type}</span>
                             )}
                           </div>
+                        </div>
+                        {/* Green chart analysis icon */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          border: '1.5px solid #2C8E5A',
+                          background: '#ffffff',
+                          color: '#2C8E5A',
+                          cursor: 'pointer'
+                        }}>
+                          <i className="fas fa-chart-line" style={{ fontSize: '1.2rem' }} />
                         </div>
                       </div>
 
@@ -695,18 +748,6 @@ export default function PositionPage() {
                               if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
                               return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
                             })()}
-                          </div>
-                        </div>
-                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Used Margin</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>
-                            {fmtPrice(selectedPos.margin_required || 0, selectedPos.settlement)}
-                          </div>
-                        </div>
-                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#C62E2E' }}>
-                            {fmtUSD(selectedPos.brokerage || 0, selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>

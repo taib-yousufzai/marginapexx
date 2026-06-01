@@ -1545,6 +1545,32 @@ function WatchlistContent() {
               </div>
               <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
               <div style={{ padding: '0 12px 10px 12px' }}>
+                {/* Open Trading Chart Button */}
+                <button
+                  style={{
+                    width: '100%',
+                    padding: '9px',
+                    borderRadius: '50px',
+                    border: '1.5px solid #2C8E5A',
+                    background: '#ffffff',
+                    color: '#2C8E5A',
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    transition: 'all 0.18s'
+                  }}
+                  onClick={() => showToast("Opening Trading Chart for " + selectedItem.name, false)}
+                >
+                  <i className="fas fa-chart-line" />
+                  Open Trading Chart
+                </button>
+
                 <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ flex: 1, textAlign: 'center' }}>
                     <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>

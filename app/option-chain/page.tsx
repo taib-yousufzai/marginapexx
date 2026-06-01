@@ -684,22 +684,22 @@ function OptionChainContent() {
             return (
               <div style={{ padding: '0' }}>
                 <div className="sheet-handle" style={{ display: 'flex' }}><div className="handle-bar" style={{ display: 'block' }}></div></div>
-                <div style={{ padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ padding: '12px 14px 4px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
                     <div>
                       <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '3px', lineHeight: '1.1', letterSpacing: '-0.3px' }}>{symbol} {selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
                       <span style={{ fontSize: '0.55rem', fontWeight: '700', color: '#DC2626', background: '#FEF2F2', padding: '3px 8px', borderRadius: '20px', lineHeight: '1', display: 'inline-block', letterSpacing: '0.5px' }}>{selectedContract.symbol}</span>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    <div style={{ fontSize: '0.5rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '3px', letterSpacing: '0.5px' }}>CMP</div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '6px', lineHeight: '1', letterSpacing: '-0.5px' }}>₹{ltp.toFixed(2)}</div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    <div style={{ fontSize: '0.5rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1px', letterSpacing: '0.5px' }}>CMP</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px', lineHeight: '1', letterSpacing: '-0.5px' }}>₹{ltp.toFixed(2)}</div>
                     <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '4px 8px', borderRadius: '6px', lineHeight: '1', color: chgPct >= 0 ? '#059669' : '#DC2626', background: chgPct >= 0 ? '#ECFDF5' : '#FEF2F2' }}>
                       {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
                     </span>
                   </div>
                 </div>
-                <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 8px', width: '100%' }}></div>
+                <div style={{ height: '1px', background: 'var(--border-light)', margin: '0 0 6px', width: '100%' }}></div>
                 <div style={{ padding: '0 12px 10px 12px' }}>
                   <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
                     <div style={{ flex: 1, textAlign: 'center' }}>
@@ -721,20 +721,20 @@ function OptionChainContent() {
                         onClick={handleAddToWatchlistClick}
                         style={{
                           width: '100%',
-                          padding: '12px',
+                          padding: '10.5px',
                           background: '#2C8E5A',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '14px',
-                          fontWeight: '800',
-                          fontSize: '0.85rem',
+                          fontWeight: '700',
+                          fontSize: '0.8rem',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '8px',
                           boxShadow: '0 2px 8px rgba(44,142,90,0.2)',
-                          fontFamily: 'inherit',
+                          fontFamily: 'Inter, sans-serif',
                           transition: 'background 0.15s ease'
                         }}
                       >
@@ -787,20 +787,31 @@ function OptionChainContent() {
                     )}
                   </div>
 
-                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>
-                      {(() => {
-                        if (!selectedExpiry) return '--';
-                        const [year, monthNum, dayNum] = selectedExpiry.split('-').map(Number);
-                        const dateObj = new Date(year, monthNum - 1, dayNum);
-                        const day = dateObj.getDate();
-                        const month = dateObj.toLocaleDateString('en-IN', { month: 'short' });
-                        const yr = year;
-                        return `${day} ${month} ${yr}`;
-                      })()}
-                    </div>
-                  </div>
+                  {/* Open Trading Chart Button */}
+                  <button
+                    style={{
+                      width: '100%',
+                      padding: '9px',
+                      borderRadius: '14px',
+                      border: '1.5px solid #2C8E5A',
+                      background: '#ffffff',
+                      color: '#2C8E5A',
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                      transition: 'all 0.18s'
+                    }}
+                    onClick={() => showToast("Opening Trading Chart for " + selectedContract.symbol, false)}
+                  >
+                    <i className="fas fa-chart-line" />
+                    Open Trading Chart
+                  </button>
 
 
 
