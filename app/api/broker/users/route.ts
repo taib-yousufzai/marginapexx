@@ -28,7 +28,7 @@ export async function GET(request: Request): Promise<Response> {
 
     let profilesQuery = adminClient
       .from('profiles')
-      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, created_at, scheduled_delete_at')
+      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, balance, settlement_amount, created_at, scheduled_delete_at')
       .not('role', 'in', '("admin","super_admin","broker")');
 
     if (!isAdmin) {
@@ -110,6 +110,7 @@ export async function GET(request: Request): Promise<Response> {
         marginUsed,
         holdingMargin: marginUsed,
         ledgerBal: Number(profile.balance ?? 0),
+        settlement_amount: Number(profile.settlement_amount ?? 0),
         mAvailable: Number(profile.balance ?? 0) - marginUsed,
         totalPositions: userPositions.length,
         openPositions: openPositions.length,

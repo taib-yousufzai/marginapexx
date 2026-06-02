@@ -46,7 +46,7 @@ export async function GET(
     const { data, error } = await adminClient
       .from('profiles')
       .select(
-        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at, trading_mode, mode_locked_until',
+        'id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until',
       )
       .eq('id', id)
       .single();

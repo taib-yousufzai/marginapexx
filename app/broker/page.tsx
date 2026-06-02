@@ -43,6 +43,7 @@ interface UserListItem extends UserProfile {
   demo_user: boolean;
   segments: string[];
   created_at: string;
+  settlement_amount?: number;
 }
 
 // --- Fake/Demo users for preview when no real users exist ---
@@ -551,6 +552,12 @@ function BrokerUsers({ apiCall, onSelectUser, onNavigate }: any) {
                   <div className="adm-db-cell-label">Balance</div>
                   <div className="adm-db-cell-value" style={{ fontSize: '0.88rem' }}>₹{fmt(u.balance || 0)}</div>
                 </div>
+                {u.settlement_amount !== undefined && u.settlement_amount !== 0 && (
+                  <div className="adm-db-cell" style={{ borderLeft: '2px solid #f85149' }}>
+                    <div className="adm-db-cell-label" style={{ color: '#f85149' }}>Settlement Deficit</div>
+                    <div className="adm-db-cell-value bold" style={{ fontSize: '0.88rem', color: '#f85149' }}>₹{fmt(u.settlement_amount)}</div>
+                  </div>
+                )}
                 <div className="adm-db-cell">
                   <div className="adm-db-cell-label">M2M</div>
                   <div className={`adm-db-cell-value ${(u.m2m || 0) >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: '0.88rem' }}>

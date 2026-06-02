@@ -26,7 +26,7 @@ export async function GET(request: Request): Promise<Response> {
     // 1. Fetch all profiles
     const { data: profiles, error: pError } = await adminClient
       .from('profiles')
-      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
+      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
 
     if (pError) throw pError;
 

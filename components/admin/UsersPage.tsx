@@ -11,6 +11,7 @@ type UserRow = {
   broker: string; mobile: string; scheduled_delete_at: string | null;
   segments: string[]; read_only: boolean; demo_user: boolean;
   intraday_sq_off: boolean; auto_sqoff: number; sqoff_method: string;
+  settlementAmount: number;
 };
 
 function mapUserListItem(u: UserListItem): UserRow {
@@ -36,6 +37,7 @@ function mapUserListItem(u: UserListItem): UserRow {
     intraday_sq_off: u.intraday_sq_off,
     auto_sqoff: u.auto_sqoff,
     sqoff_method: u.sqoff_method,
+    settlementAmount: u.settlement_amount ?? 0,
   };
 }
 
@@ -240,6 +242,12 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
             <div className="adm-users-grid">
               <span className="adm-users-dl">Ledger Bal</span>
               <span className="adm-users-dv">{fmt(u.ledgerBal)}</span>
+              {u.settlementAmount !== 0 && (
+                <>
+                  <span className="adm-users-dl" style={{ color: '#f85149' }}>Settlement Deficit</span>
+                  <span className="adm-users-dv bold" style={{ color: '#f85149' }}>{fmt(u.settlementAmount)}</span>
+                </>
+              )}
               <span className="adm-users-dl">M. Available</span>
               <span className={`adm-users-dv ${u.mAvailable < 1000 ? 'warn' : ''}`}>{fmt(u.mAvailable)}</span>
 
