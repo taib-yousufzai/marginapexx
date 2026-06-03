@@ -290,6 +290,7 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
     box-shadow: -10px 0 30px rgba(0,0,0,0.2) !important;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
     background: var(--container-bg) !important;
+    pointer-events: auto !important;
   }
 
   .trade-sheet.open {
@@ -302,17 +303,17 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
+    background: transparent;
     z-index: 1999;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
+    pointer-events: none !important;
   }
 
   .trade-sheet-overlay.active {
-    opacity: 1;
-    visibility: visible;
+    opacity: 0;
+    visibility: hidden;
   }
 }
 
@@ -1259,4 +1260,15 @@ body.dark .ts-pill.active {
 body.dark .trade-sheet {
     background: var(--container-bg, #1E1E1E);
 }
+
+@media (min-width: 1024px) {
+    .trade-sheet-overlay,
+    .trade-sheet-overlay.active {
+        background: transparent !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
 

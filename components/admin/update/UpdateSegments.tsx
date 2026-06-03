@@ -14,6 +14,8 @@ export type SegmentSettingsType = {
   holdingLeverage: string; entryBuffer: string;
   holdingType: string;
   exitBuffer: string; tradeAllowed: boolean;
+  topLimit: string;
+  minLimit: string;
 };
 
 export interface SegmentRow {
@@ -33,6 +35,8 @@ export interface SegmentRow {
   holding_type: string;
   exit_buffer: number;
   trade_allowed: boolean;
+  top_limit: number;
+  min_limit: number;
 }
 
 const defaultSeg = (): SegmentSettingsType => ({
@@ -44,6 +48,8 @@ const defaultSeg = (): SegmentSettingsType => ({
   holdingLeverage: '5', entryBuffer: '0.003',
   holdingType: 'Multiplier',
   exitBuffer: '0.0017', tradeAllowed: true,
+  topLimit: '0',
+  minLimit: '0',
 });
 
 function SegmentBlock({ 
@@ -251,6 +257,24 @@ function SegmentBlock({
               </div>
             </div>
           </div>
+
+          {/* Row 9: Top Limit & Min Limit (Price check thresholds) */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Top Price Limit (%)</label>
+              <input className="adm-upd-input" type="number" step="0.1" value={value.topLimit} onChange={e => upd('topLimit', e.target.value)} />
+              <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+                Max Buy Limit Price = LTP + Top Limit% (0% = buy at LTP or lower only)
+              </span>
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Min Price Limit (%)</label>
+              <input className="adm-upd-input" type="number" step="0.1" value={value.minLimit} onChange={e => upd('minLimit', e.target.value)} />
+              <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
+                Min Buy Limit Price = LTP - Min Limit% (0% = disabled)
+              </span>
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -285,6 +309,8 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
     holdingType: row.holding_type,
     exitBuffer: String(row.exit_buffer),
     tradeAllowed: row.trade_allowed,
+    topLimit: String(row.top_limit ?? 0),
+    minLimit: String(row.min_limit ?? 0),
   });
 
   useEffect(() => {
@@ -369,6 +395,8 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
         holding_type: s.holdingType,
         exit_buffer: Number(s.exitBuffer),
         trade_allowed: s.tradeAllowed,
+        top_limit: Number(s.topLimit ?? 0),
+        min_limit: Number(s.minLimit ?? 0),
       };
     });
     

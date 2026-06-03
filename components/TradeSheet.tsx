@@ -206,8 +206,32 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 
+  const topLimit = matchingSetting?.top_limit ?? 0;
+  const minLimit = matchingSetting?.min_limit ?? 0;
+  const maxAllowedPrice = currentLtp * (1 + topLimit / 100);
+  const minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
+
+  const priceRangeHelp = currentLtp > 0 ? (
+    <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)', marginTop: '6px', fontWeight: 600 }}>
+      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to ₹${maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </div>
+  ) : null;
+
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
     if (!item) return;
+
+    if (placeSide === 'BUY' && ['LIMIT', 'SL', 'GTT'].includes(orderType)) {
+      const parsedPrice = parseFloat(limitPrice) || 0;
+      if (parsedPrice > maxAllowedPrice) {
+        showToast(`❌ Price exceeds top limit of ${topLimit}% (max: ₹${maxAllowedPrice.toFixed(2)})`);
+        return;
+      }
+      if (minLimit > 0 && parsedPrice < minAllowedPrice) {
+        showToast(`❌ Price is below min limit of ${minLimit}% (min: ₹${minAllowedPrice.toFixed(2)})`);
+        return;
+      }
+    }
+
     const res = await placeOrder({
       symbol: item.symbol,
       kite_instrument: item.kiteSymbol || item.symbol,
@@ -614,6 +638,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       value={limitPrice}
                       onChange={e => setLimitPrice(e.target.value)}
                     />
+                    {side === 'BUY' && priceRangeHelp}
                   </div>
                 )}
 
@@ -667,6 +692,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                           value={limitPrice}
                           onChange={e => setLimitPrice(e.target.value)}
                         />
+                        {side === 'BUY' && priceRangeHelp}
                       </div>
                     </div>
                   </div>

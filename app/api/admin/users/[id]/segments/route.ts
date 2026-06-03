@@ -33,6 +33,8 @@ export type SegmentSettingRow = {
   holding_type: string;
   exit_buffer: number;
   trade_allowed: boolean;
+  top_limit: number;
+  min_limit: number;
   created_at: string;
   updated_at: string;
 };
@@ -64,7 +66,7 @@ export async function GET(
     const { data, error } = await adminClient
       .from('segment_settings')
       .select(
-        'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, created_at, updated_at',
+        'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
       )
       .eq('user_id', id);
 
@@ -164,6 +166,10 @@ export async function POST(
         typeof entry.exit_buffer === 'number' ? entry.exit_buffer : 0.0017,
       trade_allowed:
         typeof entry.trade_allowed === 'boolean' ? entry.trade_allowed : true,
+      top_limit:
+        typeof entry.top_limit === 'number' ? entry.top_limit : 0,
+      min_limit:
+        typeof entry.min_limit === 'number' ? entry.min_limit : 0,
     }));
 
     // Step 7: Upsert using the unique constraint (user_id, segment, side)

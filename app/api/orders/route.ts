@@ -364,6 +364,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       strike_range: 0,
       commission_type: 'Per Crore',
       commission_value: isScalper ? 8500 : (segUpper.includes('FOREX') || segUpper.includes('CDS') ? 2000 : (segUpper.includes('CRYPTO') ? 1000 : 4500)),
+      top_limit: 0,
+      min_limit: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -443,6 +445,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const baseLtp = kiteLtp ?? client_price;
   if (!baseLtp || baseLtp <= 0) {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
+  }
+
+  // Segment Price Limits validation (top_limit and min_limit)
+  const topLimit = Number(segSetting.top_limit ?? 0);
+  const minLimit = Number(segSetting.min_limit ?? 0);
+  if (side === 'BUY' && ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET')) {
+    const maxAllowed = baseLtp * (1 + topLimit / 100);
+    if (client_price > maxAllowed) {
+      return NextResponse.json({
+        error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
+      }, { status: 400 });
+    }
+
+    if (minLimit > 0) {
+      const minAllowed = baseLtp * (1 - minLimit / 100);
+      if (client_price < minAllowed) {
+        return NextResponse.json({
+          error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+        }, { status: 400 });
+      }
+    }
   }
 
   // 10. Compute fill price (LTP ± buffer from segment_settings)
