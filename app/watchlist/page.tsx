@@ -335,6 +335,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
           )}
           {hasDualView && (
             <div
+              className="mcx-comex-switch"
               onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
               style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
             >
@@ -1268,7 +1269,6 @@ function WatchlistContent() {
               </div>
               <div className="action-hint" style={{ padding: 0, background: 'transparent' }}>Swipe | Tap to trade</div>
             </div>
-            <div className="action-hint" style={{ textAlign: 'left', padding: '0 4px', background: 'transparent' }}>Hold to select</div>
           </div>
           <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span className="add-hint">Add scripts to watchlist from Scripts Library</span>
@@ -1282,7 +1282,7 @@ function WatchlistContent() {
                   }
                 }}
                 style={{ cursor: 'pointer', background: isSelectionActive ? '#FEF0F0' : '#E9F6EF', color: isSelectionActive ? '#C62E2E' : '#006400', border: isSelectionActive ? '1px solid #FCD4D4' : '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {isSelectionActive ? <><i className="fas fa-trash-alt"></i> <span>DELETE</span></> : <span>Basket</span>}
+                {isSelectionActive ? <span>Delete</span> : <span>Basket</span>}
               </div>
               <div className="folder-btn dustbin-btn"
                 onClick={() => {
@@ -1463,7 +1463,7 @@ function WatchlistContent() {
                     key={type}
                     className={`ts-pill ${orderType === type ? 'active' : ''}`}
                     onClick={() => setOrderType(type)}
-                  >{type}</button>
+                  >{type === 'SLM' ? 'SL' : type}</button>
                 ))}
               </div>
             </div>
@@ -2399,7 +2399,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (!card) return;
         
         // Skip swipe delete buttons or checkbox itself to avoid double-toggling
-        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox')) {
+        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox') || e.target.closest('.mcx-comex-switch')) {
           return;
         }
         

@@ -631,7 +631,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       ? (['MARKET', 'LIMIT', 'SLM'] as OrderType[])
                       : (['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[])
                     ).map(t => (
-                      <button key={t} className={`ts2-pill${orderType === t ? ' active' : ''}`} onClick={() => setOrderType(t)}>{t}</button>
+                      <button key={t} className={`ts2-pill${orderType === t ? ' active' : ''}`} onClick={() => setOrderType(t)}>{t === 'SLM' ? 'SL' : t}</button>
                     ))}
                   </div>
                 </div>
