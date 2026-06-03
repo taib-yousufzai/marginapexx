@@ -1463,7 +1463,7 @@ function WatchlistContent() {
                     key={type}
                     className={`ts-pill ${orderType === type ? 'active' : ''}`}
                     onClick={() => setOrderType(type)}
-                  >{type === 'SLM' ? 'SL' : type}</button>
+                  >{type}</button>
                 ))}
               </div>
             </div>
