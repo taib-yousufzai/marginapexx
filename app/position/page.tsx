@@ -454,7 +454,7 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '52px',
+                                  width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
@@ -659,7 +659,7 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '52px',
+                                  width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
@@ -740,55 +740,7 @@ export default function PositionPage() {
                             )}
                           </div>
                         </div>
-                        {/* Green chart analysis icon */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '44px',
-                          height: '36px',
-                          borderRadius: '15px',
-                          border: '1.5px solid #2C8E5A',
-                          background: '#ffffff',
-                          color: '#2C8E5A',
-                          cursor: 'pointer'
-                        }}>
-                          <svg 
-                            viewBox="0 0 24 24" 
-                            style={{
-                              width: '1.2rem',
-                              height: '1.2rem',
-                              display: 'inline-block',
-                              verticalAlign: 'middle',
-                            }}
-                          >
-                            {/* Bars */}
-                            <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
-                            <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
-                            <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
-                            <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                            
-                            {/* Trendline */}
-                            <path 
-                              d="M 4 14 L 8 9 L 13 12 L 20 4" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                            />
-                            {/* Arrowhead */}
-                            <polyline 
-                              points="15 4 20 4 20 9" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                            />
-                          </svg>
                         </div>
-                      </div>
 
                       {/* Realised P&L Container */}
                       <div style={{
@@ -847,6 +799,18 @@ export default function PositionPage() {
                               if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
                               return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
                             })()}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Gross P&amp;L</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626' }}>
+                            {fmtUSD(selectedPos.pnl, selectedPos.settlement)}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: selectedPos.brokerage >= 0 ? '#059669' : '#DC2626' }}>
+                            {selectedPos.brokerage > 0 ? '+' : ''}{fmtUSD(selectedPos.brokerage || 0, selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>

@@ -22,6 +22,7 @@ interface TradeSheetProps {
   /** When true: hides GTT order type and hides Product Type section entirely */
   exitMode?: boolean;
   productType?: ProductType;
+  initialOrder?: any;
 }
 
 function getLotSize(name: string): number {
@@ -50,7 +51,7 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -126,23 +127,35 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   // Reset state when item changes
   useEffect(() => {
     if (item) {
-      const ls = getLotSize(item.name);
-      setOrderQty(ls);
-      setQtyInput(String(ls));
-      setOrderUnit('qty');
-      setOrderType('MARKET');
-      setProductType(propProductType || 'INTRADAY');
-      setLimitPrice('');
-      setTriggerPrice('');
-      setSlPrice('');
-      setTpPrice('');
+      if (initialOrder) {
+        setOrderQty(initialOrder.qty);
+        setQtyInput(String(initialOrder.qty));
+        setOrderUnit('qty');
+        setOrderType(initialOrder.order_type);
+        setProductType(initialOrder.product_type);
+        setLimitPrice(initialOrder.client_price ? String(initialOrder.client_price) : '');
+        setTriggerPrice(initialOrder.trigger_price ? String(initialOrder.trigger_price) : '');
+        setSlPrice(initialOrder.stop_loss ? String(initialOrder.stop_loss) : '');
+        setTpPrice(initialOrder.target ? String(initialOrder.target) : '');
+      } else {
+        const ls = getLotSize(item.name);
+        setOrderQty(ls);
+        setQtyInput(String(ls));
+        setOrderUnit('qty');
+        setOrderType('MARKET');
+        setProductType(propProductType || 'INTRADAY');
+        setLimitPrice('');
+        setTriggerPrice('');
+        setSlPrice('');
+        setTpPrice('');
+      }
     }
-  }, [item?.symbol, propProductType]);
+  }, [item?.symbol, propProductType, initialOrder]);
 
   // Sync maximum position quantity when side is SELL
   useEffect(() => {
-    if (isOpen && activePositions && item) {
-      if (side === 'SELL') {
+    if (isOpen && activePositions && item && !initialOrder) {
+      if (side === 'SELL' && exitMode) {
         const targetPT = propProductType || productType;
         const existingPos = activePositions.find(
           p => p.symbol === item.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY' && p.product_type === targetPT
@@ -151,13 +164,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           setOrderQty(existingPos.qty_open);
           setQtyInput(String(existingPos.qty_open));
         }
-      } else if (side === 'BUY') {
-        const ls = getLotSize(item.name);
-        setOrderQty(ls);
-        setQtyInput(String(ls));
       }
     }
-  }, [side, activePositions, isOpen, item?.symbol, propProductType, productType]);
+  }, [side, activePositions, isOpen, item?.symbol, propProductType, productType, initialOrder, exitMode]);
 
   // Fetch balance, active positions, and segment settings
   useEffect(() => {
@@ -453,7 +462,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
 
         .ts2-footer {
-          position: fixed; bottom: 0; left: 0; right: 0;
+          position: absolute; bottom: 0; left: 0; right: 0;
           max-width: 500px; margin: 0 auto; z-index: 10001;
           background: var(--card-bg, #fff); padding: 12px 14px 24px;
           display: flex; gap: 8px;
@@ -742,7 +751,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : (exitMode || hasSellPos) ? 'EXIT SELL' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : initialOrder ? 'MODIFY' : (exitMode || hasSellPos) ? 'EXIT SELL' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
@@ -751,7 +760,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : (exitMode || hasBuyPos) ? 'EXIT BUY' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : initialOrder ? 'MODIFY' : (exitMode || hasBuyPos) ? 'EXIT BUY' : 'SELL'}
                 </button>
               )}
             </div>

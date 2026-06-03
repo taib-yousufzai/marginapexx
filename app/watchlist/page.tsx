@@ -594,6 +594,7 @@ function WatchlistContent() {
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
   const [showBasketConfirm, setShowBasketConfirm] = useState(false);
+  const [isSelectionActive, setIsSelectionActive] = useState(false);
 
   // Map a segment label to DB key segment
   const mapSegmentToDbSegment = (s: string): string => {
@@ -1216,6 +1217,7 @@ function WatchlistContent() {
 
     window.__kiteQuotes = window.__kiteQuotes || {};
     window.__watchlistItems = window.__watchlistItems || [];
+    (window as any).__reactSetSelectionActive = setIsSelectionActive;
 
     const script = document.createElement('script');
     script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
@@ -1258,19 +1260,43 @@ function WatchlistContent() {
         </div>
 
         <div className="watchlist-section">
-          <div className="watchlist-header">
-            <div className="watchlist-title-section">
-              <div className="watchlist-title">MY WATCHLIST</div>
-              <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
+          <div className="watchlist-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '4px', marginTop: '-4px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="watchlist-title-section">
+                <div className="watchlist-title">MY WATCHLIST</div>
+                <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
+              </div>
+              <div className="action-hint" style={{ padding: 0, background: 'transparent' }}>Swipe | Tap to trade</div>
             </div>
-            <div className="action-hint">Swipe | Hold to select | Tap to trade</div>
+            <div className="action-hint" style={{ textAlign: 'left', padding: '0 4px', background: 'transparent' }}>Hold to select</div>
           </div>
           <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span className="add-hint">Add scripts to watchlist from Scripts Library</span>
-            <div className="folder-btn basket-btn" id="basketModeBtn"
-              onClick={() => setBasketMode(b => !b)}
-              style={{ cursor: 'pointer', background: '#E9F6EF', color: '#006400', border: '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <span>Basket</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="folder-btn basket-btn" id="basketModeBtn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    if (typeof (window as any).__reactDeleteSelected === 'function') (window as any).__reactDeleteSelected();
+                  } else {
+                    setBasketMode(b => !b);
+                  }
+                }}
+                style={{ cursor: 'pointer', background: isSelectionActive ? '#FEF0F0' : '#E9F6EF', color: isSelectionActive ? '#C62E2E' : '#006400', border: isSelectionActive ? '1px solid #FCD4D4' : '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {isSelectionActive ? <><i className="fas fa-trash-alt"></i> <span>DELETE</span></> : <span>Basket</span>}
+              </div>
+              <div className="folder-btn dustbin-btn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    setIsSelectionActive(false);
+                    if (typeof (window as any).exitSelectionMode === 'function') (window as any).exitSelectionMode();
+                  } else {
+                    setIsSelectionActive(true);
+                    if (typeof (window as any).enterSelectionMode === 'function') (window as any).enterSelectionMode();
+                  }
+                }}
+                style={{ cursor: 'pointer', background: '#F3F4F6', color: '#4B5563', border: '1px solid #D1D5DB', padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '30px', flexShrink: 0 }}>
+                <i className={isSelectionActive ? "fas fa-times" : "fas fa-trash-alt"}></i>
+              </div>
             </div>
           </div>
           <div className="watchlist-card-list">
@@ -1948,18 +1974,6 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-      <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: 'var(--container-bg, #fff)', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
-        <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>
-          <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary, #111827)' }}>0 selected</span>
-        </div>
-        <div className="multi-select-row bottom-row" style={{ padding: '10px 16px', display: 'flex', gap: '10px' }}>
-          <button id="exitSelectionBtn" style={{ flex: 1, background: 'var(--icon-bg, #F3F4F6)', color: 'var(--text-secondary, #4B5563)', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}>Exit Selection</button>
-          <button id="deleteSelectionBtn" style={{ flex: 1, background: '#C62E2E', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(198,46,46,0.2)' }}>
-            <i className="fas fa-trash-alt"></i> Delete
-          </button>
-        </div>
-      </div>
-
       <Footer activeTab="watchlist" />
     </div>
   );
@@ -2349,43 +2363,33 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         });
       }
 
-      var exitSelectionBtn = document.getElementById('exitSelectionBtn');
-      if (exitSelectionBtn) {
-        exitSelectionBtn.addEventListener('click', function() {
-          exitSelectionMode();
-        });
-      }
-
-      var deleteSelectionBtn = document.getElementById('deleteSelectionBtn');
-      if (deleteSelectionBtn) {
-        deleteSelectionBtn.addEventListener('click', function() {
-          var checkedBoxes = document.querySelectorAll('.wc-checkbox:checked');
-          if (checkedBoxes.length === 0) {
-            if (window.showToast) window.showToast('Select items to delete', true);
-            return;
+      window.__reactDeleteSelected = function() {
+        var checkedBoxes = document.querySelectorAll('.wc-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+          if (window.showToast) window.showToast('Select items to delete', true);
+          return;
+        }
+        
+        var symbolsToDelete = [];
+        checkedBoxes.forEach(function(cb) {
+          var card = cb.closest('.watchlist-card');
+          if (card) {
+            var symbol = card.getAttribute('data-symbol');
+            if (symbol) symbolsToDelete.push(symbol);
           }
-          
-          var symbolsToDelete = [];
-          checkedBoxes.forEach(function(cb) {
-            var card = cb.closest('.watchlist-card');
-            if (card) {
-              var symbol = card.getAttribute('data-symbol');
-              if (symbol) symbolsToDelete.push(symbol);
+        });
+
+        if (symbolsToDelete.length > 0) {
+          symbolsToDelete.forEach(function(sym) {
+            if (typeof window.__removeFromWatchlistCallback === 'function') {
+              window.__removeFromWatchlistCallback(sym);
             }
           });
-
-          if (symbolsToDelete.length > 0) {
-            symbolsToDelete.forEach(function(sym) {
-              if (typeof window.__removeFromWatchlistCallback === 'function') {
-                window.__removeFromWatchlistCallback(sym);
-              }
-            });
-            if (window.showToast) window.showToast('Deleted ' + symbolsToDelete.length + ' item' + (symbolsToDelete.length !== 1 ? 's' : '') + ' from watchlist', false);
-          }
-          
-          exitSelectionMode();
-        });
-      }
+          if (window.showToast) window.showToast('Deleted ' + symbolsToDelete.length + ' item' + (symbolsToDelete.length !== 1 ? 's' : '') + ' from watchlist', false);
+        }
+        
+        exitSelectionMode();
+      };
 
       // Capture all clicks when selectionMode is active to toggle checkboxes easily
       document.addEventListener('click', function(e) {
@@ -2463,7 +2467,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function enterSelectionMode() {
         selectionMode = true;
-        if (multiSelectBar) multiSelectBar.style.display = 'block';
+        if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(true);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'flex';
         });
@@ -2472,7 +2476,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function exitSelectionMode() {
         selectionMode = false;
-        if (multiSelectBar) multiSelectBar.style.display = 'none';
+        if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(false);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'none';
         });

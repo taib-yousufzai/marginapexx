@@ -7,6 +7,7 @@ import { useKitePositions } from '@/hooks/useKitePositions';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import KiteConnectButton from '@/components/KiteConnectButton';
+import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
 
 export default function OrderPage() {
@@ -15,7 +16,12 @@ export default function OrderPage() {
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState<string | null>(null);
 
-  const { orders, loading: ordersLoading, error, cancelOrder } = useMyOrders();
+  const [tradeSheetItem, setTradeSheetItem] = useState<TradeSheetItem | null>(null);
+  const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
+  const [tradeSheetInitialOrder, setTradeSheetInitialOrder] = useState<any>(null);
+  const [modifyingOrderId, setModifyingOrderId] = useState<string | null>(null);
+
+  const { orders, loading: ordersLoading, error, cancelOrder, refresh } = useMyOrders();
   const { connected: kiteConnected } = useKitePositions();
 
   const showToast = (msg: string) => {
@@ -30,6 +36,27 @@ export default function OrderPage() {
     } else {
       showToast(`Error: ${res.error}`);
     }
+  };
+
+  const handleModify = (order: any) => {
+    setModifyingOrderId(order.id);
+    setTradeSheetSide(order.side);
+    setTradeSheetItem({
+      name: order.symbol,
+      symbol: order.symbol,
+      kiteSymbol: order.kite_instrument,
+      segment: order.segment,
+      price: order.fill_price || 0,
+    });
+    setTradeSheetInitialOrder({
+      qty: order.qty,
+      order_type: order.order_type,
+      product_type: order.product_type,
+      client_price: order.fill_price,
+      trigger_price: order.trigger_price,
+      stop_loss: order.stop_loss,
+      target: order.target,
+    });
   };
 
   const openOrders = orders.filter(o => o.status === 'PENDING');
@@ -223,12 +250,20 @@ export default function OrderPage() {
                           {isRejected  && <><i className="fas fa-times-circle" /> REJECTED</>}
                         </div>
                         {isPending && (
-                          <button
-                            className="ord-cancel-btn"
-                            onClick={() => handleCancel(order.id)}
-                          >
-                            <i className="fas fa-times" /> Cancel
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              className="ord-modify-btn"
+                              onClick={() => handleModify(order)}
+                            >
+                              <i className="fas fa-edit" /> Modify
+                            </button>
+                            <button
+                              className="ord-cancel-btn"
+                              onClick={() => handleCancel(order.id)}
+                            >
+                              <i className="fas fa-times" /> Cancel
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -243,6 +278,25 @@ export default function OrderPage() {
               <i className="fas fa-circle-info" />
               <span>{toast}</span>
             </div>
+
+            <TradeSheet 
+              item={tradeSheetItem} 
+              side={tradeSheetSide} 
+              onClose={() => {
+                setTradeSheetItem(null);
+                setTradeSheetInitialOrder(null);
+                setModifyingOrderId(null);
+              }}
+              initialOrder={tradeSheetInitialOrder}
+              onSuccess={() => {
+                refresh();
+                if (modifyingOrderId) {
+                  cancelOrder(modifyingOrderId);
+                  showToast('Order modified successfully');
+                  setModifyingOrderId(null);
+                }
+              }}
+            />
           </div>
         </div>
       </main>

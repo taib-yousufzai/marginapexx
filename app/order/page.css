@@ -379,8 +379,8 @@
   background: transparent;
   border: 1px solid #E5E9F0;
   border-radius: 30px;
-  padding: 4px 14px;
-  font-size: 10px;
+  padding: 6px 16px;
+  font-size: 11px;
   font-weight: 600;
   color: #6B7280;
   cursor: pointer;
@@ -391,7 +391,7 @@
   transition: all 0.2s ease;
 }
 
-.ord-cancel-btn i { font-size: 8px; }
+.ord-cancel-btn i { font-size: 10px; }
 
 .ord-cancel-btn:hover {
   background: #FEF2F2;
@@ -400,6 +400,34 @@
 }
 
 .ord-cancel-btn:active {
+  transform: scale(0.96);
+}
+
+.ord-modify-btn {
+  background: transparent;
+  border: 1px solid #E5E9F0;
+  border-radius: 30px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3B82F6;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.ord-modify-btn i { font-size: 10px; }
+
+.ord-modify-btn:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #2563EB;
+}
+
+.ord-modify-btn:active {
   transform: scale(0.96);
 }
 
@@ -479,6 +507,8 @@ body.dark .ord-date-val       { color: #555; }
 body.dark .ord-row-status     { border-top-color: #333; }
 body.dark .ord-cancel-btn     { border-color: #3A3A3A; color: #777; }
 body.dark .ord-cancel-btn:hover { background: #3A1A1A; border-color: #7A2A2A; color: #C62E2E; }
+body.dark .ord-modify-btn     { border-color: #3A3A3A; color: #60A5FA; }
+body.dark .ord-modify-btn:hover { background: #1E3A8A; border-color: #1D4ED8; color: #93C5FD; }
 body.dark .ord-rejection      { background: #2A2010; border-left-color: #F59E0B; }
 body.dark .ord-empty          { background: #252525; border-color: #333; color: #555; }
 
