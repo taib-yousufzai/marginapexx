@@ -417,19 +417,7 @@ export default function Page() {
                       )}
                     </div>
 
-                    {tradingHours.length > 0 && (
-                      <div className="market-hours-status-container">
-                        {tradingHours.map((seg) => {
-                          const info = getSegmentStatus(seg);
-                          return (
-                            <div key={seg.id} className={`market-hour-pill ${info.status}`}>
-                              <span className="market-hour-name">{seg.name}: </span>
-                              <span className="market-hour-val">{info.label}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+
 
                     {kiteLoading && (
                       <div className="market-status-msg"><i className="fas fa-circle-notch fa-spin" /> Checking connection…</div>

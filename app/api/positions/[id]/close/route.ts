@@ -129,6 +129,50 @@ export async function POST(
     return NextResponse.json({ error: 'Position not found or already closed' }, { status: 404 });
   }
 
+  // Check market hours
+  try {
+    const symbol = pos.symbol || '';
+    const dbSegment = pos.settlement || '';
+    const exchangeName = symbol.includes(':') ? symbol.split(':')[0] : 'NSE';
+    const ex = exchangeName.toUpperCase();
+    const segUpper = dbSegment.toUpperCase();
+
+    if (!segUpper.includes('CRYPTO')) {
+      let segmentId = 'nse';
+      if (ex === 'MCX' || segUpper.includes('MCX')) segmentId = 'mcx';
+      else if (ex === 'BSE' || segUpper.includes('BSE') || segUpper.includes('BFO')) segmentId = 'bse';
+      else if (ex === 'CDS' || ex === 'FOREX' || segUpper.includes('CDS') || segUpper.includes('FOREX')) segmentId = 'forex';
+      else if (ex === 'COMEX' || segUpper.includes('COMEX')) segmentId = 'comex';
+
+      const { data: segmentHour, error: hrError } = await admin
+        .from('trading_hours')
+        .select('name, start_time, end_time, is_active')
+        .eq('id', segmentId)
+        .maybeSingle();
+
+      if (!hrError && segmentHour) {
+        if (!segmentHour.is_active) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+
+        const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const dayOfWeek = nowIST.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        if (isWeekend) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+
+        const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
+        if (currentHHMM < segmentHour.start_time || currentHHMM >= segmentHour.end_time) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[POST /api/positions/[id]/close] Market hours check error:', err);
+  }
+
   // 2. Parallel fetch segment settings and LTP
   const isScalper = profileResult.data?.trading_mode === 'scalper';
   const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
