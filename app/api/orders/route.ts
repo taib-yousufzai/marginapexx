@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
-import { positionStore, parseOptionSymbol } from '@/lib/positionStore';
+import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -495,16 +495,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Validate Limit price constraints relative to LTP
   if (order_type === 'LIMIT' || (order_type === 'GTT' && !is_exit)) {
-    if (side === 'BUY' && client_price >= baseLtp) {
-      return NextResponse.json({ error: 'Limit price must be lower than the current market price (LTP).' }, { status: 400 });
+    if (side === 'BUY' && client_price > baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be lower than or equal to the current market price (LTP).' }, { status: 400 });
     }
-    if (side === 'SELL' && client_price <= baseLtp) {
-      return NextResponse.json({ error: 'Limit price must be higher than the current market price (LTP).' }, { status: 400 });
+    if (side === 'SELL' && client_price < baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be higher than or equal to the current market price (LTP).' }, { status: 400 });
     }
   }
 
-  // Validate SL/SLM trigger price constraints relative to LTP
-  if (order_type === 'SL' || order_type === 'SLM') {
+  // Validate SL trigger price constraints relative to LTP
+  if (order_type === 'SL') {
     const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
     if (trigPrice !== null && !isNaN(trigPrice)) {
       if (side === 'BUY' && trigPrice <= baseLtp) {
@@ -512,6 +512,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
       if (side === 'SELL' && trigPrice >= baseLtp) {
         return NextResponse.json({ error: 'Trigger price must be below the current market price.' }, { status: 400 });
+      }
+    }
+  }
+
+  // Validate SLM trigger price constraints relative to LTP
+  if (order_type === 'SLM') {
+    const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
+    if (trigPrice !== null && !isNaN(trigPrice)) {
+      if (side === 'BUY' && trigPrice >= baseLtp) {
+        return NextResponse.json({ error: 'Trigger price must be below the current market price.' }, { status: 400 });
+      }
+      if (side === 'SELL' && trigPrice <= baseLtp) {
+        return NextResponse.json({ error: 'Trigger price must be above the current market price.' }, { status: 400 });
       }
     }
   }
@@ -557,19 +570,49 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  if (isLong) {
-    if (orderTarget !== null && orderTarget <= refEntry) {
-      return NextResponse.json({ error: is_exit ? 'Target price must be above the position entry price.' : 'Target price must be above the buy price.' }, { status: 400 });
-    }
-    if (orderSL !== null && orderSL >= refEntry) {
-      return NextResponse.json({ error: is_exit ? 'Stop loss price must be below the position entry price.' : 'Stop loss price must be below the buy price.' }, { status: 400 });
+  if (is_exit) {
+    if (isLong) {
+      if (orderTarget !== null && orderTarget <= refEntry) {
+        return NextResponse.json({ error: 'Target price must be above the position entry price.' }, { status: 400 });
+      }
+      if (orderSL !== null && orderSL >= refEntry) {
+        return NextResponse.json({ error: 'Stop loss price must be below the position entry price.' }, { status: 400 });
+      }
+    } else {
+      if (orderTarget !== null && orderTarget >= refEntry) {
+        return NextResponse.json({ error: 'Target price must be below the position entry price.' }, { status: 400 });
+      }
+      if (orderSL !== null && orderSL <= refEntry) {
+        return NextResponse.json({ error: 'Stop loss price must be above the position entry price.' }, { status: 400 });
+      }
     }
   } else {
-    if (orderTarget !== null && orderTarget >= refEntry) {
-      return NextResponse.json({ error: is_exit ? 'Target price must be below the position entry price.' : 'Target price must be below the sell price.' }, { status: 400 });
-    }
-    if (orderSL !== null && orderSL <= refEntry) {
-      return NextResponse.json({ error: is_exit ? 'Stop loss price must be above the position entry price.' : 'Stop loss price must be above the sell price.' }, { status: 400 });
+    // First-time purchase validations
+    const hasLimitPrice = ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET');
+    if (isLong) {
+      if (orderSL !== null) {
+        if (orderSL >= baseLtp) {
+          return NextResponse.json({ error: 'Stop loss price must be below the current market price (LTP).' }, { status: 400 });
+        }
+        if (hasLimitPrice && orderSL >= client_price) {
+          return NextResponse.json({ error: 'Stop loss price must be below the limit price.' }, { status: 400 });
+        }
+      }
+      if (orderTarget !== null && orderTarget < baseLtp) {
+        return NextResponse.json({ error: 'Target price must be above or equal to the current market price (LTP).' }, { status: 400 });
+      }
+    } else {
+      if (orderSL !== null) {
+        if (orderSL <= baseLtp) {
+          return NextResponse.json({ error: 'Stop loss price must be above the current market price (LTP).' }, { status: 400 });
+        }
+        if (hasLimitPrice && orderSL <= client_price) {
+          return NextResponse.json({ error: 'Stop loss price must be above the limit price.' }, { status: 400 });
+        }
+      }
+      if (orderTarget !== null && orderTarget > baseLtp) {
+        return NextResponse.json({ error: 'Target price must be below or equal to the current market price (LTP).' }, { status: 400 });
+      }
     }
   }
 

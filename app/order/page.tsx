@@ -329,7 +329,7 @@ export default function OrderPage() {
                         height: '42px',
                         borderRadius: '12px',
                         border: '1.5px solid #059669',
-                        background: '#ffffff',
+                        background: 'var(--card-bg, #ffffff)',
                         color: '#059669',
                         cursor: 'pointer',
                         display: 'flex',
@@ -389,7 +389,10 @@ export default function OrderPage() {
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Status</div>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: selectedOrder.status === 'EXECUTED' ? '#059669' : (selectedOrder.status === 'REJECTED' ? '#D97706' : '#DC2626'), lineHeight: 1 }}>
+                      <div 
+                        className={selectedOrder.status === 'EXECUTED' ? 'os-status-executed' : (selectedOrder.status === 'REJECTED' ? 'os-status-rejected' : 'os-status-other')}
+                        style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1 }}
+                      >
                         {selectedOrder.status}
                       </div>
                     </div>
@@ -436,7 +439,7 @@ export default function OrderPage() {
                   <button
                     style={{
                       width: '100%', padding: '11px', borderRadius: '50px',
-                      border: '1.5px solid #059669', background: '#fff',
+                      border: '1.5px solid #059669', background: 'var(--card-bg, #fff)',
                       color: '#059669', fontSize: '0.95rem', fontWeight: 800,
                       cursor: 'pointer', display: 'flex', alignItems: 'center',
                       justifyContent: 'center', gap: '8px', marginTop: '2px',

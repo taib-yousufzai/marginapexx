@@ -481,36 +481,55 @@
 .ord-list::-webkit-scrollbar-thumb  { background: #CBD5E1; border-radius: 10px; }
 
 /* ── Dark Mode ────────────────────────────────── */
-body.dark .ord-root           { background: #121212; }
-body.dark .ord-shell          { background: #1E1E1E; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
-body.dark .ord-header         { background: #1E1E1E; border-bottom-color: #2E2E2E; }
-body.dark .ord-brand          { color: #F5F5F5; }
-body.dark .ord-brand-sub      { color: #666; }
-body.dark .ord-search-box     { background: #2A2A2A; border-color: transparent; }
+body.dark .ord-root           { background: var(--bg-body, #121212); }
+body.dark .ord-shell          { background: var(--container-bg, #1E1E1E); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+body.dark .ord-header         { background: var(--container-bg, #1E1E1E); border-bottom-color: var(--border-light, #2E2E2E); }
+body.dark .ord-brand          { color: var(--text-primary, #F5F5F5); }
+body.dark .ord-brand-sub      { color: var(--text-muted, #888888); }
+body.dark .ord-search-box     { background: var(--icon-bg, #2A2A2A); border-color: transparent; }
 body.dark .ord-search-box:focus-within { background: #252525; border-color: rgba(198,46,46,0.4); }
-body.dark .ord-search-input   { color: #F5F5F5; }
-body.dark .ord-search-input::placeholder { color: #555; }
-body.dark .ord-tabs           { background: #2A2A2A; }
-body.dark .ord-tab            { color: #666; }
-body.dark .ord-tab.active     { background: #333; color: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-body.dark .ord-tab-badge      { background: rgba(255,255,255,0.08); color: #666; }
-body.dark .ord-tab.active .ord-tab-badge { background: rgba(255,255,255,0.15); color: #FFFFFF; }
-body.dark .ord-card           { background: #252525; border-color: #333; box-shadow: none; }
-body.dark .ord-card:hover     { border-color: #444; }
-body.dark .ord-symbol         { color: #F5F5F5; }
-body.dark .ord-label          { color: #555; }
-body.dark .ord-val            { color: #D0D0D0; }
-body.dark .ord-badge.long     { background: #052e16; color: #059669; }
-body.dark .ord-badge.short    { background: #3B1A1A; color: #F87171; }
-body.dark .ord-type-pill      { background: #2A2A2A; color: #999; }
-body.dark .ord-date-val       { color: #555; }
-body.dark .ord-row-status     { border-top-color: #333; }
-body.dark .ord-cancel-btn     { border-color: #3A3A3A; color: #777; }
-body.dark .ord-cancel-btn:hover { background: #3A1A1A; border-color: #7A2A2A; color: #C62E2E; }
-body.dark .ord-modify-btn     { border-color: #3A3A3A; color: #777; }
-body.dark .ord-modify-btn:hover { background: #2A2A2A; border-color: #444; color: #D0D0D0; }
+body.dark .ord-search-input   { color: var(--text-primary, #F5F5F5); }
+body.dark .ord-search-input::placeholder { color: var(--text-muted, #666); }
+body.dark .ord-tabs           { background: var(--icon-bg, #2A2A2A); }
+body.dark .ord-tab            { color: var(--text-secondary, #B0B0B0); }
+body.dark .ord-tab.active     { background: var(--card-bg, #252525); color: var(--negative-text, #F87171); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+body.dark .ord-tab-badge      { background: rgba(255,255,255,0.08); color: var(--text-secondary, #B0B0B0); }
+body.dark .ord-tab.active .ord-tab-badge { background: rgba(248,113,113,0.15); color: var(--negative-text, #F87171); }
+body.dark .ord-card           { background: var(--card-bg, #252525); border-color: var(--border-light, #333); box-shadow: none; }
+body.dark .ord-card:hover     { border-color: var(--border-card, #444); }
+body.dark .ord-symbol         { color: var(--text-primary, #F5F5F5); }
+body.dark .ord-label          { color: var(--text-secondary, #B0B0B0); }
+body.dark .ord-val            { color: var(--text-primary, #D0D0D0); }
+body.dark .ord-badge.long     { background: var(--positive-bg, #052e16); color: var(--positive-text, #4ADE80); }
+body.dark .ord-badge.short    { background: var(--negative-bg, #3B1A1A); color: var(--negative-text, #F87171); }
+body.dark .ord-type-pill      { background: var(--icon-bg, #2A2A2A); color: var(--text-secondary, #999); }
+body.dark .ord-date-val       { color: var(--text-muted, #888888); }
+body.dark .ord-row-status     { border-top-color: var(--border-light, #333); }
+body.dark .ord-cancel-btn     { border-color: var(--border-light, #3A3A3A); color: var(--text-secondary, #777); }
+body.dark .ord-cancel-btn:hover { background: var(--negative-bg, #3B1A1A); border-color: var(--negative-text, #7A2A2A); color: var(--negative-text, #F87171); }
+body.dark .ord-modify-btn     { border-color: var(--border-light, #3A3A3A); color: var(--text-secondary, #777); }
+body.dark .ord-modify-btn:hover { background: var(--icon-bg, #2A2A2A); border-color: var(--border-card, #444); color: var(--text-primary, #D0D0D0); }
 body.dark .ord-rejection      { background: #2A2010; border-left-color: #F59E0B; }
-body.dark .ord-empty          { background: #252525; border-color: #333; color: #555; }
+body.dark .ord-empty          { background: var(--card-bg, #252525); border-color: var(--border-light, #333); color: var(--text-muted, #888888); }
+body.dark .sell-price         { color: var(--negative-text, #F87171); }
+body.dark .status-open        { color: var(--negative-text, #F87171); }
+
+body.dark .ord-sheet {
+  background: var(--card-bg, #252525);
+  border-top: 1px solid var(--border-light, #333);
+}
+body.dark .ord-sheet-handle-bar {
+  background: var(--border-light, #333);
+}
+
+.os-status-executed { color: #059669; }
+.os-status-rejected { color: #D97706; }
+.os-status-other    { color: #DC2626; }
+
+body.dark .os-status-executed { color: #4ADE80; }
+body.dark .os-status-rejected { color: #FBBF24; }
+body.dark .os-status-other    { color: #F87171; }
+
 
 .apex-text {
   color: #006400;

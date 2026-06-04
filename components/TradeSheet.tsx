@@ -332,17 +332,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
     // Validate Limit price constraints relative to LTP
     if (resolvedOrderType === 'LIMIT' || (resolvedOrderType === 'GTT' && !exitMode)) {
-      if (placeSide === 'BUY' && resolvedClientPrice >= currentLtp) {
-        showToast('Limit price must be lower than the current market price (LTP).');
+      if (placeSide === 'BUY' && resolvedClientPrice > currentLtp) {
+        showToast('Limit price must be lower than or equal to the current market price (LTP).');
         return;
       }
-      if (placeSide === 'SELL' && resolvedClientPrice <= currentLtp) {
-        showToast('Limit price must be higher than the current market price (LTP).');
+      if (placeSide === 'SELL' && resolvedClientPrice < currentLtp) {
+        showToast('Limit price must be higher than or equal to the current market price (LTP).');
         return;
       }
     }
 
-    if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
+    if (resolvedOrderType === 'SL') {
       const trigPrice = resolvedTriggerPrice;
       if (trigPrice !== undefined && !isNaN(trigPrice)) {
         if (placeSide === 'BUY' && trigPrice <= currentLtp) {
@@ -356,27 +356,81 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
+    if (resolvedOrderType === 'SLM') {
+      const trigPrice = resolvedTriggerPrice;
+      if (trigPrice !== undefined && !isNaN(trigPrice)) {
+        if (placeSide === 'BUY' && trigPrice >= currentLtp) {
+          showToast('Trigger price must be below the current market price.');
+          return;
+        }
+        if (placeSide === 'SELL' && trigPrice <= currentLtp) {
+          showToast('Trigger price must be above the current market price.');
+          return;
+        }
+      }
+    }
+
     // Resolve reference entry price and position side (Long vs Short)
     const refEntry = (exitMode && existingPos) ? Number(existingPos.entry_price) : resolvedClientPrice;
     const isLong = (exitMode && existingPos) ? (existingPos.side === 'BUY') : (placeSide === 'BUY');
 
-    if (isLong) {
-      if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
-        showToast(exitMode ? 'Target price must be above the position entry price.' : 'Target price must be above the buy price.');
-        return;
-      }
-      if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
-        showToast(exitMode ? 'Stop loss price must be below the position entry price.' : 'Stop loss price must be below the buy price.');
-        return;
+    if (exitMode) {
+      if (isLong) {
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
+          showToast('Target price must be above the position entry price.');
+          return;
+        }
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
+          showToast('Stop loss price must be below the position entry price.');
+          return;
+        }
+      } else {
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
+          showToast('Target price must be below the position entry price.');
+          return;
+        }
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
+          showToast('Stop loss price must be above the position entry price.');
+          return;
+        }
       }
     } else {
-      if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
-        showToast(exitMode ? 'Target price must be below the position entry price.' : 'Target price must be below the sell price.');
-        return;
-      }
-      if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
-        showToast(exitMode ? 'Stop loss price must be above the position entry price.' : 'Stop loss price must be above the sell price.');
-        return;
+      // First time purchasing validations
+      const hasLimitPrice = ['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType) && resolvedClientPrice !== undefined && !isNaN(resolvedClientPrice);
+      if (isLong) {
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
+          if (resolvedStopLoss >= currentLtp) {
+            showToast('Stop loss price must be below the current market price (LTP).');
+            return;
+          }
+          if (hasLimitPrice && resolvedStopLoss >= resolvedClientPrice) {
+            showToast('Stop loss price must be below the limit price.');
+            return;
+          }
+        }
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
+          if (resolvedTarget < currentLtp) {
+            showToast('Target price must be above or equal to the current market price (LTP).');
+            return;
+          }
+        }
+      } else {
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
+          if (resolvedStopLoss <= currentLtp) {
+            showToast('Stop loss price must be above the current market price (LTP).');
+            return;
+          }
+          if (hasLimitPrice && resolvedStopLoss <= resolvedClientPrice) {
+            showToast('Stop loss price must be above the limit price.');
+            return;
+          }
+        }
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
+          if (resolvedTarget > currentLtp) {
+            showToast('Target price must be below or equal to the current market price (LTP).');
+            return;
+          }
+        }
       }
     }
 
@@ -542,7 +596,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           cursor: pointer; border: none; background: transparent; transition: all 0.2s;
         }
         .ts2-toggle-opt.active {
-          background: #FFFFFF; color: #111827;
+          background: var(--card-bg, #FFFFFF); color: var(--text-primary, #111827);
           box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
 
@@ -584,9 +638,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           border: 1.5px solid var(--border-light, #E5E7EB); background: var(--card-bg, #fff); color: var(--text-primary, #374151);
           transition: all 0.18s; white-space: nowrap;
         }
-        .ts2-pill.active {
-          background: #DC2626; color: #fff; border-color: #DC2626;
-          box-shadow: 0 2px 8px rgba(220,38,38,0.25);
+        .ts2-sheet--buy .ts2-pill.active {
+          background: #15803D; color: #fff; border-color: #15803D;
+          box-shadow: 0 2px 8px rgba(21,128,61,0.25);
+        }
+        .ts2-sheet--sell .ts2-pill.active {
+          background: #B91C1C; color: #fff; border-color: #B91C1C;
+          box-shadow: 0 2px 8px rgba(185,28,28,0.25);
         }
 
         .ts2-price-input {
@@ -672,7 +730,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
       <div className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
 
-      <div className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''}`}>
+      <div className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''} ts2-sheet--${activeSide.toLowerCase()}`}>
         {item && (
           <>
             {/* Header */}
@@ -688,7 +746,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span style={{
                       display: 'inline-block',
                       fontSize: '0.6rem', fontWeight: 700,
-                      color: '#B91C1C', background: '#FEF2F2',
+                      color: 'var(--negative-text, #B91C1C)', background: 'var(--negative-bg, #FEF2F2)',
                       padding: '2px 8px', borderRadius: '30px',
                       textTransform: 'uppercase', letterSpacing: '0.3px'
                     }}>Exit Position</span>
@@ -697,7 +755,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span style={{
                       display: 'inline-block',
                       fontSize: '0.6rem', fontWeight: 700,
-                      color: '#15803D', background: '#DCFCE7',
+                      color: 'var(--positive-text, #15803D)', background: 'var(--positive-bg, #DCFCE7)',
                       padding: '2px 8px', borderRadius: '30px',
                       textTransform: 'uppercase', letterSpacing: '0.3px'
                     }}>Add More</span>
