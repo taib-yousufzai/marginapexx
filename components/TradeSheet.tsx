@@ -813,8 +813,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                           className={`ts2-pill${gttSubOption === opt ? ' active' : ''}`}
                           onClick={() => setGttSubOption(opt)}
                           style={{
-                            background: gttSubOption === opt ? '#059669' : 'transparent',
-                            borderColor: gttSubOption === opt ? '#059669' : 'var(--border-light, #E5E7EB)',
+                            background: gttSubOption === opt ? (activeSide === 'SELL' ? '#B91C1C' : '#059669') : 'transparent',
+                            borderColor: gttSubOption === opt ? (activeSide === 'SELL' ? '#B91C1C' : '#059669') : 'var(--border-light, #E5E7EB)',
                             color: gttSubOption === opt ? '#fff' : 'var(--text-primary, #374151)'
                           }}
                         >
