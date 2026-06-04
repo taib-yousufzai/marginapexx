@@ -335,6 +335,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
           )}
           {hasDualView && (
             <div
+              className="mcx-comex-switch"
               onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
               style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
             >
@@ -415,24 +416,37 @@ const TRADING_SEGMENTS: TradingSegment[] = [
     name: 'INDEX - OPTIONS', icon: 'fa-chart-gantt',
     subCategories: [
       { name: 'NIFTY Options', instruments: [
-        { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
+        { name: 'NIFTY 22300 PE', symbol: 'NIFTY22300PE', kiteSymbol: '', price: 65.10, change: '-2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 66, high: 68, low: 64, close: 65.10 },
         { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 },
+        { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
+        { name: 'NIFTY 22600 CE', symbol: 'NIFTY22600CE', kiteSymbol: '', price: 85.30, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 84, high: 88, low: 82, close: 85.30 },
+        { name: 'NIFTY 22700 CE', symbol: 'NIFTY22700CE', kiteSymbol: '', price: 55.20, change: '+3.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 53, high: 57, low: 51, close: 55.20 },
       ]},
       { name: 'SENSEX Options', instruments: [
+        { name: 'SENSEX 74100 PE', symbol: 'SENSEX741PE', kiteSymbol: '', price: 150.20, change: '-1.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 152, high: 155, low: 148, close: 150.20 },
         { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 },
+        { name: 'SENSEX 74900 CE', symbol: 'SENSEX749CE', kiteSymbol: '', price: 125.10, change: '+2.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128, low: 120, close: 125.10 },
       ]},
       { name: 'BANKEX Options', instruments: [
+        { name: 'BANKEX 51800 PE', symbol: 'BANKEX518PE', kiteSymbol: '', price: 240.50, change: '-1.4%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 245, high: 248, low: 238, close: 240.50 },
         { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', kiteSymbol: '', price: 310.75, change: '+1.1%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 307, high: 314, low: 306.50, close: 310.75 },
       ]},
       { name: 'BANKNIFTY Options', instruments: [
-        { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
+        { name: 'BANKNIFTY 47800 PE', symbol: 'BN47800PE', kiteSymbol: '', price: 110.15, change: '+0.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 109, high: 112, low: 108, close: 110.15 },
         { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 },
+        { name: 'BANKNIFTY 48200 CE', symbol: 'BN48200CE', kiteSymbol: '', price: 280.40, change: '-1.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 282, high: 285, low: 279, close: 280.40 },
+        { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
+        { name: 'BANKNIFTY 48800 CE', symbol: 'BN48800CE', kiteSymbol: '', price: 155.80, change: '-0.8%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 157, high: 160, low: 154, close: 155.80 },
+        { name: 'BANKNIFTY 49000 CE', symbol: 'BN49000CE', kiteSymbol: '', price: 120.40, change: '-1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 125, low: 118, close: 120.40 },
       ]},
       { name: 'FINNIFTY Options', instruments: [
+        { name: 'FINNIFTY 21300 PE', symbol: 'FIN21300PE', kiteSymbol: '', price: 45.20, change: '-2.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 48, high: 50, low: 44, close: 45.20 },
         { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 },
+        { name: 'FINNIFTY 21700 CE', symbol: 'FIN21700CE', kiteSymbol: '', price: 32.10, change: '+4.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 30, high: 34, low: 28, close: 32.10 },
       ]},
       { name: 'MID CAP NIFTY Options', instruments: [
         { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 },
+        { name: 'MIDCPNIFTY 12000 CE', symbol: 'MIDCP120CE', kiteSymbol: '', price: 25.50, change: '+6.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 22, high: 28, low: 20, close: 25.50 },
       ]},
     ]
   },
@@ -594,6 +608,15 @@ function WatchlistContent() {
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
   const [showBasketConfirm, setShowBasketConfirm] = useState(false);
+  const [isSelectionActive, setIsSelectionActive] = useState(false);
+
+  useEffect(() => {
+    (window as any).__isBasketModeActive = basketMode;
+    if (basketMode) {
+      if (isSelectionActive) setIsSelectionActive(false);
+      (window as any).exitSelectionMode?.();
+    }
+  }, [basketMode]);
 
   // Map a segment label to DB key segment
   const mapSegmentToDbSegment = (s: string): string => {
@@ -1216,6 +1239,7 @@ function WatchlistContent() {
 
     window.__kiteQuotes = window.__kiteQuotes || {};
     window.__watchlistItems = window.__watchlistItems || [];
+    (window as any).__reactSetSelectionActive = setIsSelectionActive;
 
     const script = document.createElement('script');
     script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
@@ -1258,19 +1282,43 @@ function WatchlistContent() {
         </div>
 
         <div className="watchlist-section">
-          <div className="watchlist-header">
-            <div className="watchlist-title-section">
-              <div className="watchlist-title">MY WATCHLIST</div>
-              <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
+          <div className="watchlist-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '4px', marginTop: '-4px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="watchlist-title-section">
+                <div className="watchlist-title">MY WATCHLIST</div>
+                <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
+              </div>
+              <div className="action-hint" style={{ padding: 0, background: 'transparent' }}>Swipe | Tap to trade</div>
             </div>
-            <div className="action-hint">Swipe | Hold to select | Tap to trade</div>
           </div>
           <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <span className="add-hint">Add scripts to watchlist from Scripts Library</span>
-            <div className="folder-btn basket-btn" id="basketModeBtn"
-              onClick={() => setBasketMode(b => !b)}
-              style={{ cursor: 'pointer', background: '#E9F6EF', color: '#006400', border: '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <span>Basket</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="folder-btn basket-btn" id="basketModeBtn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    if (typeof (window as any).__reactDeleteSelected === 'function') (window as any).__reactDeleteSelected();
+                  } else {
+                    setBasketMode(b => !b);
+                  }
+                }}
+                style={{ cursor: 'pointer', background: isSelectionActive ? '#FEF0F0' : '#E9F6EF', color: isSelectionActive ? '#C62E2E' : '#006400', border: isSelectionActive ? '1px solid #FCD4D4' : '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {isSelectionActive ? <span>Delete</span> : <span>Basket</span>}
+              </div>
+              <div className="folder-btn dustbin-btn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    setIsSelectionActive(false);
+                    if (typeof (window as any).exitSelectionMode === 'function') (window as any).exitSelectionMode();
+                  } else {
+                    setIsSelectionActive(true);
+                    setBasketMode(false);
+                    if (typeof (window as any).enterSelectionMode === 'function') (window as any).enterSelectionMode();
+                  }
+                }}
+                style={{ cursor: 'pointer', background: '#F3F4F6', color: '#4B5563', border: '1px solid #D1D5DB', padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '30px', flexShrink: 0 }}>
+                <i className={isSelectionActive ? "fas fa-times" : "fas fa-trash-alt"}></i>
+              </div>
             </div>
           </div>
           <div className="watchlist-card-list">
@@ -1948,18 +1996,6 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-      <div id="multiSelectBar" className="multi-select-bar" style={{ display: 'none', position: 'fixed', bottom: '0', left: '0', right: '0', background: 'var(--container-bg, #fff)', zIndex: 1000, boxShadow: '0 -2px 10px rgba(0,0,0,0.1)' }}>
-        <div className="multi-select-row" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-light, #F3F4F6)' }}>
-          <span id="selectedCount" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary, #111827)' }}>0 selected</span>
-        </div>
-        <div className="multi-select-row bottom-row" style={{ padding: '10px 16px', display: 'flex', gap: '10px' }}>
-          <button id="exitSelectionBtn" style={{ flex: 1, background: 'var(--icon-bg, #F3F4F6)', color: 'var(--text-secondary, #4B5563)', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer' }}>Exit Selection</button>
-          <button id="deleteSelectionBtn" style={{ flex: 1, background: '#C62E2E', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '30px', fontSize: '0.85rem', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(198,46,46,0.2)' }}>
-            <i className="fas fa-trash-alt"></i> Delete
-          </button>
-        </div>
-      </div>
-
       <Footer activeTab="watchlist" />
     </div>
   );
@@ -1990,39 +2026,52 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
             {
               name: 'NIFTY Options',
               instruments: [
+                { name: 'NIFTY 22300 PE', symbol: 'NIFTY22300PE', kiteSymbol: '', price: 65.10, change: '-2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 66, high: 68, low: 64, close: 65.10 },
+                { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 },
                 { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
-                { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 }
+                { name: 'NIFTY 22600 CE', symbol: 'NIFTY22600CE', kiteSymbol: '', price: 85.30, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 84, high: 88, low: 82, close: 85.30 },
+                { name: 'NIFTY 22700 CE', symbol: 'NIFTY22700CE', kiteSymbol: '', price: 55.20, change: '+3.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 53, high: 57, low: 51, close: 55.20 }
               ]
             },
             {
               name: 'SENSEX Options',
               instruments: [
-                { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 }
+                { name: 'SENSEX 74100 PE', symbol: 'SENSEX741PE', kiteSymbol: '', price: 150.20, change: '-1.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 152, high: 155, low: 148, close: 150.20 },
+                { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 },
+                { name: 'SENSEX 74900 CE', symbol: 'SENSEX749CE', kiteSymbol: '', price: 125.10, change: '+2.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128, low: 120, close: 125.10 }
               ]
             },
             {
               name: 'BANKEX Options',
               instruments: [
+                { name: 'BANKEX 51800 PE', symbol: 'BANKEX518PE', kiteSymbol: '', price: 240.50, change: '-1.4%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 245, high: 248, low: 238, close: 240.50 },
                 { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', kiteSymbol: '', price: 310.75, change: '+1.1%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 307, high: 314, low: 306.50, close: 310.75 }
               ]
             },
             {
               name: 'BANKNIFTY Options',
               instruments: [
+                { name: 'BANKNIFTY 47800 PE', symbol: 'BN47800PE', kiteSymbol: '', price: 110.15, change: '+0.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 109, high: 112, low: 108, close: 110.15 },
+                { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 },
+                { name: 'BANKNIFTY 48200 CE', symbol: 'BN48200CE', kiteSymbol: '', price: 280.40, change: '-1.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 282, high: 285, low: 279, close: 280.40 },
                 { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
-                { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 }
+                { name: 'BANKNIFTY 48800 CE', symbol: 'BN48800CE', kiteSymbol: '', price: 155.80, change: '-0.8%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 157, high: 160, low: 154, close: 155.80 },
+                { name: 'BANKNIFTY 49000 CE', symbol: 'BN49000CE', kiteSymbol: '', price: 120.40, change: '-1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 125, low: 118, close: 120.40 }
               ]
             },
             {
               name: 'FINNIFTY Options',
               instruments: [
-                { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 }
+                { name: 'FINNIFTY 21300 PE', symbol: 'FIN21300PE', kiteSymbol: '', price: 45.20, change: '-2.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 48, high: 50, low: 44, close: 45.20 },
+                { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 },
+                { name: 'FINNIFTY 21700 CE', symbol: 'FIN21700CE', kiteSymbol: '', price: 32.10, change: '+4.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 30, high: 34, low: 28, close: 32.10 }
               ]
             },
             {
               name: 'MID CAP NIFTY Options',
               instruments: [
-                { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 }
+                { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 },
+                { name: 'MIDCPNIFTY 12000 CE', symbol: 'MIDCP120CE', kiteSymbol: '', price: 25.50, change: '+6.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 22, high: 28, low: 20, close: 25.50 }
               ]
             }
           ]
@@ -2349,43 +2398,33 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         });
       }
 
-      var exitSelectionBtn = document.getElementById('exitSelectionBtn');
-      if (exitSelectionBtn) {
-        exitSelectionBtn.addEventListener('click', function() {
-          exitSelectionMode();
-        });
-      }
-
-      var deleteSelectionBtn = document.getElementById('deleteSelectionBtn');
-      if (deleteSelectionBtn) {
-        deleteSelectionBtn.addEventListener('click', function() {
-          var checkedBoxes = document.querySelectorAll('.wc-checkbox:checked');
-          if (checkedBoxes.length === 0) {
-            if (window.showToast) window.showToast('Select items to delete', true);
-            return;
+      window.__reactDeleteSelected = function() {
+        var checkedBoxes = document.querySelectorAll('.wc-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+          if (window.showToast) window.showToast('Select items to delete', true);
+          return;
+        }
+        
+        var symbolsToDelete = [];
+        checkedBoxes.forEach(function(cb) {
+          var card = cb.closest('.watchlist-card');
+          if (card) {
+            var symbol = card.getAttribute('data-symbol');
+            if (symbol) symbolsToDelete.push(symbol);
           }
-          
-          var symbolsToDelete = [];
-          checkedBoxes.forEach(function(cb) {
-            var card = cb.closest('.watchlist-card');
-            if (card) {
-              var symbol = card.getAttribute('data-symbol');
-              if (symbol) symbolsToDelete.push(symbol);
+        });
+
+        if (symbolsToDelete.length > 0) {
+          symbolsToDelete.forEach(function(sym) {
+            if (typeof window.__removeFromWatchlistCallback === 'function') {
+              window.__removeFromWatchlistCallback(sym);
             }
           });
-
-          if (symbolsToDelete.length > 0) {
-            symbolsToDelete.forEach(function(sym) {
-              if (typeof window.__removeFromWatchlistCallback === 'function') {
-                window.__removeFromWatchlistCallback(sym);
-              }
-            });
-            if (window.showToast) window.showToast('Deleted ' + symbolsToDelete.length + ' item' + (symbolsToDelete.length !== 1 ? 's' : '') + ' from watchlist', false);
-          }
-          
-          exitSelectionMode();
-        });
-      }
+          if (window.showToast) window.showToast('Deleted ' + symbolsToDelete.length + ' item' + (symbolsToDelete.length !== 1 ? 's' : '') + ' from watchlist', false);
+        }
+        
+        exitSelectionMode();
+      };
 
       // Capture all clicks when selectionMode is active to toggle checkboxes easily
       document.addEventListener('click', function(e) {
@@ -2395,7 +2434,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (!card) return;
         
         // Skip swipe delete buttons or checkbox itself to avoid double-toggling
-        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox')) {
+        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox') || e.target.closest('.mcx-comex-switch')) {
           return;
         }
         
@@ -2463,7 +2502,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function enterSelectionMode() {
         selectionMode = true;
-        if (multiSelectBar) multiSelectBar.style.display = 'block';
+        if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(true);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'flex';
         });
@@ -2472,7 +2511,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function exitSelectionMode() {
         selectionMode = false;
-        if (multiSelectBar) multiSelectBar.style.display = 'none';
+        if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(false);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'none';
         });

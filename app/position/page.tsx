@@ -454,7 +454,7 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '52px',
+                                  width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
@@ -659,7 +659,7 @@ export default function PositionPage() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: '52px',
+                                  width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
                                   border: '1.5px solid #CBD5E1',
@@ -740,35 +740,36 @@ export default function PositionPage() {
                             )}
                           </div>
                         </div>
-                        {/* Green chart analysis icon */}
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '44px',
-                          height: '36px',
-                          borderRadius: '15px',
-                          border: '1.5px solid #2C8E5A',
-                          background: '#ffffff',
-                          color: '#2C8E5A',
-                          cursor: 'pointer'
-                        }}>
+                        <button
+                          style={{
+                            width: '42px',
+                            height: '42px',
+                            borderRadius: '12px',
+                            border: '1.5px solid #059669',
+                            background: '#ffffff',
+                            color: '#059669',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s'
+                          }}
+                          onClick={() => showToast("Opening Trading Chart for " + selectedPos.symbol)}
+                        >
                           <svg 
                             viewBox="0 0 24 24" 
                             style={{
-                              width: '1.2rem',
-                              height: '1.2rem',
+                              width: '1.25rem',
+                              height: '1.25rem',
                               display: 'inline-block',
                               verticalAlign: 'middle',
                             }}
                           >
-                            {/* Bars */}
                             <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
                             <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
                             <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
                             <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                            
-                            {/* Trendline */}
                             <path 
                               d="M 4 14 L 8 9 L 13 12 L 20 4" 
                               fill="none" 
@@ -777,7 +778,6 @@ export default function PositionPage() {
                               strokeLinecap="round" 
                               strokeLinejoin="round" 
                             />
-                            {/* Arrowhead */}
                             <polyline 
                               points="15 4 20 4 20 9" 
                               fill="none" 
@@ -787,7 +787,7 @@ export default function PositionPage() {
                               strokeLinejoin="round" 
                             />
                           </svg>
-                        </div>
+                        </button>
                       </div>
 
                       {/* Realised P&L Container */}
@@ -850,9 +850,9 @@ export default function PositionPage() {
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Net P&amp;L After Fees</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: (selectedPos.pnl - (selectedPos.brokerage || 0)) >= 0 ? '#059669' : '#DC2626' }}>
-                            {fmtUSD(selectedPos.pnl - (selectedPos.brokerage || 0), selectedPos.settlement)}
+                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Used Margin</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>
+                            {fmtPrice(selectedPos.margin_required || (selectedPos.entry_price * selectedPos.qty_total) || 0, selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>

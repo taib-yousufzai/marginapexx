@@ -2,6 +2,7 @@ import requests
 import pyotp
 import os
 import json
+import sys
 from datetime import datetime, timedelta, timezone
 from kiteconnect import KiteConnect
 from urllib.parse import urlparse, parse_qs
@@ -29,7 +30,7 @@ def main():
 
     if not all([user_id, password, totp_secret, api_key, api_secret, supabase_url, supabase_key, supabase_user_id]):
         print("Missing required environment variables.")
-        return
+        sys.exit(1)
 
     # ── Step 1: Initialize Session ───────────────────────────────────────────
     session = requests.Session()
@@ -47,7 +48,7 @@ def main():
     login_data = login_res.json()
     if login_data.get('status') != 'success':
         print(f"Login failed: {login_data}")
-        return
+        sys.exit(1)
     
     request_id = login_data['data']['request_id']
     print(f"Login success, got request_id: {request_id}")
@@ -67,7 +68,7 @@ def main():
     twofa_data = twofa_res.json()
     if twofa_data.get('status') != 'success':
         print(f"TwoFA failed: {twofa_data}")
-        return
+        sys.exit(1)
     
     print("TwoFA success.")
 
@@ -98,7 +99,7 @@ def main():
 
     if not request_token:
         print(f"Failed to capture request_token. Final URL: {current_url}")
-        return
+        sys.exit(1)
     
     print(f"Captured request_token: {request_token}")
 

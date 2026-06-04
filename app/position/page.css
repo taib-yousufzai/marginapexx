@@ -413,7 +413,7 @@
 }
 
 .pos-pnl-total {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   white-space: nowrap;
   letter-spacing: -0.8px;
@@ -1944,7 +1944,7 @@ body.dark .pos-sheet-content div[style*="background: #E2E8F0"] {
 }
 
 @media (max-width: 400px) {
-  .pos-pnl-total { font-size: 17px !important; letter-spacing: -0.5px !important; }
+  .pos-pnl-total { font-size: 19px !important; letter-spacing: -0.5px !important; }
   .pos-pnl-val { font-size: 11px !important; }
   .pos-pnl-card-body { gap: 2px !important; }
 }
