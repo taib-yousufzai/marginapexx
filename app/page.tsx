@@ -140,8 +140,21 @@ export default function Page() {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const { data } = await supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(20);
-      if (data) setNotifications(data);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/notifications?limit=20', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result && result.notifications) {
+            setNotifications(result.notifications);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      }
     };
     fetchNotifications();
   }, []);
