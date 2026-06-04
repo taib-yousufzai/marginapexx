@@ -7,6 +7,8 @@ const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 
 
 const defaultSeg = (): SegmentSettingsType => ({
   commissionType: 'Per Crore', commissionValue: '4500',
+  carryCommissionType: 'Per Crore', carryCommissionValue: '4500',
+  gttCommissionType: 'Per Trade', gttCommissionValue: '10',
   profitHoldSec: '120', loss_hold_sec: '0',
   strikeRange: '0', maxLot: '50',
   maxOrderLot: '50', intradayLeverage: '50',
@@ -114,6 +116,32 @@ export default function UpdateMultipleSettings({ selectedUser: _selectedUser }: 
           <div className="adm-upd-field">
             <label className="adm-upd-label">Commission Value</label>
             <input className="adm-upd-input" type="number" value={config.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="adm-upd-grid2">
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">Carry Commission Type</label>
+            <select className="adm-upd-input adm-upd-select" value={config.carryCommissionType} onChange={e => upd('carryCommissionType', e.target.value)}>
+              <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
+            </select>
+          </div>
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">Carry Commission Value</label>
+            <input className="adm-upd-input" type="number" value={config.carryCommissionValue} onChange={e => upd('carryCommissionValue', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="adm-upd-grid2">
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">GTT Commission Type</label>
+            <select className="adm-upd-input adm-upd-select" value={config.gttCommissionType} onChange={e => upd('gttCommissionType', e.target.value)}>
+              <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
+            </select>
+          </div>
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">GTT Commission Value</label>
+            <input className="adm-upd-input" type="number" value={config.gttCommissionValue} onChange={e => upd('gttCommissionValue', e.target.value)} />
           </div>
         </div>
 

@@ -1948,3 +1948,77 @@ body.dark .pos-sheet-content div[style*="background: #E2E8F0"] {
   .pos-pnl-val { font-size: 11px !important; }
   .pos-pnl-card-body { gap: 2px !important; }
 }
+
+/* =============================================
+   ANTI-SCALPING LOCK STYLES
+   ============================================= */
+
+/* Locked position card indicator borders */
+.pos-card--locked, .pos-detail-card--locked {
+  border-left: 3px solid #f59e0b !important;
+}
+
+/* Inline lock icon next to symbol */
+.lock-icon-inline {
+  color: #f59e0b;
+  font-size: 0.85rem;
+  margin-left: 6px;
+  animation: pulse-lock 2s infinite ease-in-out;
+}
+
+@keyframes pulse-lock {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* Lock warning status banner */
+.pos-lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 6px 0 2px 0;
+}
+
+body.dark .pos-lock-banner {
+  background: #3b2a1a;
+  border-color: #78350f;
+  color: #fcd34d;
+}
+
+.pos-lock-banner .banner-icon {
+  font-size: 0.85rem;
+  color: #d97706;
+}
+
+body.dark .pos-lock-banner .banner-icon {
+  color: #f59e0b;
+}
+
+/* Visually locked / disabled exit buttons */
+.pca-btn.pca-exit.disabled-lock,
+.ps-btn-exit.disabled-lock,
+.ps-btn-partial.disabled-lock {
+  background: #f3f4f6 !important;
+  color: #9ca3af !important;
+  border-color: #e5e7eb !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+body.dark .pca-btn.pca-exit.disabled-lock,
+body.dark .ps-btn-exit.disabled-lock,
+body.dark .ps-btn-partial.disabled-lock {
+  background: #2e2e2e !important;
+  color: #6b7280 !important;
+  border-color: #3f3f46 !important;
+}

@@ -1,25 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { processPendingOrdersAndPositions } from '../orderMatching';
 
+const mockQueryResult = (data: any) => {
+  const qb: any = {
+    eq: vi.fn().mockImplementation(() => qb),
+    single: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] || null : data, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] || null : data, error: null }),
+    then: (resolve: any) => Promise.resolve({ data, error: null }).then(resolve)
+  };
+  return qb;
+};
+
 // Mock the admin client module
 const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
-const mockUpdate = vi.fn().mockReturnValue({
-  eq: vi.fn().mockResolvedValue({ data: null, error: null })
-});
+const mockUpdate = vi.fn().mockReturnValue(mockQueryResult(null));
 const mockSelect = vi.fn();
 const mockRpc = vi.fn().mockResolvedValue({ data: null, error: null });
 
 const mockSupabase = {
-  from: vi.fn().mockImplementation((table: string) => {
+  from: vi.fn().mockImplementation(() => {
     return {
       select: mockSelect,
       insert: mockInsert,
       update: mockUpdate,
-      eq: vi.fn().mockImplementation((col: string, val: any) => {
-        return {
-          eq: vi.fn().mockResolvedValue({ data: null, error: null })
-        };
-      })
+      eq: vi.fn().mockImplementation(() => mockQueryResult(null))
     };
   }),
   rpc: mockRpc
@@ -35,9 +39,7 @@ describe('orderMatching', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default mock select implementations
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ data: [], error: null })
-    });
+    mockSelect.mockReturnValue(mockQueryResult([]));
   });
 
   it('triggers a LIMIT BUY order when ltp <= price', async () => {
@@ -60,9 +62,7 @@ describe('orderMatching', () => {
     ];
 
     // Mock fetching pending orders
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ data: orders, error: null })
-    });
+    mockSelect.mockReturnValue(mockQueryResult(orders));
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1495 }];
     await processPendingOrdersAndPositions(quotes);
@@ -99,9 +99,7 @@ describe('orderMatching', () => {
       }
     ];
 
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ data: orders, error: null })
-    });
+    mockSelect.mockReturnValue(mockQueryResult(orders));
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1505 }];
     await processPendingOrdersAndPositions(quotes);
@@ -127,9 +125,9 @@ describe('orderMatching', () => {
       }
     ];
 
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ data: orders, error: null })
-    });
+    mockSelect
+      .mockReturnValueOnce(mockQueryResult(orders))
+      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open' }]));
 
     const quotes = [{ id: 'NSE:TCS', last_price: 3405 }];
     await processPendingOrdersAndPositions(quotes);
@@ -159,9 +157,7 @@ describe('orderMatching', () => {
       }
     ];
 
-    mockSelect.mockReturnValue({
-      eq: vi.fn().mockResolvedValue({ data: orders, error: null })
-    });
+    mockSelect.mockReturnValue(mockQueryResult(orders));
 
     const quotes = [{ id: 'NSE:RELIANCE', last_price: 2502 }];
     await processPendingOrdersAndPositions(quotes);
@@ -192,14 +188,12 @@ describe('orderMatching', () => {
       }
     ];
 
-    // Double select mock: first for pending orders (empty), second for positions
+    // Select chain mocking
     mockSelect
-      .mockReturnValueOnce({
-        eq: vi.fn().mockResolvedValue({ data: [], error: null })
-      })
-      .mockReturnValueOnce({
-        eq: vi.fn().mockResolvedValue({ data: positions, error: null })
-      });
+      .mockReturnValueOnce(mockQueryResult([])) // pending orders
+      .mockReturnValueOnce(mockQueryResult(positions)) // open positions
+      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })) // profile
+      .mockReturnValueOnce(mockQueryResult([])); // segment settings
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1475 }];
     await processPendingOrdersAndPositions(quotes);
@@ -209,7 +203,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-1',
       p_user_id: 'usr-1',
       p_ltp: 1475,
-      p_exit_price: 1475,
+      p_exit_price: 1473.525,
       p_closed_by: 'AUTO_SL'
     });
   });
@@ -231,12 +225,10 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce({
-        eq: vi.fn().mockResolvedValue({ data: [], error: null })
-      })
-      .mockReturnValueOnce({
-        eq: vi.fn().mockResolvedValue({ data: positions, error: null })
-      });
+      .mockReturnValueOnce(mockQueryResult([]))
+      .mockReturnValueOnce(mockQueryResult(positions))
+      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 }))
+      .mockReturnValueOnce(mockQueryResult([]));
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1605 }];
     await processPendingOrdersAndPositions(quotes);
@@ -246,7 +238,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-2',
       p_user_id: 'usr-1',
       p_ltp: 1605,
-      p_exit_price: 1605,
+      p_exit_price: 1603.395,
       p_closed_by: 'AUTO_TARGET'
     });
   });

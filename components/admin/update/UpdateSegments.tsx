@@ -7,6 +7,8 @@ const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 
 
 export type SegmentSettingsType = {
   commissionType: string; commissionValue: string;
+  carryCommissionType: string; carryCommissionValue: string;
+  gttCommissionType: string; gttCommissionValue: string;
   profitHoldSec: string; loss_hold_sec: string;
   strikeRange: string; maxLot: string;
   maxOrderLot: string; intradayLeverage: string;
@@ -23,6 +25,10 @@ export interface SegmentRow {
   side: string;
   commission_type: string;
   commission_value: number;
+  carry_commission_type: string;
+  carry_commission_value: number;
+  gtt_commission_type: string;
+  gtt_commission_value: number;
   profit_hold_sec: number;
   loss_hold_sec: number;
   strike_range: number;
@@ -41,6 +47,8 @@ export interface SegmentRow {
 
 const defaultSeg = (): SegmentSettingsType => ({
   commissionType: 'Per Crore', commissionValue: '4500',
+  carryCommissionType: 'Per Crore', carryCommissionValue: '4500',
+  gttCommissionType: 'Per Trade', gttCommissionValue: '10',
   profitHoldSec: '120', loss_hold_sec: '0',
   strikeRange: '0', maxLot: '50',
   maxOrderLot: '50', intradayLeverage: '50',
@@ -159,6 +167,34 @@ function SegmentBlock({
             <div className="adm-upd-field">
               <label className="adm-upd-label">Commission Value</label>
               <input className="adm-upd-input" type="number" value={value.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 1a: Carry Commission Type & Value */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Carry Commission Type</label>
+              <select className="adm-upd-input adm-upd-select" value={value.carryCommissionType} onChange={e => upd('carryCommissionType', e.target.value)}>
+                <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
+              </select>
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Carry Commission Value</label>
+              <input className="adm-upd-input" type="number" value={value.carryCommissionValue} onChange={e => upd('carryCommissionValue', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Row 1b: GTT Commission Type & Value */}
+          <div className="adm-upd-grid2">
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">GTT Commission Type</label>
+              <select className="adm-upd-input adm-upd-select" value={value.gttCommissionType} onChange={e => upd('gttCommissionType', e.target.value)}>
+                <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
+              </select>
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">GTT Commission Value</label>
+              <input className="adm-upd-input" type="number" value={value.gttCommissionValue} onChange={e => upd('gttCommissionValue', e.target.value)} />
             </div>
           </div>
 
@@ -301,6 +337,10 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
   const rowToSegSettings = (row: SegmentRow): SegmentSettingsType => ({
     commissionType: row.commission_type,
     commissionValue: String(row.commission_value),
+    carryCommissionType: row.carry_commission_type ?? 'Per Crore',
+    carryCommissionValue: String(row.carry_commission_value ?? 4500),
+    gttCommissionType: row.gtt_commission_type ?? 'Per Trade',
+    gttCommissionValue: String(row.gtt_commission_value ?? 10),
     profitHoldSec: String(row.profit_hold_sec),
     loss_hold_sec: String(row.loss_hold_sec),
     strikeRange: String(row.strike_range),
@@ -387,6 +427,10 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
         side,
         commission_type: s.commissionType,
         commission_value: Number(s.commissionValue),
+        carry_commission_type: s.carryCommissionType,
+        carry_commission_value: Number(s.carryCommissionValue),
+        gtt_commission_type: s.gttCommissionType,
+        gtt_commission_value: Number(s.gttCommissionValue),
         profit_hold_sec: Number(s.profitHoldSec),
         loss_hold_sec: Number(s.loss_hold_sec),
         strike_range: Number(s.strikeRange),

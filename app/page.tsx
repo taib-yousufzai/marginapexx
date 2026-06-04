@@ -120,6 +120,7 @@ export default function Page() {
   const pathname = usePathname();
   const router = useRouter();
   const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
+  const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
 
   useEffect(() => {
     getSession().then((session) => {
@@ -148,6 +149,14 @@ export default function Page() {
           if (profile && profile.segments) {
             setAllowedSegments(profile.segments);
           }
+          // Fetch script settings for dynamic lot sizes
+          const resScript = await fetch('/api/user/script-settings', {
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+          if (resScript.ok) {
+            const ssData = await resScript.json();
+            setScriptSettings(ssData || []);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch allowed segments', err);
@@ -159,6 +168,13 @@ export default function Page() {
   const [activeCategory, setActiveCategory] = useState<'equity' | 'commodity'>('equity');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
+
+  // Build expiry index list, overriding hardcoded lot sizes with DB values
+  const expiryIndexes = getExpiryIndexes().map(item => {
+    const n = item.name.toUpperCase();
+    const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    return dbMatch ? { ...item, lotSize: Number(dbMatch.lot_size) } : item;
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
@@ -312,7 +328,7 @@ export default function Page() {
 
   const instruments = activeCategory === 'equity' ? filteredEquityInstruments : filteredCommodityInstruments;
 
-  const filteredExpiryIndexes = getExpiryIndexes().filter(item => {
+  const filteredExpiryIndexes = expiryIndexes.filter(item => {
     if (allowedSegments.length === 0) return true;
     const dbSeg = mapOptionChainSymbolToDbSegment(item.name);
     return allowedSegments.includes(dbSeg);

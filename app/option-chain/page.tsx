@@ -89,6 +89,7 @@ function OptionChainContent() {
   const [pendingWatchlistItem, setPendingWatchlistItem] = useState<any>(null);
   const [userId, setUserId] = useState<string>('');
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
 
   useEffect(() => {
     async function fetchUserIdAndSettings() {
@@ -104,12 +105,21 @@ function OptionChainContent() {
             .eq('id', session.user.id)
             .single();
           const mode = profile?.trading_mode || 'normal';
-          const res = await fetch(`/api/user/segments?mode=${mode}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const [res, resScript] = await Promise.all([
+            fetch(`/api/user/segments?mode=${mode}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            fetch('/api/user/script-settings', {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+          ]);
           if (res.ok) {
             const sData = await res.json();
             setSegmentSettings(sData || []);
+          }
+          if (resScript.ok) {
+            const ssData = await resScript.json();
+            setScriptSettings(ssData || []);
           }
         }
       } catch (err) {
@@ -119,7 +129,18 @@ function OptionChainContent() {
     fetchUserIdAndSettings();
   }, []);
 
-  const lotSize = symbol === 'NIFTY' ? 25 : (symbol === 'BANKNIFTY' ? 15 : (symbol === 'SENSEX' ? 10 : 25));
+  // Compute lot size: DB settings take priority over hardcoded fallbacks
+  const lotSize = (() => {
+    const n = symbol.toUpperCase();
+    const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    if (dbMatch) return Number(dbMatch.lot_size);
+    if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
+    if (n.includes('FINNIFTY')) return 40;
+    if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
+    if (n.includes('SENSEX')) return 10;
+    if (n.includes('NIFTY')) return 25;
+    return 1;
+  })();
 
   const stepQty = (dir: number) => {
     const step = orderUnit === 'lot' ? 1 : lotSize;

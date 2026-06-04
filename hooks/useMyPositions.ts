@@ -19,6 +19,9 @@ export interface EnrichedPosition extends MyPosition {
   unrealised_pnl: number;
   total_pnl: number;
   pnl_percent: number;
+  hold_lock_active: boolean;
+  remaining_hold_seconds: number;
+  required_hold_seconds: number;
 }
 
 interface UseMyPositionsResult {
@@ -168,9 +171,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
       }
 
+      // Derive DB segment once — used for both PnL and anti-scalping calculations
+      const dbSeg = mapSegmentToDbSegment(p.settlement || '');
+
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
-        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
         const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
         const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
 
@@ -189,13 +194,26 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const investment = p.entry_price * p.qty_open;
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
+      // Anti-Scalping calculations
+      const sideSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === p.side);
+      const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
+      const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
+
+      const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
+      const requiredHold = total_pnl >= 0 ? profitHoldSec : lossHoldSec;
+      const isLocked = (p.status === 'open' || p.status === 'active') && elapsedSec < requiredHold;
+      const remainingSec = isLocked ? (requiredHold - elapsedSec) : 0;
+
       return {
         ...p,
         product_type,
         current_ltp: ltp,
         unrealised_pnl: (p.status === 'closed') ? 0 : unrealised,
         total_pnl,
-        pnl_percent: parseFloat(pnl_percent.toFixed(2))
+        pnl_percent: parseFloat(pnl_percent.toFixed(2)),
+        hold_lock_active: isLocked,
+        remaining_hold_seconds: remainingSec,
+        required_hold_seconds: requiredHold
       } as EnrichedPosition;
     });
   }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, inFlightConversions, segmentSettings]);

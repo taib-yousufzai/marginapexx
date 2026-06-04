@@ -514,6 +514,7 @@ function WatchlistContent() {
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
   const [allowedSegments, setAllowedSegments] = useState<string[] | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [userId, setUserId] = useState<string>('');
 
   useEffect(() => {
@@ -536,14 +537,23 @@ function WatchlistContent() {
           // Use profile.segments if set, otherwise empty array means all allowed
           setAllowedSegments(profile?.segments ?? []);
 
-          // Fetch segment settings
+          // Fetch segment settings and script settings in parallel
           const mode = profile?.trading_mode || 'normal';
-          const resSettings = await fetch(`/api/user/segments?mode=${mode}`, {
-            headers: { Authorization: `Bearer ${session.access_token}` }
-          });
+          const [resSettings, resScript] = await Promise.all([
+            fetch(`/api/user/segments?mode=${mode}`, {
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            }),
+            fetch('/api/user/script-settings', {
+              headers: { Authorization: `Bearer ${session.access_token}` }
+            }),
+          ]);
           if (resSettings.ok) {
             const settingsData = await resSettings.json();
             setSegmentSettings(settingsData || []);
+          }
+          if (resScript.ok) {
+            const scriptData = await resScript.json();
+            setScriptSettings(scriptData || []);
           }
         } else {
           // On error, fall back to allowing all
@@ -1103,19 +1113,21 @@ function WatchlistContent() {
 
   let lotSize = 1;
   if (selectedItem) {
-    const name = selectedItem.name.toUpperCase();
-    if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) {
-      lotSize = 25;
-    } else if (name.includes('BANKNIFTY')) {
+    const n = selectedItem.name.toUpperCase();
+    // First, try to match against DB-configured script settings
+    const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    if (dbMatch) {
+      lotSize = Number(dbMatch.lot_size);
+    } else if (n.includes('BANKNIFTY') || n.includes('BANKEX')) {
       lotSize = 15;
-    } else if (name.includes('FINNIFTY')) {
+    } else if (n.includes('FINNIFTY')) {
       lotSize = 40;
-    } else if (name.includes('MIDCP') || name.includes('MIDCAP')) {
+    } else if (n.includes('MIDCP') || n.includes('MIDCAP')) {
       lotSize = 75;
-    } else if (name.includes('SENSEX')) {
+    } else if (n.includes('SENSEX')) {
       lotSize = 10;
-    } else if (name.includes('BANKEX')) {
-      lotSize = 15;
+    } else if (n.includes('NIFTY')) {
+      lotSize = 25;
     }
   }
 

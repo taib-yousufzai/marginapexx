@@ -7,6 +7,10 @@ export type SegmentSettingRow = {
   side: 'BUY' | 'SELL';
   commission_type: string;
   commission_value: number;
+  carry_commission_type: string;
+  carry_commission_value: number;
+  gtt_commission_type: string;
+  gtt_commission_value: number;
   profit_hold_sec: number;
   loss_hold_sec: number;
   strike_range: number;
@@ -42,7 +46,7 @@ export async function GET(
     const { data, error } = await adminClient
       .from('scalper_segment_settings')
       .select(
-        'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
+        'id, user_id, segment, side, commission_type, commission_value, carry_commission_type, carry_commission_value, gtt_commission_type, gtt_commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
       )
       .eq('user_id', id);
 
@@ -104,6 +108,14 @@ export async function POST(
         typeof entry.commission_type === 'string' ? entry.commission_type : 'Per Crore',
       commission_value:
         typeof entry.commission_value === 'number' ? entry.commission_value : 4500,
+      carry_commission_type:
+        typeof entry.carry_commission_type === 'string' ? entry.carry_commission_type : 'Per Crore',
+      carry_commission_value:
+        typeof entry.carry_commission_value === 'number' ? entry.carry_commission_value : 4500,
+      gtt_commission_type:
+        typeof entry.gtt_commission_type === 'string' ? entry.gtt_commission_type : 'Per Trade',
+      gtt_commission_value:
+        typeof entry.gtt_commission_value === 'number' ? entry.gtt_commission_value : 10,
       profit_hold_sec:
         typeof entry.profit_hold_sec === 'number' ? entry.profit_hold_sec : 120,
       loss_hold_sec:

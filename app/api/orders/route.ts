@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { positionStore, parseOptionSymbol } from '@/lib/positionStore';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -143,8 +144,12 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-function getLotSize(symbol: string): number {
+function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: number }[]): number {
   const n = symbol.toUpperCase();
+  if (dbSettings && Array.isArray(dbSettings)) {
+    const match = dbSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    if (match) return Number(match.lot_size);
+  }
   if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
   if (n.includes('FINNIFTY')) return 40;
   if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
@@ -306,7 +311,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingResult, scalperSegSettingResult, positionsResult, quotesMap] = await Promise.all([
+  const [profileResult, segSettingResult, scalperSegSettingResult, positionsResult, quotesMap, scriptSettingsResult] = await Promise.all([
     // Profile
     admin.from('profiles')
       .select('id, active, read_only, segments, parent_id, balance, trading_mode')
@@ -331,18 +336,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Fetch active positions to verify total open lot limits (max_lot)
     admin.from('positions')
-      .select('symbol, qty_open, status')
+      .select('id, symbol, qty_open, status, entry_price, side, product_type, entry_time')
       .eq('user_id', user.id)
       .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
 
     // Kite LTP — batch fetch all needed quotes in one call
     fetchKiteQuotes(instrumentsToFetch),
+
+    // Fetch script settings for dynamic lot size
+    admin.from('script_settings')
+      .select('symbol, lot_size'),
   ]);
 
   const profile = profileResult.data;
   const profileErr = profileResult.error;
   const openPositions = positionsResult?.data ?? [];
   const kiteLtp = quotesMap[kiteInst] ?? null;
+  const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
 
   // 4. Profile checks
   if (profileErr || !profile) {
@@ -419,7 +429,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
   }
 
-  const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol);
+  const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol, dbScriptSettings);
   const maxQty = (segSetting.max_order_lot as number) * symbolLotSize;
   if (qty > maxQty) {
     return NextResponse.json({
@@ -433,7 +443,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     for (const pos of openPositions) {
       const posSegment = mapSymbolToSegment(pos.symbol);
       if (posSegment === dbSegment) {
-        const size = getLotSize(pos.symbol);
+        const size = getLotSize(pos.symbol, dbScriptSettings);
         totalOpenLots += Number(pos.qty_open) / size;
       }
     }
@@ -483,10 +493,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }
 
-  // Validate Target and Stop Loss rules
-  const orderTarget = target ? parseFloat(target.toString()) : null;
-  const orderSL = stop_loss ? parseFloat(stop_loss.toString()) : null;
-  const refPrice = ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET') ? client_price : baseLtp;
+  // Validate Limit price constraints relative to LTP
+  if (order_type === 'LIMIT' || (order_type === 'GTT' && !is_exit)) {
+    if (side === 'BUY' && client_price >= baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be lower than the current market price (LTP).' }, { status: 400 });
+    }
+    if (side === 'SELL' && client_price <= baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be higher than the current market price (LTP).' }, { status: 400 });
+    }
+  }
 
   // Validate SL/SLM trigger price constraints relative to LTP
   if (order_type === 'SL' || order_type === 'SLM') {
@@ -501,19 +516,60 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  if (side === 'BUY') {
-    if (orderTarget !== null && orderTarget <= refPrice) {
-      return NextResponse.json({ error: 'Target price must be above the buy price.' }, { status: 400 });
+  // Validate Target and Stop Loss rules
+  const orderTarget = target ? parseFloat(target.toString()) : null;
+  const orderSL = stop_loss ? parseFloat(stop_loss.toString()) : null;
+  const refPrice = ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET') ? client_price : baseLtp;
+
+  // Resolve reference entry price and position side (Long vs Short)
+  const activePosition = openPositions.find(
+    (p: any) => p.symbol === symbol && p.product_type === targetProductType
+  );
+
+  const refEntry = (is_exit && activePosition) ? Number(activePosition.entry_price) : refPrice;
+  const isLong = (is_exit && activePosition) ? (activePosition.side === 'BUY') : (side === 'BUY');
+
+  // Enforce Anti-Scalping hold duration for manual market exits
+  if (is_exit && activePosition && (order_type === 'MARKET' || order_type === 'SLM')) {
+    const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
+    const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
+    const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
+
+    let estExitPrice: number;
+    if (activePosition.side === 'BUY') {
+      estExitPrice = baseLtp * (1 - exitBuffer);
+    } else {
+      estExitPrice = baseLtp * (1 + exitBuffer);
     }
-    if (orderSL !== null && orderSL >= refPrice) {
-      return NextResponse.json({ error: 'Stop loss price must be below the buy price.' }, { status: 400 });
+    estExitPrice = Math.round(estExitPrice * 100) / 100;
+
+    const pnlValue = activePosition.side === 'BUY'
+      ? (estExitPrice - Number(activePosition.entry_price)) * Number(qty)
+      : (Number(activePosition.entry_price) - estExitPrice) * Number(qty);
+
+    const durationSec = Math.floor((Date.now() - new Date(activePosition.entry_time).getTime()) / 1000);
+    const requiredHold = pnlValue >= 0 ? profitHoldSec : lossHoldSec;
+
+    if (durationSec < requiredHold) {
+      return NextResponse.json({
+        error: `Anti-Scalping: Minimum hold time of ${requiredHold}s required for this trade. Elapsed: ${durationSec}s.`,
+      }, { status: 403 });
     }
-  } else if (side === 'SELL') {
-    if (orderTarget !== null && orderTarget >= refPrice) {
-      return NextResponse.json({ error: 'Target price must be below the sell price.' }, { status: 400 });
+  }
+
+  if (isLong) {
+    if (orderTarget !== null && orderTarget <= refEntry) {
+      return NextResponse.json({ error: is_exit ? 'Target price must be above the position entry price.' : 'Target price must be above the buy price.' }, { status: 400 });
     }
-    if (orderSL !== null && orderSL <= refPrice) {
-      return NextResponse.json({ error: 'Stop loss price must be above the sell price.' }, { status: 400 });
+    if (orderSL !== null && orderSL >= refEntry) {
+      return NextResponse.json({ error: is_exit ? 'Stop loss price must be below the position entry price.' : 'Stop loss price must be below the buy price.' }, { status: 400 });
+    }
+  } else {
+    if (orderTarget !== null && orderTarget >= refEntry) {
+      return NextResponse.json({ error: is_exit ? 'Target price must be below the position entry price.' : 'Target price must be below the sell price.' }, { status: 400 });
+    }
+    if (orderSL !== null && orderSL <= refEntry) {
+      return NextResponse.json({ error: is_exit ? 'Stop loss price must be above the position entry price.' : 'Stop loss price must be above the sell price.' }, { status: 400 });
     }
   }
 
@@ -581,28 +637,53 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const targetOrderType = order_type ?? 'MARKET';
   const rpcOrderType = targetOrderType === 'SLM' ? 'SL' : targetOrderType;
 
-  const { data: orderId, error: rpcErr } = await admin.rpc('place_order', {
-    p_user_id:      user.id,
-    p_symbol:       symbol,
-    p_kite_inst:    kiteInst,
-    p_segment:      dbSegment,
-    p_side:         side,
-    p_order_type:   rpcOrderType,
-    p_product_type: product_type ?? 'INTRADAY',
-    p_qty:          qty,
-    p_lots:         lots ?? 0,
-    p_ltp:          baseLtp,
-    p_fill_price:   fillPrice,
-    p_info:         null,
-    p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null,
-    p_stop_loss:    stop_loss ? parseFloat(stop_loss.toString()) : null,
-    p_target:       target ? parseFloat(target.toString()) : null,
-    p_is_exit:      is_exit ?? false
-  });
+  const parsedOption = parseOptionSymbol(symbol);
+  
+  const executeDbCall = async () => {
+    const { data: oId, error: rpcErr } = await admin.rpc('place_order', {
+      p_user_id:      user.id,
+      p_symbol:       symbol,
+      p_kite_inst:    kiteInst,
+      p_segment:      dbSegment,
+      p_side:         side,
+      p_order_type:   rpcOrderType,
+      p_product_type: product_type ?? 'INTRADAY',
+      p_qty:          qty,
+      p_lots:         lots ?? 0,
+      p_ltp:          baseLtp,
+      p_fill_price:   fillPrice,
+      p_info:         null,
+      p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null,
+      p_stop_loss:    stop_loss ? parseFloat(stop_loss.toString()) : null,
+      p_target:       target ? parseFloat(target.toString()) : null,
+      p_is_exit:      is_exit ?? false
+    });
+    if (rpcErr) {
+      throw new Error(rpcErr.message || 'Order execution failed. Please try again.');
+    }
+    return oId as string;
+  };
 
-  if (rpcErr) {
-    console.error('[POST /api/orders] RPC error:', rpcErr);
-    return NextResponse.json({ error: rpcErr.message || 'Order execution failed. Please try again.' }, { status: 400 });
+  let orderId: string;
+  try {
+    if (parsedOption) {
+      const incomingOrder = {
+        position_key: {
+          strike_price: parsedOption.strike,
+          option_type: parsedOption.optionType,
+        },
+        action: (is_exit ?? false)
+          ? (side === 'BUY' ? 'BUY_EXIT' : 'SELL_EXIT')
+          : (side === 'BUY' ? 'BUY' : 'SELL'),
+        quantity: qty,
+      } as any;
+      orderId = await positionStore.applyOrder(user.id, incomingOrder, executeDbCall);
+    } else {
+      orderId = await executeDbCall();
+    }
+  } catch (err: any) {
+    console.error('[POST /api/orders] Order execution error:', err);
+    return NextResponse.json({ error: err.message || 'Order execution failed. Please try again.' }, { status: 400 });
   }
 
   // Update order_type to 'SLM' in the database if it was an SLM order asynchronously

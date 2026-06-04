@@ -26,8 +26,12 @@ interface TradeSheetProps {
   isModify?: boolean;
 }
 
-function getLotSize(name: string): number {
+function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: number }[]): number {
   const n = name.toUpperCase();
+  if (scriptSettings && scriptSettings.length > 0) {
+    const match = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    if (match) return Number(match.lot_size);
+  }
   if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
   if (n.includes('FINNIFTY')) return 40;
   if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
@@ -68,11 +72,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
-  const lotSize = item ? getLotSize(item.name) : 1;
+  const lotSize = item ? getLotSize(item.name, scriptSettings) : 1;
   const currentLtp = item?.price ?? 0;
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
@@ -98,8 +103,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
       ? parseFloat(limitPrice)
       : (currentLtp > 0 ? effectivePrice : 0);
-    const commType = matchingSetting.commission_type || 'Per Crore';
-    const commVal = matchingSetting.commission_value ?? 0;
+    // Use dedicated carry commission fields if available, fall back to standard commission
+    const commType = matchingSetting.carry_commission_type || matchingSetting.commission_type || 'Per Crore';
+    const commVal = matchingSetting.carry_commission_value ?? matchingSetting.commission_value ?? 0;
     if (commType === 'Per Crore') {
       return (totalQty * price * commVal) / 10000000;
     } else if (commType === 'Per Lot') {
@@ -109,6 +115,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       return commVal;
     } else {
       return totalQty * price * 0.001;
+    }
+  })() : 0;
+
+  const calculatedGttBrokerage = orderType === 'GTT' && matchingSetting ? (() => {
+    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+    const price = limitPrice && !isNaN(parseFloat(limitPrice))
+      ? parseFloat(limitPrice)
+      : (currentLtp > 0 ? effectivePrice : 0);
+    const commType = matchingSetting.gtt_commission_type || 'Per Trade';
+    const commVal = matchingSetting.gtt_commission_value ?? 10;
+    if (commType === 'Per Crore') {
+      return (totalQty * price * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const lots = totalQty / lotSize;
+      return lots * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      return commVal;
+    } else {
+      return 0;
     }
   })() : 0;
 
@@ -152,7 +177,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           setGttSubOption(exitMode ? 'TARGET' : 'LIMIT');
         }
       } else {
-        const ls = getLotSize(item.name);
+        const ls = getLotSize(item.name, scriptSettings);
         setOrderQty(ls);
         setQtyInput(String(ls));
         setOrderUnit('qty');
@@ -199,7 +224,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
         .catch(() => {});
 
-      // Fetch segment settings
+      // Fetch segment settings and script settings in parallel
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -207,12 +232,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           .eq('id', session.user.id)
           .single();
         const mode = profile?.trading_mode || 'normal';
-        const res = await fetch(`/api/user/segments?mode=${mode}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const sData = await res.json();
+        const [segRes, scriptRes] = await Promise.all([
+          fetch(`/api/user/segments?mode=${mode}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/user/script-settings', { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (segRes.ok) {
+          const sData = await segRes.json();
           setSegmentSettings(sData || []);
+        }
+        if (scriptRes.ok) {
+          const ssData = await scriptRes.json();
+          setScriptSettings(ssData || []);
         }
       } catch (err) {
         console.error(err);
@@ -239,7 +269,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const priceRangeHelp = currentLtp > 0 ? (
     <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)', marginTop: '6px', fontWeight: 600 }}>
-      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to ₹${maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to {'₹'}{maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
     </div>
   ) : null;
 
@@ -300,8 +330,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
-    // Validate Target & SL based on side and entry price reference
-    const refEntry = resolvedClientPrice;
+    // Validate Limit price constraints relative to LTP
+    if (resolvedOrderType === 'LIMIT' || (resolvedOrderType === 'GTT' && !exitMode)) {
+      if (placeSide === 'BUY' && resolvedClientPrice >= currentLtp) {
+        showToast('Limit price must be lower than the current market price (LTP).');
+        return;
+      }
+      if (placeSide === 'SELL' && resolvedClientPrice <= currentLtp) {
+        showToast('Limit price must be higher than the current market price (LTP).');
+        return;
+      }
+    }
 
     if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
       const trigPrice = resolvedTriggerPrice;
@@ -316,22 +355,27 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
       }
     }
-    if (placeSide === 'BUY') {
+
+    // Resolve reference entry price and position side (Long vs Short)
+    const refEntry = (exitMode && existingPos) ? Number(existingPos.entry_price) : resolvedClientPrice;
+    const isLong = (exitMode && existingPos) ? (existingPos.side === 'BUY') : (placeSide === 'BUY');
+
+    if (isLong) {
       if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
-        showToast('Target price must be above the buy price.');
+        showToast(exitMode ? 'Target price must be above the position entry price.' : 'Target price must be above the buy price.');
         return;
       }
       if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
-        showToast('Stop loss price must be below the buy price.');
+        showToast(exitMode ? 'Stop loss price must be below the position entry price.' : 'Stop loss price must be below the buy price.');
         return;
       }
-    } else if (placeSide === 'SELL') {
+    } else {
       if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
-        showToast('Target price must be below the sell price.');
+        showToast(exitMode ? 'Target price must be below the position entry price.' : 'Target price must be below the sell price.');
         return;
       }
       if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
-        showToast('Stop loss price must be above the sell price.');
+        showToast(exitMode ? 'Stop loss price must be above the position entry price.' : 'Stop loss price must be above the sell price.');
         return;
       }
     }
@@ -900,6 +944,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span className="ts2-ml">Carry Charges</span>
                     <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
+                  {orderType === 'GTT' && (
+                    <div className="ts2-margin-row">
+                      <span className="ts2-ml">GTT Charges</span>
+                      <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ {calculatedGttBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ height: 8 }} />

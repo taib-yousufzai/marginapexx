@@ -45,9 +45,9 @@ describe('Footer.css — desktop sidebar', () => {
 
     const desktopBlock = afterMedia.slice(openBrace, blockEnd + 1);
 
-    // The sidebar must have width: 80px and height: 100vh
-    expect(desktopBlock).toContain('width: 80px');
-    expect(desktopBlock).toContain('height: 100vh');
+    // The sidebar must have var(--sidebar-width, 80px) and width: auto
+    expect(desktopBlock).toContain('var(--sidebar-width, 80px)');
+    expect(desktopBlock).toContain('width: auto');
   });
 });
 
@@ -88,8 +88,8 @@ describe('Footer.css — tablet full-width', () => {
 
 describe('globals.css — sidebar-width CSS variable', () => {
   // Validates: Requirements 5.5, 20.9
-  // At ≥1024px, --sidebar-width must be set to 80px
-  test('contains --sidebar-width: 80px inside a @media (min-width: 1024px) block', () => {
+  // At ≥1024px, --sidebar-width must be set to 260px
+  test('contains --sidebar-width: 260px inside a @media (min-width: 1024px) block', () => {
     const desktopMediaIndex = globalsCss.indexOf('@media (min-width: 1024px)');
     expect(desktopMediaIndex).toBeGreaterThan(-1);
 
@@ -114,7 +114,7 @@ describe('globals.css — sidebar-width CSS variable', () => {
 
     const desktopBlock = afterMedia.slice(openBrace, blockEnd + 1);
 
-    expect(desktopBlock).toContain('--sidebar-width: 80px');
+    expect(desktopBlock).toContain('--sidebar-width: 260px');
   });
 });
 
