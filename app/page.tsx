@@ -164,6 +164,41 @@ export default function Page() {
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [activePopupNotif, setActivePopupNotif] = useState<{ id: string; title: string; message: string } | null>(null);
 
+  const [tradingHours, setTradingHours] = useState<{ id: string; name: string; start_time: string; end_time: string; is_active: boolean }[]>([]);
+
+  useEffect(() => {
+    async function fetchTradingHours() {
+      const { data, error } = await supabase
+        .from('trading_hours')
+        .select('*')
+        .eq('is_active', true);
+      if (!error && data) {
+        setTradingHours(data);
+      }
+    }
+    fetchTradingHours();
+  }, []);
+
+  const getSegmentStatus = (seg: { start_time: string; end_time: string }) => {
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const dayOfWeek = nowIST.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    if (isWeekend) {
+      return { status: 'closed', label: 'Closed (Weekend)' };
+    }
+    
+    const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
+    
+    if (currentHHMM < seg.start_time) {
+      return { status: 'closed', label: `Closed (Opens ${seg.start_time})` };
+    } else if (currentHHMM >= seg.end_time) {
+      return { status: 'closed', label: `Closed (Closed at ${seg.end_time})` };
+    } else {
+      return { status: 'open', label: `Open (Closes ${seg.end_time})` };
+    }
+  };
+
   const handleDismissPopup = async () => {
     if (!activePopupNotif) return;
     const dismissedId = activePopupNotif.id;
@@ -381,6 +416,20 @@ export default function Page() {
                         <span className="live-badge"><span className="live-dot" /> LIVE</span>
                       )}
                     </div>
+
+                    {tradingHours.length > 0 && (
+                      <div className="market-hours-status-container">
+                        {tradingHours.map((seg) => {
+                          const info = getSegmentStatus(seg);
+                          return (
+                            <div key={seg.id} className={`market-hour-pill ${info.status}`}>
+                              <span className="market-hour-name">{seg.name}: </span>
+                              <span className="market-hour-val">{info.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {kiteLoading && (
                       <div className="market-status-msg"><i className="fas fa-circle-notch fa-spin" /> Checking connection…</div>

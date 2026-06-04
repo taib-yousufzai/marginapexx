@@ -251,6 +251,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const dbSegment = mapSegmentToDbSegment(segment);
   const admin = getAdminClient();
+
+  // Check market hours
+  try {
+    const exchangeName = symbol.includes(':') ? symbol.split(':')[0] : 'NSE';
+    let segmentId = 'nse';
+    const ex = exchangeName.toUpperCase();
+    if (ex === 'MCX') segmentId = 'mcx';
+    else if (ex === 'BSE') segmentId = 'bse';
+    else if (ex === 'CDS' || ex === 'FOREX') segmentId = 'forex';
+    else if (ex === 'COMEX') segmentId = 'comex';
+
+    const { data: segmentHour, error: hrError } = await admin
+      .from('trading_hours')
+      .select('name, start_time, end_time, is_active')
+      .eq('id', segmentId)
+      .maybeSingle();
+
+    if (!hrError && segmentHour) {
+      if (!segmentHour.is_active) {
+        return NextResponse.json({ error: `${segmentHour.name} segment is currently disabled.` }, { status: 400 });
+      }
+
+      const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const dayOfWeek = nowIST.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+      if (isWeekend) {
+        return NextResponse.json({ error: `Market is closed on weekends.` }, { status: 400 });
+      }
+
+      const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
+      if (currentHHMM < segmentHour.start_time || currentHHMM >= segmentHour.end_time) {
+        return NextResponse.json({ 
+          error: `${segmentHour.name} market is currently closed. Trading hours are ${segmentHour.start_time} - ${segmentHour.end_time} IST.` 
+        }, { status: 400 });
+      }
+    }
+  } catch (err) {
+    console.error('[POST /api/orders] Market hours check error:', err);
+  }
+
   const kiteInst = kite_instrument || symbol;
 
   // Identify all instruments needed for this order to batch the Kite API call
