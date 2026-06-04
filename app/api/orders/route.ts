@@ -503,21 +503,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // Validate SL trigger price constraints relative to LTP
-  if (order_type === 'SL') {
-    const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
-    if (trigPrice !== null && !isNaN(trigPrice)) {
-      if (side === 'BUY' && trigPrice <= baseLtp) {
-        return NextResponse.json({ error: 'Trigger price must be above the current market price.' }, { status: 400 });
-      }
-      if (side === 'SELL' && trigPrice >= baseLtp) {
-        return NextResponse.json({ error: 'Trigger price must be below the current market price.' }, { status: 400 });
-      }
-    }
-  }
-
-  // Validate SLM trigger price constraints relative to LTP
-  if (order_type === 'SLM') {
+  // Validate SL and SLM trigger price constraints relative to LTP
+  if (order_type === 'SL' || order_type === 'SLM') {
     const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
     if (trigPrice !== null && !isNaN(trigPrice)) {
       if (side === 'BUY' && trigPrice >= baseLtp) {
@@ -657,12 +644,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 10. Compute fill price (LTP ± buffer from segment_settings)
   let fillPrice: number;
-  const isImmediate = (order_type ?? 'MARKET') === 'MARKET';
+  const isImmediate = (order_type ?? 'MARKET') === 'MARKET' || order_type === 'SLM';
 
   if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
     fillPrice = client_price;
-  } else if (order_type === 'SLM') {
-    fillPrice = trigger_price ? Number(trigger_price) : client_price;
   } else {
     const entryBuffer = segSetting?.entry_buffer ?? 0.003;
     if (side === 'BUY') {
@@ -678,7 +663,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 11. Atomic write via Postgres RPC
   const targetOrderType = order_type ?? 'MARKET';
-  const rpcOrderType = targetOrderType === 'SLM' ? 'SL' : targetOrderType;
+  
+  // To make SLM execute immediately and create a position, we tell the DB it's a MARKET order
+  const rpcOrderType = targetOrderType === 'SLM' ? 'MARKET' : targetOrderType;
+
+  let resolvedTriggerPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
+  let resolvedStopLoss = stop_loss ? parseFloat(stop_loss.toString()) : null;
+
+  // For SLM, the UI sends the Stop Loss price in the trigger_price field.
+  if (targetOrderType === 'SLM') {
+    if (resolvedTriggerPrice !== null) {
+      resolvedStopLoss = resolvedTriggerPrice;
+      resolvedTriggerPrice = null; // Clear trigger price since it's a market order now
+    }
+  }
 
   const parsedOption = parseOptionSymbol(symbol);
   
@@ -696,8 +694,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       p_ltp:          baseLtp,
       p_fill_price:   fillPrice,
       p_info:         null,
-      p_trigger_price: trigger_price ? parseFloat(trigger_price.toString()) : null,
-      p_stop_loss:    stop_loss ? parseFloat(stop_loss.toString()) : null,
+      p_trigger_price: resolvedTriggerPrice,
+      p_stop_loss:    resolvedStopLoss,
       p_target:       target ? parseFloat(target.toString()) : null,
       p_is_exit:      is_exit ?? false
     });

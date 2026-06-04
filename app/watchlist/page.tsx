@@ -1151,12 +1151,48 @@ function WatchlistContent() {
     if (orderType === 'SL' || orderType === 'SLM') {
       const trigPrice = parseFloat(triggerPrice);
       if (!isNaN(trigPrice)) {
-        if (side === 'BUY' && trigPrice <= livePrice) {
-          showToast('Trigger price must be above the current market price.', true);
+        if (side === 'BUY' && trigPrice >= livePrice) {
+          showToast('Stop loss price must be below the current market price.', true);
           return;
         }
-        if (side === 'SELL' && trigPrice >= livePrice) {
-          showToast('Trigger price must be below the current market price.', true);
+        if (side === 'SELL' && trigPrice <= livePrice) {
+          showToast('Stop loss price must be above the current market price.', true);
+          return;
+        }
+      }
+    }
+
+    if (orderType === 'GTT') {
+      const sl = parseFloat(slPrice);
+      const limit = parseFloat(limitPrice);
+      const target = parseFloat(tpPrice);
+
+      if (side === 'BUY') {
+        if (!isNaN(limit) && limit >= livePrice) {
+          showToast('Buy at limit price must be below the current market price.', true);
+          return;
+        }
+        const referencePrice = !isNaN(limit) ? limit : livePrice;
+        if (!isNaN(sl) && sl >= referencePrice) {
+          showToast(`Stop loss price must be below the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
+          return;
+        }
+        if (!isNaN(target) && target <= livePrice) {
+          showToast('Target price must be above the current market price.', true);
+          return;
+        }
+      } else if (side === 'SELL') {
+        if (!isNaN(limit) && limit <= livePrice) {
+          showToast('Sell at limit price must be above the current market price.', true);
+          return;
+        }
+        const referencePrice = !isNaN(limit) ? limit : livePrice;
+        if (!isNaN(sl) && sl <= referencePrice) {
+          showToast(`Stop loss price must be above the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
+          return;
+        }
+        if (!isNaN(target) && target >= livePrice) {
+          showToast('Target price must be below the current market price.', true);
           return;
         }
       }
@@ -1529,7 +1565,7 @@ function WatchlistContent() {
               />
             </div>
             <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
-              <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+              <div className="ts-section-label">Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
               <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} suppressHydrationWarning />
             </div>
 
@@ -1565,7 +1601,7 @@ function WatchlistContent() {
                     </div>
                   </div>
                   <div>
-                    <div className="ts-section-label">Buy at Limit <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <div className="ts-section-label">{tradeSide === 'SELL' ? 'Sell at Limit' : 'Buy at Limit'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                     <input
                       type="number"
                       placeholder="0.00"

@@ -332,39 +332,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
     // Validate Limit price constraints relative to LTP
     if (resolvedOrderType === 'LIMIT' || (resolvedOrderType === 'GTT' && !exitMode)) {
-      if (placeSide === 'BUY' && resolvedClientPrice > currentLtp) {
-        showToast('Limit price must be lower than or equal to the current market price (LTP).');
+      if (placeSide === 'BUY' && resolvedClientPrice >= currentLtp) {
+        showToast('Buy at limit price must be below the current market price.');
         return;
       }
-      if (placeSide === 'SELL' && resolvedClientPrice < currentLtp) {
-        showToast('Limit price must be higher than or equal to the current market price (LTP).');
+      if (placeSide === 'SELL' && resolvedClientPrice <= currentLtp) {
+        showToast('Sell at limit price must be above the current market price.');
         return;
       }
     }
 
-    if (resolvedOrderType === 'SL') {
-      const trigPrice = resolvedTriggerPrice;
-      if (trigPrice !== undefined && !isNaN(trigPrice)) {
-        if (placeSide === 'BUY' && trigPrice <= currentLtp) {
-          showToast('Trigger price must be above the current market price.');
-          return;
-        }
-        if (placeSide === 'SELL' && trigPrice >= currentLtp) {
-          showToast('Trigger price must be below the current market price.');
-          return;
-        }
-      }
-    }
-
-    if (resolvedOrderType === 'SLM') {
+    if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
       const trigPrice = resolvedTriggerPrice;
       if (trigPrice !== undefined && !isNaN(trigPrice)) {
         if (placeSide === 'BUY' && trigPrice >= currentLtp) {
-          showToast('Trigger price must be below the current market price.');
+          showToast('Stop loss price must be below the current market price.');
           return;
         }
         if (placeSide === 'SELL' && trigPrice <= currentLtp) {
-          showToast('Trigger price must be above the current market price.');
+          showToast('Stop loss price must be above the current market price.');
           return;
         }
       }
@@ -399,35 +385,29 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       const hasLimitPrice = ['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType) && resolvedClientPrice !== undefined && !isNaN(resolvedClientPrice);
       if (isLong) {
         if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
-          if (resolvedStopLoss >= currentLtp) {
-            showToast('Stop loss price must be below the current market price (LTP).');
-            return;
-          }
-          if (hasLimitPrice && resolvedStopLoss >= resolvedClientPrice) {
-            showToast('Stop loss price must be below the limit price.');
+          const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
+          if (resolvedStopLoss >= referencePrice) {
+            showToast(`Stop loss price must be below the ${hasLimitPrice ? 'limit' : 'market'} price.`);
             return;
           }
         }
         if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
-          if (resolvedTarget < currentLtp) {
-            showToast('Target price must be above or equal to the current market price (LTP).');
+          if (resolvedTarget <= currentLtp) {
+            showToast('Target price must be above the current market price.');
             return;
           }
         }
       } else {
         if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
-          if (resolvedStopLoss <= currentLtp) {
-            showToast('Stop loss price must be above the current market price (LTP).');
-            return;
-          }
-          if (hasLimitPrice && resolvedStopLoss <= resolvedClientPrice) {
-            showToast('Stop loss price must be above the limit price.');
+          const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
+          if (resolvedStopLoss <= referencePrice) {
+            showToast(`Stop loss price must be above the ${hasLimitPrice ? 'limit' : 'market'} price.`);
             return;
           }
         }
         if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
-          if (resolvedTarget > currentLtp) {
-            showToast('Target price must be below or equal to the current market price (LTP).');
+          if (resolvedTarget >= currentLtp) {
+            showToast('Target price must be below the current market price.');
             return;
           }
         }
@@ -893,7 +873,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                 {/* SL / SLM — Price input */}
                 {(orderType === 'SL' || orderType === 'SLM') && (
                   <div className="ts2-card">
-                    <div className="ts2-label">{orderType === 'SL' ? 'Stop Loss Price' : 'Trigger Price'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <div className="ts2-label">Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                     <input
                       className="ts2-field-input"
                       type="number"
