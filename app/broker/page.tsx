@@ -1120,7 +1120,7 @@ function BrokerOrders({ apiCall, selectedUser }: any) {
                             fontSize: '0.7rem', fontWeight: 700, padding: '2px 7px', borderRadius: 4,
                             background: sc + '20', color: sc, border: `1px solid ${sc}40`,
                           }}>
-                            {o.status === 'executed' ? '✓ Done' : o.status === 'limit' ? '⏳ Pending' : '✕ Rejected'}
+                            {o.status === 'executed' ? '✓ Done' : o.status === 'limit' ? 'Pending' : '✕ Rejected'}
                           </span>
                         </div>
                       </div>

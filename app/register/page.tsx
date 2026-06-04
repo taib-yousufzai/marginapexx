@@ -189,7 +189,7 @@ function RegisterForm() {
         </div>
         <div className="login-card">
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: 16 }}>✅</div>
+            <div style={{ fontSize: '3rem', marginBottom: 16, color: '#16a34a' }}><i className="fas fa-check-circle" /></div>
             <h2 className="login-card-title">Account Created!</h2>
             <p className="login-card-subtitle">Signing you in…</p>
           </div>

@@ -307,31 +307,31 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       const trigPrice = resolvedTriggerPrice;
       if (trigPrice !== undefined && !isNaN(trigPrice)) {
         if (placeSide === 'BUY' && trigPrice <= currentLtp) {
-          showToast('❌ Trigger price must be above the current market price.');
+          showToast('Trigger price must be above the current market price.');
           return;
         }
         if (placeSide === 'SELL' && trigPrice >= currentLtp) {
-          showToast('❌ Trigger price must be below the current market price.');
+          showToast('Trigger price must be below the current market price.');
           return;
         }
       }
     }
     if (placeSide === 'BUY') {
       if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
-        showToast('❌ Target price must be above the buy price.');
+        showToast('Target price must be above the buy price.');
         return;
       }
       if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
-        showToast('❌ Stop loss price must be below the buy price.');
+        showToast('Stop loss price must be below the buy price.');
         return;
       }
     } else if (placeSide === 'SELL') {
       if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
-        showToast('❌ Target price must be below the sell price.');
+        showToast('Target price must be below the sell price.');
         return;
       }
       if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
-        showToast('❌ Stop loss price must be above the sell price.');
+        showToast('Stop loss price must be above the sell price.');
         return;
       }
     }
@@ -341,26 +341,26 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       if (placeSide === 'BUY') {
         const maxAllowed = currentLtp * (1 + pTopLimit / 100);
         if (parsedPrice > maxAllowed) {
-          showToast(`❌ Price exceeds top limit of ${pTopLimit}% (max: ₹${maxAllowed.toFixed(2)})`);
+          showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
           return;
         }
         if (pMinLimit > 0) {
           const minAllowed = currentLtp * (1 - pMinLimit / 100);
           if (parsedPrice < minAllowed) {
-            showToast(`❌ Price is below min limit of ${pMinLimit}% (min: ₹${minAllowed.toFixed(2)})`);
+            showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
             return;
           }
         }
       } else { // SELL side
         const maxAllowed = currentLtp * (1 - pTopLimit / 100);
         if (parsedPrice > maxAllowed) {
-          showToast(`❌ Price exceeds top limit of ${pTopLimit}% (max: ₹${maxAllowed.toFixed(2)})`);
+          showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
           return;
         }
         if (pMinLimit > 0) {
           const minAllowed = currentLtp * (1 - pMinLimit / 100);
           if (parsedPrice < minAllowed) {
-            showToast(`❌ Price is below min limit of ${pMinLimit}% (min: ₹${minAllowed.toFixed(2)})`);
+            showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
             return;
           }
         }
@@ -383,11 +383,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
     });
     if (res.success) {
-      showToast(`✅ ${placeSide} order placed for ${item.symbol}`);
+      showToast(`${placeSide} order placed for ${item.symbol}`);
       onSuccess?.();
       onClose();
     } else {
-      showToast(`❌ ${res.error}`);
+      showToast(`${res.error}`);
     }
   };
 

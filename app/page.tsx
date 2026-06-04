@@ -522,7 +522,7 @@ export default function Page() {
                   {/* EXPIRES TODAY banner */}
                   {item.expiry.isToday && (
                     <div className="ew-today-banner">
-                      <span>⚡ EXPIRES TODAY</span>
+                      <span>EXPIRES TODAY</span>
                     </div>
                   )}
 

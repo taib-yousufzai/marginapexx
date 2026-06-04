@@ -33,11 +33,11 @@ function createAdminClient() {
  *
  * | Caller Role  | Requested Role | Result |
  * |--------------|----------------|--------|
- * | super_admin  | admin          | ✅ 200 |
- * | super_admin  | broker/user    | ❌ 403 |
- * | admin        | broker         | ✅ 200 |
- * | admin        | admin/user     | ❌ 403 |
- * | broker/user  | any            | ❌ 403 |
+ * | super_admin  | admin          | OK 200 |
+ * | super_admin  | broker/user    | NO 403 |
+ * | admin        | broker         | OK 200 |
+ * | admin        | admin/user     | NO 403 |
+ * | broker/user  | any            | NO 403 |
  *
  * Validates: Requirements 5.5, 5.6, 5.7, 5.8, 5.9
  */

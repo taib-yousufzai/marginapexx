@@ -1140,11 +1140,11 @@ function WatchlistContent() {
       const trigPrice = parseFloat(triggerPrice);
       if (!isNaN(trigPrice)) {
         if (side === 'BUY' && trigPrice <= livePrice) {
-          showToast('❌ Trigger price must be above the current market price.', true);
+          showToast('Trigger price must be above the current market price.', true);
           return;
         }
         if (side === 'SELL' && trigPrice >= livePrice) {
-          showToast('❌ Trigger price must be below the current market price.', true);
+          showToast('Trigger price must be below the current market price.', true);
           return;
         }
       }
@@ -1169,9 +1169,9 @@ function WatchlistContent() {
     if (result.success) {
       closeTradeSheet();
       const symbol = '₹';
-      showToast(`✅ Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
+      showToast(`Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
-      showToast(`❌ Order Failed: ${result.error}`, true);
+      showToast(`Order Failed: ${result.error}`, true);
     }
   };
 

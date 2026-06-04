@@ -145,7 +145,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
       const { ok, data } = await apiCall('/api/admin/orders/square-off-all', { method: 'POST' });
       if (!ok) { setToast({ message: 'Square-off failed', type: 'error' }); return; }
       const count = (data as { squaredOff: number })?.squaredOff ?? 0;
-      setToast({ message: `✅ ${count} positions squared off`, type: 'success' });
+      setToast({ message: `${count} positions squared off`, type: 'success' });
       setRefreshKey(k => k + 1);
     } catch {
       setToast({ message: 'Network error', type: 'error' });
@@ -161,7 +161,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
       const { ok, data } = await apiCall('/api/admin/orders/cancel-all', { method: 'POST' });
       if (!ok) { setToast({ message: 'Cancel-all failed', type: 'error' }); return; }
       const count = (data as { cancelled: number })?.cancelled ?? 0;
-      setToast({ message: `✅ ${count} orders cancelled`, type: 'success' });
+      setToast({ message: `${count} orders cancelled`, type: 'success' });
       setRefreshKey(k => k + 1);
     } catch {
       setToast({ message: 'Network error', type: 'error' });
@@ -193,7 +193,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
       {/* Confirm dialogs */}
       {confirmDialog === 'squareOff' && (
         <ConfirmDialog
-          message="⚠️ SQUARE OFF ALL — This will force-close every open position across the entire platform. This action cannot be undone."
+          message="SQUARE OFF ALL — This will force-close every open position across the entire platform. This action cannot be undone."
           onConfirm={handleSquareOffAll}
           onCancel={() => setConfirmDialog(null)}
           loading={actionLoading}
@@ -201,7 +201,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
       )}
       {confirmDialog === 'cancelAll' && (
         <ConfirmDialog
-          message="⚠️ CANCEL ALL — This will cancel every pending LIMIT order across the entire platform. This action cannot be undone."
+          message="CANCEL ALL — This will cancel every pending LIMIT order across the entire platform. This action cannot be undone."
           onConfirm={handleCancelAll}
           onCancel={() => setConfirmDialog(null)}
           loading={actionLoading}
@@ -222,7 +222,7 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
               className={`adm-ord-vtab ${viewMode === 'global' ? 'active' : ''}`}
               onClick={() => { setViewMode('global'); setPage(1); }}
             >
-              🌐 All Platform
+              All Platform
             </button>
           </div>
         </div>

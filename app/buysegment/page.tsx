@@ -279,7 +279,7 @@ export default function Page() {
     // Simplified Watchlist Functions
     function renderWatchlist() {
         if (watchlistItems.length === 0) {
-            watchlistContainer.innerHTML = \`<div class="empty-watchlist"><i class="fas fa-plus-circle"></i><p>Your watchlist is empty</p><p>Search or tap Scripts Library ➕</p></div>\`;
+            watchlistContainer.innerHTML = \`<div class="empty-watchlist"><i class="fas fa-plus-circle"></i><p>Your watchlist is empty</p><p>Search or tap Scripts Library +</p></div>\`;
             watchlistCounter.innerText = \`0 items\`;
             return;
         }

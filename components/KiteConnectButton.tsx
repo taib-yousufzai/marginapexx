@@ -102,7 +102,6 @@ export default function KiteConnectButton() {
         whiteSpace: 'nowrap',
       }}
     >
-      <span>⚡</span>
       Connect Zerodha
     </button>
   );

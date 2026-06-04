@@ -330,11 +330,11 @@ function OptionChainContent() {
       const trigPrice = parseFloat(triggerPrice);
       if (!isNaN(trigPrice)) {
         if (side === 'BUY' && trigPrice <= currentPrice) {
-          showToast('❌ Trigger price must be above the current market price.', true);
+          showToast('Trigger price must be above the current market price.', true);
           return;
         }
         if (side === 'SELL' && trigPrice >= currentPrice) {
-          showToast('❌ Trigger price must be below the current market price.', true);
+          showToast('Trigger price must be below the current market price.', true);
           return;
         }
       }
@@ -356,7 +356,7 @@ function OptionChainContent() {
       is_exit: isExitOrder
     });
     if (result.success) {
-      showToast(`✅ ${side} Order Executed!`, false);
+      showToast(`${side} Order Executed!`, false);
       closeTradeSheet();
     } else {
       showToast(`Order Failed: ${result.error}`, true);

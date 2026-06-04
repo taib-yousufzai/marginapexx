@@ -525,7 +525,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const maxAllowed = baseLtp * (1 + topLimit / 100);
       if (client_price > maxAllowed) {
         return NextResponse.json({
-          error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
+          error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
         }, { status: 400 });
       }
 
@@ -533,7 +533,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const minAllowed = baseLtp * (1 - minLimit / 100);
         if (client_price < minAllowed) {
           return NextResponse.json({
-            error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+            error: `Minimum price allowed is ₹${minAllowed.toFixed(2)}`
           }, { status: 400 });
         }
       }
@@ -541,7 +541,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const maxAllowed = baseLtp * (1 - topLimit / 100);
       if (client_price > maxAllowed) {
         return NextResponse.json({
-          error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
+          error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
         }, { status: 400 });
       }
 
@@ -549,7 +549,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const minAllowed = baseLtp * (1 - minLimit / 100);
         if (client_price < minAllowed) {
           return NextResponse.json({
-            error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+            error: `Minimum price allowed is ₹${minAllowed.toFixed(2)}`
           }, { status: 400 });
         }
       }
