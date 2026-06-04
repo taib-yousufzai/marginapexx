@@ -135,8 +135,29 @@ export default function Page() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+  const [activePopupNotif, setActivePopupNotif] = useState<{ id: string; title: string; message: string } | null>(null);
+
+  const handleDismissPopup = async () => {
+    if (!activePopupNotif) return;
+    const dismissedId = activePopupNotif.id;
+    
+    // Optimistically update notifications list to mark it read
+    setNotifications(prev => prev.map(n => n.id === dismissedId ? { ...n, read: true } : n));
+    setActivePopupNotif(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch(`/api/notifications/${dismissedId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
+  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -149,7 +170,14 @@ export default function Page() {
         if (res.ok) {
           const result = await res.json();
           if (result && result.notifications) {
-            setNotifications(result.notifications);
+            const list = result.notifications ?? [];
+            setNotifications(list);
+            
+            // Check if there is an unread notification to display as a popup
+            const firstUnread = list.find((n: any) => !n.read);
+            if (firstUnread) {
+              setActivePopupNotif(firstUnread);
+            }
           }
         }
       } catch (err) {
@@ -475,6 +503,21 @@ export default function Page() {
         </div>
 
         {toastMessage && <div className="toast-msg">{toastMessage}</div>}
+
+        {activePopupNotif && (
+          <div className="notif-popup-overlay">
+            <div className="notif-popup-card">
+              <div className="notif-popup-icon">
+                <i className="fas fa-bell"></i>
+              </div>
+              <h3 className="notif-popup-title">{activePopupNotif.title}</h3>
+              <p className="notif-popup-message">{activePopupNotif.message}</p>
+              <button className="notif-popup-btn" onClick={handleDismissPopup}>
+                Acknowledge
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
