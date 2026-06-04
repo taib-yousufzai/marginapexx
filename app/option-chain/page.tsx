@@ -22,6 +22,7 @@ function addToWatchlist(item: {
   high: number;
   low: number;
   close: number;
+  category?: string;
 }, userId?: string) {
   const WATCHLIST_KEY = 'marginApex_watchlist';
   try {
@@ -317,7 +318,7 @@ function OptionChainContent() {
     if (!selectedContract) return;
     
     const activePos = activePositions.find(p =>
-      (p.status === 'open' || p.status === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
+      ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
     );
     const isExitOrder = (side === 'BUY' && activePos?.side === 'SELL') || (side === 'SELL' && activePos?.side === 'BUY');
 
@@ -692,7 +693,7 @@ function OptionChainContent() {
 
           // Find active opposite positions for options direction guards
           const activePos = activePositions.find(p =>
-            (p.status === 'open' || p.status === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
+            ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
           );
 
           if (sheetView === 'DETAILS') {

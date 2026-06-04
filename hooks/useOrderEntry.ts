@@ -24,6 +24,7 @@ export interface OrderEntryState {
   trigger_price?: number;
   stop_loss?: number;
   target?: number;
+  is_exit?: boolean;
 }
 
 export function useOrderEntry() {

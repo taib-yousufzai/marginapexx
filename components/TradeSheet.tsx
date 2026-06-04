@@ -173,7 +173,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       if (side === 'SELL' && exitMode) {
         const targetPT = propProductType || productType;
         const existingPos = activePositions.find(
-          p => p.symbol === item.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY' && p.product_type === targetPT
+          p => p.symbol === item.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY' && p.product_type === targetPT
         );
         if (existingPos) {
           setOrderQty(existingPos.qty_open);
@@ -226,7 +226,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   };
 
   const targetPT = propProductType || productType;
-  const existingPos = activePositions.find(p => p.symbol === item?.symbol && (p.status === 'open' || p.status === 'OPEN') && p.product_type === targetPT);
+  const existingPos = activePositions.find(p => p.symbol === item?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.product_type === targetPT);
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 

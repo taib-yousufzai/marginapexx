@@ -682,7 +682,7 @@ function WatchlistContent() {
     if (selectedItem && activePositions) {
       if (tradeSide === 'SELL') {
         const existingPos = activePositions.find(
-          p => p.symbol === selectedItem.symbol && (p.status === 'open' || p.status === 'active') && p.side === 'BUY'
+          p => p.symbol === selectedItem.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY'
         );
         if (existingPos) {
           setOrderQty(existingPos.qty_open);
@@ -766,7 +766,7 @@ function WatchlistContent() {
         });
       }
 
-      const itemTab = getTabForItem(item);
+      const itemTab = getTabForItem(item!);
       if (itemTab !== activeTab) setActiveTab(itemTab);
 
       const timer = setTimeout(() => {
@@ -1122,7 +1122,7 @@ function WatchlistContent() {
   const handlePlaceOrder = async (side: OrderSide) => {
     if (!selectedItem) return;
 
-    const existingPos = activePositions.find(p => p.symbol === selectedItem.symbol && (p.status === 'open' || p.status === 'OPEN'));
+    const existingPos = activePositions.find(p => p.symbol === selectedItem.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN'));
     const hasBuyPos = existingPos?.side === 'BUY';
     const hasSellPos = existingPos?.side === 'SELL';
     const isExitOrder = (side === 'BUY' && hasSellPos) || (side === 'SELL' && hasBuyPos);
@@ -1578,7 +1578,7 @@ function WatchlistContent() {
 
       <div className="ts-sticky-footer" id="tsStickyFooter">
         {(() => {
-          const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && (p.status === 'open' || p.status === 'OPEN'));
+          const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN'));
           const hasBuyPos = existingPos?.side === 'BUY';
           const hasSellPos = existingPos?.side === 'SELL';
 
