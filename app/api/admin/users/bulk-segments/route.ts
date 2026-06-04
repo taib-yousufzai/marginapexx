@@ -97,6 +97,14 @@ export async function POST(request: Request): Promise<Response> {
       await Promise.all(profileUpdatePromises);
     }
 
+    // Trigger margin checks in parallel for all target users
+    try {
+      const { checkAndSquareOffPositionsForMargin } = await import('@/lib/marginSquareOff');
+      await Promise.all(targetUserIds.map(userId => checkAndSquareOffPositionsForMargin(userId, adminClient)));
+    } catch (err) {
+      console.error('[bulk-segments] Error running margin check:', err);
+    }
+
     return Response.json({ 
       success: true, 
       message: `Updated ${segments.length} segments for ${targetUserIds.length} users.` 

@@ -183,6 +183,13 @@ export async function POST(
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
+    try {
+      const { checkAndSquareOffPositionsForMargin } = await import('@/lib/marginSquareOff');
+      await checkAndSquareOffPositionsForMargin(id, adminClient);
+    } catch (err) {
+      console.error('[segments] Error triggering margin check:', err);
+    }
+
     // Step 8: Return the upserted rows
     return Response.json(data ?? [], { status: 200 });
   } catch {
