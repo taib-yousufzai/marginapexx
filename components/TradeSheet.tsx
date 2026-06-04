@@ -270,14 +270,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         resolvedStopLoss = resolvedTriggerPrice;
       } else if (orderType === 'GTT') {
         resolvedOrderType = 'GTT';
-        if (gttSubOption === 'TARGET') {
-          resolvedTriggerPrice = parseFloat(tpPrice) || undefined;
-          resolvedTarget = resolvedTriggerPrice;
-        } else if (gttSubOption === 'SL') {
-          resolvedTriggerPrice = parseFloat(slPrice) || undefined;
-          resolvedStopLoss = resolvedTriggerPrice;
-        }
-        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+        resolvedStopLoss = parseFloat(slPrice) || undefined;
+        resolvedTarget = parseFloat(tpPrice) || undefined;
+        resolvedClientPrice = currentLtp;
       } else {
         // MARKET
         resolvedOrderType = 'MARKET';
@@ -811,41 +806,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                 {orderType === 'GTT' && (
                   <div className="ts2-card">
                     {exitMode ? (
-                      <>
-                        <div className="ts2-label" style={{ marginBottom: 8 }}>GTT Trigger Option</div>
-                        <div className="ts2-pills" style={{ marginBottom: 12 }}>
-                          {['TARGET', 'SL'].map(opt => (
-                            <button
-                              key={opt}
-                              className={`ts2-pill${gttSubOption === opt ? ' active' : ''}`}
-                              onClick={() => setGttSubOption(opt)}
-                              style={{
-                                background: gttSubOption === opt ? (activeSide === 'SELL' ? '#B91C1C' : '#059669') : 'transparent',
-                                borderColor: gttSubOption === opt ? (activeSide === 'SELL' ? '#B91C1C' : '#059669') : 'var(--border-light, #E5E7EB)',
-                                color: gttSubOption === opt ? '#fff' : 'var(--text-primary, #374151)'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-
-                        {gttSubOption === 'TARGET' && (
-                          <div>
-                            <div className="ts2-label" style={{ marginBottom: 6 }}>Target Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                            <input
-                              className="ts2-field-input"
-                              type="number"
-                              placeholder="0.00"
-                              value={tpPrice}
-                              onChange={e => setTpPrice(e.target.value)}
-                            />
-                          </div>
-                        )}
-
-                        {gttSubOption === 'SL' && (
-                          <div>
-                            <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="ts2-label" style={{ marginBottom: 0 }}>SL / TARGET</div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                             <input
                               className="ts2-field-input"
                               type="number"
@@ -854,8 +819,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                               onChange={e => setSlPrice(e.target.value)}
                             />
                           </div>
-                        )}
-                      </>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts2-label" style={{ marginBottom: 6 }}>Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                              className="ts2-field-input"
+                              type="number"
+                              placeholder="0.00"
+                              value={tpPrice}
+                              onChange={e => setTpPrice(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div className="ts2-label" style={{ marginBottom: 0 }}>SL / LIMIT / TARGET</div>

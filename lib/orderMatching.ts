@@ -68,24 +68,44 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             fillPrice = ltp;
           }
         }
-      } else if (orderType === 'GTT' && triggerPrice !== null) {
-        // GTT trigger logic based on entry direction
-        const ltpAtEntry = order.ltp_at_entry ? Number(order.ltp_at_entry) : null;
-        if (side === 'BUY') {
-          if (ltpAtEntry !== null && ltpAtEntry < triggerPrice) {
-            // Entered below trigger (breakout buy), trigger when we rise above it
-            if (ltp >= triggerPrice) shouldTrigger = true;
-          } else {
-            // Entered above trigger (buy the dip), trigger when we drop below it
-            if (ltp <= triggerPrice) shouldTrigger = true;
+      } else if (orderType === 'GTT') {
+        if (triggerPrice !== null) {
+          // GTT trigger logic based on entry direction
+          const ltpAtEntry = order.ltp_at_entry ? Number(order.ltp_at_entry) : null;
+          if (side === 'BUY') {
+            if (ltpAtEntry !== null && ltpAtEntry < triggerPrice) {
+              // Entered below trigger (breakout buy), trigger when we rise above it
+              if (ltp >= triggerPrice) shouldTrigger = true;
+            } else {
+              // Entered above trigger (buy the dip), trigger when we drop below it
+              if (ltp <= triggerPrice) shouldTrigger = true;
+            }
+          } else if (side === 'SELL') {
+            if (ltpAtEntry !== null && ltpAtEntry > triggerPrice) {
+              // Entered above trigger (stop loss), trigger when we drop below it
+              if (ltp <= triggerPrice) shouldTrigger = true;
+            } else {
+              // Entered below trigger (target / breakout sell), trigger when we rise above it
+              if (ltp >= triggerPrice) shouldTrigger = true;
+            }
           }
-        } else if (side === 'SELL') {
-          if (ltpAtEntry !== null && ltpAtEntry > triggerPrice) {
-            // Entered above trigger (stop loss), trigger when we drop below it
-            if (ltp <= triggerPrice) shouldTrigger = true;
-          } else {
-            // Entered below trigger (target / breakout sell), trigger when we rise above it
-            if (ltp >= triggerPrice) shouldTrigger = true;
+        }
+
+        // Support GTT exit orders which have stop_loss or target or both
+        const stopLoss = order.stop_loss ? Number(order.stop_loss) : null;
+        const target = order.target ? Number(order.target) : null;
+        if (!shouldTrigger && stopLoss !== null) {
+          if (side === 'BUY') {
+            if (ltp >= stopLoss) shouldTrigger = true;
+          } else if (side === 'SELL') {
+            if (ltp <= stopLoss) shouldTrigger = true;
+          }
+        }
+        if (!shouldTrigger && target !== null) {
+          if (side === 'BUY') {
+            if (ltp <= target) shouldTrigger = true;
+          } else if (side === 'SELL') {
+            if (ltp >= target) shouldTrigger = true;
           }
         }
 
