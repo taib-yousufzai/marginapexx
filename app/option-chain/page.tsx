@@ -326,6 +326,20 @@ function OptionChainContent() {
     const currentPrice = kiteId ? (quotes[kiteId]?.lastPrice || 0) : 0;
     const actualQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
     const actualLots = orderUnit === 'lot' ? orderQty : Math.floor(orderQty / lotSize);
+    if (orderType === 'SL' || orderType === 'SLM') {
+      const trigPrice = parseFloat(triggerPrice);
+      if (!isNaN(trigPrice)) {
+        if (side === 'BUY' && trigPrice <= currentPrice) {
+          showToast('❌ Trigger price must be above the current market price.', true);
+          return;
+        }
+        if (side === 'SELL' && trigPrice >= currentPrice) {
+          showToast('❌ Trigger price must be below the current market price.', true);
+          return;
+        }
+      }
+    }
+
     const result = await placeOrder({
       symbol: selectedContract.symbol,
       kite_instrument: kiteId || selectedContract.symbol,
@@ -336,6 +350,9 @@ function OptionChainContent() {
       order_type: orderType,
       product_type: productType,
       client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice,
+      trigger_price: parseFloat(triggerPrice) || undefined,
+      stop_loss: parseFloat(slPrice) || undefined,
+      target: parseFloat(tpPrice) || undefined,
       is_exit: isExitOrder
     });
     if (result.success) {

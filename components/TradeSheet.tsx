@@ -307,6 +307,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
     // Validate Target & SL based on side and entry price reference
     const refEntry = resolvedClientPrice;
+
+    if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
+      const trigPrice = resolvedTriggerPrice;
+      if (trigPrice !== undefined && !isNaN(trigPrice)) {
+        if (placeSide === 'BUY' && trigPrice <= currentLtp) {
+          showToast('❌ Trigger price must be above the current market price.');
+          return;
+        }
+        if (placeSide === 'SELL' && trigPrice >= currentLtp) {
+          showToast('❌ Trigger price must be below the current market price.');
+          return;
+        }
+      }
+    }
     if (placeSide === 'BUY') {
       if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
         showToast('❌ Target price must be above the buy price.');

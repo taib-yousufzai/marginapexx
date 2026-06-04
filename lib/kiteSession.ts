@@ -90,7 +90,7 @@ export async function loadKiteSession(
 
 let sharedSessionCache: KiteSessionData | null = null;
 let lastSharedFetchTime = 0;
-const SHARED_CACHE_TTL = 60 * 1000; // 1 minute
+const SHARED_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
 
 /**
  * Load the master/shared Kite session that is used for "everyone".

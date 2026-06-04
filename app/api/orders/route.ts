@@ -387,15 +387,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Verify cumulative segment limits (max_lot)
   let totalOpenLots = 0;
   if (openPositions.length > 0) {
-    const symbols = openPositions.map((p: any) => p.symbol);
-    const { data: insts } = await admin
-      .from('instruments')
-      .select('id, segment')
-      .in('id', symbols);
-
     for (const pos of openPositions) {
-      const inst = insts?.find(i => i.id === pos.symbol);
-      const posSegment = inst ? inst.segment : mapSymbolToSegment(pos.symbol);
+      const posSegment = mapSymbolToSegment(pos.symbol);
       if (posSegment === dbSegment) {
         const size = getLotSize(pos.symbol);
         totalOpenLots += Number(pos.qty_open) / size;
@@ -447,10 +440,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }
 
-  // 9.5 Validate Target and Stop Loss rules
+  // Validate Target and Stop Loss rules
   const orderTarget = target ? parseFloat(target.toString()) : null;
   const orderSL = stop_loss ? parseFloat(stop_loss.toString()) : null;
   const refPrice = ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET') ? client_price : baseLtp;
+
+  // Validate SL/SLM trigger price constraints relative to LTP
+  if (order_type === 'SL' || order_type === 'SLM') {
+    const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
+    if (trigPrice !== null && !isNaN(trigPrice)) {
+      if (side === 'BUY' && trigPrice <= baseLtp) {
+        return NextResponse.json({ error: 'Trigger price must be above the current market price.' }, { status: 400 });
+      }
+      if (side === 'SELL' && trigPrice >= baseLtp) {
+        return NextResponse.json({ error: 'Trigger price must be below the current market price.' }, { status: 400 });
+      }
+    }
+  }
 
   if (side === 'BUY') {
     if (orderTarget !== null && orderTarget <= refPrice) {
@@ -556,15 +562,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: rpcErr.message || 'Order execution failed. Please try again.' }, { status: 400 });
   }
 
-  // Update order_type to 'SLM' in the database if it was an SLM order
+  // Update order_type to 'SLM' in the database if it was an SLM order asynchronously
   if (targetOrderType === 'SLM' && orderId) {
-    const { error: updateErr } = await admin
+    admin
       .from('orders')
       .update({ order_type: 'SLM' })
-      .eq('id', orderId);
-    if (updateErr) {
-      console.error('[POST /api/orders] Failed to restore SLM order type:', updateErr);
-    }
+      .eq('id', orderId)
+      .then(({ error: updateErr }) => {
+        if (updateErr) {
+          console.error('[POST /api/orders] Failed to restore SLM order type:', updateErr);
+        }
+      });
   }
 
   const response: PlaceOrderResponse = {

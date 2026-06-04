@@ -1136,6 +1136,20 @@ function WatchlistContent() {
       livePrice = quotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
     }
 
+    if (orderType === 'SL' || orderType === 'SLM') {
+      const trigPrice = parseFloat(triggerPrice);
+      if (!isNaN(trigPrice)) {
+        if (side === 'BUY' && trigPrice <= livePrice) {
+          showToast('❌ Trigger price must be above the current market price.', true);
+          return;
+        }
+        if (side === 'SELL' && trigPrice >= livePrice) {
+          showToast('❌ Trigger price must be below the current market price.', true);
+          return;
+        }
+      }
+    }
+
     const result = await placeOrder({
       symbol: selectedItem.symbol,
       kite_instrument: selectedItem.kiteSymbol || selectedItem.symbol,
