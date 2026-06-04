@@ -356,7 +356,7 @@ function OptionChainContent() {
       is_exit: isExitOrder
     });
     if (result.success) {
-      showToast(`No. ${side} Order Executed!`, false);
+      showToast(`✅ ${side} Order Executed!`, false);
       closeTradeSheet();
     } else {
       showToast(`Order Failed: ${result.error}`, true);
