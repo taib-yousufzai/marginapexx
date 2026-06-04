@@ -38,8 +38,14 @@ export async function POST(request: Request) {
       // Actually, targeted notifications in Update tab usually target the selected user's sub-users if they are a broker.
       const { data, error } = await adminClient.from('profiles').select('id').eq('parent_id', userId);
       if (!error && data) targetUserIds = data.map(u => u.id);
-    } else if (target === 'All Users' || target === 'active') {
+    } else if (target === 'All Users') {
       const { data, error } = await adminClient.from('profiles').select('id');
+      if (!error && data) targetUserIds = data.map(u => u.id);
+    } else if (target === 'active') {
+      const { data, error } = await adminClient.from('profiles').select('id').eq('active', true);
+      if (!error && data) targetUserIds = data.map(u => u.id);
+    } else if (target === 'brokers') {
+      const { data, error } = await adminClient.from('profiles').select('id').eq('role', 'broker');
       if (!error && data) targetUserIds = data.map(u => u.id);
     }
 
