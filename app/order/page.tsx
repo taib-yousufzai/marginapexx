@@ -21,6 +21,9 @@ export default function OrderPage() {
   const [tradeSheetInitialOrder, setTradeSheetInitialOrder] = useState<any>(null);
   const [modifyingOrderId, setModifyingOrderId] = useState<string | null>(null);
 
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   const { orders, loading: ordersLoading, error, cancelOrder, refresh } = useMyOrders();
   const { connected: kiteConnected } = useKitePositions();
 
@@ -56,6 +59,23 @@ export default function OrderPage() {
       trigger_price: order.trigger_price,
       stop_loss: order.stop_loss,
       target: order.target,
+    });
+  };
+
+  const handleTradeAgain = (order: any) => {
+    setIsSheetOpen(false);
+    setTradeSheetSide('BOTH');
+    setTradeSheetItem({
+      name: order.symbol,
+      symbol: order.symbol,
+      kiteSymbol: order.kite_instrument,
+      segment: order.segment,
+      price: order.fill_price || 0,
+    });
+    setTradeSheetInitialOrder({
+      qty: order.qty,
+      order_type: order.order_type,
+      product_type: order.product_type,
     });
   };
 
@@ -197,7 +217,17 @@ export default function OrderPage() {
                   const isPending   = order.status === 'PENDING';
 
                   return (
-                    <div key={order.id} className="ord-card">
+                    <div 
+                      key={order.id} 
+                      className="ord-card"
+                      onClick={() => {
+                        if (!isPending) {
+                          setSelectedOrder(order);
+                          setIsSheetOpen(true);
+                        }
+                      }}
+                      style={{ cursor: !isPending ? 'pointer' : 'default' }}
+                    >
                       <div className="ord-row ord-row-top">
                         <span className="ord-symbol">{order.symbol}</span>
                         <span className={`ord-badge ${isBuy ? 'long' : 'short'}`}>
@@ -274,6 +304,153 @@ export default function OrderPage() {
               <Footer activeTab="order" />
             </div>
 
+            {/* Sheet for Closed Orders */}
+            <div className={`ord-sheet-overlay${isSheetOpen ? ' open' : ''}`} onClick={() => setIsSheetOpen(false)} />
+            <div className={`ord-sheet${isSheetOpen ? ' open' : ''}${selectedOrder ? ' ord-sheet--closed' : ''}`}>
+              <div className="ord-sheet-handle"><div className="ord-sheet-handle-bar" /></div>
+              {selectedOrder && (
+                <div className="ord-sheet-content">
+                  {/* Header row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div className="os-symbol" style={{ color: 'var(--text-primary, #1A1A1A)', margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{selectedOrder.symbol}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span className={`ord-badge ${selectedOrder.side === 'BUY' ? 'long' : 'short'}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                          {selectedOrder.side === 'BUY' ? 'BUY' : 'SELL'}
+                        </span>
+                        {selectedOrder.product_type && (
+                          <span className="ord-type-pill" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>{selectedOrder.product_type}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #059669',
+                        background: '#ffffff',
+                        color: '#059669',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        transition: 'all 0.15s'
+                      }}
+                      onClick={() => showToast("Opening Trading Chart for " + selectedOrder.symbol)}
+                    >
+                      <svg 
+                        viewBox="0 0 24 24" 
+                        style={{
+                          width: '1.25rem',
+                          height: '1.25rem',
+                          display: 'inline-block',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                        <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                        <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                        <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                        <path 
+                          d="M 4 14 L 8 9 L 13 12 L 20 4" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                        />
+                        <polyline 
+                          points="15 4 20 4 20 9" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Status Container */}
+                  <div style={{
+                    backgroundColor: 'var(--card-alt-bg, #F3F4F6)',
+                    border: '1px solid var(--border-light, #E8ECF0)',
+                    padding: '12px 16px',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    width: '100%',
+                    marginBottom: '8px',
+                    boxSizing: 'border-box'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Status</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: selectedOrder.status === 'EXECUTED' ? '#059669' : (selectedOrder.status === 'REJECTED' ? '#D97706' : '#DC2626'), lineHeight: 1 }}>
+                        {selectedOrder.status}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'right' }}>
+                      <div>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1px' }}>Fill Price</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedOrder.fill_price)}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Meta grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginBottom: '8px' }}>
+                    <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Requested Price</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedOrder.client_price || selectedOrder.fill_price)}</div>
+                    </div>
+                    <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Quantity</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtQty(selectedOrder.qty)} ({selectedOrder.lots} Lot)</div>
+                    </div>
+                    <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Order Type</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{selectedOrder.order_type}</div>
+                    </div>
+                    <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Segment</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{selectedOrder.segment}</div>
+                    </div>
+                    <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px', gridColumn: '1 / -1' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Time</div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>
+                        {new Date(selectedOrder.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                      </div>
+                    </div>
+                  </div>
+                  {selectedOrder.info && (
+                    <div className="ord-rejection" style={{ marginTop: 0, marginBottom: '8px' }}>
+                      <i className="fas fa-info-circle" /> {selectedOrder.info}
+                    </div>
+                  )}
+
+                  {/* Trade Again button */}
+                  <button
+                    style={{
+                      width: '100%', padding: '11px', borderRadius: '50px',
+                      border: '1.5px solid #059669', background: '#fff',
+                      color: '#059669', fontSize: '0.95rem', fontWeight: 800,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', gap: '8px', marginTop: '2px',
+                      transition: 'all 0.18s',
+                    }}
+                    onClick={() => handleTradeAgain(selectedOrder)}
+                  >
+                    <i className="fas fa-rotate-right" />
+                    Trade Again
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className={`ord-toast${toast ? ' show' : ''}`}>
               <i className="fas fa-circle-info" />
               <span>{toast}</span>
@@ -288,6 +465,7 @@ export default function OrderPage() {
                 setModifyingOrderId(null);
               }}
               initialOrder={tradeSheetInitialOrder}
+              isModify={!!modifyingOrderId}
               onSuccess={() => {
                 refresh();
                 if (modifyingOrderId) {

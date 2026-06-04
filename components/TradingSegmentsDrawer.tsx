@@ -37,20 +37,52 @@ const TRADING_SEGMENTS: Segment[] = [
       {
         name: 'NIFTY Options',
         instruments: [
+          { name: 'NIFTY 22300 PE', symbol: 'NIFTY22300PE', segment: 'NSE - Options' },
+          { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', segment: 'NSE - Options' },
           { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', segment: 'NSE - Options' },
-          { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', segment: 'NSE - Options' }
+          { name: 'NIFTY 22600 CE', symbol: 'NIFTY22600CE', segment: 'NSE - Options' },
+          { name: 'NIFTY 22700 CE', symbol: 'NIFTY22700CE', segment: 'NSE - Options' }
         ]
       },
       {
         name: 'SENSEX Options',
         instruments: [
-          { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', segment: 'BSE - Options' }
+          { name: 'SENSEX 74100 PE', symbol: 'SENSEX741PE', segment: 'BSE - Options' },
+          { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', segment: 'BSE - Options' },
+          { name: 'SENSEX 74900 CE', symbol: 'SENSEX749CE', segment: 'BSE - Options' }
+        ]
+      },
+      {
+        name: 'BANKEX Options',
+        instruments: [
+          { name: 'BANKEX 51800 PE', symbol: 'BANKEX518PE', segment: 'BSE - Options' },
+          { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', segment: 'BSE - Options' }
         ]
       },
       {
         name: 'BANKNIFTY Options',
         instruments: [
-          { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', segment: 'NSE - Options' }
+          { name: 'BANKNIFTY 47800 PE', symbol: 'BN47800PE', segment: 'NSE - Options' },
+          { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', segment: 'NSE - Options' },
+          { name: 'BANKNIFTY 48200 CE', symbol: 'BN48200CE', segment: 'NSE - Options' },
+          { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', segment: 'NSE - Options' },
+          { name: 'BANKNIFTY 48800 CE', symbol: 'BN48800CE', segment: 'NSE - Options' },
+          { name: 'BANKNIFTY 49000 CE', symbol: 'BN49000CE', segment: 'NSE - Options' }
+        ]
+      },
+      {
+        name: 'FINNIFTY Options',
+        instruments: [
+          { name: 'FINNIFTY 21300 PE', symbol: 'FIN21300PE', segment: 'NSE - Options' },
+          { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', segment: 'NSE - Options' },
+          { name: 'FINNIFTY 21700 CE', symbol: 'FIN21700CE', segment: 'NSE - Options' }
+        ]
+      },
+      {
+        name: 'MID CAP NIFTY Options',
+        instruments: [
+          { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', segment: 'NSE - Options' },
+          { name: 'MIDCPNIFTY 12000 CE', symbol: 'MIDCP120CE', segment: 'NSE - Options' }
         ]
       }
     ]
@@ -105,6 +137,7 @@ interface TradingSegmentsDrawerProps {
 export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: TradingSegmentsDrawerProps) {
   const [mounted, setMounted] = React.useState(false);
   const [expandedSegment, setExpandedSegment] = useState<string | null>(null);
+  const [expandedSubcategories, setExpandedSubcategories] = useState<Record<string, boolean>>({});
   const [allowedSegments, setAllowedSegments] = useState<string[]>([]);
 
   React.useEffect(() => {
@@ -193,17 +226,32 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
                       <button className="lib-add-btn">+ Add</button>
                     </div>
                   ))}
-                  {seg.subCategories?.map(sub => (
+                  {seg.subCategories?.map(sub => {
+                    const isSubOpen = !!expandedSubcategories[sub.name];
+                    return (
                     <div key={sub.name} className="lib-subcat">
-                      <div className="lib-subcat-header">{sub.name}</div>
-                      {sub.instruments.map(inst => (
+                      <div 
+                        className="lib-subcat-header"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedSubcategories(prev => ({ ...prev, [sub.name]: !isSubOpen }));
+                        }}
+                      >
+                        <i 
+                          className={`fas fa-chevron-right lib-arrow ${isSubOpen ? 'is-down' : ''}`}
+                          style={{ fontSize: '0.55rem', marginRight: '6px' }}
+                        ></i>
+                        {sub.name}
+                      </div>
+                      {isSubOpen && sub.instruments.map(inst => (
                         <div key={inst.symbol} className="lib-inst-item" onClick={() => onSelect?.(inst)}>
                           <span className="lib-inst-name">{inst.name}</span>
                           <button className="lib-add-btn">+ Add</button>
                         </div>
                       ))}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -336,13 +384,17 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
         }
 
         .lib-subcat-header {
-          padding: 12px 20px 8px 58px;
+          padding: 12px 20px 8px 40px;
           font-size: 0.7rem;
           font-weight: 800;
           color: #9ca3af;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
         }
+        .lib-subcat-header:hover { color: #6b7280; }
 
         .lib-inst-item {
           padding: 12px 20px 12px 58px;

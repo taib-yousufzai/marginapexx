@@ -23,6 +23,7 @@ interface TradeSheetProps {
   exitMode?: boolean;
   productType?: ProductType;
   initialOrder?: any;
+  isModify?: boolean;
 }
 
 function getLotSize(name: string): number {
@@ -51,7 +52,7 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder, isModify = false }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -751,7 +752,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : initialOrder ? 'MODIFY' : (exitMode || hasSellPos) ? 'EXIT SELL' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT SELL' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
@@ -760,7 +761,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : initialOrder ? 'MODIFY' : (exitMode || hasBuyPos) ? 'EXIT BUY' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT BUY' : 'SELL'}
                 </button>
               )}
             </div>
