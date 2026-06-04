@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     scrollRestoration: false,
   },
+  // @ts-ignore
   eslint: {
     ignoreDuringBuilds: true,
   },

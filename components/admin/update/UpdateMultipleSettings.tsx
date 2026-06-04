@@ -14,6 +14,8 @@ const defaultSeg = (): SegmentSettingsType => ({
   holdingLeverage: '5', entryBuffer: '0.003',
   holdingType: 'Multiplier',
   exitBuffer: '0.0017', tradeAllowed: true,
+  topLimit: '0',
+  minLimit: '0',
 });
 
 export default function UpdateMultipleSettings({ selectedUser: _selectedUser }: { selectedUser?: { id: string } }) {

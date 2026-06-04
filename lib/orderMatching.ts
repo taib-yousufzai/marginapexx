@@ -100,9 +100,9 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
           const { data: existingPos, error: posErrorCheck } = await admin
             .from('positions')
+            .select('id, side')
             .eq('symbol', symbolKey)
-            .eq('status', 'open')
-            .select('id, side');
+            .eq('status', 'open');
 
         if (posErrorCheck) {
           console.error('[Order Matching] Error checking existing positions for', symbolKey, ':', posErrorCheck);
@@ -113,13 +113,13 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         // Determine if order should proceed based on existing positions
         if (order.side === 'BUY') {
           // BUY orders can proceed unless there is an opposite SELL position open
-          if (existingPos && existingPos.some(p => p.side === 'SELL')) {
+          if (existingPos && existingPos.some((p: any) => p.side === 'SELL')) {
             console.log(`[Order Matching] Skipping BUY order ${order.id} due to existing opposite SELL position`);
             continue;
           }
         } else if (order.side === 'SELL') {
           // SELL orders require an existing BUY position
-          if (!existingPos || !existingPos.some(p => p.side === 'BUY')) {
+          if (!existingPos || !existingPos.some((p: any) => p.side === 'BUY')) {
             console.log(`[Order Matching] Skipping SELL order ${order.id} as no open BUY position exists`);
             continue;
           }

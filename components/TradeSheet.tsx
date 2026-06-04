@@ -844,8 +844,31 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       </>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="ts2-label" style={{ marginBottom: 0 }}>SL / LIMIT / TARGET</div>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                              className="ts2-field-input"
+                              type="number"
+                              placeholder="0.00"
+                              value={slPrice}
+                              onChange={e => setSlPrice(e.target.value)}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div className="ts2-label" style={{ marginBottom: 6 }}>Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                            <input
+                              className="ts2-field-input"
+                              type="number"
+                              placeholder="0.00"
+                              value={tpPrice}
+                              onChange={e => setTpPrice(e.target.value)}
+                            />
+                          </div>
+                        </div>
                         <div>
-                          <div className="ts2-label" style={{ marginBottom: 6 }}>Limit Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                          <div className="ts2-label" style={{ marginBottom: 6 }}>{activeSide === 'SELL' ? 'Sell at Limit' : 'Buy at Limit'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                           <input
                             className="ts2-field-input"
                             type="number"
@@ -854,26 +877,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                             onChange={e => setLimitPrice(e.target.value)}
                           />
                           {priceRangeHelp}
-                        </div>
-                        <div>
-                          <div className="ts2-label" style={{ marginBottom: 6 }}>Target Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                          <input
-                            className="ts2-field-input"
-                            type="number"
-                            placeholder="0.00"
-                            value={tpPrice}
-                            onChange={e => setTpPrice(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                          <input
-                            className="ts2-field-input"
-                            type="number"
-                            placeholder="0.00"
-                            value={slPrice}
-                            onChange={e => setSlPrice(e.target.value)}
-                          />
                         </div>
                       </div>
                     )}
