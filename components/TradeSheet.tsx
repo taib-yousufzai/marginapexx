@@ -56,12 +56,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
   const [orderQty, setOrderQty] = useState(1);
   const [qtyInput, setQtyInput] = useState('1'); // string for free typing
-  const [orderType, setOrderType] = useState<OrderType>('MARKET');
+  const [orderType, setOrderType] = useState<string>('MARKET');
   const [productType, setProductType] = useState<ProductType>('INTRADAY');
   const [limitPrice, setLimitPrice] = useState('');
   const [triggerPrice, setTriggerPrice] = useState('');
   const [slPrice, setSlPrice] = useState('');
   const [tpPrice, setTpPrice] = useState('');
+  const [gttSubOption, setGttSubOption] = useState<string>('LIMIT');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
@@ -73,7 +74,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const currentLtp = item?.price ?? 0;
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
-  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
+  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === activeSide);
   const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
 
   const bidPrice = currentLtp > 0 ? currentLtp - currentLtp * 0.001 : 0;
@@ -136,8 +138,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       setTriggerPrice('');
       setSlPrice('');
       setTpPrice('');
+      setGttSubOption(exitMode ? 'TARGET' : 'LIMIT');
     }
-  }, [item?.symbol, propProductType]);
+  }, [item?.symbol, propProductType, exitMode]);
 
   // Sync maximum position quantity when side is SELL
   useEffect(() => {
@@ -208,7 +211,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const topLimit = matchingSetting?.top_limit ?? 0;
   const minLimit = matchingSetting?.min_limit ?? 0;
-  const maxAllowedPrice = currentLtp * (1 + topLimit / 100);
+  const maxAllowedPrice = activeSide === 'SELL'
+    ? currentLtp * (1 - topLimit / 100)
+    : currentLtp * (1 + topLimit / 100);
   const minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
 
   const priceRangeHelp = currentLtp > 0 ? (
@@ -220,15 +225,121 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
     if (!item) return;
 
-    if (placeSide === 'BUY' && ['LIMIT', 'SL', 'GTT'].includes(orderType)) {
-      const parsedPrice = parseFloat(limitPrice) || 0;
-      if (parsedPrice > maxAllowedPrice) {
-        showToast(`❌ Price exceeds top limit of ${topLimit}% (max: ₹${maxAllowedPrice.toFixed(2)})`);
+    // Load setting specific to the side being placed
+    const placeSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === placeSide);
+    const pTopLimit = placeSetting?.top_limit ?? 0;
+    const pMinLimit = placeSetting?.min_limit ?? 0;
+
+    // Resolve order_type, trigger_price, stop_loss, target, client_price under the hood
+    let resolvedOrderType = orderType;
+    let resolvedClientPrice = currentLtp;
+    let resolvedTriggerPrice: number | undefined = undefined;
+    let resolvedStopLoss: number | undefined = undefined;
+    let resolvedTarget: number | undefined = undefined;
+
+    if (exitMode) {
+      if (orderType === 'TARGET') {
+        resolvedOrderType = 'LIMIT';
+        resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
+        resolvedTarget = resolvedClientPrice;
+      } else if (orderType === 'SL') {
+        resolvedOrderType = 'SL';
+        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+        resolvedStopLoss = resolvedTriggerPrice;
+      } else if (orderType === 'GTT') {
+        resolvedOrderType = 'GTT';
+        if (gttSubOption === 'TARGET') {
+          resolvedTriggerPrice = parseFloat(tpPrice) || undefined;
+          resolvedTarget = resolvedTriggerPrice;
+        } else if (gttSubOption === 'SL') {
+          resolvedTriggerPrice = parseFloat(slPrice) || undefined;
+          resolvedStopLoss = resolvedTriggerPrice;
+        }
+        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+      } else {
+        // MARKET
+        resolvedOrderType = 'MARKET';
+        resolvedClientPrice = currentLtp;
+      }
+    } else {
+      // Add More / Entry mode
+      if (orderType === 'LIMIT') {
+        resolvedOrderType = 'LIMIT';
+        resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
+      } else if (orderType === 'SLM') {
+        resolvedOrderType = 'SLM';
+        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+      } else if (orderType === 'GTT') {
+        resolvedOrderType = 'GTT';
+        if (gttSubOption === 'LIMIT') {
+          resolvedTriggerPrice = parseFloat(limitPrice) || undefined;
+        } else if (gttSubOption === 'TARGET') {
+          resolvedTriggerPrice = parseFloat(tpPrice) || undefined;
+          resolvedTarget = resolvedTriggerPrice;
+        } else if (gttSubOption === 'SL') {
+          resolvedTriggerPrice = parseFloat(slPrice) || undefined;
+          resolvedStopLoss = resolvedTriggerPrice;
+        }
+        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+      } else {
+        // MARKET
+        resolvedOrderType = 'MARKET';
+        resolvedClientPrice = currentLtp;
+      }
+    }
+
+    // Validate Target & SL based on side and entry price reference
+    const refEntry = resolvedClientPrice;
+    if (placeSide === 'BUY') {
+      if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
+        showToast('❌ Target price must be above the buy price.');
         return;
       }
-      if (minLimit > 0 && parsedPrice < minAllowedPrice) {
-        showToast(`❌ Price is below min limit of ${minLimit}% (min: ₹${minAllowedPrice.toFixed(2)})`);
+      if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
+        showToast('❌ Stop loss price must be below the buy price.');
         return;
+      }
+    } else if (placeSide === 'SELL') {
+      if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
+        showToast('❌ Target price must be below the sell price.');
+        return;
+      }
+      if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
+        showToast('❌ Stop loss price must be above the sell price.');
+        return;
+      }
+    }
+
+    if (['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType)) {
+      const parsedPrice = resolvedClientPrice;
+      if (placeSide === 'BUY') {
+        const maxAllowed = currentLtp * (1 + pTopLimit / 100);
+        if (parsedPrice > maxAllowed) {
+          showToast(`❌ Price exceeds top limit of ${pTopLimit}% (max: ₹${maxAllowed.toFixed(2)})`);
+          return;
+        }
+        if (pMinLimit > 0) {
+          const minAllowed = currentLtp * (1 - pMinLimit / 100);
+          if (parsedPrice < minAllowed) {
+            showToast(`❌ Price is below min limit of ${pMinLimit}% (min: ₹${minAllowed.toFixed(2)})`);
+            return;
+          }
+        }
+      } else { // SELL side
+        const maxAllowed = currentLtp * (1 - pTopLimit / 100);
+        if (parsedPrice > maxAllowed) {
+          showToast(`❌ Price exceeds top limit of ${pTopLimit}% (max: ₹${maxAllowed.toFixed(2)})`);
+          return;
+        }
+        if (pMinLimit > 0) {
+          const minAllowed = currentLtp * (1 - pMinLimit / 100);
+          if (parsedPrice < minAllowed) {
+            showToast(`❌ Price is below min limit of ${pMinLimit}% (min: ₹${minAllowed.toFixed(2)})`);
+            return;
+          }
+        }
       }
     }
 
@@ -239,12 +350,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       side: placeSide,
       qty: totalQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
-      order_type: orderType,
+      order_type: resolvedOrderType as any,
       product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
-      client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) || 0 : currentLtp,
-      trigger_price: parseFloat(triggerPrice) || undefined,
-      stop_loss: parseFloat(slPrice) || undefined,
-      target: parseFloat(tpPrice) || undefined,
+      client_price: resolvedClientPrice,
+      trigger_price: resolvedTriggerPrice,
+      stop_loss: resolvedStopLoss,
+      target: resolvedTarget,
       is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
     });
     if (res.success) {
@@ -619,18 +730,29 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-label">Order Type</div>
                   <div className="ts2-pills">
                     {(exitMode
-                      ? (['MARKET', 'LIMIT', 'SLM'] as OrderType[])
-                      : (['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[])
+                      ? ['MARKET', 'TARGET', 'SL', 'GTT']
+                      : ['MARKET', 'LIMIT', 'SLM', 'GTT']
                     ).map(t => (
-                      <button key={t} className={`ts2-pill${orderType === t ? ' active' : ''}`} onClick={() => setOrderType(t)}>{t}</button>
+                      <button
+                        key={t}
+                        className={`ts2-pill${orderType === t ? ' active' : ''}`}
+                        onClick={() => {
+                          setOrderType(t);
+                          if (t === 'GTT') {
+                            setGttSubOption(exitMode ? 'TARGET' : 'LIMIT');
+                          }
+                        }}
+                      >
+                        {t}
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                {/* LIMIT — Price input (separate card, matches watchlist) */}
-                {(orderType === 'LIMIT' || orderType === 'SL') && (
+                {/* LIMIT / TARGET — Price input (separate card, matches watchlist) */}
+                {(orderType === 'LIMIT' || orderType === 'TARGET') && (
                   <div className="ts2-card">
-                    <div className="ts2-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <div className="ts2-label">{orderType === 'TARGET' ? 'Target Price' : 'Price'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                     <input
                       className="ts2-field-input"
                       type="number"
@@ -638,14 +760,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       value={limitPrice}
                       onChange={e => setLimitPrice(e.target.value)}
                     />
-                    {side === 'BUY' && priceRangeHelp}
+                    {priceRangeHelp}
                   </div>
                 )}
 
-                {/* Trigger Price — SLM (separate card, matches watchlist) */}
-                {orderType === 'SLM' && (
+                {/* SL / SLM — Price input */}
+                {(orderType === 'SL' || orderType === 'SLM') && (
                   <div className="ts2-card">
-                    <div className="ts2-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                    <div className="ts2-label">{orderType === 'SL' ? 'Stop Loss Price' : 'Trigger Price'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                     <input
                       className="ts2-field-input"
                       type="number"
@@ -656,35 +778,33 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                 )}
 
-                {/* GTT — Stop Loss / Target / Limit (separate card, matches watchlist) */}
+                {/* GTT — Stop Loss / Target / Limit sub-options */}
                 {orderType === 'GTT' && (
                   <div className="ts2-card">
-                    <div className="ts2-label">SL / Limit / Target</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ flex: 1 }}>
-                          <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                          <input
-                            className="ts2-field-input"
-                            type="number"
-                            placeholder="0.00"
-                            value={slPrice}
-                            onChange={e => setSlPrice(e.target.value)}
-                          />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div className="ts2-label" style={{ marginBottom: 6 }}>Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                          <input
-                            className="ts2-field-input"
-                            type="number"
-                            placeholder="0.00"
-                            value={tpPrice}
-                            onChange={e => setTpPrice(e.target.value)}
-                          />
-                        </div>
-                      </div>
+                    <div className="ts2-label" style={{ marginBottom: 8 }}>GTT Trigger Option</div>
+                    <div className="ts2-pills" style={{ marginBottom: 12 }}>
+                      {(exitMode
+                        ? ['TARGET', 'SL']
+                        : ['LIMIT', 'TARGET', 'SL']
+                      ).map(opt => (
+                        <button
+                          key={opt}
+                          className={`ts2-pill${gttSubOption === opt ? ' active' : ''}`}
+                          onClick={() => setGttSubOption(opt)}
+                          style={{
+                            background: gttSubOption === opt ? '#059669' : 'transparent',
+                            borderColor: gttSubOption === opt ? '#059669' : 'var(--border-light, #E5E7EB)',
+                            color: gttSubOption === opt ? '#fff' : 'var(--text-primary, #374151)'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {gttSubOption === 'LIMIT' && (
                       <div>
-                        <div className="ts2-label" style={{ marginBottom: 6 }}>Buy at Limit <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                        <div className="ts2-label" style={{ marginBottom: 6 }}>Limit Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
                         <input
                           className="ts2-field-input"
                           type="number"
@@ -692,9 +812,35 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                           value={limitPrice}
                           onChange={e => setLimitPrice(e.target.value)}
                         />
-                        {side === 'BUY' && priceRangeHelp}
+                        {priceRangeHelp}
                       </div>
-                    </div>
+                    )}
+
+                    {gttSubOption === 'TARGET' && (
+                      <div>
+                        <div className="ts2-label" style={{ marginBottom: 6 }}>Target Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                        <input
+                          className="ts2-field-input"
+                          type="number"
+                          placeholder="0.00"
+                          value={tpPrice}
+                          onChange={e => setTpPrice(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    {gttSubOption === 'SL' && (
+                      <div>
+                        <div className="ts2-label" style={{ marginBottom: 6 }}>Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                        <input
+                          className="ts2-field-input"
+                          type="number"
+                          placeholder="0.00"
+                          value={slPrice}
+                          onChange={e => setSlPrice(e.target.value)}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

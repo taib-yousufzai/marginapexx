@@ -447,23 +447,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }
 
+  // 9.5 Validate Target and Stop Loss rules
+  const orderTarget = target ? parseFloat(target.toString()) : null;
+  const orderSL = stop_loss ? parseFloat(stop_loss.toString()) : null;
+  const refPrice = ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET') ? client_price : baseLtp;
+
+  if (side === 'BUY') {
+    if (orderTarget !== null && orderTarget <= refPrice) {
+      return NextResponse.json({ error: 'Target price must be above the buy price.' }, { status: 400 });
+    }
+    if (orderSL !== null && orderSL >= refPrice) {
+      return NextResponse.json({ error: 'Stop loss price must be below the buy price.' }, { status: 400 });
+    }
+  } else if (side === 'SELL') {
+    if (orderTarget !== null && orderTarget >= refPrice) {
+      return NextResponse.json({ error: 'Target price must be below the sell price.' }, { status: 400 });
+    }
+    if (orderSL !== null && orderSL <= refPrice) {
+      return NextResponse.json({ error: 'Stop loss price must be above the sell price.' }, { status: 400 });
+    }
+  }
+
   // Segment Price Limits validation (top_limit and min_limit)
   const topLimit = Number(segSetting.top_limit ?? 0);
   const minLimit = Number(segSetting.min_limit ?? 0);
-  if (side === 'BUY' && ['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET')) {
-    const maxAllowed = baseLtp * (1 + topLimit / 100);
-    if (client_price > maxAllowed) {
-      return NextResponse.json({
-        error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
-      }, { status: 400 });
-    }
-
-    if (minLimit > 0) {
-      const minAllowed = baseLtp * (1 - minLimit / 100);
-      if (client_price < minAllowed) {
+  if (['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET')) {
+    if (side === 'BUY') {
+      const maxAllowed = baseLtp * (1 + topLimit / 100);
+      if (client_price > maxAllowed) {
         return NextResponse.json({
-          error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+          error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
         }, { status: 400 });
+      }
+
+      if (minLimit > 0) {
+        const minAllowed = baseLtp * (1 - minLimit / 100);
+        if (client_price < minAllowed) {
+          return NextResponse.json({
+            error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+          }, { status: 400 });
+        }
+      }
+    } else { // SELL side
+      const maxAllowed = baseLtp * (1 - topLimit / 100);
+      if (client_price > maxAllowed) {
+        return NextResponse.json({
+          error: `Limit price of ₹${client_price.toFixed(2)} exceeds the allowed top limit of ${topLimit}% (max allowed: ₹${maxAllowed.toFixed(2)})`
+        }, { status: 400 });
+      }
+
+      if (minLimit > 0) {
+        const minAllowed = baseLtp * (1 - minLimit / 100);
+        if (client_price < minAllowed) {
+          return NextResponse.json({
+            error: `Limit price of ₹${client_price.toFixed(2)} is below the allowed minimum limit of ${minLimit}% (min allowed: ₹${minAllowed.toFixed(2)})`
+          }, { status: 400 });
+        }
       }
     }
   }

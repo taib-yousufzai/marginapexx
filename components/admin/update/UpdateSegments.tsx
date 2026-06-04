@@ -264,14 +264,18 @@ function SegmentBlock({
               <label className="adm-upd-label">Top Price Limit (%)</label>
               <input className="adm-upd-input" type="number" step="0.1" value={value.topLimit} onChange={e => upd('topLimit', e.target.value)} />
               <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-                Max Buy Limit Price = LTP + Top Limit% (0% = buy at LTP or lower only)
+                {name.endsWith('-SELL') 
+                  ? 'Max Sell Limit Price = LTP - Top Limit% (0% = sell at LTP or lower only)'
+                  : 'Max Buy Limit Price = LTP + Top Limit% (0% = buy at LTP or lower only)'}
               </span>
             </div>
             <div className="adm-upd-field">
               <label className="adm-upd-label">Min Price Limit (%)</label>
               <input className="adm-upd-input" type="number" step="0.1" value={value.minLimit} onChange={e => upd('minLimit', e.target.value)} />
               <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-                Min Buy Limit Price = LTP - Min Limit% (0% = disabled)
+                {name.endsWith('-SELL')
+                  ? 'Min Sell Limit Price = LTP - Min Limit% (0% = disabled)'
+                  : 'Min Buy Limit Price = LTP - Min Limit% (0% = disabled)'}
               </span>
             </div>
           </div>
