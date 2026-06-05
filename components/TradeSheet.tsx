@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import { useActivePositions } from '@/hooks/useActivePositions';
+import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
 
 export interface TradeSheetItem {
   name: string;
@@ -78,9 +80,23 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name, scriptSettings) : 1;
-  const currentLtp = item?.price ?? 0;
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
+  const isCrypto = dbSeg.toUpperCase().includes('CRYPTO');
+
+  const kiteSymbols = item && item.kiteSymbol ? [item.kiteSymbol] : [];
+  const binanceSymbols = item && isCrypto && item.symbol ? [item.symbol] : [];
+
+  const { quotes: kiteQuotes } = useKiteQuotes(kiteSymbols, 1000);
+  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 1000);
+
+  let currentLtp = item?.price ?? 0;
+  if (isCrypto && item?.symbol && binanceQuotes[item.symbol]) {
+    currentLtp = binanceQuotes[item.symbol].lastPrice;
+  } else if (item?.kiteSymbol && kiteQuotes[item.kiteSymbol]) {
+    currentLtp = kiteQuotes[item.kiteSymbol].lastPrice;
+  }
+
   const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
   const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === activeSide);
   const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
@@ -298,6 +314,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
         resolvedClientPrice = currentLtp;
         resolvedStopLoss = resolvedTriggerPrice;
+      } else if (orderType === 'SLM') {
+        resolvedOrderType = 'SLM';
+        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+        resolvedClientPrice = currentLtp;
       } else if (orderType === 'GTT') {
         resolvedOrderType = 'GTT';
         resolvedStopLoss = parseFloat(slPrice) || undefined;
@@ -342,16 +362,48 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
+    const isExitOrder = exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos);
+
     if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
       const trigPrice = resolvedTriggerPrice;
       if (trigPrice !== undefined && !isNaN(trigPrice)) {
-        if (placeSide === 'BUY' && trigPrice >= currentLtp) {
-          showToast('Stop loss price must be below the current market price.');
-          return;
-        }
-        if (placeSide === 'SELL' && trigPrice <= currentLtp) {
-          showToast('Stop loss price must be above the current market price.');
-          return;
+        if (isExitOrder) {
+          // Exit stop loss order:
+          // - Exiting LONG (SELL order): stop loss must be below current market price
+          // - Exiting SHORT (BUY order): stop loss must be above current market price
+          if (placeSide === 'BUY' && trigPrice <= currentLtp) {
+            showToast('Stop loss trigger price must be above the current market price for short exits.');
+            return;
+          }
+          if (placeSide === 'SELL' && trigPrice >= currentLtp) {
+            showToast('Stop loss trigger price must be below the current market price for long exits.');
+            return;
+          }
+        } else {
+          // Entry stop loss order:
+          // - SLM entry executes immediately and sets trigger price as stop loss of new position.
+          //   Thus, BUY SLM = LONG position (SL below market), SELL SLM = SHORT position (SL above market).
+          // - SL entry is a pending breakout order.
+          //   Thus, BUY SL = breakout buy (above market), SELL SL = breakout sell (below market).
+          if (resolvedOrderType === 'SLM') {
+            if (placeSide === 'BUY' && trigPrice >= currentLtp) {
+              showToast('Stop loss price must be below the current market price.');
+              return;
+            }
+            if (placeSide === 'SELL' && trigPrice <= currentLtp) {
+              showToast('Stop loss price must be above the current market price.');
+              return;
+            }
+          } else { // SL order type
+            if (placeSide === 'BUY' && trigPrice <= currentLtp) {
+              showToast('Trigger price must be above the current market price for stop limit buy.');
+              return;
+            }
+            if (placeSide === 'SELL' && trigPrice >= currentLtp) {
+              showToast('Trigger price must be below the current market price for stop limit sell.');
+              return;
+            }
+          }
         }
       }
     }
@@ -362,21 +414,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
     if (exitMode) {
       if (isLong) {
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= refEntry) {
-          showToast('Target price must be above the position entry price.');
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= currentLtp) {
+          showToast('Target price must be above the current market price.');
           return;
         }
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= refEntry) {
-          showToast('Stop loss price must be below the position entry price.');
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= currentLtp) {
+          showToast('Stop loss price must be below the current market price.');
           return;
         }
       } else {
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= refEntry) {
-          showToast('Target price must be below the position entry price.');
+        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= currentLtp) {
+          showToast('Target price must be below the current market price.');
           return;
         }
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= refEntry) {
-          showToast('Stop loss price must be above the position entry price.');
+        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= currentLtp) {
+          showToast('Stop loss price must be above the current market price.');
           return;
         }
       }
@@ -836,7 +888,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-label">Order Type</div>
                   <div className="ts2-pills">
                     {(exitMode
-                      ? ['MARKET', 'TARGET', 'SL', 'GTT']
+                      ? ['MARKET', 'TARGET', 'SL', 'SLM', 'GTT']
                       : ['MARKET', 'LIMIT', 'SLM', 'GTT']
                     ).map(t => (
                       <button

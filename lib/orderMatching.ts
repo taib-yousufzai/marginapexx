@@ -92,20 +92,23 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         }
 
         // Support GTT exit orders which have stop_loss or target or both
+        // Only check SL and Target triggers for pure exit GTT orders (when triggerPrice is null)
         const stopLoss = order.stop_loss ? Number(order.stop_loss) : null;
         const target = order.target ? Number(order.target) : null;
-        if (!shouldTrigger && stopLoss !== null) {
-          if (side === 'BUY') {
-            if (ltp >= stopLoss) shouldTrigger = true;
-          } else if (side === 'SELL') {
-            if (ltp <= stopLoss) shouldTrigger = true;
+        if (triggerPrice === null) {
+          if (!shouldTrigger && stopLoss !== null) {
+            if (side === 'BUY') {
+              if (ltp >= stopLoss) shouldTrigger = true;
+            } else if (side === 'SELL') {
+              if (ltp <= stopLoss) shouldTrigger = true;
+            }
           }
-        }
-        if (!shouldTrigger && target !== null) {
-          if (side === 'BUY') {
-            if (ltp <= target) shouldTrigger = true;
-          } else if (side === 'SELL') {
-            if (ltp >= target) shouldTrigger = true;
+          if (!shouldTrigger && target !== null) {
+            if (side === 'BUY') {
+              if (ltp <= target) shouldTrigger = true;
+            } else if (side === 'SELL') {
+              if (ltp >= target) shouldTrigger = true;
+            }
           }
         }
 

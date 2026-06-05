@@ -511,11 +511,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (order_type === 'SL' || order_type === 'SLM') {
     const trigPrice = trigger_price ? parseFloat(trigger_price.toString()) : null;
     if (trigPrice !== null && !isNaN(trigPrice)) {
-      if (side === 'BUY' && trigPrice >= baseLtp) {
-        return NextResponse.json({ error: 'Trigger price must be below the current market price.' }, { status: 400 });
-      }
-      if (side === 'SELL' && trigPrice <= baseLtp) {
-        return NextResponse.json({ error: 'Trigger price must be above the current market price.' }, { status: 400 });
+      if (is_exit) {
+        // Exit stop loss order:
+        // - Exiting LONG (SELL order): trigger price must be below market price (LTP) to act as stop loss
+        // - Exiting SHORT (BUY order): trigger price must be above market price (LTP) to act as stop loss
+        if (side === 'BUY' && trigPrice <= baseLtp) {
+          return NextResponse.json({ error: 'Stop loss trigger price must be above the current market price for short exits.' }, { status: 400 });
+        }
+        if (side === 'SELL' && trigPrice >= baseLtp) {
+          return NextResponse.json({ error: 'Stop loss trigger price must be below the current market price for long exits.' }, { status: 400 });
+        }
+      } else {
+        // Entry order:
+        // - SLM entry on MarginApex executes immediately as a MARKET order and sets the trigger price as the position's stop loss.
+        //   Thus, BUY SLM = LONG position (SL below market), SELL SLM = SHORT position (SL above market).
+        // - SL entry is a pending breakout order.
+        //   Thus, BUY SL = pending buy above market, SELL SL = pending sell below market.
+        if (order_type === 'SLM') {
+          if (side === 'BUY' && trigPrice >= baseLtp) {
+            return NextResponse.json({ error: 'Stop loss price must be below the current market price.' }, { status: 400 });
+          }
+          if (side === 'SELL' && trigPrice <= baseLtp) {
+            return NextResponse.json({ error: 'Stop loss price must be above the current market price.' }, { status: 400 });
+          }
+        } else { // SL order type
+          if (side === 'BUY' && trigPrice <= baseLtp) {
+            return NextResponse.json({ error: 'Trigger price must be above the current market price for stop limit buy.' }, { status: 400 });
+          }
+          if (side === 'SELL' && trigPrice >= baseLtp) {
+            return NextResponse.json({ error: 'Trigger price must be below the current market price for stop limit sell.' }, { status: 400 });
+          }
+        }
       }
     }
   }
@@ -563,18 +589,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   if (is_exit) {
     if (isLong) {
-      if (orderTarget !== null && orderTarget <= refEntry) {
-        return NextResponse.json({ error: 'Target price must be above the position entry price.' }, { status: 400 });
+      if (orderTarget !== null && orderTarget <= baseLtp) {
+        return NextResponse.json({ error: 'Target price must be above the current market price (LTP).' }, { status: 400 });
       }
-      if (orderSL !== null && orderSL >= refEntry) {
-        return NextResponse.json({ error: 'Stop loss price must be below the position entry price.' }, { status: 400 });
+      if (orderSL !== null && orderSL >= baseLtp) {
+        return NextResponse.json({ error: 'Stop loss price must be below the current market price (LTP).' }, { status: 400 });
       }
     } else {
-      if (orderTarget !== null && orderTarget >= refEntry) {
-        return NextResponse.json({ error: 'Target price must be below the position entry price.' }, { status: 400 });
+      if (orderTarget !== null && orderTarget >= baseLtp) {
+        return NextResponse.json({ error: 'Target price must be below the current market price (LTP).' }, { status: 400 });
       }
-      if (orderSL !== null && orderSL <= refEntry) {
-        return NextResponse.json({ error: 'Stop loss price must be above the position entry price.' }, { status: 400 });
+      if (orderSL !== null && orderSL <= baseLtp) {
+        return NextResponse.json({ error: 'Stop loss price must be above the current market price (LTP).' }, { status: 400 });
       }
     }
   } else {
