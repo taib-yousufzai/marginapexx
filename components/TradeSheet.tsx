@@ -296,7 +296,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       } else if (orderType === 'SL') {
         resolvedOrderType = 'SL';
         resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
-        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+        resolvedClientPrice = currentLtp;
         resolvedStopLoss = resolvedTriggerPrice;
       } else if (orderType === 'GTT') {
         resolvedOrderType = 'GTT';
@@ -316,7 +316,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       } else if (orderType === 'SLM') {
         resolvedOrderType = 'SLM';
         resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
-        resolvedClientPrice = resolvedTriggerPrice || currentLtp;
+        resolvedClientPrice = currentLtp;
       } else if (orderType === 'GTT') {
         resolvedOrderType = 'GTT';
         resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
@@ -461,7 +461,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
     });
     if (res.success) {
-      showToast(`${placeSide} order placed for ${item.symbol}`);
+      showToast(res.order?.message || `${placeSide} order placed for ${item.symbol}`);
       onSuccess?.();
       onClose();
     } else {

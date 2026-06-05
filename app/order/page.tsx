@@ -55,7 +55,7 @@ export default function OrderPage() {
       qty: order.qty,
       order_type: order.order_type,
       product_type: order.product_type,
-      client_price: order.fill_price,
+      client_price: order.client_price || order.fill_price,
       trigger_price: order.trigger_price,
       stop_loss: order.stop_loss,
       target: order.target,

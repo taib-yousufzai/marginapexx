@@ -214,6 +214,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       product_type: (r.product_type as MyOrder['product_type']) ?? 'INTRADAY',
       info:         (r.info as string) ?? null,
       brokerage:    Number(r.brokerage ?? 0),
+      client_price: r.client_price !== null ? Number(r.client_price) : undefined,
+      trigger_price: r.trigger_price !== null ? Number(r.trigger_price) : undefined,
+      stop_loss:    r.stop_loss !== null ? Number(r.stop_loss) : undefined,
+      target:       r.target !== null ? Number(r.target) : undefined,
       created_at:   r.created_at as string,
     }));
 

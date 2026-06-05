@@ -377,7 +377,7 @@ function OptionChainContent() {
       is_exit: isExitOrder
     });
     if (result.success) {
-      showToast(`${side} Order Executed!`, false);
+      showToast(result.order?.message || `${side} Order Executed!`, false);
       closeTradeSheet();
     } else {
       showToast(`Order Failed: ${result.error}`, true);
@@ -702,7 +702,7 @@ function OptionChainContent() {
       <div
         className={`trade-sheet${selectedContract ? ' open' : ''}${sheetView === 'DETAILS' ? ' detail-sheet' : ''}`}
         id={sheetView === 'ORDER' ? 'tradeSheet' : 'detailSheet'}
-        style={sheetView === 'DETAILS' && selectedContract ? { height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' } : undefined}
+        style={sheetView === 'DETAILS' ? { height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' } : undefined}
       >
         {selectedContract && (() => {
           const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;

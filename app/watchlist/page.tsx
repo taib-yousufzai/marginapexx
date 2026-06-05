@@ -1216,8 +1216,7 @@ function WatchlistContent() {
 
     if (result.success) {
       closeTradeSheet();
-      const symbol = '₹';
-      showToast(`Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ${symbol}${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
+      showToast(result.order?.message || `Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ₹${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
       showToast(`Order Failed: ${result.error}`, true);
     }
