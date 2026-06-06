@@ -222,7 +222,7 @@ export default function PositionPage() {
     const exitablePositions = openPositions.filter(p => !p.hold_lock_active);
     
     if (exitablePositions.length === 0) {
-      showToast('All open positions are currently locked under anti-scalping holding rules.');
+      showToast('All open positions are currently locked due to holding rules.');
       setIsExitingAll(false);
       setIsExitAllModalOpen(false);
       return;
@@ -399,9 +399,6 @@ export default function PositionPage() {
                             <div className="pos-card-left">
                               <div className="pos-card-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>
-                                {pos.hold_lock_active && (
-                                  <i className="fas fa-lock lock-icon-inline" title="Anti-Scalping Lock Active" style={{ marginLeft: 6, color: '#f59e0b', fontSize: '0.85rem' }} />
-                                )}
                               </div>
                               <div className="pos-card-details">
                                 <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
@@ -416,8 +413,8 @@ export default function PositionPage() {
                                   style={{
                                     fontSize: '0.62rem',
                                     fontWeight: '700',
-                                    color: pos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
-                                    background: pos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                    color: pos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
+                                    background: pos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
                                     padding: '2px 8px',
                                     borderRadius: '20px',
                                     cursor: 'pointer',
@@ -460,12 +457,6 @@ export default function PositionPage() {
                               </div>
                             </div>
                           </div>
-                          {pos.hold_lock_active && (
-                            <div className="pos-lock-banner">
-                              <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                              <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(pos.remaining_hold_seconds)}</span>
-                            </div>
-                          )}
                           {expandedPosId === pos.id && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
                               <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
@@ -600,9 +591,6 @@ export default function PositionPage() {
                               <div className="pos-detail-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>{' '}
                                 <span className="pos-detail-side">{pos.side}</span>
-                                {pos.hold_lock_active && (
-                                  <i className="fas fa-lock lock-icon-inline" title="Anti-Scalping Lock Active" style={{ marginLeft: 6, color: '#f59e0b', fontSize: '0.85rem' }} />
-                                )}
                               </div>
                               <div className="pos-detail-meta">
                                 <div className="pos-detail-meta-row">
@@ -627,8 +615,8 @@ export default function PositionPage() {
                                   style={{
                                     fontSize: '0.62rem',
                                     fontWeight: '700',
-                                    color: pos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
-                                    background: pos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                    color: pos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
+                                    background: pos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
                                     padding: '2px 8px',
                                     borderRadius: '20px',
                                     cursor: 'pointer',
@@ -678,12 +666,6 @@ export default function PositionPage() {
                               </div>
                             </div>
                           </div>
-                          {pos.hold_lock_active && (
-                            <div className="pos-lock-banner" style={{ margin: '8px 12px 0 12px' }}>
-                              <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                              <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(pos.remaining_hold_seconds)}</span>
-                            </div>
-                          )}
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
                               <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
@@ -967,8 +949,8 @@ export default function PositionPage() {
                                 style={{
                                   fontSize: '0.62rem',
                                   fontWeight: '700',
-                                  color: selectedPos.product_type === 'CARRY' ? '#4A148C' : '#2C8E5A',
-                                  background: selectedPos.product_type === 'CARRY' ? '#EDE7F6' : '#E9F6EF',
+                                  color: selectedPos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
+                                  background: selectedPos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
                                   padding: '2px 8px',
                                   borderRadius: '20px',
                                   cursor: 'pointer',
@@ -1023,12 +1005,6 @@ export default function PositionPage() {
                       </div>
 
                       {/* Lock Message display */}
-                      {selectedPos.hold_lock_active && (
-                        <div className="pos-lock-banner" style={{ margin: '8px 0 16px 0' }}>
-                          <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                          <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(selectedPos.remaining_hold_seconds)}</span>
-                        </div>
-                      )}
 
                       {/* P&L + Exit All */}
                       <div className="ps-pnl-section">

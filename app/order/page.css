@@ -666,3 +666,7 @@ body.dark .os-status-other    { color: #F87171; }
   align-items: center;
   flex-wrap: nowrap;
 }
+
+.status-cancelled { color: #DC2626; }
+.os-status-cancelled { color: #DC2626; }
+

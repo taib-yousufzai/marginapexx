@@ -297,7 +297,7 @@ export default function OrderPage() {
                         </div>
                       </div>
                       <div className="ord-row ord-row-status">
-                        <div className={`ord-status-text ${isPending ? 'status-open' : isExecuted ? 'status-filled' : 'status-rejected'}`}>
+                        <div className={`ord-status-text ${isPending ? 'status-open' : isExecuted ? 'status-filled' : isCancelled ? 'status-cancelled' : 'status-rejected'}`}>
                           {isPending   && <><i className="fas fa-circle" /> PENDING</>}
                           {isExecuted  && <><i className="fas fa-check-circle" /> EXECUTED</>}
                           {isCancelled && <><i className="fas fa-ban" /> CANCELLED</>}
@@ -414,7 +414,7 @@ export default function OrderPage() {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Status</div>
                       <div 
-                        className={selectedOrder.status === 'EXECUTED' ? 'os-status-executed' : (selectedOrder.status === 'REJECTED' ? 'os-status-rejected' : 'os-status-other')}
+                        className={selectedOrder.status === 'EXECUTED' ? 'os-status-executed' : (selectedOrder.status === 'REJECTED' ? 'os-status-rejected' : selectedOrder.status === 'CANCELLED' ? 'os-status-cancelled' : 'os-status-other')}
                         style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1 }}
                       >
                         {selectedOrder.status}

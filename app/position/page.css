@@ -2022,3 +2022,18 @@ body.dark .ps-btn-partial.disabled-lock {
   color: #6b7280 !important;
   border-color: #3f3f46 !important;
 }
+
+:root {
+  --carry-bg: #EDE7F6;
+  --carry-text: #4A148C;
+  --intraday-bg: #E9F6EF;
+  --intraday-text: #2C8E5A;
+}
+
+body.dark {
+  --carry-bg: rgba(74, 20, 140, 0.25);
+  --carry-text: #D1C4E9;
+  --intraday-bg: rgba(44, 142, 90, 0.25);
+  --intraday-text: #A5D6A7;
+}
+
