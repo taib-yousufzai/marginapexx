@@ -490,11 +490,11 @@ body.dark .ord-search-box     { background: var(--icon-bg, #2A2A2A); border-colo
 body.dark .ord-search-box:focus-within { background: #252525; border-color: rgba(198,46,46,0.4); }
 body.dark .ord-search-input   { color: var(--text-primary, #F5F5F5); }
 body.dark .ord-search-input::placeholder { color: var(--text-muted, #666); }
-body.dark .ord-tabs           { background: var(--icon-bg, #2A2A2A); }
-body.dark .ord-tab            { color: var(--text-secondary, #B0B0B0); }
-body.dark .ord-tab.active     { background: var(--card-bg, #252525); color: var(--negative-text, #F87171); box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-body.dark .ord-tab-badge      { background: rgba(255,255,255,0.08); color: var(--text-secondary, #B0B0B0); }
-body.dark .ord-tab.active .ord-tab-badge { background: rgba(248,113,113,0.15); color: var(--negative-text, #F87171); }
+body.dark .ord-tabs           { background: #2A2A2A; }
+body.dark .ord-tab            { color: #666; }
+body.dark .ord-tab.active     { background: #333; color: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+body.dark .ord-tab-badge      { background: rgba(255,255,255,0.08); color: #666; }
+body.dark .ord-tab.active .ord-tab-badge { background: rgba(255,255,255,0.15); color: #FFFFFF; }
 body.dark .ord-card           { background: var(--card-bg, #252525); border-color: var(--border-light, #333); box-shadow: none; }
 body.dark .ord-card:hover     { border-color: var(--border-card, #444); }
 body.dark .ord-symbol         { color: var(--text-primary, #F5F5F5); }
