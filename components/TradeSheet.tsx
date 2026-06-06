@@ -84,15 +84,19 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
   const isCrypto = dbSeg.toUpperCase().includes('CRYPTO');
 
+  let bSymbol = item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '';
+  if (bSymbol && !bSymbol.endsWith('USDT')) {
+    bSymbol = bSymbol + 'USDT';
+  }
+  const binanceSymbols = bSymbol ? [bSymbol] : [];
   const kiteSymbols = item && item.kiteSymbol ? [item.kiteSymbol] : [];
-  const binanceSymbols = item && isCrypto && item.symbol ? [item.symbol] : [];
 
   const { quotes: kiteQuotes } = useKiteQuotes(kiteSymbols, 1000);
   const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 1000);
 
   let currentLtp = item?.price ?? 0;
-  if (isCrypto && item?.symbol && binanceQuotes[item.symbol]) {
-    currentLtp = binanceQuotes[item.symbol].lastPrice;
+  if (isCrypto && bSymbol && binanceQuotes[bSymbol]) {
+    currentLtp = binanceQuotes[bSymbol].lastPrice;
   } else if (item?.kiteSymbol && kiteQuotes[item.kiteSymbol]) {
     currentLtp = kiteQuotes[item.kiteSymbol].lastPrice;
   }
@@ -888,7 +892,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-label">Order Type</div>
                   <div className="ts2-pills">
                     {(exitMode
-                      ? ['MARKET', 'TARGET', 'SL', 'SLM', 'GTT']
+                      ? ['MARKET', 'TARGET', 'SL', 'GTT']
                       : ['MARKET', 'LIMIT', 'SLM', 'GTT']
                     ).map(t => (
                       <button

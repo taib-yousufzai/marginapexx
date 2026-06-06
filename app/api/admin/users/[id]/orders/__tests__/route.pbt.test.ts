@@ -115,15 +115,15 @@ function makeOrdersRequest(userId: string, tab: string): Request {
  */
 function setupOrdersQuery(rows: OrderRow[]): void {
   // Build a chainable mock object where every method returns itself,
-  // except .limit() which returns a promise resolving to { data: rows, error: null }.
+  // except when it is awaited (accessed via 'then').
   const chain: Record<string, unknown> = {};
 
   const chainable = new Proxy(chain, {
     get(_target, prop: string) {
-      if (prop === 'limit') {
-        return () => Promise.resolve({ data: rows, error: null });
+      if (prop === 'then') {
+        return (resolve: any) => resolve({ data: rows, error: null, count: rows.length });
       }
-      // All other methods (select, eq, ilike, order) return the same chainable proxy
+      // All other methods (select, eq, ilike, order, range) return the same chainable proxy
       return () => chainable;
     },
   });
@@ -215,7 +215,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: every returned order satisfies the executed predicate
           for (const order of body) {
@@ -257,7 +257,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: no CANCELLED or REJECTED orders appear
           return !body.some((o) => o.status === 'CANCELLED' || o.status === 'REJECTED');
@@ -299,7 +299,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: every returned order satisfies the limit predicate
           for (const order of body) {
@@ -339,7 +339,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: no order has status != CANCELLED or order_type != LIMIT
           return !body.some((o) => o.status !== 'CANCELLED' || o.order_type !== 'LIMIT');
@@ -375,7 +375,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: no CANCELLED+MARKET orders appear (only CANCELLED+LIMIT)
           return !body.some((o) => o.status === 'CANCELLED' && o.order_type === 'MARKET');
@@ -417,7 +417,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: every returned order satisfies the rejected predicate
           for (const order of body) {
@@ -457,7 +457,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body: OrderRow[] = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
 
           // Assert: no EXECUTED or CANCELLED orders appear
           return !body.some((o) => o.status === 'EXECUTED' || o.status === 'CANCELLED');
@@ -543,7 +543,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
           return Array.isArray(body) && body.length === 0;
         },
       ),
@@ -564,7 +564,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
           return Array.isArray(body) && body.length === 0;
         },
       ),
@@ -585,7 +585,7 @@ describe('Admin Orders API - Property 10: Orders tab filtering', () => {
 
           if (res.status !== 200) return false;
 
-          const body = await res.json();
+          const { orders: body } = await res.json() as { orders: OrderRow[] };
           return Array.isArray(body) && body.length === 0;
         },
       ),

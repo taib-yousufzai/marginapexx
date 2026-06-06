@@ -137,7 +137,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const seg = (p.settlement || '').toUpperCase();
       if (seg.includes('CRYPTO')) {
         // Binance API expects symbols without slashes like BTCUSDT
-        binance.push(p.symbol.replace('/', ''));
+        let sym = p.symbol.replace('/', '');
+        if (!sym.endsWith('USDT')) {
+          sym = sym + 'USDT';
+        }
+        binance.push(sym);
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         comex.push(p.symbol);
       } else {
@@ -163,7 +167,10 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       let ltp = p.ltp || p.entry_price;
       
       if (seg.includes('CRYPTO')) {
-        const binanceKey = p.symbol.replace('/', '');
+        let binanceKey = p.symbol.replace('/', '');
+        if (!binanceKey.endsWith('USDT')) {
+          binanceKey = binanceKey + 'USDT';
+        }
         ltp = binanceQuotes[binanceKey]?.lastPrice ?? ltp;
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;

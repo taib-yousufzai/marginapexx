@@ -57,16 +57,12 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       } else if ((orderType === 'SL' || orderType === 'SLM') && triggerPrice !== null) {
         if (side === 'BUY' && ltp >= triggerPrice) {
           shouldTrigger = true;
-          // SLM executes at market price (LTP)
-          if (orderType === 'SLM') {
-            fillPrice = ltp;
-          }
+          // SL and SLM execute at market price (LTP)
+          fillPrice = ltp;
         } else if (side === 'SELL' && ltp <= triggerPrice) {
           shouldTrigger = true;
-          // SLM executes at market price (LTP)
-          if (orderType === 'SLM') {
-            fillPrice = ltp;
-          }
+          // SL and SLM execute at market price (LTP)
+          fillPrice = ltp;
         }
       } else if (orderType === 'GTT') {
         if (triggerPrice !== null) {
