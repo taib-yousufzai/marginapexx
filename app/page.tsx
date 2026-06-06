@@ -565,18 +565,27 @@ export default function Page() {
         </div>
 
         <div className={`expiry-half-drawer-overlay ${isNotifDrawerOpen ? 'active' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setIsNotifDrawerOpen(false); }}>
-          <div className="expiry-half-sheet">
-            <div className="expiry-sheet-header">
-              <h3><i className="fas fa-bell"></i> Notifications</h3>
-              <div className="expiry-sheet-close" onClick={() => setIsNotifDrawerOpen(false)}><i className="fas fa-times"></i></div>
+          <div className="notif-sheet">
+            <div className="notif-sheet-header">
+              <h3 className="notif-sheet-title">Notifications</h3>
+              <div className="notif-sheet-subtitle">{notifications.filter(n => !n.read).length} unread</div>
             </div>
-            <div className="notif-list">
-              {notifications.length === 0 ? <div className="no-data">No notifications</div> : notifications.map(n => (
-                <div key={n.id} className="notif-item">
-                  <div className="notif-title">{n.title}</div>
-                  <div className="notif-msg">{n.message}</div>
+            <div className="notif-sheet-body">
+              {notifications.length === 0 ? (
+                <div className="notif-empty-state">No notifications 🎉</div>
+              ) : (
+                <div className="notif-list">
+                  {notifications.map(n => (
+                    <div key={n.id} className="notif-item">
+                      <div className="notif-title">{n.title}</div>
+                      <div className="notif-msg">{n.message}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+            <div className="notif-sheet-footer">
+              <button className="notif-close-btn" onClick={() => setIsNotifDrawerOpen(false)}>Close</button>
             </div>
           </div>
         </div>

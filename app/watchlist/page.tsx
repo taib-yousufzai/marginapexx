@@ -1462,7 +1462,7 @@ function WatchlistContent() {
       )}
 
       <div id="tradeSheetOverlay" className="trade-sheet-overlay" onClick={closeTradeSheet}></div>
-      <div id="tradeSheet" className="trade-sheet">
+      <div id="tradeSheet" className={`trade-sheet ts-sheet--${tradeSide === 'SELL' ? 'sell' : 'buy'}`}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div className="ts-header">
           <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close" onClick={closeTradeSheet} suppressHydrationWarning>

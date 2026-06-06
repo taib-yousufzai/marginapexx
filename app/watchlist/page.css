@@ -1211,14 +1211,19 @@
     transition: all 0.18s;
     white-space: nowrap;
 }
-
-.ts-pill.active {
-    background: #DC2626;
+.ts-sheet--buy .ts-pill.active {
+    background: #15803D;
     color: #FFFFFF;
-    border-color: #DC2626;
-    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+    border-color: #15803D;
+    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);
 }
 
+.ts-sheet--sell .ts-pill.active {
+    background: #B91C1C;
+    color: #FFFFFF;
+    border-color: #B91C1C;
+    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.25);
+}
 /* =============================================
    PRODUCT TYPE PILLS (INTRADAY / CARRY)
    ============================================= */
@@ -2276,6 +2281,11 @@ body.dark .ohlc-value {
     color: #FFFFFF;
 }
 
+body.dark .ts-mv.avail {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22C55E !important;
+}
+
 body.dark .ts-ba-label,
 body.dark .ts-section-label,
 body.dark .ts-ic-label,
@@ -2329,9 +2339,15 @@ body.dark .ts-pill {
     color: #9CA3AF;
 }
 
-body.dark .ts-pill.active {
-    background: #DC2626;
-    border-color: #DC2626;
+body.dark .ts-sheet--buy .ts-pill.active {
+    background: #15803D;
+    border-color: #15803D;
+    color: #FFFFFF;
+}
+
+body.dark .ts-sheet--sell .ts-pill.active {
+    background: #B91C1C;
+    border-color: #B91C1C;
     color: #FFFFFF;
 }
 

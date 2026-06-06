@@ -698,9 +698,8 @@ function OptionChainContent() {
         onClick={() => setSelectedContract(null)}
       ></div>
 
-      {/* Contract Order Sheet */}
       <div
-        className={`trade-sheet${selectedContract ? ' open' : ''}${sheetView === 'DETAILS' ? ' detail-sheet' : ''}`}
+        className={`trade-sheet${selectedContract ? ' open' : ''}${sheetView === 'DETAILS' ? ' detail-sheet' : ''} ts-sheet--${sheetSide.toLowerCase()}`}
         id={sheetView === 'ORDER' ? 'tradeSheet' : 'detailSheet'}
         style={sheetView === 'DETAILS' ? { height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' } : undefined}
       >
@@ -776,7 +775,7 @@ function OptionChainContent() {
                         style={{
                           width: '100%',
                           padding: '10.5px',
-                          background: '#2C8E5A',
+                          background: '#15803D',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '50px',
@@ -787,7 +786,7 @@ function OptionChainContent() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: '8px',
-                          boxShadow: '0 2px 8px rgba(44,142,90,0.2)',
+                          boxShadow: '0 2px 8px rgba(21,128,61,0.25)',
                           fontFamily: 'Inter, sans-serif',
                           transition: 'background 0.15s ease'
                         }}
@@ -817,7 +816,7 @@ function OptionChainContent() {
                               transition: 'background 0.15s ease'
                             }}
                           >
-                            <i className="fas fa-list" style={{ color: '#2C8E5A', fontSize: '0.8rem' }}></i>
+                            <i className="fas fa-list" style={{ color: '#15803D', fontSize: '0.8rem' }}></i>
                             {wl === 'WATCHLIST' ? 'Default Watchlist' : wl}
                           </button>
                         ))}
@@ -847,9 +846,9 @@ function OptionChainContent() {
                       width: '100%',
                       padding: '9px',
                       borderRadius: '50px',
-                      border: '1px solid rgba(44, 142, 90, 0.6)',
+                      border: '1px solid rgba(21, 128, 61, 0.6)',
                       background: 'transparent',
-                      color: '#2C8E5A',
+                      color: '#15803D',
                       fontFamily: 'Inter, sans-serif',
                       fontSize: '0.8rem',
                       fontWeight: 700,
@@ -906,7 +905,7 @@ function OptionChainContent() {
                     <button 
                       style={{ 
                         flex: 1, 
-                        background: activePos?.side === 'SELL' ? '#C62E2E' : '#15803D', 
+                        background: '#15803D', 
                         color: 'white', 
                         border: 'none', 
                         padding: '11px 0', 
@@ -926,7 +925,7 @@ function OptionChainContent() {
                     <button 
                       style={{ 
                         flex: 1, 
-                        background: activePos?.side === 'BUY' ? '#2C8E5A' : '#B91C1C', 
+                        background: '#B91C1C', 
                         color: 'white', 
                         border: 'none', 
                         padding: '11px 0', 

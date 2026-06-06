@@ -586,11 +586,31 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-segment-badge {
           display: inline-block; margin-top: 4px;
           font-size: 0.6rem; font-weight: 700;
-          color: #C62E2E; background: #FEF2F2;
+          color: #B91C1C; background: rgba(185,28,28,0.1);
           padding: 2px 10px; border-radius: 30px;
         }
         body.dark .ts2-segment-badge {
-          background: #3B2A2A; color: #F87171;
+          background: rgba(239,68,68,0.15); color: #EF4444;
+        }
+        
+        .ts2-status-badge {
+          display: inline-block;
+          font-size: 0.6rem; font-weight: 700;
+          padding: 2px 8px; border-radius: 30px;
+          text-transform: uppercase; letter-spacing: 0.3px;
+          margin-left: 6px;
+        }
+        .ts2-status-badge.neg {
+          color: #B91C1C; background: rgba(185,28,28,0.1);
+        }
+        body.dark .ts2-status-badge.neg {
+          color: #EF4444; background: rgba(239,68,68,0.15);
+        }
+        .ts2-status-badge.pos {
+          color: #15803D; background: rgba(21,128,61,0.1);
+        }
+        body.dark .ts2-status-badge.pos {
+          color: #22C55E; background: rgba(34,197,94,0.15);
         }
         .ts2-price-block { text-align: right; flex-shrink: 0; }
         .ts2-price-value { font-size: 1.35rem; font-weight: 800; color: var(--text-primary, #111827); }
@@ -598,13 +618,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           display: inline-block; margin-top: 3px;
           font-size: 0.62rem; font-weight: 700;
           padding: 2px 8px; border-radius: 30px;
-          background: #DCFCE7; color: #059669;
+          background: rgba(21,128,61,0.1); color: #15803D;
         }
         body.dark .ts2-change-badge {
-          background: #1A3A2A; color: #4ADE80;
+          background: rgba(34,197,94,0.15); color: #22C55E;
         }
-        .ts2-change-badge.neg { background: #FEF2F2; color: #C62E2E; }
-        body.dark .ts2-change-badge.neg { background: #3B2A2A; color: #F87171; }
+        .ts2-change-badge.neg { background: rgba(185,28,28,0.1); color: #B91C1C; }
+        body.dark .ts2-change-badge.neg { background: rgba(239,68,68,0.15); color: #EF4444; }
 
         .ts2-bidask {
           background: var(--card-bg, #fff); display: flex; align-items: center;
@@ -618,10 +638,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           font-size: 0.6rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .ts2-ba-bid { font-size: 0.82rem; font-weight: 700; color: #059669; }
-        body.dark .ts2-ba-bid { color: #4ADE80; }
-        .ts2-ba-ask { font-size: 0.82rem; font-weight: 700; color: #DC2626; }
-        body.dark .ts2-ba-ask { color: #F87171; }
+        .ts2-ba-bid { font-size: 0.82rem; font-weight: 700; color: #15803D; }
+        body.dark .ts2-ba-bid { color: #22C55E; }
+        .ts2-ba-ask { font-size: 0.82rem; font-weight: 700; color: #B91C1C; }
+        body.dark .ts2-ba-ask { color: #EF4444; }
         .ts2-ba-divider { width: 1px; height: 20px; background: var(--border-light, #E5E7EB); margin: 0 8px; }
 
         .ts2-scroll { flex: 1; overflow-y: auto; padding-bottom: 90px; }
@@ -732,11 +752,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-ml { font-size: 0.68rem; font-weight: 600; color: var(--text-secondary, #6B7280); }
         .ts2-mv { font-size: 0.78rem; font-weight: 700; color: var(--text-primary, #111827); }
         .ts2-mv-avail {
-          background: #DCFCE7; color: #15803D;
+          background: rgba(21,128,61,0.1); color: #15803D;
           padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
         }
         body.dark .ts2-mv-avail {
-          background: #1A3A2A; color: #4ADE80;
+          background: rgba(34,197,94,0.15); color: #22C55E;
         }
 
         .ts2-footer {
@@ -793,22 +813,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                   <span className="ts2-segment-badge">{item.segment}</span>
                   {exitMode && (
-                    <span style={{
-                      display: 'inline-block',
-                      fontSize: '0.6rem', fontWeight: 700,
-                      color: 'var(--negative-text, #B91C1C)', background: 'var(--negative-bg, #FEF2F2)',
-                      padding: '2px 8px', borderRadius: '30px',
-                      textTransform: 'uppercase', letterSpacing: '0.3px'
-                    }}>Exit Position</span>
+                    <span className="ts2-status-badge neg">Exit Position</span>
                   )}
                   {!exitMode && (
-                    <span style={{
-                      display: 'inline-block',
-                      fontSize: '0.6rem', fontWeight: 700,
-                      color: 'var(--positive-text, #15803D)', background: 'var(--positive-bg, #DCFCE7)',
-                      padding: '2px 8px', borderRadius: '30px',
-                      textTransform: 'uppercase', letterSpacing: '0.3px'
-                    }}>Add More</span>
+                    <span className="ts2-status-badge pos">Add More</span>
                   )}
                 </div>
               </div>
