@@ -12,12 +12,6 @@ import Footer from '@/components/Footer';
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
 
-const formatHoldTime = (sec: number) => {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
-};
-
 export default function PositionPage() {
   const router = useRouter();
   useAuth();
@@ -218,15 +212,7 @@ export default function PositionPage() {
     let successCount = 0;
     let failCount = 0;
     
-    // Filter out locked positions from bulk exit
-    const exitablePositions = openPositions.filter(p => !p.hold_lock_active);
-    
-    if (exitablePositions.length === 0) {
-      showToast('All open positions are currently locked under anti-scalping holding rules.');
-      setIsExitingAll(false);
-      setIsExitAllModalOpen(false);
-      return;
-    }
+    const exitablePositions = openPositions;
     
     const promises = exitablePositions.map(p => closePosition(p.id));
     const results = await Promise.all(promises);
@@ -394,14 +380,11 @@ export default function PositionPage() {
                           <p>No open positions</p>
                         </div>
                       ) : openPositions.map(pos => (
-                        <div key={pos.id} className={`pos-card${expandedPosId === pos.id ? ' pos-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`} onClick={() => toggleExpand(pos.id)}>
+                        <div key={pos.id} className={`pos-card${expandedPosId === pos.id ? ' pos-card--expanded' : ''}`} onClick={() => toggleExpand(pos.id)}>
                           <div className="pos-card-main">
                             <div className="pos-card-left">
                               <div className="pos-card-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>
-                                {pos.hold_lock_active && (
-                                  <i className="fas fa-lock lock-icon-inline" title="Anti-Scalping Lock Active" style={{ marginLeft: 6, color: '#f59e0b', fontSize: '0.85rem' }} />
-                                )}
                               </div>
                               <div className="pos-card-details">
                                 <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
@@ -460,21 +443,14 @@ export default function PositionPage() {
                               </div>
                             </div>
                           </div>
-                          {pos.hold_lock_active && (
-                            <div className="pos-lock-banner">
-                              <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                              <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(pos.remaining_hold_seconds)}</span>
-                            </div>
-                          )}
                           {expandedPosId === pos.id && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
                               <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
-                                className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(pos); }}
-                                disabled={pos.hold_lock_active}
+                                className="pca-btn pca-exit"
+                                onClick={() => openExitSheet(pos)}
                               >
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
@@ -585,7 +561,7 @@ export default function PositionPage() {
                       return (
                         <div
                           key={pos.id}
-                          className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
+                          className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}`}
                           onClick={() => {
                             if (pos.status === 'closed') {
                               handleRowClick(pos);
@@ -600,9 +576,6 @@ export default function PositionPage() {
                               <div className="pos-detail-symbol">
                                 <span className="pos-symbol-text">{pos.symbol}</span>{' '}
                                 <span className="pos-detail-side">{pos.side}</span>
-                                {pos.hold_lock_active && (
-                                  <i className="fas fa-lock lock-icon-inline" title="Anti-Scalping Lock Active" style={{ marginLeft: 6, color: '#f59e0b', fontSize: '0.85rem' }} />
-                                )}
                               </div>
                               <div className="pos-detail-meta">
                                 <div className="pos-detail-meta-row">
@@ -678,21 +651,14 @@ export default function PositionPage() {
                               </div>
                             </div>
                           </div>
-                          {pos.hold_lock_active && (
-                            <div className="pos-lock-banner" style={{ margin: '8px 12px 0 12px' }}>
-                              <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                              <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(pos.remaining_hold_seconds)}</span>
-                            </div>
-                          )}
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
                               <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
-                                className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(pos); }}
-                                disabled={pos.hold_lock_active}
+                                className="pca-btn pca-exit"
+                                onClick={() => openExitSheet(pos)}
                               >
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
@@ -1022,14 +988,6 @@ export default function PositionPage() {
                         </div>
                       </div>
 
-                      {/* Lock Message display */}
-                      {selectedPos.hold_lock_active && (
-                        <div className="pos-lock-banner" style={{ margin: '8px 0 16px 0' }}>
-                          <i className="fas fa-lock banner-icon" style={{ marginRight: 6 }} />
-                          <span>Anti-Scalping Lock Active. Remaining Hold Time: {formatHoldTime(selectedPos.remaining_hold_seconds)}</span>
-                        </div>
-                      )}
-
                       {/* P&L + Exit All */}
                       <div className="ps-pnl-section">
                         <div>
@@ -1039,9 +997,8 @@ export default function PositionPage() {
                           </div>
                         </div>
                         <button
-                          className={`ps-btn-exit${selectedPos.hold_lock_active ? ' disabled-lock' : ''}`}
-                          onClick={() => { if (!selectedPos.hold_lock_active) handleExit(selectedPos.id); }}
-                          disabled={selectedPos.hold_lock_active}
+                          className="ps-btn-exit"
+                          onClick={() => handleExit(selectedPos.id)}
                         >
                           Exit All
                         </button>
@@ -1051,9 +1008,8 @@ export default function PositionPage() {
                       <div className="ps-action-row">
                         <button className="ps-btn-add" onClick={() => openAddMore(selectedPos)}>Add More</button>
                         <button
-                          className={`ps-btn-partial${selectedPos.hold_lock_active ? ' disabled-lock' : ''}`}
-                          onClick={() => { if (!selectedPos.hold_lock_active) handleExit(selectedPos.id); }}
-                          disabled={selectedPos.hold_lock_active}
+                          className="ps-btn-partial"
+                          onClick={() => handleExit(selectedPos.id)}
                         >
                           Partial Exit
                         </button>
