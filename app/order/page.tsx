@@ -511,10 +511,14 @@ export default function OrderPage() {
               }}
               initialOrder={tradeSheetInitialOrder}
               isModify={!!modifyingOrderId}
+              modifyingOrderId={modifyingOrderId}
               onSuccess={() => {
                 refresh();
                 if (modifyingOrderId) {
-                  cancelOrder(modifyingOrderId);
+                  // Only cancel the old order if it is not a virtual position order
+                  if (!modifyingOrderId.startsWith('pos-sl-') && !modifyingOrderId.startsWith('pos-target-')) {
+                    cancelOrder(modifyingOrderId);
+                  }
                   showToast('Order modified successfully');
                   setModifyingOrderId(null);
                 }

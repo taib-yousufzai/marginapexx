@@ -26,6 +26,7 @@ interface TradeSheetProps {
   productType?: ProductType;
   initialOrder?: any;
   isModify?: boolean;
+  modifyingOrderId?: string | null;
 }
 
 function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: number }[]): number {
@@ -58,7 +59,7 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder, isModify = false }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder, isModify = false, modifyingOrderId }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -512,6 +513,41 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
             return;
           }
         }
+      }
+    }
+
+    if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-'))) {
+      const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '');
+      const isSl = modifyingOrderId.startsWith('pos-sl-');
+      const updateData = isSl 
+        ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null } 
+        : { target: resolvedClientPrice || resolvedTarget || null };
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const patchRes = await fetch(`/api/positions/${positionId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(updateData),
+        });
+
+        if (!patchRes.ok) {
+          const body = await patchRes.json();
+          showToast(body.error || 'Failed to update position stop loss/target.');
+          return;
+        }
+
+        showToast('Stop loss/target updated successfully');
+        onSuccess?.();
+        onClose();
+        return;
+      } catch (err) {
+        showToast('Failed to update position stop loss/target.');
+        return;
       }
     }
 
