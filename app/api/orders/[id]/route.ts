@@ -26,6 +26,35 @@ export async function PATCH(
 
     const admin = getAdminClient();
 
+    // Check if virtual order (SL/Target attached to position)
+    const isVirtualSl = id.startsWith('pos-sl-');
+    const isVirtualTarget = id.startsWith('pos-target-');
+
+    if (isVirtualSl || isVirtualTarget) {
+      const positionId = id.replace('pos-sl-', '').replace('pos-target-', '');
+      const updateField = isVirtualSl ? { stop_loss: null } : { target: null };
+
+      const { data, error } = await admin
+        .from('positions')
+        .update(updateField)
+        .eq('id', positionId)
+        .eq('user_id', user.id)
+        .eq('status', 'open')
+        .select()
+        .single();
+
+      if (error) {
+        return NextResponse.json({ error: 'Could not cancel stop loss/target. The position might already be closed.' }, { status: 400 });
+      }
+
+      return NextResponse.json({
+        order: {
+          id,
+          status: 'CANCELLED',
+        }
+      });
+    }
+
     // Update order status if it's still PENDING
     const { data, error } = await admin
       .from('orders')
