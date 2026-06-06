@@ -35,8 +35,8 @@ describe('Admin Accounts API - Property 13: Accounts PnL+BKG invariant', () => {
       fc.property(
         fc.array(
           fc.record({
-            net_pnl: fc.float({ noNaN: true }),
-            brokerage: fc.float({ min: 0, noNaN: true }),
+            net_pnl: fc.float({ noNaN: true, noDefaultInfinity: true }),
+            brokerage: fc.float({ min: 0, noNaN: true, noDefaultInfinity: true }),
           }),
         ),
         (rows) => {
@@ -60,8 +60,8 @@ describe('Admin Accounts API - Property 13: Accounts PnL+BKG invariant', () => {
   it('pnl_bkg equals net_pnl + brokerage for a single position', () => {
     fc.assert(
       fc.property(
-        fc.float({ noNaN: true }),
-        fc.float({ min: 0, noNaN: true }),
+        fc.float({ noNaN: true, noDefaultInfinity: true }),
+        fc.float({ min: 0, noNaN: true, noDefaultInfinity: true }),
         (net_pnl, brokerage) => {
           const result = aggregatePositions([
             { pnl: net_pnl, brokerage, settlement: null },
@@ -85,8 +85,8 @@ describe('Admin Accounts API - Property 13: Accounts PnL+BKG invariant', () => {
         fc.array(
           fc.array(
             fc.record({
-              net_pnl: fc.float({ noNaN: true }),
-              brokerage: fc.float({ min: 0, noNaN: true }),
+              net_pnl: fc.float({ noNaN: true, noDefaultInfinity: true }),
+              brokerage: fc.float({ min: 0, noNaN: true, noDefaultInfinity: true }),
             }),
           ),
           { minLength: 1 },

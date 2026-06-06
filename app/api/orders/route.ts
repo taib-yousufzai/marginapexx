@@ -24,6 +24,27 @@ import type {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * Fetch the Binance LTP for a crypto symbol.
+ */
+async function fetchBinanceQuote(symbol: string): Promise<number | null> {
+  try {
+    let cleanSym = symbol.replace('/', '').toUpperCase();
+    if (!cleanSym.endsWith('USDT')) {
+      cleanSym = cleanSym + 'USDT';
+    }
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, {
+      cache: 'no-store'
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.price ? parseFloat(data.price) : null;
+  } catch (err) {
+    console.error('[fetchBinanceQuote] Error:', err);
+    return null;
+  }
+}
+
+/**
  * Fetch the Kite LTP for one or more instruments server-side.
  * Resolves from local market_quotes DB cache first, falling back on-demand.
  * Returns a map of instrument -> last_price.
@@ -344,8 +365,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .eq('user_id', user.id)
       .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
 
-    // Kite LTP — batch fetch all needed quotes in one call
-    fetchKiteQuotes(instrumentsToFetch),
+    // Fetch quotes — either Kite or Binance depending on segment
+    (async () => {
+      if (dbSegment === 'CRYPTO') {
+        const price = await fetchBinanceQuote(symbol);
+        return price ? { [kiteInst]: price } : {};
+      } else {
+        return fetchKiteQuotes(instrumentsToFetch);
+      }
+    })(),
 
     // Fetch script settings for dynamic lot size
     admin.from('script_settings')
@@ -498,7 +526,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Validate Limit price constraints relative to LTP
-  if (order_type === 'LIMIT' || (order_type === 'GTT' && !is_exit)) {
+  if (order_type === 'LIMIT') {
+    if (side === 'BUY' && client_price >= baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be lower than the current market price (LTP).' }, { status: 400 });
+    }
+    if (side === 'SELL' && client_price <= baseLtp) {
+      return NextResponse.json({ error: 'Limit price must be higher than the current market price (LTP).' }, { status: 400 });
+    }
+  } else if (order_type === 'GTT' && !is_exit) {
     if (side === 'BUY' && client_price > baseLtp) {
       return NextResponse.json({ error: 'Limit price must be lower than or equal to the current market price (LTP).' }, { status: 400 });
     }

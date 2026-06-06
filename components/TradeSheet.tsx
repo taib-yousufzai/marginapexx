@@ -470,6 +470,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
+    if (resolvedOrderType === 'LIMIT') {
+      if (placeSide === 'BUY') {
+        if (resolvedClientPrice >= currentLtp) {
+          showToast('Limit price must be lower than the current market price.');
+          return;
+        }
+      } else {
+        if (resolvedClientPrice <= currentLtp) {
+          showToast('Limit price must be higher than the current market price.');
+          return;
+        }
+      }
+    }
+
     if (['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType)) {
       const parsedPrice = resolvedClientPrice;
       if (placeSide === 'BUY') {
