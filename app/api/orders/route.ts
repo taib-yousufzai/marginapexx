@@ -753,7 +753,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
     } else { // SELL side
-      const maxAllowed = baseLtp * (1 - topLimit / 100);
+      const maxAllowed = baseLtp * (1 + topLimit / 100);
       if (client_price > maxAllowed) {
         return NextResponse.json({
           error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`

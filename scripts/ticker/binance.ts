@@ -50,9 +50,23 @@ export class BinanceTicker {
     this.dbWriter = dbWriter;
   }
 
-  public start(): void {}
+  public start(): void {
+    if (!this.ws) {
+      this.connect();
+    }
+  }
 
-  public stop(): void {}
+  public stop(): void {
+    this.stopping = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
 
   private connect(): void {
     this.ws = new WebSocket(BINANCE_WS_URL);
@@ -78,7 +92,15 @@ export class BinanceTicker {
     });
   }
 
-  private scheduleReconnect(): void {}
+  private scheduleReconnect(): void {
+    if (this.stopping) return;
+    this.attempt++;
+    const delay = Math.min(this.attempt * 1000, 30000);
+    logger.info({ delay }, 'Scheduling Binance WebSocket reconnect');
+    this.reconnectTimer = setTimeout(() => {
+      this.connect();
+    }, delay);
+  }
 
   private handleMessage(raw: string): void {
     try {

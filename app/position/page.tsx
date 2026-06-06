@@ -406,24 +406,11 @@ export default function PositionPage() {
                               </div>
                               {pos.product_type && (
                                 <div
+                                  className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
+                                  style={{ marginTop: '5px' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     await toggleProductType(pos);
-                                  }}
-                                  style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: '700',
-                                    color: pos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
-                                    background: pos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
-                                    padding: '2px 8px',
-                                    borderRadius: '20px',
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    marginTop: '5px',
-                                    userSelect: 'none',
-                                    whiteSpace: 'nowrap',
                                   }}
                                 >
                                   {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
@@ -437,19 +424,7 @@ export default function PositionPage() {
                               </div>
                               <div className="pos-card-ltp">
                                 {pos.product_type && (
-                                  <span
-                                    className="exchange-badge"
-                                    style={{
-                                      fontSize: '0.55rem',
-                                      fontWeight: '700',
-                                      padding: '1px 6px',
-                                      borderRadius: '20px',
-                                      lineHeight: '1.6',
-                                      display: 'inline-block',
-                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
-                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
-                                    }}
-                                  >
+                                  <span className={`pos-product-badge ${pos.product_type === 'CARRY' ? 'carry' : ''}`}>
                                     {pos.product_type}
                                   </span>
                                 )}
@@ -477,9 +452,9 @@ export default function PositionPage() {
                                   width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
-                                  border: '1.5px solid #CBD5E1',
-                                  background: '#ffffff',
-                                  color: '#1F2937',
+                                  border: '1.5px solid var(--border-card, #CBD5E1)',
+                                  background: 'var(--card-bg, #ffffff)',
+                                  color: 'var(--text-primary, #1F2937)',
                                   cursor: 'pointer',
                                   flexShrink: 0,
                                   transition: 'all 0.15s'
@@ -608,25 +583,11 @@ export default function PositionPage() {
                               </div>
                               {pos.product_type && (
                                 <div
+                                  className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
+                                  style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     await toggleProductType(pos);
-                                  }}
-                                  style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: '700',
-                                    color: pos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
-                                    background: pos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
-                                    padding: '2px 8px',
-                                    borderRadius: '20px',
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    marginTop: '5px',
-                                    userSelect: 'none',
-                                    whiteSpace: 'nowrap',
-                                    alignSelf: 'flex-start',
                                   }}
                                 >
                                   {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
@@ -644,19 +605,7 @@ export default function PositionPage() {
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {pos.product_type && (
-                                  <span
-                                    className="exchange-badge"
-                                    style={{
-                                      fontSize: '0.55rem',
-                                      fontWeight: '700',
-                                      padding: '1px 6px',
-                                      borderRadius: '20px',
-                                      lineHeight: '1.6',
-                                      display: 'inline-block',
-                                      color: pos.product_type === 'CARRY' ? '#FFFFFF' : '#2C8E5A',
-                                      background: pos.product_type === 'CARRY' ? '#4A148C' : '#E9F6EF'
-                                    }}
-                                  >
+                                  <span className={`pos-product-badge ${pos.product_type === 'CARRY' ? 'carry' : ''}`}>
                                     {pos.product_type}
                                   </span>
                                 )}
@@ -686,9 +635,9 @@ export default function PositionPage() {
                                   width: '42px',
                                   height: '38px',
                                   borderRadius: '16px',
-                                  border: '1.5px solid #CBD5E1',
-                                  background: '#ffffff',
-                                  color: '#1F2937',
+                                  border: '1.5px solid var(--border-card, #CBD5E1)',
+                                  background: 'var(--card-bg, #ffffff)',
+                                  color: 'var(--text-primary, #1F2937)',
                                   cursor: 'pointer',
                                   flexShrink: 0,
                                   transition: 'all 0.15s'
@@ -770,7 +719,7 @@ export default function PositionPage() {
                             height: '42px',
                             borderRadius: '12px',
                             border: '1.5px solid #059669',
-                            background: '#ffffff',
+                            background: 'var(--card-bg, #ffffff)',
                             color: '#059669',
                             cursor: 'pointer',
                             display: 'flex',
@@ -946,20 +895,7 @@ export default function PositionPage() {
                                   await toggleProductType(selectedPos);
                                   setSelectedPos(prev => prev ? { ...prev, product_type: prev.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY' } : null);
                                 }}
-                                style={{
-                                  fontSize: '0.62rem',
-                                  fontWeight: '700',
-                                  color: selectedPos.product_type === 'CARRY' ? 'var(--carry-text)' : 'var(--intraday-text)',
-                                  background: selectedPos.product_type === 'CARRY' ? 'var(--carry-bg)' : 'var(--intraday-bg)',
-                                  padding: '2px 8px',
-                                  borderRadius: '20px',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  userSelect: 'none',
-                                  whiteSpace: 'nowrap',
-                                }}
+                                className={`convert-type-btn${selectedPos.product_type === 'CARRY' ? ' carry' : ' intraday'}`}
                               >
                                 {selectedPos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
                               </div>

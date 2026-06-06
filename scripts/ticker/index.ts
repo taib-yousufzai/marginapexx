@@ -12,6 +12,7 @@ import { getSharedKiteSession } from '../../lib/kiteSession.ts';
 import { SubscriptionManager } from './subscriptionManager.ts';
 import { DbBatchWriter } from './dbWriter.ts';
 import { TickProcessor } from './processor.ts';
+import { BinanceTicker } from './binance.ts';
 
 const logger = pino({ name: 'ticker-daemon', level: process.env.LOG_LEVEL || 'info' });
 
@@ -20,6 +21,7 @@ class TickerDaemon {
   private subscriptionManager: SubscriptionManager;
   private dbWriter: DbBatchWriter;
   private processor: TickProcessor;
+  private binanceTicker: BinanceTicker;
   
   private subscriptionTimer: NodeJS.Timeout | null = null;
   private isReconnecting = false;
@@ -30,6 +32,7 @@ class TickerDaemon {
     // Flush to DB once per second
     this.dbWriter = new DbBatchWriter(1000);
     this.processor = new TickProcessor(this.subscriptionManager, this.dbWriter);
+    this.binanceTicker = new BinanceTicker(this.dbWriter);
   }
 
   public async start() {
@@ -60,6 +63,9 @@ class TickerDaemon {
 
     // 3. Start database batch writer
     this.dbWriter.start();
+
+    // 3.5 Start Binance ticker
+    this.binanceTicker.start();
 
     // 4. Connect to Kite WebSockets
     this.ticker.connect();
@@ -227,6 +233,7 @@ class TickerDaemon {
         }
 
         // Flush remaining cache to database and stop timer
+        this.binanceTicker.stop();
         await this.dbWriter.stop();
         logger.info('Graceful cleanup completed. Exiting.');
         process.exit(0);

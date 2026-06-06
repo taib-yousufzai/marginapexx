@@ -288,9 +288,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const topLimit = matchingSetting?.top_limit ?? 0;
   const minLimit = matchingSetting?.min_limit ?? 0;
-  const maxAllowedPrice = activeSide === 'SELL'
-    ? currentLtp * (1 - topLimit / 100)
-    : currentLtp * (1 + topLimit / 100);
+  const maxAllowedPrice = currentLtp * (1 + topLimit / 100);
   const minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
 
   const priceRangeHelp = currentLtp > 0 ? (
@@ -506,7 +504,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           }
         }
       } else { // SELL side
-        const maxAllowed = currentLtp * (1 - pTopLimit / 100);
+        const maxAllowed = currentLtp * (1 + pTopLimit / 100);
         if (parsedPrice > maxAllowed) {
           showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
           return;
