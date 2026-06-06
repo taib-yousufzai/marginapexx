@@ -180,10 +180,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         setOrderQty(initialOrder.qty);
         setQtyInput(String(initialOrder.qty));
         setOrderUnit('qty');
-        setOrderType(initialOrder.order_type);
+        const initialOrderType = (exitMode && initialOrder.order_type === 'LIMIT') ? 'TARGET' : initialOrder.order_type;
+        setOrderType(initialOrderType);
         setProductType(initialOrder.product_type);
-        setLimitPrice(initialOrder.client_price ? String(initialOrder.client_price) : '');
-        setTriggerPrice(initialOrder.trigger_price ? String(initialOrder.trigger_price) : '');
+        setLimitPrice(initialOrder.client_price ? String(initialOrder.client_price) : (initialOrder.target ? String(initialOrder.target) : ''));
+        setTriggerPrice(initialOrder.trigger_price ? String(initialOrder.trigger_price) : (initialOrder.stop_loss ? String(initialOrder.stop_loss) : ''));
         setSlPrice(initialOrder.stop_loss ? String(initialOrder.stop_loss) : '');
         setTpPrice(initialOrder.target ? String(initialOrder.target) : '');
         if (initialOrder.order_type === 'GTT') {
@@ -278,6 +279,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const targetPT = propProductType || productType;
   const existingPos = activePositions.find(p => p.symbol === item?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.product_type === targetPT);
+  console.log('[DEBUG TradeSheet] item:', item?.symbol, 'targetPT:', targetPT, 'activePositions count:', activePositions.length, 'found:', !!existingPos);
+  if (existingPos) {
+    console.log('[DEBUG TradeSheet] Matched position details:', { id: existingPos.id, symbol: existingPos.symbol, product_type: existingPos.product_type, side: existingPos.side });
+  }
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 
@@ -546,6 +551,56 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         onClose();
         return;
       } catch (err) {
+        showToast('Failed to update position stop loss/target.');
+        return;
+      }
+    }
+    if (exitMode && (orderType === 'SL' || orderType === 'TARGET' || orderType === 'GTT')) {
+      console.log('[DEBUG TradeSheet handlePlace] exitMode setting SL/target. existingPos:', existingPos?.id, 'orderType:', orderType);
+      if (!existingPos) {
+        showToast('No active position found to set exit criteria.');
+        return;
+      }
+      const updateData: { stop_loss?: number | null; target?: number | null } = {};
+      if (orderType === 'SL') {
+        updateData.stop_loss = resolvedTriggerPrice || resolvedStopLoss || null;
+      } else if (orderType === 'TARGET') {
+        updateData.target = resolvedClientPrice || resolvedTarget || null;
+      } else if (orderType === 'GTT') {
+        updateData.stop_loss = resolvedStopLoss || null;
+        updateData.target = resolvedTarget || null;
+      }
+
+      console.log('[DEBUG TradeSheet handlePlace] Sending PATCH payload:', updateData, 'to /api/positions/', existingPos.id);
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
+        const patchRes = await fetch(`/api/positions/${existingPos.id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify(updateData),
+        });
+
+        console.log('[DEBUG TradeSheet handlePlace] PATCH response status:', patchRes.status);
+
+        if (!patchRes.ok) {
+          const body = await patchRes.json();
+          console.error('[DEBUG TradeSheet handlePlace] PATCH failed:', body);
+          showToast(body.error || 'Failed to update position stop loss/target.');
+          return;
+        }
+
+        console.log('[DEBUG TradeSheet handlePlace] PATCH successful');
+        showToast('Stop loss/target updated successfully');
+        onSuccess?.();
+        onClose();
+        return;
+      } catch (err) {
+        console.error('[DEBUG TradeSheet handlePlace] PATCH exception:', err);
         showToast('Failed to update position stop loss/target.');
         return;
       }
