@@ -255,6 +255,30 @@ export default function OrderPage() {
                         <span className="ord-label">DATE</span>
                         <span className="ord-date-val">{fmtDate(order.created_at)}</span>
                       </div>
+                      {/* SL, Target, Trigger info */}
+                      {(order.trigger_price || order.stop_loss || order.target) && (
+                        <div className="ord-row" style={{ marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {order.trigger_price !== undefined && order.trigger_price !== null && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span className="ord-label" style={{ fontSize: '0.6rem' }}>TRIG:</span>
+                              <span className="ord-val" style={{ fontSize: '0.65rem', fontWeight: 700 }}>{fmtPrice(order.trigger_price)}</span>
+                            </div>
+                          )}
+                          {order.stop_loss !== undefined && order.stop_loss !== null && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span className="ord-label" style={{ fontSize: '0.6rem', color: '#dc2626' }}>SL:</span>
+                              <span className="ord-val" style={{ fontSize: '0.65rem', fontWeight: 700, color: '#dc2626' }}>{fmtPrice(order.stop_loss)}</span>
+                            </div>
+                          )}
+                          {order.target !== undefined && order.target !== null && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span className="ord-label" style={{ fontSize: '0.6rem', color: '#059669' }}>TGT:</span>
+                              <span className="ord-val" style={{ fontSize: '0.65rem', fontWeight: 700, color: '#059669' }}>{fmtPrice(order.target)}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Product + variety tags */}
                       <div className="ord-row" style={{ marginTop: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -422,6 +446,24 @@ export default function OrderPage() {
                       <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Segment</div>
                       <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{selectedOrder.segment}</div>
                     </div>
+                    {selectedOrder.trigger_price !== undefined && selectedOrder.trigger_price !== null && (
+                      <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Trigger Price</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedOrder.trigger_price)}</div>
+                      </div>
+                    )}
+                    {selectedOrder.stop_loss !== undefined && selectedOrder.stop_loss !== null && (
+                      <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Stop Loss</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#dc2626' }}>{fmtPrice(selectedOrder.stop_loss)}</div>
+                      </div>
+                    )}
+                    {selectedOrder.target !== undefined && selectedOrder.target !== null && (
+                      <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '0.58rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Target</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#059669' }}>{fmtPrice(selectedOrder.target)}</div>
+                      </div>
+                    )}
                     <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px', gridColumn: '1 / -1' }}>
                       <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Time</div>
                       <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>
