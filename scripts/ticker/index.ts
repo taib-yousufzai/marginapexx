@@ -232,8 +232,11 @@ class TickerDaemon {
           this.ticker.disconnect();
         }
 
-        // Flush remaining cache to database and stop timer
+        // Stop Binance WebSocket Ticker
+        logger.info('Stopping Binance WebSocket Ticker...');
         this.binanceTicker.stop();
+
+        // Flush remaining cache to database and stop timer
         await this.dbWriter.stop();
         logger.info('Graceful cleanup completed. Exiting.');
         process.exit(0);

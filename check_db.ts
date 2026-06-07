@@ -9,7 +9,7 @@ async function main() {
   const { data: positions } = await admin
     .from('positions')
     .select('*')
-    .in('symbol', ['BTCUSDT', 'ETHUSDT'])
+    .in('symbol', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'])
     .eq('status', 'open');
 
   console.log('Open positions details:');
@@ -21,7 +21,7 @@ async function main() {
   const { data: orders } = await admin
     .from('orders')
     .select('*')
-    .in('symbol', ['BTCUSDT', 'ETHUSDT'])
+    .in('symbol', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'])
     .order('created_at', { ascending: false })
     .limit(5);
 
