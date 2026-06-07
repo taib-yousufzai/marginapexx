@@ -185,14 +185,15 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
         const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
         const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+        const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
 
         if (p.side === 'BUY') {
-          // BUY (Long): exits by selling, executes at Bid Price (LTP * 0.999)
-          const currentBid = ltp * 0.999;
+          // BUY (Long): exits by selling, executes at Bid Price minus exit buffer
+          const currentBid = ltp * (1 - exitBuffer);
           unrealised = (currentBid - p.entry_price) * p.qty_open;
         } else {
-          // SELL (Short): exits by buying back, executes at Ask Price (LTP * 1.001 + LTP * entry_buffer)
-          const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
+          // SELL (Short): exits by buying back, executes at Ask Price (LTP * (1 + entry_buffer))
+          const currentAsk = ltp * (1 + entryBuffer);
           unrealised = (p.entry_price - currentAsk) * p.qty_open;
         }
       }

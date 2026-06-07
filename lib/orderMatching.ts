@@ -244,16 +244,18 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
       const drawdownLimit = - (autoSqoffPercent / 100.0) * balance;
 
-      // 2. Fetch segment settings for this user (to get entry buffers for SELL exits)
+      // 2. Fetch segment settings for this user (to get entry/exit buffers)
       const { data: segSettings } = await admin
         .from('segment_settings')
-        .select('segment, side, entry_buffer')
+        .select('segment, side, entry_buffer, exit_buffer')
         .eq('user_id', userId);
 
-      const settingsMap = new Map<string, number>();
+      const entryBufferMap = new Map<string, number>();
+      const exitBufferMap = new Map<string, number>();
       if (segSettings) {
         for (const s of segSettings) {
-          settingsMap.set(`${s.segment}|${s.side}`, Number(s.entry_buffer ?? 0.003));
+          entryBufferMap.set(`${s.segment}|${s.side}`, Number(s.entry_buffer ?? 0.003));
+          exitBufferMap.set(`${s.segment}|${s.side}`, Number(s.exit_buffer ?? 0.0017));
         }
       }
 
@@ -281,10 +283,11 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
         const entryPrice = Number(pos.entry_price ?? pos.avg_price);
         const qty = Number(pos.qty_open ?? 0);
-        const buffer = settingsMap.get(`${pos.settlement}|BUY`) ?? 0.003;
+        const entryBuffer = entryBufferMap.get(`${pos.settlement}|BUY`) ?? 0.003;
+        const exitBuffer = exitBufferMap.get(`${pos.settlement}|BUY`) ?? 0.0017;
         const pnl = pos.side === 'BUY' 
-          ? ((ltp * 0.999) - entryPrice) * qty 
-          : (entryPrice - (ltp * 1.001 + ltp * buffer)) * qty;
+          ? ((ltp * (1 - exitBuffer)) - entryPrice) * qty 
+          : (entryPrice - (ltp * (1 + entryBuffer))) * qty;
 
         totalUnrealised += pnl;
 
@@ -306,13 +309,15 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
           // Calculate exit price
           let exitPrice = ltp;
           if (pos.side === 'BUY') {
-            // Exiting BUY (Selling) -> executes at Bid Price = ltp * 0.999
-            exitPrice = ltp * 0.999;
+            // Exiting BUY (Selling) -> executes at Bid Price minus exit buffer
+            const exitBuffer = exitBufferMap.get(`${pos.settlement}|BUY`) ?? 0.0017;
+            exitPrice = ltp * (1 - exitBuffer);
           } else {
-            // Exiting SELL (Buying) -> executes at Ask Price = ltp * (1.001 + entryBuffer)
-            const buffer = settingsMap.get(`${pos.settlement}|BUY`) ?? 0.003;
-            exitPrice = ltp * (1.001 + buffer);
+            // Exiting SELL (Buying) -> executes at Ask Price = ltp * (1 + entryBuffer)
+            const entryBuffer = entryBufferMap.get(`${pos.settlement}|BUY`) ?? 0.003;
+            exitPrice = ltp * (1 + entryBuffer);
           }
+          exitPrice = Math.round(exitPrice * 10000) / 10000;
 
           console.log(`[Order Matching] Liquidation Close for position ${pos.id} (${pos.symbol}). LTP: ${ltp}, Exit Price: ${exitPrice}`);
 
@@ -391,7 +396,15 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         // Calculate exit price
         let exitPrice = ltp;
         if (pos.side === 'BUY') {
-          exitPrice = ltp * 0.999;
+          const { data: segSet } = await admin
+            .from('segment_settings')
+            .select('exit_buffer')
+            .eq('user_id', pos.user_id)
+            .eq('segment', pos.settlement)
+            .eq('side', 'BUY')
+            .maybeSingle();
+          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
+          exitPrice = ltp * (1 - buffer);
         } else {
           // Fetch buffer for this user
           const { data: segSet } = await admin
@@ -402,8 +415,9 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             .eq('side', 'BUY')
             .maybeSingle();
           const buffer = Number(segSet?.entry_buffer ?? 0.003);
-          exitPrice = ltp * (1.001 + buffer);
+          exitPrice = ltp * (1 + buffer);
         }
+        exitPrice = Math.round(exitPrice * 10000) / 10000;
 
         const { error: closeRpcErr } = await admin.rpc('close_position', {
           p_position_id: pos.id,
@@ -421,7 +435,15 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         const qty = Number(pos.qty_open ?? 0);
         let pnl = 0;
         if (side === 'BUY') {
-          pnl = ((ltp * 0.999) - entryPrice) * qty;
+          const { data: segSet } = await admin
+            .from('segment_settings')
+            .select('exit_buffer')
+            .eq('user_id', pos.user_id)
+            .eq('segment', pos.settlement)
+            .eq('side', 'BUY')
+            .maybeSingle();
+          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
+          pnl = ((ltp * (1 - buffer)) - entryPrice) * qty;
         } else {
           const { data: segSet } = await admin
             .from('segment_settings')
@@ -431,7 +453,7 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             .eq('side', 'BUY')
             .maybeSingle();
           const buffer = Number(segSet?.entry_buffer ?? 0.003);
-          pnl = (entryPrice - (ltp * 1.001 + ltp * buffer)) * qty;
+          pnl = (entryPrice - (ltp * (1 + buffer))) * qty;
         }
 
         const { error: updatePosErr } = await admin

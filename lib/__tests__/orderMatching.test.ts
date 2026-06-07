@@ -204,7 +204,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-1',
       p_user_id: 'usr-1',
       p_ltp: 1475,
-      p_exit_price: 1473.525,
+      p_exit_price: 1472.4925,
       p_closed_by: 'AUTO_SL'
     });
   });
@@ -239,7 +239,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-2',
       p_user_id: 'usr-1',
       p_ltp: 1605,
-      p_exit_price: 1603.395,
+      p_exit_price: 1602.2715,
       p_closed_by: 'AUTO_TARGET'
     });
   });

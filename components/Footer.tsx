@@ -163,15 +163,16 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         const dbSeg = mapSegmentToDbSegment(p.settlement || '');
         const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
         const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+        const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
 
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
-            const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
-            unrealised = (currentAsk - p.entry_price) * p.qty_open;
+            const currentBid = ltp * (1 - exitBuffer);
+            unrealised = (currentBid - p.entry_price) * p.qty_open;
           } else {
-            const currentBid = ltp * 0.999;
-            unrealised = (p.entry_price - currentBid) * p.qty_open;
+            const currentAsk = ltp * (1 + entryBuffer);
+            unrealised = (p.entry_price - currentAsk) * p.qty_open;
           }
         }
         totalUnrealised += unrealised;

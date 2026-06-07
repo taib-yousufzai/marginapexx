@@ -105,9 +105,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
   const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === activeSide);
   const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
+  const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
 
-  const bidPrice = currentLtp > 0 ? currentLtp - currentLtp * 0.001 : 0;
-  const askPrice = currentLtp > 0 ? (currentLtp * 1.001) + (currentLtp * entryBuffer) : 0;
+  const bidPrice = currentLtp > 0 ? currentLtp * (1 - exitBuffer) : 0;
+  const askPrice = currentLtp > 0 ? currentLtp * (1 + entryBuffer) : 0;
 
   const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
   const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;

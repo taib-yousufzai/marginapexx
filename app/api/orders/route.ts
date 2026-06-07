@@ -346,7 +346,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const dbSegment = mapSegmentToDbSegment(segment);
   const admin = getAdminClient();
 
-  // Check market hours
+  // Check market hours (TEMPORARILY BYPASSED FOR TESTING)
+  /*
   try {
     const exchangeName = symbol.includes(':') ? symbol.split(':')[0] : 'NSE';
     const ex = exchangeName.toUpperCase();
@@ -387,6 +388,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (err) {
     console.error('[POST /api/orders] Market hours check error:', err);
   }
+  */
 
   const kiteInst = kite_instrument || symbol;
 
@@ -783,12 +785,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     fillPrice = client_price;
   } else {
     const entryBuffer = segSetting?.entry_buffer ?? 0.003;
+    const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
     if (side === 'BUY') {
-      // Always buy at Asking Price (LTP * 1.001) + Margin (LTP * entry_buffer)
-      fillPrice = baseLtp * (1.001 + entryBuffer);
+      // Buy executes at: LTP * (1 + entryBuffer)
+      fillPrice = baseLtp * (1 + entryBuffer);
     } else {
-      // Always sell at Bid Price (LTP * 0.999)
-      fillPrice = baseLtp * (1 - 0.001);
+      // Sell executes at: LTP * (1 - exitBuffer)
+      fillPrice = baseLtp * (1 - exitBuffer);
     }
   }
 

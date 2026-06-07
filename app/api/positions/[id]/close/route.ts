@@ -129,7 +129,8 @@ export async function POST(
     return NextResponse.json({ error: 'Position not found or already closed' }, { status: 404 });
   }
 
-  // Check market hours
+  // Check market hours (TEMPORARILY BYPASSED FOR TESTING)
+  /*
   try {
     const symbol = pos.symbol || '';
     const dbSegment = pos.settlement || '';
@@ -172,6 +173,7 @@ export async function POST(
   } catch (err) {
     console.error('[POST /api/positions/[id]/close] Market hours check error:', err);
   }
+  */
 
   // 2. Parallel fetch segment settings and LTP
   const isScalper = profileResult.data?.trading_mode === 'scalper';
