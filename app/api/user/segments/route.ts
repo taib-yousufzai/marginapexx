@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
           holding_type: 'Multiplier',
           entry_buffer: 0.003,
           exit_buffer: 0.0017,
-          trade_allowed: true,
+          trade_allowed: segUpper.includes('CRYPTO') ? false : true,
         });
       }
     }

@@ -501,7 +501,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       user_id: user.id,
       segment: dbSegment,
       side: side as 'BUY' | 'SELL',
-      trade_allowed: true,
+      trade_allowed: !dbSegment.toUpperCase().includes('CRYPTO'),
       max_lot: 50,
       max_order_lot: 50,
       intraday_leverage,
