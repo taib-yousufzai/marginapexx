@@ -187,13 +187,13 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
 
         if (p.side === 'BUY') {
-          // BUY: evaluates at current Ask price
-          const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
-          unrealised = (currentAsk - p.entry_price) * p.qty_open;
-        } else {
-          // SELL: evaluates at current Bid price
+          // BUY (Long): exits by selling, executes at Bid Price (LTP * 0.999)
           const currentBid = ltp * 0.999;
-          unrealised = (p.entry_price - currentBid) * p.qty_open;
+          unrealised = (currentBid - p.entry_price) * p.qty_open;
+        } else {
+          // SELL (Short): exits by buying back, executes at Ask Price (LTP * 1.001 + LTP * entry_buffer)
+          const currentAsk = (ltp * 1.001) + (ltp * entryBuffer);
+          unrealised = (p.entry_price - currentAsk) * p.qty_open;
         }
       }
 

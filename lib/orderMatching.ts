@@ -283,8 +283,8 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         const qty = Number(pos.qty_open ?? 0);
         const buffer = settingsMap.get(`${pos.settlement}|BUY`) ?? 0.003;
         const pnl = pos.side === 'BUY' 
-          ? ((ltp * 1.001 + ltp * buffer) - entryPrice) * qty 
-          : (entryPrice - (ltp * 0.999)) * qty;
+          ? ((ltp * 0.999) - entryPrice) * qty 
+          : (entryPrice - (ltp * 1.001 + ltp * buffer)) * qty;
 
         totalUnrealised += pnl;
 
@@ -421,6 +421,8 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         const qty = Number(pos.qty_open ?? 0);
         let pnl = 0;
         if (side === 'BUY') {
+          pnl = ((ltp * 0.999) - entryPrice) * qty;
+        } else {
           const { data: segSet } = await admin
             .from('segment_settings')
             .select('entry_buffer')
@@ -429,9 +431,7 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             .eq('side', 'BUY')
             .maybeSingle();
           const buffer = Number(segSet?.entry_buffer ?? 0.003);
-          pnl = ((ltp * 1.001 + ltp * buffer) - entryPrice) * qty;
-        } else {
-          pnl = (entryPrice - (ltp * 0.999)) * qty;
+          pnl = (entryPrice - (ltp * 1.001 + ltp * buffer)) * qty;
         }
 
         const { error: updatePosErr } = await admin
