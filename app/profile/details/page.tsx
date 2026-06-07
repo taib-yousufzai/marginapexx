@@ -236,6 +236,7 @@ export default function ProfileDetailsPage() {
                     </>
                 )}
         </div>
+      </div>
       </main>
     </div>
   );

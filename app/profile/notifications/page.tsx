@@ -249,6 +249,7 @@ export default function NotificationsPage() {
                     </>
                 )}
         </div>
+      </div>
       </main>
     </div>
   );

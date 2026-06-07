@@ -177,6 +177,7 @@ export default function SecurityPage() {
                     </ul>
                 </div>
         </div>
+      </div>
       </main>
     </div>
   );

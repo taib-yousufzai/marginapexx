@@ -17,6 +17,12 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
   const [editSl, setEditSl] = useState('');
   const [editTp, setEditTp] = useState('');
   const [editQtyOpen, setEditQtyOpen] = useState('');
+  const [editAvgPrice, setEditAvgPrice] = useState('');
+  const [editExitPrice, setEditExitPrice] = useState('');
+  const [editQtyTotal, setEditQtyTotal] = useState('');
+  const [editBrokerage, setEditBrokerage] = useState('');
+  const [editSettlement, setEditSettlement] = useState('');
+  const [editStatus, setEditStatus] = useState<'open' | 'active' | 'closed'>('open');
 
   const uid = selectedUser.id;
 
@@ -71,19 +77,62 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
       });
   };
 
+  const handleReopen = (pos: Position) => {
+    const qtyOpen = Number(pos.qty.split('/')[1] || pos.qty.split('/')[0] || 0);
+    apiCall(`/api/admin/positions/${pos.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'open',
+        qty_open: qtyOpen,
+        exit_price: null,
+      }),
+    }).then(({ ok, status }) => {
+      if (status === 401) { signOut(); return; }
+      if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+      if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      setToast({ message: 'Position reopened successfully', type: 'success' });
+      fetchPositions();
+    }).catch((err: unknown) => {
+      setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
+    });
+  };
+
   const openEdit = (p: Position) => {
     setEditPos(p);
     setEditSl(p.slTp.split(' / ')[0] === '–' ? '' : p.slTp.split(' / ')[0]);
     setEditTp(p.slTp.split(' / ')[1] === '–' ? '' : p.slTp.split(' / ')[1]);
     setEditQtyOpen(p.qty.split('/')[0]);
+    setEditAvgPrice(String(p.avgPrice || 0));
+    setEditExitPrice(p.exit !== undefined ? String(p.exit) : '');
+    setEditQtyTotal(p.qty.split('/')[1] || p.qty.split('/')[0] || '0');
+    setEditBrokerage(String(p.brokerage || 0));
+    setEditSettlement(p.settlement || '');
+    setEditStatus(p.status);
   };
 
   const handleEdit = () => {
     if (!editPos?.id) return;
     const body: Record<string, unknown> = {};
-    if (editSl !== '') body.sl = Number(editSl);
-    if (editTp !== '') body.tp = Number(editTp);
-    if (editQtyOpen !== '') body.qty_open = Number(editQtyOpen);
+    body.status = editStatus;
+
+    if (editStatus === 'closed') {
+      body.avg_price = Number(editAvgPrice);
+      body.exit_price = editExitPrice !== '' ? Number(editExitPrice) : null;
+      body.qty_total = Number(editQtyTotal);
+      body.qty_open = 0;
+      body.brokerage = Number(editBrokerage);
+      body.settlement = editSettlement !== '' ? editSettlement : null;
+    } else {
+      if (editSl !== '') body.sl = Number(editSl);
+      else body.sl = null;
+      if (editTp !== '') body.tp = Number(editTp);
+      else body.tp = null;
+      if (editQtyOpen !== '') body.qty_open = Number(editQtyOpen);
+      if (editQtyTotal !== '') body.qty_total = Number(editQtyTotal);
+      body.avg_price = Number(editAvgPrice);
+      body.brokerage = Number(editBrokerage);
+    }
+
     apiCall(`/api/admin/positions/${editPos.id}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
@@ -91,6 +140,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
       if (status === 401) { signOut(); return; }
       if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
       if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+      setToast({ message: 'Position updated successfully', type: 'success' });
       setEditPos(null);
       fetchPositions();
     }).catch((err: unknown) => {
@@ -106,6 +156,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
         if (status === 401) { signOut(); return; }
         if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
         if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        setToast({ message: 'Position deleted successfully', type: 'success' });
         setConfirmDeleteId(null);
         fetchPositions();
       })
@@ -133,18 +184,73 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
               <span className="adm-modal-title">Edit Position — {editPos.symbol}</span>
               <button className="adm-modal-close" onClick={() => setEditPos(null)}>✕</button>
             </div>
+            
             <div className="adm-sheet-field">
-              <label className="adm-sheet-label">SL</label>
-              <input className="adm-sheet-input" type="number" value={editSl} onChange={e => setEditSl(e.target.value)} placeholder="–" />
+              <label className="adm-sheet-label">Status</label>
+              <select 
+                className="adm-sheet-input" 
+                value={editStatus} 
+                onChange={e => setEditStatus(e.target.value as any)}
+                style={{ background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d' }}
+              >
+                <option value="open">Open</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
             </div>
-            <div className="adm-sheet-field">
-              <label className="adm-sheet-label">TP</label>
-              <input className="adm-sheet-input" type="number" value={editTp} onChange={e => setEditTp(e.target.value)} placeholder="–" />
-            </div>
-            <div className="adm-sheet-field">
-              <label className="adm-sheet-label">Qty Open</label>
-              <input className="adm-sheet-input" type="number" value={editQtyOpen} onChange={e => setEditQtyOpen(e.target.value)} />
-            </div>
+
+            {editStatus === 'closed' ? (
+              <>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Entry Price</label>
+                  <input className="adm-sheet-input" type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Exit Price</label>
+                  <input className="adm-sheet-input" type="number" step="any" value={editExitPrice} onChange={e => setEditExitPrice(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Qty Total</label>
+                  <input className="adm-sheet-input" type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Brokerage</label>
+                  <input className="adm-sheet-input" type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Settlement</label>
+                  <input className="adm-sheet-input" type="text" value={editSettlement} onChange={e => setEditSettlement(e.target.value)} placeholder="e.g. NSE-EQ" />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">SL</label>
+                  <input className="adm-sheet-input" type="number" value={editSl} onChange={e => setEditSl(e.target.value)} placeholder="–" />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">TP</label>
+                  <input className="adm-sheet-input" type="number" value={editTp} onChange={e => setEditTp(e.target.value)} placeholder="–" />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Qty Open</label>
+                  <input className="adm-sheet-input" type="number" value={editQtyOpen} onChange={e => setEditQtyOpen(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Qty Total</label>
+                  <input className="adm-sheet-input" type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Avg/Entry Price</label>
+                  <input className="adm-sheet-input" type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} />
+                </div>
+                <div className="adm-sheet-field">
+                  <label className="adm-sheet-label">Brokerage</label>
+                  <input className="adm-sheet-input" type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} />
+                </div>
+              </>
+            )}
+
             <div className="adm-modal-actions">
               <button className="adm-sheet-cancel" onClick={() => setEditPos(null)}>Cancel</button>
               <button className="adm-btn-primary" onClick={handleEdit}>Save</button>
@@ -278,7 +384,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
                 </div>
                 <div className="adm-pos-card-actions">
                   <button className="adm-pos-act-edit" onClick={() => openEdit(p)}>Edit</button>
-                  <button className="adm-pos-act-reopen">Reopen</button>
+                  <button className="adm-pos-act-reopen" onClick={() => handleReopen(p)}>Reopen</button>
                   <button className="adm-pos-act-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
                 </div>
               </>)}
