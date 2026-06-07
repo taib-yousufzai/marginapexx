@@ -102,6 +102,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     currentLtp = kiteQuotes[item.kiteSymbol].lastPrice;
   }
 
+  const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
   const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
   const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
   const segSetting = side === 'SELL' ? sellSetting : buySetting;
@@ -134,14 +135,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     ? (totalQty * parseFloat(limitPrice)) / leverage
     : (totalQty * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
-  const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
+  const calculatedCarryCharges = productType === 'CARRY' && segSetting ? (() => {
     const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
     const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
       ? parseFloat(limitPrice)
       : (currentLtp > 0 ? effectivePrice : 0);
     // Use dedicated carry commission fields if available, fall back to standard commission
-    const commType = matchingSetting.carry_commission_type || matchingSetting.commission_type || 'Per Crore';
-    const commVal = matchingSetting.carry_commission_value ?? matchingSetting.commission_value ?? 0;
+    const commType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
+    const commVal = segSetting.carry_commission_value ?? segSetting.commission_value ?? 0;
     if (commType === 'Per Crore') {
       return (totalQty * price * commVal) / 10000000;
     } else if (commType === 'Per Lot') {
@@ -154,13 +155,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   })() : 0;
 
-  const calculatedGttBrokerage = orderType === 'GTT' && matchingSetting ? (() => {
+  const calculatedGttBrokerage = orderType === 'GTT' && segSetting ? (() => {
     const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
     const price = limitPrice && !isNaN(parseFloat(limitPrice))
       ? parseFloat(limitPrice)
       : (currentLtp > 0 ? effectivePrice : 0);
-    const commType = matchingSetting.gtt_commission_type || 'Per Trade';
-    const commVal = matchingSetting.gtt_commission_value ?? 10;
+    const commType = segSetting.gtt_commission_type || 'Per Trade';
+    const commVal = segSetting.gtt_commission_value ?? 10;
     if (commType === 'Per Crore') {
       return (totalQty * price * commVal) / 10000000;
     } else if (commType === 'Per Lot') {
@@ -301,8 +302,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 
-  const topLimit = matchingSetting?.top_limit ?? 0;
-  const minLimit = matchingSetting?.min_limit ?? 0;
+  const topLimit = segSetting?.top_limit ?? 0;
+  const minLimit = segSetting?.min_limit ?? 0;
   const maxAllowedPrice = currentLtp * (1 + topLimit / 100);
   const minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
 
