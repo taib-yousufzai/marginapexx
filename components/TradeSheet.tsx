@@ -293,7 +293,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const priceRangeHelp = currentLtp > 0 ? (
     <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)', marginTop: '6px', fontWeight: 600 }}>
-      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to {'₹'}{maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to {topLimit > 0 ? `₹${maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'No Limit'}
     </div>
   ) : null;
 
@@ -491,10 +491,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     if (['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType)) {
       const parsedPrice = resolvedClientPrice;
       if (placeSide === 'BUY') {
-        const maxAllowed = currentLtp * (1 + pTopLimit / 100);
-        if (parsedPrice > maxAllowed) {
-          showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
-          return;
+        if (pTopLimit > 0) {
+          const maxAllowed = currentLtp * (1 + pTopLimit / 100);
+          if (parsedPrice > maxAllowed) {
+            showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
+            return;
+          }
         }
         if (pMinLimit > 0) {
           const minAllowed = currentLtp * (1 - pMinLimit / 100);
@@ -504,10 +506,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           }
         }
       } else { // SELL side
-        const maxAllowed = currentLtp * (1 + pTopLimit / 100);
-        if (parsedPrice > maxAllowed) {
-          showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
-          return;
+        if (pTopLimit > 0) {
+          const maxAllowed = currentLtp * (1 + pTopLimit / 100);
+          if (parsedPrice > maxAllowed) {
+            showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
+            return;
+          }
         }
         if (pMinLimit > 0) {
           const minAllowed = currentLtp * (1 - pMinLimit / 100);

@@ -737,11 +737,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const minLimit = Number(segSetting.min_limit ?? 0);
   if (['LIMIT', 'SL', 'GTT'].includes(order_type ?? 'MARKET')) {
     if (side === 'BUY') {
-      const maxAllowed = baseLtp * (1 + topLimit / 100);
-      if (client_price > maxAllowed) {
-        return NextResponse.json({
-          error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
-        }, { status: 400 });
+      if (topLimit > 0) {
+        const maxAllowed = baseLtp * (1 + topLimit / 100);
+        if (client_price > maxAllowed) {
+          return NextResponse.json({
+            error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
+          }, { status: 400 });
+        }
       }
 
       if (minLimit > 0) {
@@ -753,11 +755,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       }
     } else { // SELL side
-      const maxAllowed = baseLtp * (1 + topLimit / 100);
-      if (client_price > maxAllowed) {
-        return NextResponse.json({
-          error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
-        }, { status: 400 });
+      if (topLimit > 0) {
+        const maxAllowed = baseLtp * (1 + topLimit / 100);
+        if (client_price > maxAllowed) {
+          return NextResponse.json({
+            error: `Maximum price allowed is ₹${maxAllowed.toFixed(2)}`
+          }, { status: 400 });
+        }
       }
 
       if (minLimit > 0) {
