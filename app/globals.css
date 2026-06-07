@@ -137,6 +137,7 @@ body {
   :root {
     --footer-nav-height: 0px;
     --sidebar-width: 260px;
+    --content-max-width: 1200px;
   }
 
   body {
@@ -772,8 +773,10 @@ body.dark .ew-arrow--today {
 }
 
 @media (min-width: 1024px) {
+  html,
   body {
-    overflow: hidden;
+    overflow: hidden !important;
+    height: 100vh !important;
   }
 
   .desktop-layout {
@@ -793,8 +796,7 @@ body.dark .ew-arrow--today {
   .main-viewport {
     flex: 1;
     height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     position: relative;
     background: var(--bg-body);
     scrollbar-width: none;
@@ -805,13 +807,20 @@ body.dark .ew-arrow--today {
     display: none;
   }
 
-  .app-container {
-    max-width: 100% !important;
+  .app-container,
+  .mobile-app,
+  .pd-root,
+  .rp-root,
+  .sec-root,
+  .notif-root,
+  .history-root {
+    max-width: var(--content-max-width, 1200px) !important;
     width: 100% !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     padding-left: 0 !important;
-    height: auto !important;
+    height: 100vh !important;
     min-height: 100vh !important;
+    overflow: hidden !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     display: flex;

@@ -16,7 +16,7 @@
     .mobile-app {
         max-width: 100%;
         margin: 0;
-        padding-left: var(--sidebar-width, 80px);
+        padding-left: 0;
     }
 }
 
@@ -2539,6 +2539,7 @@ body.dark .instrument-delete-btn:hover {
 
     /* Folder drawer: persistent sidebar (no longer a slide-in overlay) */
     .folder-drawer {
+        display: none;
         position: relative;
         transform: none;
         width: 280px;
@@ -2547,8 +2548,11 @@ body.dark .instrument-delete-btn:hover {
         border-left: 1px solid var(--border-light, #E8ECF0);
     }
 
-    /* Hide the toggle button and overlay — drawer is always visible */
-    .folder-btn,
+    .folder-drawer.open {
+        display: flex;
+    }
+
+    /* Hide only the overlay on tablet/desktop — keep folder-btn visible to toggle it */
     .drawer-overlay {
         display: none !important;
     }
@@ -2559,6 +2563,9 @@ body.dark .instrument-delete-btn:hover {
         flex-direction: row;
         align-items: flex-start;
         gap: 0;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
     }
 
     /* Trade sheet: constrained and centred */
@@ -2585,7 +2592,7 @@ body.dark .instrument-delete-btn:hover {
         height: 100dvh;
         max-height: 100%;
         margin: 0;
-        padding-left: var(--sidebar-width, 80px);
+        padding-left: 0;
         display: flex;
         flex-direction: column;
     }

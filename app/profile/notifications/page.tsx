@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
+import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import './page.css';
 
@@ -179,7 +180,10 @@ export default function NotificationsPage() {
     const unreadCount = isFake ? 0 : notifications.filter(n => !n.read).length;
 
     return (
-        <div className="notif-root">
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="notif-root">
             {/* Header */}
             <div className="notif-header">
                 <div className="notif-header-inner">
@@ -244,7 +248,8 @@ export default function NotificationsPage() {
                         </div>
                     </>
                 )}
-            </div>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

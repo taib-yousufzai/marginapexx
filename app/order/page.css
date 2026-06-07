@@ -568,7 +568,7 @@ body.dark .os-status-other    { color: #F87171; }
     height: auto;
     min-height: 100dvh;
     margin: 0;
-    padding-left: var(--sidebar-width);
+    padding-left: 0;
   }
 
   .ord-confirm-sheet {

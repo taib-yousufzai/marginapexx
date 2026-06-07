@@ -392,7 +392,7 @@ body.dark .funds-toggle-slider {
     max-width: 100%;
     width: 100%;
     margin: 0;
-    padding-left: var(--sidebar-width);
+    padding-left: 0;
   }
 
   /* Balance card and payment form side-by-side in 2-column grid */

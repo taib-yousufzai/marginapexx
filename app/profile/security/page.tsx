@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { updatePassword, getSession } from '@/lib/auth';
+import Sidebar from '@/components/Sidebar';
 import './page.css';
 
 export default function SecurityPage() {
@@ -82,7 +83,10 @@ export default function SecurityPage() {
     };
 
     return (
-        <div className="sec-root">
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="sec-root">
             <div className="sec-header">
                 <div className="sec-header-inner">
                     <Link href="/profile" className="sec-back-btn"><i className="fas fa-arrow-left"></i></Link>
@@ -172,7 +176,8 @@ export default function SecurityPage() {
                         <li>Don't reuse passwords from other sites</li>
                     </ul>
                 </div>
-            </div>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

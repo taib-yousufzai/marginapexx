@@ -35,7 +35,7 @@
 .logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #006400, #008000);
   color: white;
   border-radius: 10px;
   display: flex;
@@ -43,7 +43,7 @@
   justify-content: center;
   font-weight: 800;
   font-size: 1.2rem;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 100, 0, 0.2);
 }
 
 .logo-text {
@@ -54,7 +54,7 @@
 }
 
 .logo-text span {
-  color: #10b981;
+  color: #006400;
 }
 
 .collapse-btn {
@@ -116,8 +116,8 @@
 }
 
 .sidebar-item.active {
-  background: rgba(16, 185, 129, 0.08);
-  color: #059669;
+  background: rgba(0, 100, 0, 0.06);
+  color: #006400;
 }
 
 .sidebar-icon {
@@ -146,7 +146,7 @@
   left: 0;
   width: 4px;
   height: 20px;
-  background: #10b981;
+  background: #006400;
   border-radius: 0 4px 4px 0;
 }
 
@@ -200,6 +200,10 @@ body.dark .logo-text {
   color: #e6edf3;
 }
 
+body.dark .logo-text span {
+  color: #00bb00;
+}
+
 body.dark .collapse-btn {
   background: #25262b;
   color: #909296;
@@ -220,8 +224,12 @@ body.dark .sidebar-item:hover {
 }
 
 body.dark .sidebar-item.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  background: rgba(0, 128, 0, 0.15);
+  color: #00bb00;
+}
+
+body.dark .active-indicator {
+  background: #00bb00;
 }
 
 body.dark .sidebar-footer {

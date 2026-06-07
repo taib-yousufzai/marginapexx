@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
+import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import type { Session } from '@supabase/supabase-js';
 import '../page.css';
@@ -136,7 +137,10 @@ export default function ProfileDetailsPage() {
     const roleLabel: Record<string,string> = { super_admin:'Super Admin', admin:'Admin', broker:'Broker', user:'User' };
 
     return (
-        <div className="pd-root">
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="pd-root">
             <div className="pd-header">
                 <div className="pd-header-inner">
                     <Link href="/profile" className="pd-back-btn"><i className="fas fa-arrow-left"></i></Link>
@@ -231,7 +235,8 @@ export default function ProfileDetailsPage() {
                         )}
                     </>
                 )}
-            </div>
         </div>
-    );
+      </main>
+    </div>
+  );
 }

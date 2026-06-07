@@ -116,7 +116,7 @@ body.dark {
   .mobile-app,
   .app-container {
     max-width: 100% !important;
-    padding-left: var(--sidebar-width, 80px);
+    padding-left: 0;
   }
 }
 
@@ -930,7 +930,7 @@ body.dark .circle-icon {
     margin: 0;
     overflow: hidden;
     padding-bottom: 0;
-    padding-left: var(--sidebar-width, 80px);
+    padding-left: 0;
   }
 
   .nav-bar-full {

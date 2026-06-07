@@ -930,6 +930,17 @@ body.dark .pos-detail-margin-val { color: #D0D0D0; }
     overflow: visible;
   }
 
+  .pos-content {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    align-content: start;
+  }
+
+  .pos-empty {
+    grid-column: 1 / -1;
+  }
+
   .pos-pnl-card {
     padding: 14px 16px 12px 16px;
   }
@@ -977,7 +988,18 @@ body.dark .pos-detail-margin-val { color: #D0D0D0; }
     height: auto;
     min-height: 100dvh;
     margin: 0;
-    padding-left: var(--sidebar-width);
+    padding-left: 0;
+  }
+
+  .pos-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    align-content: start;
+  }
+
+  .pos-empty {
+    grid-column: 1 / -1;
   }
 
   .pos-pnl-card-body {

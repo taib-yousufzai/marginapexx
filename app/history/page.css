@@ -502,7 +502,7 @@ body.dark .history-footer .footer-value:not(.net-profit):not(.net-loss) {
         height: auto;
         min-height: 100dvh;
         margin: 0;
-        padding-left: var(--sidebar-width);
+        padding-left: 0;
     }
 
     .history-root .main-content {

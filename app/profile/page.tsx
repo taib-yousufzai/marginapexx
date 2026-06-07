@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
+import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { pageCache } from '@/lib/pageCache';
 import type { Session } from '@supabase/supabase-js';
@@ -137,7 +138,10 @@ export default function ProfilePage() {
     };
 
     return (
-        <div className="mobile-app">
+        <div className="desktop-layout">
+            <Sidebar />
+            <main className="main-viewport">
+                <div className="mobile-app">
             <div className="app-header">
                 <div className="header-top">
                     <div className="logo-area">
@@ -260,5 +264,7 @@ export default function ProfilePage() {
                 </div>
             )}
         </div>
-    );
+      </main>
+    </div>
+  );
 }

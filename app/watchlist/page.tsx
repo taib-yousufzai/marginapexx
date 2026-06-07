@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
+import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
 import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
@@ -1317,7 +1318,10 @@ function WatchlistContent() {
   }, [allowedSegments, segmentSettings]);
 
   return (
-    <div className="mobile-app" suppressHydrationWarning>
+    <div className="desktop-layout">
+      <Sidebar />
+      <main className="main-viewport">
+        <div className="mobile-app" suppressHydrationWarning>
       <div className="app-header">
         <div className="header-top">
           <div className="logo-area">
@@ -1338,7 +1342,8 @@ function WatchlistContent() {
         </div>
       </div>
 
-      <div className="main-content">
+      <div className="watchlist-layout">
+        <div className="main-content">
         <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
           <div className="section-subtitle">
             <i className="fas fa-search"></i> SEARCH RESULTS <span id="searchResultCount"></span>
@@ -2032,6 +2037,7 @@ function WatchlistContent() {
         </div>
         <div className="drawer-footer"><i className="fas fa-plus-circle"></i> Tap <span style={{ color: '#C62E2E' }}>+ Add</span> to watchlist | Browse all segments</div>
       </div>
+      </div>
 
       {/* React-driven order toast */}
       <div
@@ -2064,6 +2070,8 @@ function WatchlistContent() {
 
 
       <Footer activeTab="watchlist" />
+        </div>
+      </main>
     </div>
   );
 }
