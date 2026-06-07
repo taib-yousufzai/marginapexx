@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch positions and orders in parallel
     const [posResult, ordResult] = await Promise.all([
-      admin.from('positions').select('*').eq('user_id', user.id).order('updated_at', { ascending: false }),
+      admin.from('positions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       admin.from('orders').select('symbol, side, product_type').eq('user_id', user.id).eq('status', 'EXECUTED').order('created_at', { ascending: true }),
     ]);
 
