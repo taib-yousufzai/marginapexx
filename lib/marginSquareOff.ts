@@ -92,9 +92,9 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
         const baseLtp = Number(pos.ltp || pos.entry_price);
         let exitPrice: number;
         if (pos.side === 'BUY') {
-          exitPrice = baseLtp * (1 - pos.exitBuffer);
+          exitPrice = (baseLtp * 0.999) * (1 - pos.exitBuffer);
         } else {
-          exitPrice = baseLtp * (1 + pos.exitBuffer);
+          exitPrice = (baseLtp * 1.001) * (1 + pos.exitBuffer);
         }
         exitPrice = Math.round(exitPrice * 100) / 100;
 

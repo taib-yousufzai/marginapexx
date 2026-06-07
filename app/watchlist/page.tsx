@@ -516,7 +516,6 @@ function WatchlistContent() {
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [userId, setUserId] = useState<string>('');
-  const [lastExecutedOrderInfo, setLastExecutedOrderInfo] = useState<any | null>(null);
 
   useEffect(() => {
     async function fetchAllowedSegments() {
@@ -1216,55 +1215,6 @@ function WatchlistContent() {
     });
 
     if (result.success) {
-      // Calculate debugging details for the floating debug card
-      const qtyVal = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-      const dbSeg = mapSegmentToDbSegment(selectedItem.segment);
-      const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-      const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
-      const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
-      
-      const bufferPercent = side === 'BUY' ? entryBuffer : exitBuffer;
-      const ltpVal = livePrice;
-      const bufferAmt = ltpVal * bufferPercent * qtyVal;
-      
-      const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
-      const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;
-      const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
-      
-      const marginAmt = (qtyVal * (result.order?.fill_price ?? livePrice)) / leverage;
-      
-      let brokerageAmt = 0;
-      if (matchingSetting) {
-        const commType = matchingSetting.commission_type || 'Per Crore';
-        const commVal = matchingSetting.commission_value ?? 0;
-        const fillPriceVal = result.order?.fill_price ?? livePrice;
-        if (commType === 'Per Crore') {
-          brokerageAmt = (qtyVal * fillPriceVal * commVal) / 10000000;
-        } else if (commType === 'Per Lot') {
-          const lots = qtyVal / lotSize;
-          brokerageAmt = lots * commVal;
-        } else if (commType === 'Per Trade' || commType === 'Flat') {
-          brokerageAmt = commVal;
-        } else {
-          brokerageAmt = qtyVal * fillPriceVal * 0.001;
-        }
-      }
-
-      setLastExecutedOrderInfo({
-        symbol: selectedItem.symbol,
-        name: selectedItem.name,
-        side,
-        qty: qtyVal,
-        ltp: ltpVal,
-        bufferPercent,
-        bufferAmount: bufferAmt,
-        fillPrice: result.order?.fill_price ?? livePrice,
-        tradeValue: qtyVal * (result.order?.fill_price ?? livePrice),
-        margin: marginAmt,
-        brokerage: brokerageAmt,
-        leverage
-      });
-
       closeTradeSheet();
       showToast(result.order?.message || `Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ₹${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
     } else {
@@ -1310,15 +1260,18 @@ function WatchlistContent() {
   };
 
   const dbSeg = selectedItem ? mapSegmentToDbSegment(selectedItem.segment) : '';
-  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-  const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
-  const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
+  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+  const segSetting = tradeSide === 'SELL' ? sellSetting : buySetting;
 
-  const bidPrice = currentLtp * (1 - exitBuffer);
-  const askPrice = currentLtp * (1 + entryBuffer);
+  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
+  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
 
-  const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
-  const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;
+  const bidPrice = currentLtp * 0.999 * (1 - sellEntryBuffer);
+  const askPrice = (currentLtp * 1.001) * (1 + buyEntryBuffer);
+
+  const intradayLeverage = segSetting?.intraday_leverage ?? 1;
+  const holdingLeverage  = segSetting?.holding_leverage  ?? 1;
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
   const effectivePrice = tradeSide === 'SELL' ? bidPrice : askPrice;
@@ -1326,13 +1279,13 @@ function WatchlistContent() {
     ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
     : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
 
-  const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
+  const calculatedCarryCharges = productType === 'CARRY' && segSetting ? (() => {
     const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
     const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
       ? parseFloat(limitPrice)
       : (currentLtp > 0 ? effectivePrice : 0);
-    const commType = matchingSetting.commission_type || 'Per Crore';
-    const commVal = matchingSetting.commission_value ?? 0;
+    const commType = segSetting.commission_type || 'Per Crore';
+    const commVal = segSetting.commission_value ?? 0;
     if (commType === 'Per Crore') {
       return (totalQty * price * commVal) / 10000000;
     } else if (commType === 'Per Lot') {
@@ -1563,8 +1516,8 @@ function WatchlistContent() {
             <div className="ts-info-cards-wrap">
               <div className="ts-info-cards">
                 <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">{lotSize}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">{matchingSetting?.max_lot ?? '--'}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{matchingSetting?.max_order_lot ?? '--'}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">{segSetting?.max_lot ?? '--'}</div></div>
+                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{segSetting?.max_order_lot ?? '--'}</div></div>
                 <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty * lotSize : orderQty}</div></div>
               </div>
             </div>
@@ -2108,88 +2061,7 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-      {/* Floating Debug Card for testing buffers, cost, margin, brokerage */}
-      {lastExecutedOrderInfo && (
-        <div style={{
-          position: 'fixed',
-          bottom: '100px',
-          right: '20px',
-          left: '20px',
-          maxWidth: '400px',
-          margin: '0 auto',
-          background: 'rgba(21, 23, 30, 0.95)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '16px',
-          color: '#f8fafc',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-          zIndex: 9999,
-          backdropFilter: 'blur(10px)',
-          fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🔬 Debug: Placed Order Info
-            </span>
-            <button 
-              onClick={() => setLastExecutedOrderInfo(null)}
-              style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem', padding: '4px' }}
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Instrument:</span>
-              <span style={{ fontWeight: 700 }}>{lastExecutedOrderInfo.name} ({lastExecutedOrderInfo.symbol})</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Side / Qty:</span>
-              <span style={{ fontWeight: 700, color: lastExecutedOrderInfo.side === 'BUY' ? '#22c55e' : '#ef4444' }}>
-                {lastExecutedOrderInfo.side} / {lastExecutedOrderInfo.qty}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Kite LTP:</span>
-              <span style={{ fontWeight: 700 }}>₹{lastExecutedOrderInfo.ltp.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Execution Price (with Buffer):</span>
-              <span style={{ fontWeight: 700 }}>₹{lastExecutedOrderInfo.fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Actual Order Value:</span>
-              <span style={{ fontWeight: 700 }}>₹{(lastExecutedOrderInfo.ltp * lastExecutedOrderInfo.qty).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Buffer Percentage:</span>
-              <span style={{ fontWeight: 700 }}>{(lastExecutedOrderInfo.bufferPercent * 100).toFixed(4)}%</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Buffer Amount:</span>
-              <span style={{ fontWeight: 700, color: '#3b82f6' }}>
-                ₹{lastExecutedOrderInfo.bufferAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Effective Order Value:</span>
-              <span style={{ fontWeight: 700 }}>₹{lastExecutedOrderInfo.tradeValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed rgba(255,255,255,0.1)', paddingTop: '8px' }}>
-              <span style={{ color: '#94a3b8' }}>Leverage / Required Margin:</span>
-              <span style={{ fontWeight: 700 }}>
-                {lastExecutedOrderInfo.leverage}x / ₹{lastExecutedOrderInfo.margin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#94a3b8' }}>Est. Brokerage:</span>
-              <span style={{ fontWeight: 700, color: '#eab308' }}>
-                ₹{lastExecutedOrderInfo.brokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       <Footer activeTab="watchlist" />
     </div>

@@ -183,17 +183,18 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
-        const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-        const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
-        const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
+        const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+        const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+        const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0.0017;
+        const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0.0017;
 
         if (p.side === 'BUY') {
           // BUY (Long): exits by selling, executes at Bid Price minus exit buffer
-          const currentBid = ltp * (1 - exitBuffer);
+          const currentBid = (ltp * 0.999) * (1 - buyExitBuffer);
           unrealised = (currentBid - p.entry_price) * p.qty_open;
         } else {
-          // SELL (Short): exits by buying back, executes at Ask Price (LTP * (1 + entry_buffer))
-          const currentAsk = ltp * (1 + entryBuffer);
+          // SELL (Short): exits by buying back, executes at Ask Price plus exit buffer
+          const currentAsk = (ltp * 1.001) * (1 + sellExitBuffer);
           unrealised = (p.entry_price - currentAsk) * p.qty_open;
         }
       }

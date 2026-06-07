@@ -283,11 +283,11 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
         const entryPrice = Number(pos.entry_price ?? pos.avg_price);
         const qty = Number(pos.qty_open ?? 0);
-        const entryBuffer = entryBufferMap.get(`${pos.settlement}|BUY`) ?? 0.003;
-        const exitBuffer = exitBufferMap.get(`${pos.settlement}|BUY`) ?? 0.0017;
+        const buyExitBuffer = exitBufferMap.get(`${pos.settlement}|BUY`) ?? 0.0017;
+        const sellExitBuffer = exitBufferMap.get(`${pos.settlement}|SELL`) ?? 0.0017;
         const pnl = pos.side === 'BUY' 
-          ? ((ltp * (1 - exitBuffer)) - entryPrice) * qty 
-          : (entryPrice - (ltp * (1 + entryBuffer))) * qty;
+          ? (((ltp * 0.999) * (1 - buyExitBuffer)) - entryPrice) * qty 
+          : (entryPrice - ((ltp * 1.001) * (1 + sellExitBuffer))) * qty;
 
         totalUnrealised += pnl;
 
@@ -311,11 +311,11 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
           if (pos.side === 'BUY') {
             // Exiting BUY (Selling) -> executes at Bid Price minus exit buffer
             const exitBuffer = exitBufferMap.get(`${pos.settlement}|BUY`) ?? 0.0017;
-            exitPrice = ltp * (1 - exitBuffer);
+            exitPrice = (ltp * 0.999) * (1 - exitBuffer);
           } else {
-            // Exiting SELL (Buying) -> executes at Ask Price = ltp * (1 + entryBuffer)
-            const entryBuffer = entryBufferMap.get(`${pos.settlement}|BUY`) ?? 0.003;
-            exitPrice = ltp * (1 + entryBuffer);
+            // Exiting SELL (Buying) -> executes at Ask Price = Ask * (1 + exitBuffer)
+            const exitBuffer = exitBufferMap.get(`${pos.settlement}|SELL`) ?? 0.0017;
+            exitPrice = (ltp * 1.001) * (1 + exitBuffer);
           }
           exitPrice = Math.round(exitPrice * 10000) / 10000;
 
@@ -404,18 +404,18 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             .eq('side', 'BUY')
             .maybeSingle();
           const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          exitPrice = ltp * (1 - buffer);
+          exitPrice = (ltp * 0.999) * (1 - buffer);
         } else {
           // Fetch buffer for this user
           const { data: segSet } = await admin
             .from('segment_settings')
-            .select('entry_buffer')
+            .select('exit_buffer')
             .eq('user_id', pos.user_id)
             .eq('segment', pos.settlement)
-            .eq('side', 'BUY')
+            .eq('side', 'SELL')
             .maybeSingle();
-          const buffer = Number(segSet?.entry_buffer ?? 0.003);
-          exitPrice = ltp * (1 + buffer);
+          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
+          exitPrice = (ltp * 1.001) * (1 + buffer);
         }
         exitPrice = Math.round(exitPrice * 10000) / 10000;
 
@@ -443,17 +443,17 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
             .eq('side', 'BUY')
             .maybeSingle();
           const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          pnl = ((ltp * (1 - buffer)) - entryPrice) * qty;
+          pnl = (((ltp * 0.999) * (1 - buffer)) - entryPrice) * qty;
         } else {
           const { data: segSet } = await admin
             .from('segment_settings')
-            .select('entry_buffer')
+            .select('exit_buffer')
             .eq('user_id', pos.user_id)
             .eq('segment', pos.settlement)
-            .eq('side', 'BUY')
+            .eq('side', 'SELL')
             .maybeSingle();
-          const buffer = Number(segSet?.entry_buffer ?? 0.003);
-          pnl = (entryPrice - (ltp * (1 + buffer))) * qty;
+          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
+          pnl = (entryPrice - ((ltp * 1.001) * (1 + buffer))) * qty;
         }
 
         const { error: updatePosErr } = await admin

@@ -102,16 +102,30 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     currentLtp = kiteQuotes[item.kiteSymbol].lastPrice;
   }
 
-  const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
-  const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === activeSide);
-  const entryBuffer = matchingSetting ? matchingSetting.entry_buffer : 0.003;
-  const exitBuffer = matchingSetting ? matchingSetting.exit_buffer : 0.0017;
+  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+  const segSetting = side === 'SELL' ? sellSetting : buySetting;
 
-  const bidPrice = currentLtp > 0 ? currentLtp * (1 - exitBuffer) : 0;
-  const askPrice = currentLtp > 0 ? currentLtp * (1 + entryBuffer) : 0;
+  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
+  const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0.0017;
+  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
+  const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0.0017;
 
-  const intradayLeverage = matchingSetting?.intraday_leverage ?? 1;
-  const holdingLeverage  = matchingSetting?.holding_leverage  ?? 1;
+  let bidPrice = 0;
+  let askPrice = 0;
+
+  if (currentLtp > 0) {
+    if (exitMode) {
+      bidPrice = (currentLtp * 0.999) * (1 - buyExitBuffer);
+      askPrice = (currentLtp * 1.001) * (1 + sellExitBuffer);
+    } else {
+      bidPrice = (currentLtp * 0.999) * (1 - sellEntryBuffer);
+      askPrice = (currentLtp * 1.001) * (1 + buyEntryBuffer);
+    }
+  }
+
+  const intradayLeverage = segSetting?.intraday_leverage ?? 1;
+  const holdingLeverage  = segSetting?.holding_leverage  ?? 1;
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;

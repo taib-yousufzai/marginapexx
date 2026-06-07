@@ -88,7 +88,7 @@ export default function Page() {
     }
 
     function generateBidAsk(price) { 
-        return { bid: price * (1 - 0.0017), ask: price * (1 + 0.003) }; 
+        return { bid: (price * 0.999) * (1 - 0.0017), ask: (price * 1.001) * (1 + 0.003) }; 
     }
 
     function openTradeSheet(script) {

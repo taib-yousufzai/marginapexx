@@ -346,8 +346,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const dbSegment = mapSegmentToDbSegment(segment);
   const admin = getAdminClient();
 
-  // Check market hours (TEMPORARILY BYPASSED FOR TESTING)
-  /*
+  // Check market hours
   try {
     const exchangeName = symbol.includes(':') ? symbol.split(':')[0] : 'NSE';
     const ex = exchangeName.toUpperCase();
@@ -388,7 +387,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   } catch (err) {
     console.error('[POST /api/orders] Market hours check error:', err);
   }
-  */
 
   const kiteInst = kite_instrument || symbol;
 
@@ -402,7 +400,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingResult, scalperSegSettingResult, positionsResult, quotesMap, scriptSettingsResult] = await Promise.all([
+  const [profileResult, segSettingsResult, scalperSegSettingsResult, positionsResult, quotesMap, scriptSettingsResult] = await Promise.all([
     // Profile
     admin.from('profiles')
       .select('id, active, read_only, segments, parent_id, balance, trading_mode')
@@ -413,17 +411,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     admin.from('segment_settings')
       .select('*')
       .eq('user_id', user.id)
-      .eq('segment', dbSegment)
-      .eq('side', side)
-      .maybeSingle(),
+      .eq('segment', dbSegment),
 
     // Scalper segment settings
     admin.from('scalper_segment_settings')
       .select('*')
       .eq('user_id', user.id)
-      .eq('segment', dbSegment)
-      .eq('side', side)
-      .maybeSingle(),
+      .eq('segment', dbSegment),
 
     // Fetch active positions to verify total open lot limits (max_lot)
     admin.from('positions')
@@ -471,38 +465,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 6. Segment settings — choose based on active trading mode
   const isScalper = profile.trading_mode === 'scalper';
-  let segSetting = isScalper ? scalperSegSettingResult.data : segSettingResult.data;
+  const settingsList = isScalper ? (scalperSegSettingsResult.data || []) : (segSettingsResult.data || []);
 
-  if (!segSetting && profile.parent_id && profile.parent_id !== user.id) {
+  let buySetting = settingsList.find((s: any) => s.side === 'BUY');
+  let sellSetting = settingsList.find((s: any) => s.side === 'SELL');
+
+  if ((!buySetting || !sellSetting) && profile.parent_id && profile.parent_id !== user.id) {
     const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
     const { data } = await admin
       .from(targetTable)
       .select('*')
       .eq('user_id', profile.parent_id)
-      .eq('segment', dbSegment)
-      .eq('side', side)
-      .maybeSingle();
-    segSetting = data;
+      .eq('segment', dbSegment);
+    if (data) {
+      if (!buySetting) buySetting = data.find((s: any) => s.side === 'BUY');
+      if (!sellSetting) sellSetting = data.find((s: any) => s.side === 'SELL');
+    }
   }
 
   // If there are still no settings in database, construct safety fallback defaults based on segment
-  if (!segSetting) {
-    const segUpper = dbSegment.toUpperCase();
-    let intraday_leverage = 50;
-    let holding_leverage = 5;
-    if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
-      intraday_leverage = 100;
-      holding_leverage = 10;
-    } else if (segUpper.includes('CRYPTO')) {
-      intraday_leverage = 10;
-      holding_leverage = 1;
-    }
-    
-    segSetting = {
+  const segUpper = dbSegment.toUpperCase();
+  let intraday_leverage = 50;
+  let holding_leverage = 5;
+  if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
+    intraday_leverage = 100;
+    holding_leverage = 10;
+  } else if (segUpper.includes('CRYPTO')) {
+    intraday_leverage = 10;
+    holding_leverage = 1;
+  }
+
+  if (!buySetting) {
+    buySetting = {
       id: '',
       user_id: user.id,
       segment: dbSegment,
-      side: side as 'BUY' | 'SELL',
+      side: 'BUY',
       trade_allowed: !dbSegment.toUpperCase().includes('CRYPTO'),
       max_lot: 50,
       max_order_lot: 50,
@@ -521,6 +519,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       updated_at: new Date().toISOString(),
     };
   }
+  if (!sellSetting) {
+    sellSetting = {
+      id: '',
+      user_id: user.id,
+      segment: dbSegment,
+      side: 'SELL',
+      trade_allowed: !dbSegment.toUpperCase().includes('CRYPTO'),
+      max_lot: 50,
+      max_order_lot: 50,
+      intraday_leverage,
+      holding_leverage,
+      intraday_type: 'Multiplier',
+      holding_type: 'Multiplier',
+      entry_buffer: 0.003,
+      exit_buffer: 0.0017,
+      strike_range: 0,
+      commission_type: 'Per Crore',
+      commission_value: isScalper ? 8500 : (segUpper.includes('FOREX') || segUpper.includes('CDS') ? 2000 : (segUpper.includes('CRYPTO') ? 1000 : 4500)),
+      top_limit: 0,
+      min_limit: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  const segSetting = side === 'BUY' ? buySetting : sellSetting;
 
   // 7. Validate lot / qty limits & Strike Range
   if (!segSetting.trade_allowed) {
@@ -784,14 +808,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
     fillPrice = client_price;
   } else {
-    const entryBuffer = segSetting?.entry_buffer ?? 0.003;
-    const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
+    const buyEntryBuffer = buySetting?.entry_buffer ?? 0.003;
+    const buyExitBuffer = buySetting?.exit_buffer ?? 0.0017;
+    const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
+    const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
+
     if (side === 'BUY') {
-      // Buy executes at: LTP * (1 + entryBuffer)
-      fillPrice = baseLtp * (1 + entryBuffer);
+      if (is_exit) {
+        // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
+        fillPrice = (baseLtp * 1.001) * (1 + sellExitBuffer);
+      } else {
+        // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
+        fillPrice = (baseLtp * 1.001) * (1 + buyEntryBuffer);
+      }
     } else {
-      // Sell executes at: LTP * (1 - exitBuffer)
-      fillPrice = baseLtp * (1 - exitBuffer);
+      if (is_exit) {
+        // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - exitBuffer) of BUY side settings
+        fillPrice = (baseLtp * 0.999) * (1 - buyExitBuffer);
+      } else {
+        // Short Entry (Selling) executes at: Bid * (1 - entryBuffer) of SELL side settings
+        fillPrice = (baseLtp * 0.999) * (1 - sellEntryBuffer);
+      }
     }
   }
 
