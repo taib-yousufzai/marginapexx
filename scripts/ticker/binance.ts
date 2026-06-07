@@ -1,6 +1,8 @@
 import WebSocket from 'ws';
 import pino from 'pino';
-import { DbBatchWriter, TickData } from './dbWriter.ts';
+import { DbBatchWriter } from './dbWriter.ts';
+import type { TickData } from './dbWriter.ts';
+import { getAdminClient } from '../../lib/adminClient.ts';
 
 const BINANCE_WS_URL =
   'wss://stream.binance.com:9443/stream?streams=' +
@@ -32,7 +34,7 @@ export function parseBinanceTicker(raw: string): { symbol: string; tickData: Tic
       low:   parseFloat(data.l),
       close: parseFloat(data.x),
     },
-    volume:    parseFloat(data.v),
+    volume:    Math.round(parseFloat(data.v)),
     timestamp: new Date(),
   };
 
@@ -52,7 +54,36 @@ export class BinanceTicker {
 
   public start(): void {
     if (!this.ws) {
-      this.connect();
+      this.ensureInstrumentsExist().then(() => {
+        this.connect();
+      });
+    }
+  }
+
+  private async ensureInstrumentsExist(): Promise<void> {
+    const admin = getAdminClient();
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'BTC', 'ETH', 'BNB', 'SOL'];
+    const rows = symbols.map(sym => ({
+      id: sym,
+      instrument_token: 0,
+      tradingsymbol: sym,
+      exchange: 'CRYPTO',
+      instrument_type: 'CRYPTO',
+      segment: 'CRYPTO',
+      updated_at: new Date().toISOString()
+    }));
+
+    try {
+      const { error } = await admin
+        .from('instruments')
+        .upsert(rows, { onConflict: 'id' });
+      if (error) {
+        logger.error({ error }, 'Failed to upsert crypto instruments');
+      } else {
+        logger.info('Ensured crypto instruments exist in instruments table');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Error checking/upserting crypto instruments');
     }
   }
 
@@ -106,7 +137,13 @@ export class BinanceTicker {
     try {
       const result = parseBinanceTicker(raw);
       if (result === null) return;
+      
+      // Upsert standard symbol (e.g. SOLUSDT)
       this.dbWriter.addTick(result.symbol, result.tickData);
+      
+      // Also upsert short symbol (e.g. SOL)
+      const shortSymbol = result.symbol.replace('USDT', '');
+      this.dbWriter.addTick(shortSymbol, result.tickData);
     } catch (err) {
       logger.warn({ err, raw }, 'Failed to parse Binance stream message');
     }

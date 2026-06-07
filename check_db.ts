@@ -9,7 +9,6 @@ async function main() {
   const { data: positions } = await admin
     .from('positions')
     .select('*')
-    .in('symbol', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'])
     .eq('status', 'open');
 
   console.log('Open positions details:');
@@ -21,13 +20,25 @@ async function main() {
   const { data: orders } = await admin
     .from('orders')
     .select('*')
-    .in('symbol', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'])
+    .in('symbol', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ETH'])
     .order('created_at', { ascending: false })
     .limit(5);
 
   console.log('Latest 5 orders details:');
   orders?.forEach(o => {
-    console.log(`- [${o.created_at}] ${o.symbol} ${o.side}: ID=${o.id}, status=${o.status}, order_type=${o.order_type}, stop_loss=${o.stop_loss}, target=${o.target}`);
+    console.log(`- [${o.created_at}] ${o.symbol} ${o.side}: ID=${o.id}, status=${o.status}, order_type=${o.order_type}, price=${o.price}, ltp_at_entry=${o.ltp_at_entry}, stop_loss=${o.stop_loss}, target=${o.target}`);
+  });
+
+  // Query market quotes
+  const { data: quotes } = await admin
+    .from('market_quotes')
+    .select('*')
+    .in('id', ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ETH', 'BTC'])
+    .order('updated_at', { ascending: false });
+
+  console.log('Latest market quotes in DB:');
+  quotes?.forEach(q => {
+    console.log(`- ${q.id}: Price=${q.last_price}, UpdatedAt=${q.updated_at}`);
   });
 }
 

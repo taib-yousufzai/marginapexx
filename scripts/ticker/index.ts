@@ -35,48 +35,60 @@ class TickerDaemon {
     this.binanceTicker = new BinanceTicker(this.dbWriter);
   }
 
+  private async initKite() {
+    if (this.ticker || this.isReconnecting) return;
+
+    try {
+      const session = await getSharedKiteSession();
+      if (!session || !session.accessToken) {
+        logger.warn('No active Kite session found in database. Kite ticker will retry once session is active.');
+        return;
+      }
+
+      const apiKey = process.env.KITE_API_KEY;
+      if (!apiKey) {
+        logger.error('KITE_API_KEY not configured in env.');
+        return;
+      }
+
+      logger.info({ user: session.kiteUserId }, 'Found active Kite session. Connecting Kite Ticker...');
+
+      this.ticker = new KiteTicker({
+        api_key: apiKey,
+        access_token: session.accessToken,
+      });
+
+      this.setupTickerCallbacks();
+      this.ticker.connect();
+    } catch (err) {
+      logger.error({ err }, 'Failed to initialize Kite Ticker');
+    }
+  }
+
   public async start() {
-    logger.info('Initializing Kite Ticker Daemon...');
+    logger.info('Initializing Ticker Daemon...');
     
-    // 1. Load active Kite session
-    const session = await getSharedKiteSession();
-    if (!session || !session.accessToken) {
-      logger.error('No active Kite session found in database. Exiting. Please login via Admin panel.');
-      process.exit(1);
-    }
-
-    const apiKey = process.env.KITE_API_KEY;
-    if (!apiKey) {
-      logger.error('KITE_API_KEY not configured in env. Exiting.');
-      process.exit(1);
-    }
-
-    logger.info({ user: session.kiteUserId }, 'Found active Kite session. Starting Ticker...');
-
-    // 2. Initialize KiteTicker
-    this.ticker = new KiteTicker({
-      api_key: apiKey,
-      access_token: session.accessToken,
-    });
-
-    this.setupTickerCallbacks();
-
-    // 3. Start database batch writer
+    // 1. Start database batch writer
     this.dbWriter.start();
 
-    // 3.5 Start Binance ticker
+    // 2. Start Binance WebSocket Ticker
     this.binanceTicker.start();
 
-    // 4. Connect to Kite WebSockets
-    this.ticker.connect();
+    // 3. Try to initialize Kite Ticker
+    await this.initKite();
 
-    // 5. Setup periodic subscription checker (every 10 seconds)
-    this.subscriptionTimer = setInterval(() => this.syncSubscriptions(), 10000);
+    // 4. Setup periodic subscription checker and Kite session checker (every 10 seconds)
+    this.subscriptionTimer = setInterval(async () => {
+      if (!this.ticker && !this.isReconnecting) {
+        await this.initKite();
+      }
+      await this.syncSubscriptions();
+    }, 10000);
 
-    // 6. Register process shutdown handlers
+    // 5. Register process shutdown handlers
     this.setupGracefulShutdown();
 
-    // 7. Start dummy HTTP server for Railway health checks
+    // 6. Start dummy HTTP server for Railway health checks
     const port = process.env.PORT || 8080;
     http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -185,33 +197,8 @@ class TickerDaemon {
     setTimeout(async () => {
       if (this.isStopping) return;
       logger.info('Re-initializing KiteTicker connection...');
-
-      try {
-        const session = await getSharedKiteSession();
-        if (!session || !session.accessToken) {
-          logger.error('No active Kite session found during reconnect. Retrying in 1 minute...');
-          this.reconnectFromScratch();
-          return;
-        }
-
-        const apiKey = process.env.KITE_API_KEY;
-        if (!apiKey) {
-          logger.error('KITE_API_KEY not configured. Retrying in 1 minute...');
-          this.reconnectFromScratch();
-          return;
-        }
-
-        this.ticker = new KiteTicker({
-          api_key: apiKey,
-          access_token: session.accessToken,
-        });
-
-        this.setupTickerCallbacks();
-        this.ticker.connect();
-      } catch (err) {
-        logger.error({ err }, 'Error during full reconnection. Retrying in 1 minute...');
-        this.reconnectFromScratch();
-      }
+      this.isReconnecting = false;
+      await this.initKite();
     }, 60000);
   }
 
