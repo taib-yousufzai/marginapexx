@@ -121,7 +121,8 @@ describe('orderMatching', () => {
         qty: 5,
         price: 3400,
         trigger_price: null,
-        order_type: 'LIMIT'
+        order_type: 'LIMIT',
+        is_exit: true
       }
     ];
 

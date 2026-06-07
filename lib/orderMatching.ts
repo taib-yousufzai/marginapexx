@@ -130,17 +130,34 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         }
 
         // Determine if order should proceed based on existing positions
-        if (order.side === 'BUY') {
-          // BUY orders can proceed unless there is an opposite SELL position open
-          if (existingPos && existingPos.some((p: any) => p.side === 'SELL')) {
-            console.log(`[Order Matching] Skipping BUY order ${order.id} due to existing opposite SELL position`);
-            continue;
+        if (order.is_exit) {
+          if (order.side === 'BUY') {
+            // BUY exit order requires an existing open SELL position
+            if (!existingPos || !existingPos.some((p: any) => p.side === 'SELL')) {
+              console.log(`[Order Matching] Skipping BUY exit order ${order.id} as no open SELL position exists`);
+              continue;
+            }
+          } else if (order.side === 'SELL') {
+            // SELL exit order requires an existing open BUY position
+            if (!existingPos || !existingPos.some((p: any) => p.side === 'BUY')) {
+              console.log(`[Order Matching] Skipping SELL exit order ${order.id} as no open BUY position exists`);
+              continue;
+            }
           }
-        } else if (order.side === 'SELL') {
-          // SELL orders require an existing BUY position
-          if (!existingPos || !existingPos.some((p: any) => p.side === 'BUY')) {
-            console.log(`[Order Matching] Skipping SELL order ${order.id} as no open BUY position exists`);
-            continue;
+        } else {
+          // Entry orders (is_exit is false)
+          if (order.side === 'BUY') {
+            // BUY entry order cannot proceed if there is an open opposite SELL position
+            if (existingPos && existingPos.some((p: any) => p.side === 'SELL')) {
+              console.log(`[Order Matching] Skipping BUY entry order ${order.id} due to existing opposite SELL position`);
+              continue;
+            }
+          } else if (order.side === 'SELL') {
+            // SELL entry order cannot proceed if there is an open opposite BUY position
+            if (existingPos && existingPos.some((p: any) => p.side === 'BUY')) {
+              console.log(`[Order Matching] Skipping SELL entry order ${order.id} due to existing opposite BUY position`);
+              continue;
+            }
           }
         }
 
