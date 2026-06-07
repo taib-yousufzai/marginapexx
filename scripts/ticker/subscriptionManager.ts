@@ -63,9 +63,14 @@ export class SubscriptionManager {
           if (sym.includes(':')) {
             symbolsToResolve.add(sym);
           } else {
-            const exchange = p.settlement && (p.settlement.startsWith('OPT') || p.settlement.startsWith('FUT') || p.settlement.startsWith('NFO')) 
-              ? 'NFO' 
-              : 'NSE';
+            let exchange = 'NSE';
+            if (p.settlement) {
+              const s = p.settlement.toUpperCase();
+              if (s.includes('MCX')) exchange = 'MCX';
+              else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+              else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+              else if (s.includes('BSE')) exchange = 'BSE';
+            }
             symbolsToResolve.add(`${exchange}:${sym}`);
           }
         });
@@ -88,9 +93,14 @@ export class SubscriptionManager {
             if (sym.includes(':')) {
               symbolsToResolve.add(sym);
             } else {
-              const exchange = o.segment && (o.segment.startsWith('OPT') || o.segment.startsWith('FUT') || o.segment.startsWith('NFO')) 
-                ? 'NFO' 
-                : 'NSE';
+              let exchange = 'NSE';
+              if (o.segment) {
+                const s = o.segment.toUpperCase();
+                if (s.includes('MCX')) exchange = 'MCX';
+                else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+                else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+                else if (s.includes('BSE')) exchange = 'BSE';
+              }
               symbolsToResolve.add(`${exchange}:${sym}`);
             }
           }

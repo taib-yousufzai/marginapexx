@@ -184,7 +184,22 @@ export async function POST(
       .eq('segment', pos.settlement ?? '')
       .eq('side', pos.side)
       .maybeSingle(),
-    pos.symbol ? fetchKiteLtp(pos.symbol) : Promise.resolve(null),
+    (() => {
+      if (!pos.symbol) return Promise.resolve(null);
+      let fullSymbol = pos.symbol;
+      if (!pos.symbol.includes(':') && pos.settlement !== 'CRYPTO') {
+        let exchange = 'NSE';
+        if (pos.settlement) {
+          const s = pos.settlement.toUpperCase();
+          if (s.includes('MCX')) exchange = 'MCX';
+          else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+          else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+          else if (s.includes('BSE')) exchange = 'BSE';
+        }
+        fullSymbol = `${exchange}:${pos.symbol}`;
+      }
+      return fetchKiteLtp(fullSymbol);
+    })(),
   ]);
 
   const { data: segSetting } = segSettingResult;

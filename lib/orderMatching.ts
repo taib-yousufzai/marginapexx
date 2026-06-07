@@ -248,7 +248,12 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
         let ltp = pricesMap.get(pos.symbol);
 
         if (ltp === undefined && pos.settlement) {
-          const exchange = pos.settlement.startsWith('OPT') || pos.settlement.startsWith('FUT') ? 'NFO' : 'NSE';
+          let exchange = 'NSE';
+          const s = pos.settlement.toUpperCase();
+          if (s.includes('MCX')) exchange = 'MCX';
+          else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+          else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+          else if (s.includes('BSE')) exchange = 'BSE';
           ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
         }
 
@@ -320,7 +325,12 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       let ltp = pricesMap.get(pos.symbol);
 
       if (ltp === undefined && pos.settlement) {
-        const exchange = pos.settlement.startsWith('OPT') || pos.settlement.startsWith('FUT') ? 'NFO' : 'NSE';
+        let exchange = 'NSE';
+        const s = pos.settlement.toUpperCase();
+        if (s.includes('MCX')) exchange = 'MCX';
+        else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+        else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+        else if (s.includes('BSE')) exchange = 'BSE';
         ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
       }
 
