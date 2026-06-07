@@ -58,20 +58,25 @@ function buildDisplayName(tradingsymbol: string, underlying: string, strike: num
 async function fetchLivePrices(kiteIds: string[], request: NextRequest): Promise<Record<string, number>> {
   if (kiteIds.length === 0) return {};
   const priceMap: Record<string, number> = {};
+  const foundKiteIds = new Set<string>();
 
   try {
-    // 1. Fetch from database market_quotes table
-    const { data: dbQuotes, error: dbError } = await supabase
-      .from('market_quotes')
-      .select('id, last_price')
-      .in('id', kiteIds);
-
-    const foundKiteIds = new Set<string>();
-    if (!dbError && dbQuotes) {
-      for (const row of dbQuotes) {
-        priceMap[row.id] = Number(row.last_price);
-        foundKiteIds.add(row.id);
+    // 1. Fetch from Ticker Daemon in-memory quotes API
+    try {
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+      const params = new URLSearchParams({ symbols: kiteIds.join(',') });
+      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+      if (resTicker.ok) {
+        const json = await resTicker.json();
+        if (json.success && json.data) {
+          for (const [key, val] of Object.entries(json.data)) {
+            priceMap[key] = (val as any).last_price;
+            foundKiteIds.add(key);
+          }
+        }
       }
+    } catch (tickerErr) {
+      console.warn('[fetchLivePrices] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
     }
 
     // 2. Identify missing instruments
@@ -121,7 +126,6 @@ async function fetchLivePrices(kiteIds: string[], request: NextRequest): Promise
       );
 
       const instrumentUpserts: any[] = [];
-      const dbUpserts: any[] = [];
 
       for (const resData of results) {
         for (const [id, quote] of Object.entries(resData)) {
@@ -142,23 +146,14 @@ async function fetchLivePrices(kiteIds: string[], request: NextRequest): Promise
             segment: exchange,
             updated_at: new Date().toISOString()
           });
-
-          dbUpserts.push({
-            id,
-            last_price: ltp,
-            close: (quote as any).ohlc?.close || 0,
-            quote_timestamp: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
         }
       }
 
-      // Cache missing instruments and quotes asynchronously in background
+      // Cache missing instruments in background (excluding raw ticks)
       if (instrumentUpserts.length > 0) {
         (async () => {
           try {
             await supabase.from('instruments').upsert(instrumentUpserts, { onConflict: 'id' });
-            await supabase.from('market_quotes').upsert(dbUpserts, { onConflict: 'id' });
           } catch (err) {
             console.error('[fetchLivePrices] Background cache error:', err);
           }

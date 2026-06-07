@@ -96,18 +96,8 @@ export async function GET(request: Request) {
       await delay(400);
     }
 
-    // 5. Bulk Upsert into Supabase market_quotes
+    // 5. Match pending orders and check stop loss/target thresholds
     if (allQuotes.length > 0) {
-      // Upsert in chunks to respect Supabase payload size limits
-      for (let i = 0; i < allQuotes.length; i += 1000) {
-        const { error: upsertError } = await supabaseAdmin
-          .from('market_quotes')
-          .upsert(allQuotes.slice(i, i + 1000), { onConflict: 'id' });
-
-        if (upsertError) throw upsertError;
-      }
-
-      // 6. Match pending orders and check stop loss/target thresholds
       try {
         await processPendingOrdersAndPositions(allQuotes);
       } catch (engineErr) {

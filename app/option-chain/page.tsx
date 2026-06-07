@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
-import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import OptionChainTable from './OptionChainTable';
 import Footer from '@/components/Footer';
 import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
@@ -301,7 +301,8 @@ function OptionChainContent() {
     return ids;
   }, [data, symbol]);
 
-  const { quotes, connected } = useKiteQuotes(instrumentIds, 2000);
+  const { quotes } = useMarketQuotes(instrumentIds);
+  const connected = true;
 
   const underlyingId = symbol === 'NIFTY' ? 'NSE:NIFTY 50' :
     symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :

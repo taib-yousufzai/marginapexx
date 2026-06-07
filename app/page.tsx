@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import { getSession, getRole } from '@/lib/auth';
-import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import TickFlash from '@/components/TickFlash';
 import './page.css';
 import './admin-layout.css';
@@ -265,7 +265,9 @@ export default function Page() {
   }, []);
 
   const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
-  const { quotes, connected: kiteConnected, loading: kiteLoading } = useKiteQuotes(allKiteInstruments, 1000);
+  const { quotes } = useMarketQuotes(allKiteInstruments);
+  const kiteConnected = true;
+  const kiteLoading = false;
 
   const buildRow = (instruments: string[]): MarketItem[] => {
     return instruments.map((key) => {

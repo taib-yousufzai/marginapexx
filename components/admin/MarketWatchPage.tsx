@@ -2,9 +2,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, TAB_INSTRUMENTS, WatchlistItem } from './AdminUtils';
-import { useKiteQuotes } from '@/hooks/useKiteQuotes';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { useComexQuotes } from '@/hooks/useComexQuotes';
-import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
 
 interface InstrumentSuggestion {
   id?: string;
@@ -64,15 +63,14 @@ export default function MarketWatchPage() {
     ['CRYPTO', 'FOREX'].includes(activeTab) ? currentSymbols : []
     , [activeTab, currentSymbols]);
 
-  const { quotes: kiteQuotes } = useKiteQuotes(kiteKeys, 2000);
+  const marketSymbols = useMemo(() => [...kiteKeys, ...binanceKeys], [kiteKeys, binanceKeys]);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, 2000);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, 2000);
 
   const allQuotes = useMemo(() => ({
-    ...kiteQuotes,
-    ...comexQuotes,
-    ...binanceQuotes
-  }), [kiteQuotes, comexQuotes, binanceQuotes]);
+    ...marketQuotes,
+    ...comexQuotes
+  }), [marketQuotes, comexQuotes]);
 
   const instruments = watchlists[activeTab] ?? [];
   const [remoteSuggestions, setRemoteSuggestions] = useState<InstrumentSuggestion[]>([]);

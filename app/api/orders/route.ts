@@ -52,22 +52,27 @@ async function fetchBinanceQuote(symbol: string): Promise<number | null> {
 async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, number>> {
   if (instruments.length === 0) return {};
   const result: Record<string, number> = {};
+  const foundKiteIds = new Set<string>();
 
   try {
     const admin = getAdminClient();
 
-    // 1. Fetch available quotes from database market_quotes
-    const { data: dbQuotes, error: dbError } = await admin
-      .from('market_quotes')
-      .select('id, last_price')
-      .in('id', instruments);
-
-    const foundKiteIds = new Set<string>();
-    if (!dbError && dbQuotes) {
-      for (const row of dbQuotes) {
-        result[row.id] = Number(row.last_price);
-        foundKiteIds.add(row.id);
+    // 1. Fetch available quotes from Ticker Daemon in-memory quotes API
+    try {
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+      const params = new URLSearchParams({ symbols: instruments.join(',') });
+      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+      if (resTicker.ok) {
+        const json = await resTicker.json();
+        if (json.success && json.data) {
+          for (const [key, val] of Object.entries(json.data)) {
+            result[key] = (val as any).last_price;
+            foundKiteIds.add(key);
+          }
+        }
       }
+    } catch (tickerErr) {
+      console.warn('[fetchKiteQuotes] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
     }
 
     // 2. Identify missing instruments
@@ -95,7 +100,6 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
 
       const data = await res.json() as { data?: Record<string, { last_price: number; instrument_token?: number; ohlc?: { close?: number } }> };
       const instrumentUpserts: any[] = [];
-      const dbUpserts: any[] = [];
 
       for (const inst of missingKiteIds) {
         const quote = data.data?.[inst];
@@ -115,23 +119,14 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
             segment: exchange,
             updated_at: new Date().toISOString()
           });
-
-          dbUpserts.push({
-            id: inst,
-            last_price: quote.last_price,
-            close: quote.ohlc?.close || 0,
-            quote_timestamp: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
         }
       }
 
-      // Cache missing instruments and quotes asynchronously in background
+      // Cache missing instruments in background (excluding raw ticks)
       if (instrumentUpserts.length > 0) {
         (async () => {
           try {
             await admin.from('instruments').upsert(instrumentUpserts, { onConflict: 'id' });
-            await admin.from('market_quotes').upsert(dbUpserts, { onConflict: 'id' });
           } catch (err) {
             console.error('[fetchKiteQuotes] Background cache error:', err);
           }

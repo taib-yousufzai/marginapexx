@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import TickFlash from '@/components/TickFlash';
-import { useKiteQuotes } from '@/hooks/useKiteQuotes';
-import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { useComexQuotes } from '@/hooks/useComexQuotes';
 import './Footer.css';
 
@@ -135,9 +134,9 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
   }, [rawPositions]);
 
-  // Use the respective quote hooks (polling every 1000ms)
-  const { quotes: kiteQuotes } = useKiteQuotes(kiteKeys, 1000);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, 1000);
+  // Combine Kite and Binance symbols for the unified hook
+  const marketSymbols = useMemo(() => [...kiteKeys, ...binanceKeys], [kiteKeys, binanceKeys]);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
 
   // Live P&L, Used Margin and Equity (Position Value) calculations
@@ -153,11 +152,11 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         
         if (seg.includes('CRYPTO')) {
           const binanceKey = p.symbol.replace('/', '');
-          ltp = binanceQuotes[binanceKey]?.lastPrice ?? ltp;
+          ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
         } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
           ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
         } else {
-          ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
+          ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
         }
 
         const dbSeg = mapSegmentToDbSegment(p.settlement || '');
@@ -187,7 +186,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       usedMargin: totalUsedMargin,
       positionValue: totalPositionValue
     };
-  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, segmentSettings]);
+  }, [rawPositions, marketQuotes, comexQuotes, segmentSettings]);
 
   const equity = positionValue;
   const freeMargin = (balance + floatingPnl) - usedMargin;

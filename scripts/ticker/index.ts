@@ -13,6 +13,8 @@ import { SubscriptionManager } from './subscriptionManager.ts';
 import { DbBatchWriter } from './dbWriter.ts';
 import { TickProcessor } from './processor.ts';
 import { BinanceTicker } from './binance.ts';
+import { WebSocketGateway } from './gateway.ts';
+import { CandleAggregator } from './candleAggregator.ts';
 
 const logger = pino({ name: 'ticker-daemon', level: process.env.LOG_LEVEL || 'info' });
 
@@ -22,6 +24,9 @@ class TickerDaemon {
   private dbWriter: DbBatchWriter;
   private processor: TickProcessor;
   private binanceTicker: BinanceTicker;
+  
+  private gateway!: WebSocketGateway;
+  private candleAggregator!: CandleAggregator;
   
   private subscriptionTimer: NodeJS.Timeout | null = null;
   private isReconnecting = false;
@@ -68,6 +73,39 @@ class TickerDaemon {
   public async start() {
     logger.info('Initializing Ticker Daemon...');
     
+    // Create combined HTTP server for Health check, REST API, and WebSocket Gateway
+    const port = process.env.PORT || 8080;
+    const server = http.createServer((req, res) => {
+      // Expose internal GET /quotes endpoint
+      const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
+      if (urlObj.pathname === '/quotes') {
+        const symbolsParam = urlObj.searchParams.get('symbols');
+        if (symbolsParam) {
+          const symbols = symbolsParam.split(',').filter(Boolean);
+          const quotes = this.gateway.getQuotes(symbols);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, data: quotes }));
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'Missing symbols query param' }));
+        }
+        return;
+      }
+      
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('OK');
+    });
+
+    this.gateway = new WebSocketGateway(server);
+    this.candleAggregator = new CandleAggregator();
+
+    // Link dbWriter to gateway and aggregator
+    this.dbWriter.setGatewayAndAggregator(this.gateway, this.candleAggregator);
+
+    server.listen(port, () => {
+      logger.info(`WebSocket Gateway and HTTP API listening on port ${port}`);
+    });
+
     // 1. Start database batch writer
     this.dbWriter.start();
 
@@ -87,16 +125,8 @@ class TickerDaemon {
 
     // 5. Register process shutdown handlers
     this.setupGracefulShutdown();
-
-    // 6. Start dummy HTTP server for Railway health checks
-    const port = process.env.PORT || 8080;
-    http.createServer((req, res) => {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('OK');
-    }).listen(port, () => {
-      logger.info(`Health check server listening on port ${port}`);
-    });
   }
+
 
   private setupTickerCallbacks() {
     // Configure auto-reconnect (tries up to 10 times, space 5 seconds apart)

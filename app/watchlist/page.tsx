@@ -4,8 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
-import { useKiteQuotes, QuoteData } from '@/hooks/useKiteQuotes';
-import { useBinanceQuotes, BinanceQuoteData } from '@/hooks/useBinanceQuotes';
+import { useMarketQuotes, QuoteData } from '@/hooks/useMarketQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
@@ -862,13 +861,16 @@ function WatchlistContent() {
     setHasLoaded(true);
   }, [userId, allowedSegments]);
 
-  const kiteSymbols = watchlistItems.map(i => i.kiteSymbol).filter(Boolean);
-  const { quotes } = useKiteQuotes(kiteSymbols, 1000);
+  const marketSymbols = useMemo(() => {
+    const list: string[] = [];
+    watchlistItems.forEach(i => {
+      if (i.kiteSymbol) list.push(i.kiteSymbol);
+      if (i.binanceSymbol) list.push(i.binanceSymbol);
+    });
+    return list;
+  }, [watchlistItems]);
 
-  const binanceSymbols = watchlistItems
-    .map(i => i.binanceSymbol)
-    .filter((s): s is string => !!s);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 1000);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
 
   const comexSymbols = watchlistItems
     .map(i => i.comexSymbol)
@@ -877,23 +879,23 @@ function WatchlistContent() {
 
   const getLegPrice = (legItem: WatchlistItem) => {
     if (legItem.binanceSymbol) {
-      return binanceQuotes?.[legItem.binanceSymbol]?.lastPrice ?? legItem.price;
+      return marketQuotes?.[legItem.binanceSymbol]?.lastPrice ?? legItem.price;
     }
     if (legItem.comexSymbol) {
       return comexQuotes?.[legItem.comexSymbol]?.lastPrice ?? legItem.price;
     }
-    return quotes?.[legItem.kiteSymbol]?.lastPrice ?? legItem.price;
+    return marketQuotes?.[legItem.kiteSymbol]?.lastPrice ?? legItem.price;
   };
 
   useEffect(() => {
-    window.__kiteQuotes = quotes;
-    window.__binanceQuotes = binanceQuotes;
+    window.__kiteQuotes = marketQuotes;
+    window.__binanceQuotes = marketQuotes;
     window.__comexQuotes = comexQuotes;
     window.__watchlistItems = watchlistItems;
     if (scriptMountedRef.current && typeof (window as any).attachSwipeHandlers === 'function') {
       (window as any).attachSwipeHandlers();
     }
-  }, [quotes, binanceQuotes, comexQuotes, watchlistItems]);
+  }, [marketQuotes, comexQuotes, watchlistItems]);
 
   useEffect(() => {
     window.__addToWatchlistCallback = (item: WatchlistItem) => {
@@ -1144,9 +1146,9 @@ function WatchlistContent() {
     const isCryptoItem = !!(selectedItem.binanceSymbol);
     let livePrice = selectedItem.price;
     if (isCryptoItem && selectedItem.binanceSymbol) {
-      livePrice = binanceQuotes[selectedItem.binanceSymbol]?.lastPrice ?? selectedItem.price;
+      livePrice = marketQuotes[selectedItem.binanceSymbol]?.lastPrice ?? selectedItem.price;
     } else if (selectedItem.kiteSymbol) {
-      livePrice = quotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
+      livePrice = marketQuotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
     }
 
     if (orderType === 'SL' || orderType === 'SLM') {
@@ -1230,8 +1232,8 @@ function WatchlistContent() {
   const isCrypto = !!(selectedItem?.binanceSymbol);
   const isComex  = !!(selectedItem?.comexSymbol);
 
-  const currentKiteQuote    = selectedItem?.kiteSymbol   ? quotes[selectedItem.kiteSymbol]           : null;
-  const currentBinanceQuote = selectedItem?.binanceSymbol ? binanceQuotes[selectedItem.binanceSymbol] : null;
+  const currentKiteQuote    = selectedItem?.kiteSymbol   ? marketQuotes[selectedItem.kiteSymbol]           : null;
+  const currentBinanceQuote = selectedItem?.binanceSymbol ? marketQuotes[selectedItem.binanceSymbol] : null;
   const currentComexQuote   = selectedItem?.comexSymbol   ? comexQuotes[selectedItem.comexSymbol]     : null;
 
   let currentLtp           = 0;

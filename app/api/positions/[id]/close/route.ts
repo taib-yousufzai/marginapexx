@@ -26,15 +26,19 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
   try {
     const admin = getAdminClient();
     
-    // 1. Check local db cache
-    const { data: dbQuote, error: dbError } = await admin
-      .from('market_quotes')
-      .select('last_price')
-      .eq('id', instrument)
-      .maybeSingle();
-
-    if (!dbError && dbQuote) {
-      return Number(dbQuote.last_price);
+    // 1. Check Ticker Daemon in-memory quotes API
+    try {
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+      const params = new URLSearchParams({ symbols: instrument });
+      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+      if (resTicker.ok) {
+        const json = await resTicker.json();
+        if (json.success && json.data && json.data[instrument]) {
+          return Number(json.data[instrument].last_price);
+        }
+      }
+    } catch (tickerErr) {
+      console.warn('[fetchKiteLtp] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
     }
 
     // 2. On-demand fallback to Kite REST API
@@ -58,7 +62,7 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
     const quote = data.data?.[instrument];
     if (!quote) return null;
 
-    // Cache the instrument and quote asynchronously in background
+    // Cache the instrument asynchronously in background (excluding raw ticks)
     (async () => {
       try {
         const parts = instrument.split(':');
@@ -72,14 +76,6 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
           exchange: exchange,
           instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
           segment: exchange,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-
-        await admin.from('market_quotes').upsert({
-          id: instrument,
-          last_price: quote.last_price,
-          close: quote.ohlc?.close || 0,
-          quote_timestamp: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
       } catch (err) {

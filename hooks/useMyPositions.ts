@@ -9,8 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useKiteQuotes } from './useKiteQuotes';
-import { useBinanceQuotes } from './useBinanceQuotes';
+import { useMarketQuotes } from './useMarketQuotes';
 import { useComexQuotes } from './useComexQuotes';
 import { MyPosition } from '@/lib/types/order';
 
@@ -152,9 +151,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
   }, [rawPositions]);
 
-  // Use the respective hooks for each segment
-  const { quotes: kiteQuotes } = useKiteQuotes(kiteKeys, refreshInterval);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceKeys, refreshInterval);
+  // Combine Kite and Binance symbols for the unified hook
+  const marketSymbols = useMemo(() => [...kiteKeys, ...binanceKeys], [kiteKeys, binanceKeys]);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, refreshInterval);
 
   // Enrich positions with live calculations
@@ -171,11 +170,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         if (!binanceKey.endsWith('USDT')) {
           binanceKey = binanceKey + 'USDT';
         }
-        ltp = binanceQuotes[binanceKey]?.lastPrice ?? ltp;
+        ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
       } else {
-        ltp = kiteQuotes[p.symbol]?.lastPrice ?? ltp;
+        ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
       }
 
       // Derive DB segment once — used for both PnL and anti-scalping calculations
@@ -225,7 +224,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         required_hold_seconds: requiredHold
       } as EnrichedPosition;
     });
-  }, [rawPositions, kiteQuotes, binanceQuotes, comexQuotes, inFlightConversions, segmentSettings]);
+  }, [rawPositions, marketQuotes, comexQuotes, inFlightConversions, segmentSettings]);
 
   return {
     positions: enrichedPositions,

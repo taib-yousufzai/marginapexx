@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import { useActivePositions } from '@/hooks/useActivePositions';
-import { useKiteQuotes } from '@/hooks/useKiteQuotes';
-import { useBinanceQuotes } from '@/hooks/useBinanceQuotes';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 
 export interface TradeSheetItem {
   name: string;
@@ -89,17 +88,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   if (bSymbol && !bSymbol.endsWith('USDT')) {
     bSymbol = bSymbol + 'USDT';
   }
-  const binanceSymbols = bSymbol ? [bSymbol] : [];
-  const kiteSymbols = item && item.kiteSymbol ? [item.kiteSymbol] : [];
+  const marketSymbols = useMemo(() => {
+    const list: string[] = [];
+    if (item?.kiteSymbol) list.push(item.kiteSymbol);
+    if (bSymbol) list.push(bSymbol);
+    return list;
+  }, [item?.kiteSymbol, bSymbol]);
 
-  const { quotes: kiteQuotes } = useKiteQuotes(kiteSymbols, 1000);
-  const { quotes: binanceQuotes } = useBinanceQuotes(binanceSymbols, 1000);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
 
   let currentLtp = item?.price ?? 0;
-  if (isCrypto && bSymbol && binanceQuotes[bSymbol]) {
-    currentLtp = binanceQuotes[bSymbol].lastPrice;
-  } else if (item?.kiteSymbol && kiteQuotes[item.kiteSymbol]) {
-    currentLtp = kiteQuotes[item.kiteSymbol].lastPrice;
+  if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
+    currentLtp = marketQuotes[bSymbol].lastPrice;
+  } else if (item?.kiteSymbol && marketQuotes[item.kiteSymbol]) {
+    currentLtp = marketQuotes[item.kiteSymbol].lastPrice;
   }
 
   const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
