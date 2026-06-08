@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install all dependencies (including devDeps for tsx + typescript)
-RUN npm ci
+RUN npm install
 
 # Copy only the files the ticker needs
 COPY tsconfig.json ./
