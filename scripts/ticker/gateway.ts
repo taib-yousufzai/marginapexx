@@ -104,6 +104,30 @@ export class WebSocketGateway {
                 const cached = await redis.hget('market:quotes', sym);
                 if (cached) {
                   initialQuotes[sym] = JSON.parse(cached) as TickData;
+                } else if (sym.endsWith('USDT')) {
+                  // Fallback: If cache is empty (e.g. fresh Railway deploy), fetch from Binance REST API instantly
+                  try {
+                    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      const tick: TickData = {
+                        last_price: parseFloat(data.lastPrice),
+                        volume: parseFloat(data.volume),
+                        ohlc: {
+                          open: parseFloat(data.openPrice),
+                          high: parseFloat(data.highPrice),
+                          low: parseFloat(data.lowPrice),
+                          close: parseFloat(data.lastPrice),
+                        },
+                        timestamp: new Date(data.closeTime),
+                      };
+                      initialQuotes[sym] = tick;
+                      // Backfill the cache so subsequent requests are instant
+                      redis.hset('market:quotes', sym, JSON.stringify(tick)).catch(() => {});
+                    }
+                  } catch (restErr) {
+                    logger.warn({ err: restErr, sym }, 'Failed to fetch initial quote from Binance REST API');
+                  }
                 }
               }));
             } catch (cacheErr) {
