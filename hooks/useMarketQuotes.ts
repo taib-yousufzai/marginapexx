@@ -23,6 +23,9 @@ class MarketWSManager {
 
   constructor() {
     let url = process.env.NEXT_PUBLIC_TICKER_WS_URL;
+    if (!url && process.env.NEXT_PUBLIC_TICKER_URL) {
+      url = process.env.NEXT_PUBLIC_TICKER_URL.replace(/^http/, 'ws');
+    }
     if (!url && typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       // In development, the ticker daemon runs on port 8080.
