@@ -6,7 +6,7 @@ import { getAdminClient } from '../../lib/adminClient.ts';
 
 const BINANCE_WS_URL =
   'wss://stream.binance.com:443/stream?streams=' +
-  'btcusdt@ticker/ethusdt@ticker/bnbusdt@ticker/solusdt@ticker';
+  'btcusdt@ticker/ethusdt@ticker/bnbusdt@ticker/solusdt@ticker/xrpusdt@ticker/dogeusdt@ticker/adausdt@ticker/maticusdt@ticker';
 
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds — detect stale connections
 const STABLE_CONNECTION_MS  = 60_000; // Reset attempt counter after 60s stable
@@ -77,7 +77,7 @@ export class BinanceTicker {
 
   private async ensureInstrumentsExist(): Promise<void> {
     const admin = getAdminClient();
-    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'BTC', 'ETH', 'BNB', 'SOL'];
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'MATICUSDT', 'BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'DOGE', 'ADA', 'MATIC'];
     const rows = symbols.map(sym => ({
       id: sym,
       instrument_token: 0,

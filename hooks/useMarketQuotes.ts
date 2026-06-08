@@ -23,8 +23,14 @@ class MarketWSManager {
 
   constructor() {
     let url = process.env.NEXT_PUBLIC_TICKER_WS_URL;
+    if (url && url.includes('vercel.app')) {
+      url = '';
+    }
     if (!url && process.env.NEXT_PUBLIC_TICKER_URL) {
-      url = process.env.NEXT_PUBLIC_TICKER_URL.replace(/^http/, 'ws');
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL;
+      if (!tickerUrl.includes('vercel.app')) {
+        url = tickerUrl.replace(/^http/, 'ws');
+      }
     }
     if (!url && typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

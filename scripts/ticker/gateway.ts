@@ -117,7 +117,7 @@ export class WebSocketGateway {
                           open: parseFloat(data.openPrice),
                           high: parseFloat(data.highPrice),
                           low: parseFloat(data.lowPrice),
-                          close: parseFloat(data.lastPrice),
+                          close: parseFloat(data.prevClosePrice),
                         },
                         timestamp: new Date(data.closeTime),
                       };
