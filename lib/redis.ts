@@ -47,11 +47,12 @@ class MockRedis {
     return result;
   }
 
+  private onMessageCallback: ((channel: string, message: string) => void) | null = null;
+
   public async publish(channel: string, message: string): Promise<number> {
-    const channelListeners = this.listeners.get(channel);
-    if (channelListeners) {
-      channelListeners.forEach(cb => cb(channel, message));
-      return channelListeners.size;
+    if (this.listeners.has(channel) && this.onMessageCallback) {
+      this.onMessageCallback(channel, message);
+      return 1;
     }
     return 0;
   }
@@ -65,14 +66,7 @@ class MockRedis {
 
   public on(event: string, callback: (...args: any[]) => void) {
     if (event === 'message') {
-      // Direct message routing logic
-      const messageHandler = (channel: string, msg: string) => {
-        callback(channel, msg);
-      };
-      // Register listener for all current mock channels
-      for (const channel of this.listeners.keys()) {
-        this.listeners.get(channel)?.add(messageHandler);
-      }
+      this.onMessageCallback = callback;
     }
   }
 
