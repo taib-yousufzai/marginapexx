@@ -60,9 +60,13 @@ export class BinanceTicker {
 
   public start(): void {
     if (!this.ws) {
-      this.ensureInstrumentsExist().then(() => {
-        this.connect();
-      });
+      this.ensureInstrumentsExist()
+        .catch((err) => {
+          logger.warn({ err }, 'ensureInstrumentsExist failed — proceeding to connect anyway');
+        })
+        .finally(() => {
+          this.connect();
+        });
     }
   }
 
