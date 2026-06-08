@@ -8,6 +8,9 @@ const BINANCE_WS_URL =
   'wss://stream.binance.com:9443/stream?streams=' +
   'btcusdt@ticker/ethusdt@ticker/bnbusdt@ticker/solusdt@ticker';
 
+const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds — detect stale connections
+const STABLE_CONNECTION_MS  = 60_000; // Reset attempt counter after 60s stable
+
 const logger = pino({ name: 'binance-ticker' });
 
 /**
@@ -45,8 +48,11 @@ export class BinanceTicker {
   private dbWriter: DbBatchWriter;
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
+  private stableTimer: NodeJS.Timeout | null = null;
   private attempt = 0;
   private stopping = false;
+  private isConnected = false;
 
   constructor(dbWriter: DbBatchWriter) {
     this.dbWriter = dbWriter;
@@ -58,6 +64,11 @@ export class BinanceTicker {
         this.connect();
       });
     }
+  }
+
+  /** Exposed for health endpoint reporting */
+  public get connected(): boolean {
+    return this.isConnected;
   }
 
   private async ensureInstrumentsExist(): Promise<void> {
@@ -89,22 +100,50 @@ export class BinanceTicker {
 
   public stop(): void {
     this.stopping = true;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
+    this.clearTimers();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
+    this.isConnected = false;
+  }
+
+  private clearTimers(): void {
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer);  this.reconnectTimer = null; }
+    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
+    if (this.stableTimer)    { clearTimeout(this.stableTimer);     this.stableTimer    = null; }
   }
 
   private connect(): void {
     this.ws = new WebSocket(BINANCE_WS_URL);
 
     this.ws.on('open', () => {
-      this.attempt = 0;
+      this.isConnected = true;
       logger.info('Connected to Binance WebSocket');
+
+      // Reset attempt counter after a stable 60-second connection.
+      // Prevents slow reconnects after the connection has been healthy for a while.
+      this.stableTimer = setTimeout(() => {
+        this.attempt = 0;
+        logger.debug('Binance connection stable — reset reconnect attempt counter');
+      }, STABLE_CONNECTION_MS);
+
+      // Heartbeat: send a ping every 30s. If the server doesn't pong back
+      // before the next ping, the connection is considered dead and terminated.
+      let pongReceived = true;
+      this.heartbeatTimer = setInterval(() => {
+        if (!pongReceived) {
+          logger.warn('Binance WebSocket missed pong — terminating stale connection');
+          this.ws?.terminate(); // triggers 'close', which schedules reconnect
+          return;
+        }
+        pongReceived = false;
+        this.ws?.ping();
+      }, HEARTBEAT_INTERVAL_MS);
+
+      this.ws!.on('pong', () => {
+        pongReceived = true;
+      });
     });
 
     this.ws.on('message', (data) => {
@@ -112,12 +151,14 @@ export class BinanceTicker {
     });
 
     this.ws.on('error', (err) => {
-      logger.error({ err }, 'WebSocket error');
+      logger.error({ err }, 'Binance WebSocket error');
     });
 
     this.ws.on('close', () => {
+      this.isConnected = false;
+      this.clearTimers();
       if (!this.stopping) {
-        logger.warn('Disconnected');
+        logger.warn('Disconnected from Binance — scheduling reconnect');
         this.scheduleReconnect();
       }
     });
@@ -126,8 +167,8 @@ export class BinanceTicker {
   private scheduleReconnect(): void {
     if (this.stopping) return;
     this.attempt++;
-    const delay = Math.min(this.attempt * 1000, 30000);
-    logger.info({ delay }, 'Scheduling Binance WebSocket reconnect');
+    const delay = Math.min(this.attempt * 1000, 30_000); // cap at 30s
+    logger.info({ delay, attempt: this.attempt }, 'Scheduling Binance WebSocket reconnect');
     this.reconnectTimer = setTimeout(() => {
       this.connect();
     }, delay);
@@ -137,11 +178,11 @@ export class BinanceTicker {
     try {
       const result = parseBinanceTicker(raw);
       if (result === null) return;
-      
+
       // Upsert standard symbol (e.g. SOLUSDT)
       this.dbWriter.addTick(result.symbol, result.tickData);
-      
-      // Also upsert short symbol (e.g. SOL)
+
+      // Also upsert short symbol (e.g. SOL) so orders using abbreviated symbols match
       const shortSymbol = result.symbol.replace('USDT', '');
       this.dbWriter.addTick(shortSymbol, result.tickData);
     } catch (err) {

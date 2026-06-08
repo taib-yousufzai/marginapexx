@@ -9,12 +9,16 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 import { KiteTicker } from 'kiteconnect';
 import pino from 'pino';
 import { getSharedKiteSession } from '../../lib/kiteSession.ts';
+import { KiteSessionMonitor } from './kiteAutoLogin.ts';
 import { SubscriptionManager } from './subscriptionManager.ts';
 import { DbBatchWriter } from './dbWriter.ts';
 import { TickProcessor } from './processor.ts';
 import { BinanceTicker } from './binance.ts';
 import { WebSocketGateway } from './gateway.ts';
 import { CandleAggregator } from './candleAggregator.ts';
+
+import { matchingEngine } from '../../lib/orderMatching.ts';
+import { telemetry } from '../../lib/metrics.ts';
 
 const logger = pino({ name: 'ticker-daemon', level: process.env.LOG_LEVEL || 'info' });
 
@@ -24,11 +28,13 @@ class TickerDaemon {
   private dbWriter: DbBatchWriter;
   private processor: TickProcessor;
   private binanceTicker: BinanceTicker;
-  
+  private sessionMonitor: KiteSessionMonitor;
+
   private gateway!: WebSocketGateway;
   private candleAggregator!: CandleAggregator;
-  
+
   private subscriptionTimer: NodeJS.Timeout | null = null;
+  private telemetryTimer: NodeJS.Timeout | null = null;
   private isReconnecting = false;
   private isStopping = false;
 
@@ -38,6 +44,7 @@ class TickerDaemon {
     this.dbWriter = new DbBatchWriter(1000);
     this.processor = new TickProcessor(this.subscriptionManager, this.dbWriter);
     this.binanceTicker = new BinanceTicker(this.dbWriter);
+    this.sessionMonitor = new KiteSessionMonitor();
   }
 
   private async initKite() {
@@ -76,8 +83,41 @@ class TickerDaemon {
     // Create combined HTTP server for Health check, REST API, and WebSocket Gateway
     const port = process.env.PORT || 8080;
     const server = http.createServer((req, res) => {
-      // Expose internal GET /quotes endpoint
       const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
+
+      // GET /health — structured health check for Railway and monitoring
+      if (urlObj.pathname === '/health' || urlObj.pathname === '/') {
+        const sessionStatus = this.sessionMonitor.getStatus();
+        const healthy = this.binanceTicker.connected;
+        const payload = JSON.stringify({
+          status: healthy ? 'ok' : 'degraded',
+          uptime: process.uptime(),
+          kiteConnected: !!this.ticker && !this.isReconnecting,
+          kiteSessionValid: sessionStatus.sessionValid,
+          kiteSessionExpiresAt: sessionStatus.expiresAt?.toISOString() ?? null,
+          minutesUntilExpiry: sessionStatus.minutesUntilExpiry,
+          lastSuccessfulLogin: sessionStatus.lastSuccessfulLogin?.toISOString() ?? null,
+          lastLoginAttempt: sessionStatus.lastLoginAttempt?.toISOString() ?? null,
+          lastLoginFailure: sessionStatus.lastLoginFailure?.toISOString() ?? null,
+          binanceConnected: this.binanceTicker.connected,
+          activeOrders: matchingEngine.activeOrders.size,
+          activePositions: matchingEngine.activePositions.size,
+          timestamp: new Date().toISOString(),
+        });
+        res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
+        res.end(payload);
+        return;
+      }
+
+      // GET /metrics — live telemetry from this process
+      if (urlObj.pathname === '/metrics') {
+        const summary = telemetry.getSummary();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(summary));
+        return;
+      }
+
+      // GET /quotes — live price quotes by symbol
       if (urlObj.pathname === '/quotes') {
         const symbolsParam = urlObj.searchParams.get('symbols');
         if (symbolsParam) {
@@ -91,9 +131,9 @@ class TickerDaemon {
         }
         return;
       }
-      
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('OK');
+
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
     });
 
     this.gateway = new WebSocketGateway(server);
@@ -106,16 +146,75 @@ class TickerDaemon {
       logger.info(`WebSocket Gateway and HTTP API listening on port ${port}`);
     });
 
-    // 1. Start database batch writer
+    // 1. Initialize In-Memory Matching Engine cache (with retry on Supabase transient errors)
+    const MAX_INIT_RETRIES = 5;
+    let initSuccess = false;
+    for (let attempt = 1; attempt <= MAX_INIT_RETRIES; attempt++) {
+      try {
+        logger.info({ attempt }, 'Seeding In-Memory Matching Engine cache from database...');
+        await matchingEngine.initialize();
+        matchingEngine.setupRealtimeSync();
+        logger.info('In-Memory Matching Engine initialized and synced.');
+        initSuccess = true;
+        break;
+      } catch (err) {
+        const delay = Math.min(attempt * 2000, 30_000); // 2s, 4s, 8s, 16s, 30s
+        if (attempt < MAX_INIT_RETRIES) {
+          logger.warn({ err, attempt, delay }, 'Matching engine init failed — retrying...');
+          await new Promise(r => setTimeout(r, delay));
+        } else {
+          logger.fatal({ err }, 'Matching engine failed to initialize after max retries. '
+            + 'Engine will start empty. Realtime sync will populate state as DB events arrive.');
+        }
+      }
+    }
+    if (!initSuccess) {
+      // Still set up Realtime so it can gradually rebuild state from DB change events
+      try { matchingEngine.setupRealtimeSync(); } catch (_) {}
+    }
+
+    // 2. Start database batch writer
     this.dbWriter.start();
 
-    // 2. Start Binance WebSocket Ticker
+    // 3. Start Binance WebSocket Ticker
     this.binanceTicker.start();
 
-    // 3. Try to initialize Kite Ticker
+    // 4. Try to initialize Kite Ticker with current session from DB
+    const initialSession = await getSharedKiteSession().catch(() => null);
+    this.sessionMonitor.setInitialSession(initialSession);
     await this.initKite();
 
-    // 4. Setup periodic subscription checker and Kite session checker (every 60 seconds as fallback)
+    // 5. Start the self-healing session monitor
+    // On 'session-refreshed': tear down old KiteTicker and reconnect with new token
+    this.sessionMonitor.on('session-refreshed', async (newSession) => {
+      logger.info({ kiteUserId: newSession.kiteUserId, expiresAt: newSession.expiresAt },
+        'Session refreshed by auto-login — reconnecting KiteTicker with new token');
+      // Cleanly disconnect the old ticker
+      if (this.ticker) {
+        try { this.ticker.disconnect(); } catch (_) {}
+        this.ticker = null;
+        this.isReconnecting = false;
+      }
+      // Brief pause to let the old connection close
+      await new Promise(r => setTimeout(r, 1000));
+      await this.initKite();
+    });
+
+    this.sessionMonitor.on('session-warning', (minutesLeft: number) => {
+      telemetry.triggerAlert('WARNING', `Kite session expires in ${minutesLeft} minutes`);
+    });
+
+    this.sessionMonitor.on('login-failed', (err: Error) => {
+      telemetry.triggerAlert('WARNING', `Kite auto-login failed: ${err.message}`);
+    });
+
+    this.sessionMonitor.on('session-critical', () => {
+      telemetry.triggerAlert('CRITICAL', 'Kite session critical — expired or repeated login failures');
+    });
+
+    this.sessionMonitor.start();
+
+    // 6. Setup periodic subscription checker (every 60 seconds)
     this.subscriptionTimer = setInterval(async () => {
       if (!this.ticker && !this.isReconnecting) {
         await this.initKite();
@@ -128,16 +227,13 @@ class TickerDaemon {
       this.syncSubscriptions();
     });
 
-    // Setup periodic metrics logger (every 30 seconds)
-    setInterval(() => {
+    // 7. Periodic system metrics logger + session telemetry sync (every 30 seconds)
+    this.telemetryTimer = setInterval(() => {
       const memory = process.memoryUsage();
       const cpu = process.cpuUsage();
       const processorMetrics = this.processor.getMetrics();
       logger.info({
-        cpu: {
-          user: cpu.user,
-          system: cpu.system,
-        },
+        cpu: { user: cpu.user, system: cpu.system },
         memory: {
           heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
           heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
@@ -145,9 +241,21 @@ class TickerDaemon {
         },
         ticks: processorMetrics,
       }, 'System Metrics Observability');
-    }, 30000);
 
-    // 5. Register process shutdown handlers
+      // Push session health into telemetry so /metrics and diagnostics page see it
+      const s = this.sessionMonitor.getStatus();
+      telemetry.recordKiteSessionStatus(
+        s.sessionValid,
+        s.expiresAt,
+        s.minutesUntilExpiry,
+        s.lastSuccessfulLogin,
+        s.lastLoginAttempt,
+        s.lastLoginFailure,
+        s.consecutiveFailures,
+      );
+    }, 30_000);
+
+    // 8. Register process shutdown handlers
     this.setupGracefulShutdown();
   }
 
@@ -260,12 +368,14 @@ class TickerDaemon {
     const shutdown = async (signal: string) => {
       if (this.isStopping) return;
       this.isStopping = true;
-      
+
       logger.info({ signal }, 'Graceful shutdown initiated...');
 
-      if (this.subscriptionTimer) {
-        clearInterval(this.subscriptionTimer);
-      }
+      if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
+      if (this.telemetryTimer)    clearInterval(this.telemetryTimer);
+
+      // Stop the session monitor so it doesn't attempt login during shutdown
+      this.sessionMonitor.stop();
 
       try {
         if (this.ticker) {
@@ -273,11 +383,9 @@ class TickerDaemon {
           this.ticker.disconnect();
         }
 
-        // Stop Binance WebSocket Ticker
         logger.info('Stopping Binance WebSocket Ticker...');
         this.binanceTicker.stop();
 
-        // Flush remaining cache to database and stop timer
         await this.dbWriter.stop();
         logger.info('Graceful cleanup completed. Exiting.');
         process.exit(0);
@@ -287,7 +395,7 @@ class TickerDaemon {
       }
     };
 
-    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGINT',  () => shutdown('SIGINT'));
     process.on('SIGTERM', () => shutdown('SIGTERM'));
   }
 }

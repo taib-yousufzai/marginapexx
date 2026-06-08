@@ -1,5 +1,6 @@
 import { getAdminClient } from '../../lib/adminClient.ts';
 import { processPendingOrdersAndPositions } from '../../lib/orderMatching.ts';
+import { getRedisClient } from '../../lib/redis.ts';
 import pino from 'pino';
 
 const logger = pino({ name: 'ticker-db-writer' });
@@ -38,14 +39,23 @@ export class DbBatchWriter {
 
   /**
    * Buffers an incoming tick in memory, overwriting any older tick for the same instrument.
-   * Also updates the WebSocket Gateway and Candle Aggregator immediately in real-time.
+   * Also updates the Redis Cache, Pub/Sub, and Candle Aggregator immediately in real-time.
    */
   public addTick(symbolKey: string, tick: TickData) {
     this.buffer.set(symbolKey, tick);
 
-    // 1. Instantly push to WebSocket clients
-    if (this.gateway) {
-      this.gateway.updateQuote(symbolKey, tick);
+    // 1. Write to Redis Cache and PubSub
+    try {
+      const redis = getRedisClient();
+      const tickStr = JSON.stringify(tick);
+      redis.hset('market:quotes', symbolKey, tickStr).catch((err: any) => {
+        logger.error({ err, symbolKey }, 'Failed to HSET quote in Redis');
+      });
+      redis.publish(`market:ticks:${symbolKey}`, tickStr).catch((err: any) => {
+        logger.error({ err, symbolKey }, 'Failed to publish quote to Redis PubSub');
+      });
+    } catch (redisErr) {
+      logger.error({ err: redisErr }, 'Error sending tick to Redis layer');
     }
 
     // 2. Instantly update candle aggregator
@@ -56,6 +66,7 @@ export class DbBatchWriter {
       this.candleAggregator.addTick(symbolKey, tick.last_price, tick.volume || 0, ts);
     }
   }
+
 
   /**
    * Starts the periodic database write worker.

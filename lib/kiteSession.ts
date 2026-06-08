@@ -90,7 +90,10 @@ export async function loadKiteSession(
 
 let sharedSessionCache: KiteSessionData | null = null;
 let lastSharedFetchTime = 0;
-const SHARED_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours
+// 5 minutes: short enough that a new session written by auto-login is picked up
+// at the next initKite() call without requiring a process restart.
+// Previously 12h which caused the ticker to use stale expired tokens.
+const SHARED_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Load the master/shared Kite session that is used for "everyone".
@@ -121,8 +124,15 @@ export async function getSharedKiteSession(): Promise<KiteSessionData | null> {
 }
 
 /**
- * Delete a Kite session (e.g. on logout or token invalidation).
+ * Immediately busts the in-process session cache.
+ * Call this after a successful auto-login so that the next
+ * getSharedKiteSession() call re-reads from Supabase.
  */
+export function invalidateSharedKiteSessionCache(): void {
+  sharedSessionCache = null;
+  lastSharedFetchTime = 0;
+}
+
 export async function deleteKiteSession(supabaseUserId: string): Promise<void> {
   const admin = getAdminClient();
   await admin.from('kite_sessions').delete().eq('user_id', supabaseUserId);

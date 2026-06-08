@@ -136,9 +136,9 @@ describe('orderMatching', () => {
 
     mockSelect
       .mockReturnValueOnce(mockQueryResult(orders)) // orders
-      .mockReturnValueOnce(mockQueryResult([]))     // positions
+      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open', symbol: 'NSE:TCS', user_id: 'usr-1' }])) // positions
       .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open' }])); // positions existing check
+      .mockReturnValueOnce(mockQueryResult({ id: 'usr-1', balance: 100000, auto_sqoff: 90 })); // profile
 
     const quotes = [{ id: 'NSE:TCS', last_price: 3405 }];
     await processPendingOrdersAndPositions(quotes);

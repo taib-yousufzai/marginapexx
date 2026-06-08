@@ -110,19 +110,16 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
     const finalMappedData: Record<string, any> = {};
     const foundKiteIds = new Set<string>();
 
-    // 1. Fetch from Ticker Daemon in-memory quotes API
+    // 1. Fetch from Redis Hash cache first
     try {
-      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
-      const params = new URLSearchParams({ symbols: directKiteIds.join(',') });
-      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
-      if (resTicker.ok) {
-        const json = await resTicker.json();
-        if (json.success && json.data) {
-          for (const [kiteId, quote] of Object.entries(json.data)) {
-            const reqId = realToRequestedMap[kiteId];
-            if (!reqId || !quote) continue;
-
-            const q = quote as any;
+      const { getRedisClient } = await import('@/lib/redis');
+      const redis = getRedisClient();
+      await Promise.all(directKiteIds.map(async (kiteId) => {
+        const cached = await redis.hget('market:quotes', kiteId);
+        if (cached) {
+          const q = JSON.parse(cached);
+          const reqId = realToRequestedMap[kiteId];
+          if (reqId && q) {
             const close = q.ohlc?.close || q.close || 0;
             finalMappedData[reqId] = {
               timestamp: q.timestamp || new Date().toISOString(),
@@ -139,12 +136,49 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
             foundKiteIds.add(kiteId);
           }
         }
-      }
-    } catch (tickerErr) {
-      console.warn('[Kite Quotes API] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
+      }));
+    } catch (redisErr) {
+      console.warn('[Kite Quotes API] Failed to query Redis, falling back:', redisErr);
     }
 
-    // 2. Find missing instruments that aren't in the Daemon cache
+    // 2. Fallback to Ticker Daemon in-memory quotes API for remaining symbols
+    const remainingKiteIds = directKiteIds.filter(id => !foundKiteIds.has(id));
+    if (remainingKiteIds.length > 0) {
+      try {
+        const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+        const params = new URLSearchParams({ symbols: remainingKiteIds.join(',') });
+        const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+        if (resTicker.ok) {
+          const json = await resTicker.json();
+          if (json.success && json.data) {
+            for (const [kiteId, quote] of Object.entries(json.data)) {
+              const reqId = realToRequestedMap[kiteId];
+              if (!reqId || !quote) continue;
+
+              const q = quote as any;
+              const close = q.ohlc?.close || q.close || 0;
+              finalMappedData[reqId] = {
+                timestamp: q.timestamp || new Date().toISOString(),
+                last_price: q.last_price,
+                volume: q.volume || 0,
+                ohlc: {
+                  open: q.ohlc?.open || q.open || 0,
+                  high: q.ohlc?.high || q.high || 0,
+                  low: q.ohlc?.low || q.low || 0,
+                  close: close,
+                },
+                net_change: q.last_price - close,
+              };
+              foundKiteIds.add(kiteId);
+            }
+          }
+        }
+      } catch (tickerErr) {
+        console.warn('[Kite Quotes API] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
+      }
+    }
+
+    // 3. Find missing instruments that aren't in any cache
     const missingKiteIds = directKiteIds.filter(id => !foundKiteIds.has(id));
 
     // 3. Fallback: Fetch missing instruments from Kite REST API on-demand

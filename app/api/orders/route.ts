@@ -57,25 +57,46 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
   try {
     const admin = getAdminClient();
 
-    // 1. Fetch available quotes from Ticker Daemon in-memory quotes API
+    // 1. Fetch from Redis Hash cache first
     try {
-      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
-      const params = new URLSearchParams({ symbols: instruments.join(',') });
-      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
-      if (resTicker.ok) {
-        const json = await resTicker.json();
-        if (json.success && json.data) {
-          for (const [key, val] of Object.entries(json.data)) {
-            result[key] = (val as any).last_price;
-            foundKiteIds.add(key);
+      const { getRedisClient } = await import('@/lib/redis');
+      const redis = getRedisClient();
+      await Promise.all(instruments.map(async (inst) => {
+        const cached = await redis.hget('market:quotes', inst);
+        if (cached) {
+          const q = JSON.parse(cached);
+          if (q && q.last_price !== undefined) {
+            result[inst] = q.last_price;
+            foundKiteIds.add(inst);
           }
         }
-      }
-    } catch (tickerErr) {
-      console.warn('[fetchKiteQuotes] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
+      }));
+    } catch (redisErr) {
+      console.warn('[fetchKiteQuotes] Failed to query Redis, falling back:', redisErr);
     }
 
-    // 2. Identify missing instruments
+    // 2. Fetch available quotes from Ticker Daemon for remaining instruments
+    const remainingKiteIds = instruments.filter(id => !foundKiteIds.has(id));
+    if (remainingKiteIds.length > 0) {
+      try {
+        const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+        const params = new URLSearchParams({ symbols: remainingKiteIds.join(',') });
+        const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+        if (resTicker.ok) {
+          const json = await resTicker.json();
+          if (json.success && json.data) {
+            for (const [key, val] of Object.entries(json.data)) {
+              result[key] = (val as any).last_price;
+              foundKiteIds.add(key);
+            }
+          }
+        }
+      } catch (tickerErr) {
+        console.warn('[fetchKiteQuotes] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
+      }
+    }
+
+    // 3. Identify missing instruments
     const missingKiteIds = instruments.filter(id => !foundKiteIds.has(id));
 
     // 3. Fallback on-demand fetch from Kite REST API for missing instruments only

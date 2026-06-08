@@ -3,6 +3,7 @@ import pino from 'pino';
 import { DbBatchWriter } from './dbWriter.ts';
 import type { TickData } from './dbWriter.ts';
 import { SubscriptionManager } from './subscriptionManager.ts';
+import { telemetry } from '../../lib/metrics.ts';
 
 const logger = pino({ name: 'ticker-processor' });
 
@@ -122,6 +123,8 @@ export class TickProcessor extends EventEmitter {
       this.emit(`tick:${symbolKey}`, tickData);
     }
     this.lastProcessingLatency = performance.now() - start;
+    telemetry.recordTickReceived(ticks.length);
+    telemetry.recordTickProcessed(ticks.length, this.lastProcessingLatency);
   }
 
   /**
