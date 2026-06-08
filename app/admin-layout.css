@@ -1036,6 +1036,8 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -1046,13 +1048,14 @@
 .adm-modal {
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #0d1117;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 22px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
   animation: fadeScaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
