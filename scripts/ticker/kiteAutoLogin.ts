@@ -11,11 +11,10 @@
  *   POST /session/token   (exchange request_token for access_token)
  *   saveKiteSession()     (upsert to Supabase)
  *
- * The KiteSessionMonitor checks every 5 minutes and triggers login
+ * The KiteSessionMonitor checks every 5 minutes and triggers logi
  * 90 minutes before the token expires, providing a comfortable renewal
  * window with retry headroom before market open.
  */
-
 import { TOTP, Secret } from 'otpauth';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
@@ -25,10 +24,10 @@ import type { KiteSessionData } from '../../lib/kiteSession.ts';
 
 const logger = pino({ name: 'kite-autologin' });
 
-const KITE_LOGIN_URL  = 'https://kite.zerodha.com/api/login';
-const KITE_TWOFA_URL  = 'https://kite.zerodha.com/api/twofa';
+const KITE_LOGIN_URL = 'https://kite.zerodha.com/api/login';
+const KITE_TWOFA_URL = 'https://kite.zerodha.com/api/twofa';
 const KITE_CONNECT_URL = 'https://kite.trade/connect/login';
-const KITE_TOKEN_URL  = 'https://api.kite.trade/session/token';
+const KITE_TOKEN_URL = 'https://api.kite.trade/session/token';
 
 /** Renew session this many minutes before expiry */
 const RENEW_BEFORE_EXPIRY_MINUTES = 90;
@@ -66,11 +65,11 @@ function generateChecksum(apiKey: string, requestToken: string, apiSecret: strin
  * This is a direct port of kite_autologin.py — same endpoints, same logic.
  */
 export async function performKiteLogin(): Promise<KiteSessionData> {
-  const userId      = process.env.ZERODHA_USER_ID;
-  const password    = process.env.ZERODHA_PASSWORD;
-  const totpSecret  = process.env.ZERODHA_TOTP_SECRET;
-  const apiKey      = process.env.KITE_API_KEY || process.env.NEXT_PUBLIC_KITE_API_KEY;
-  const apiSecret   = process.env.KITE_API_SECRET;
+  const userId = process.env.ZERODHA_USER_ID;
+  const password = process.env.ZERODHA_PASSWORD;
+  const totpSecret = process.env.ZERODHA_TOTP_SECRET;
+  const apiKey = process.env.KITE_API_KEY || process.env.NEXT_PUBLIC_KITE_API_KEY;
+  const apiSecret = process.env.KITE_API_SECRET;
   const supabaseUserId = process.env.ZERODHA_SUPABASE_USER_ID;
 
   if (!userId || !password || !totpSecret || !apiKey || !apiSecret || !supabaseUserId) {
@@ -168,8 +167,8 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   }
 
   const accessToken: string = tokenData.data.access_token;
-  const kiteUserId: string  = tokenData.data.user_id;
-  const expiresAt           = kiteTokenExpiresAt();
+  const kiteUserId: string = tokenData.data.user_id;
+  const expiresAt = kiteTokenExpiresAt();
 
   logger.info({ kiteUserId, expiresAt }, 'Kite autologin: Step 4 success');
 
@@ -238,7 +237,7 @@ export class KiteSessionMonitor extends EventEmitter {
 
   public stop() {
     this.isStopping = true;
-    if (this.timer)      { clearInterval(this.timer); this.timer = null; }
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = null; }
   }
 
