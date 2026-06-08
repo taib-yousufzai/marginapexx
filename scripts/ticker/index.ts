@@ -19,6 +19,7 @@ import { CandleAggregator } from './candleAggregator.ts';
 
 import { matchingEngine } from '../../lib/orderMatching.ts';
 import { telemetry } from '../../lib/metrics.ts';
+import { getRedisHealthStatus } from '../../lib/redis.ts';
 
 const logger = pino({ name: 'ticker-daemon', level: process.env.LOG_LEVEL || 'info' });
 
@@ -89,6 +90,7 @@ class TickerDaemon {
       if (urlObj.pathname === '/health' || urlObj.pathname === '/') {
         const sessionStatus = this.sessionMonitor.getStatus();
         const healthy = this.binanceTicker.connected;
+        const redisHealth = getRedisHealthStatus();
         const payload = JSON.stringify({
           status: healthy ? 'ok' : 'degraded',
           uptime: process.uptime(),
@@ -103,6 +105,7 @@ class TickerDaemon {
           activeOrders: matchingEngine.activeOrders.size,
           activePositions: matchingEngine.activePositions.size,
           timestamp: new Date().toISOString(),
+          ...redisHealth
         });
         res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
         res.end(payload);

@@ -1,7 +1,7 @@
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
-import { getRedisClient, isRedisMock } from './redis.ts';
+import { getRedisClient, isRedisMock, getRedisHealthStatus } from './redis.ts';
 
 const logger = pino({ name: 'telemetry-registry' });
 
@@ -240,6 +240,7 @@ class TelemetryRegistry {
         lastLoginFailure: this.kite_last_login_failure?.toISOString() ?? null,
         consecutiveFailures: this.kite_consecutive_failures,
       },
+      valkey: getRedisHealthStatus(),
       alerts: this.alerts
     };
   }

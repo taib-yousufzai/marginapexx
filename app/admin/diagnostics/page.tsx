@@ -50,6 +50,13 @@ interface MetricsSummary {
     lastLoginFailure: string | null;
     consecutiveFailures: number;
   };
+  valkey?: {
+    valkeyConnected: boolean;
+    valkeyLatencyMs: number;
+    pubSubConnected: boolean;
+    lastReconnect: string | null;
+    reconnectCount: number;
+  };
   infrastructure: {
     memory: {
       heapUsedMb: number;
@@ -336,6 +343,62 @@ export default function DiagnosticsPage() {
                       </span>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Valkey Monitor */}
+            {metrics.valkey && (
+              <div className="diag-card">
+                <div className="card-header">
+                  <i className="fas fa-database" />
+                  <h3>Valkey Status</h3>
+                  <span
+                    className="badge"
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '2px 10px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      background: metrics.valkey.valkeyConnected ? '#00cc6622' : '#ff4d4d22',
+                      color: metrics.valkey.valkeyConnected ? '#00cc66' : '#ff4d4d',
+                      border: `1px solid ${metrics.valkey.valkeyConnected ? '#00cc66' : '#ff4d4d'}`,
+                    }}
+                  >
+                    {metrics.valkey.valkeyConnected ? 'CONNECTED' : 'DISCONNECTED'}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <div className="metric-row">
+                    <span className="metric-label">Valkey Latency</span>
+                    <span className="metric-value font-highlight">
+                      {metrics.valkey.valkeyConnected ? `${metrics.valkey.valkeyLatencyMs} ms` : '—'}
+                    </span>
+                  </div>
+                  <div className="metric-row">
+                    <span className="metric-label">Pub/Sub Status</span>
+                    <span
+                      className="metric-value font-highlight"
+                      style={{
+                        color: metrics.valkey.pubSubConnected ? '#00cc66' : '#ff4d4d',
+                      }}
+                    >
+                      {metrics.valkey.pubSubConnected ? 'ACTIVE' : 'INACTIVE'}
+                    </span>
+                  </div>
+                  <div className="metric-row">
+                    <span className="metric-label">Reconnections</span>
+                    <span className="metric-value">{metrics.valkey.reconnectCount}</span>
+                  </div>
+                  <div className="metric-row">
+                    <span className="metric-label">Last Reconnect</span>
+                    <span className="metric-value" style={{ fontSize: '11px' }}>
+                      {metrics.valkey.lastReconnect
+                        ? new Date(metrics.valkey.lastReconnect).toLocaleTimeString()
+                        : 'Never'}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

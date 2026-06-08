@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getRedisClient, createRedisPubSubClient, isRedisMock } from '../redis';
+import { getRedisClient, createRedisPubSubClient, isRedisMock, getRedisHealthStatus } from '../redis';
 
 describe('Redis Connection & Mock Client', () => {
   beforeEach(() => {
@@ -49,5 +49,13 @@ describe('Redis Connection & Mock Client', () => {
     await pubClient.publish('channel-1', 'hello world');
 
     expect(messagesReceived).toContain('hello world');
+  });
+
+  it('provides health status reports', () => {
+    const health = getRedisHealthStatus();
+    expect(health).toBeDefined();
+    expect(health.valkeyConnected).toBe(false);
+    expect(health.pubSubConnected).toBe(false);
+    expect(health.valkeyLatencyMs).toBe(0);
   });
 });

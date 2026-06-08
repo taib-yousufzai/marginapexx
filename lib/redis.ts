@@ -92,52 +92,118 @@ class MockRedis {
 }
 
 const redisUrl = process.env.REDIS_URL;
-let redisClient: any;
-let isMock = false;
+let realClient: any = null;
+const mockClient = new MockRedis();
+let isMock = !redisUrl;
+
+let lastLatencyMs = 0;
+let lastReconnectAt: Date | null = null;
+let reconnectCount = 0;
+let pubSubClient: any = null;
+let pubSubReconnectCount = 0;
 
 if (redisUrl) {
   try {
-    logger.info('Connecting to Redis instance...');
-    redisClient = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
+    logger.info('Connecting to Valkey/Redis instance...');
+    realClient = new Redis(redisUrl, {
+      maxRetriesPerRequest: null, // Allow infinite reconnect attempts
       retryStrategy(times) {
-        if (times > 3) {
-          logger.warn('Redis connection failed, switching to in-memory Mock client.');
-          redisClient = new MockRedis();
-          isMock = true;
-          return null; // Stop retrying
-        }
+        reconnectCount++;
+        lastReconnectAt = new Date();
+        logger.warn({ times }, 'Valkey command client reconnecting...');
         return Math.min(times * 100, 2000);
       }
     });
 
-    redisClient.on('error', (err: any) => {
-      logger.error({ err }, 'Redis connection error');
+    realClient.on('error', (err: any) => {
+      logger.error({ err }, 'Valkey command client connection error');
+    });
+
+    realClient.on('connect', () => {
+      logger.info('Valkey command client connected successfully.');
     });
   } catch (err) {
-    logger.warn({ err }, 'Could not initialize Redis. Falling back to Mock.');
-    redisClient = new MockRedis();
+    logger.error({ err }, 'Could not initialize Valkey client. Falling back to Mock.');
     isMock = true;
   }
 } else {
   logger.info('No REDIS_URL configured. Using in-memory MockRedis.');
-  redisClient = new MockRedis();
-  isMock = true;
 }
 
+// Proxy client to transparently route commands
+const redisProxyClient = new Proxy({}, {
+  get(target, propKey) {
+    const isReady = realClient && realClient.status === 'ready';
+    const activeClient = isReady ? realClient : mockClient;
+    const prop = (activeClient as any)[propKey];
+    if (typeof prop === 'function') {
+      return prop.bind(activeClient);
+    }
+    return prop;
+  }
+});
+
+// Periodic latency monitoring
+async function measureLatency() {
+  if (isMock || !realClient || realClient.status !== 'ready') {
+    lastLatencyMs = 0;
+    return;
+  }
+  try {
+    const start = performance.now();
+    await realClient.ping();
+    lastLatencyMs = Math.round(performance.now() - start);
+  } catch (err) {
+    logger.warn({ err }, 'Failed to measure latency to Valkey');
+    lastLatencyMs = 0;
+  }
+}
+setInterval(measureLatency, 10000);
+
 export function getRedisClient() {
-  return redisClient;
+  return redisProxyClient;
 }
 
 export function createRedisPubSubClient() {
   if (isMock) {
-    return redisClient; // Mock client handles both commands and pub/sub in a single local object
+    return mockClient;
   }
-  return new Redis(redisUrl || 'redis://localhost:6379', {
+  const client = new Redis(redisUrl || 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
+    retryStrategy(times) {
+      pubSubReconnectCount++;
+      lastReconnectAt = new Date();
+      logger.warn({ times }, 'Valkey Pub/Sub client reconnecting...');
+      return Math.min(times * 100, 2000);
+    }
   });
+
+  pubSubClient = client;
+
+  client.on('error', (err: any) => {
+    logger.error({ err }, 'Valkey Pub/Sub client connection error');
+  });
+
+  client.on('connect', () => {
+    logger.info('Valkey Pub/Sub client connected successfully.');
+  });
+
+  return client;
 }
 
 export function isRedisMock() {
-  return isMock;
+  return isMock || !realClient || realClient.status !== 'ready';
+}
+
+export function getRedisHealthStatus() {
+  const isCmdReady = realClient && realClient.status === 'ready';
+  const isPubSubReady = pubSubClient ? pubSubClient.status === 'ready' : isCmdReady;
+
+  return {
+    valkeyConnected: isMock ? false : !!isCmdReady,
+    valkeyLatencyMs: lastLatencyMs,
+    pubSubConnected: isMock ? false : !!isPubSubReady,
+    lastReconnect: lastReconnectAt ? lastReconnectAt.toISOString() : null,
+    reconnectCount: reconnectCount + pubSubReconnectCount
+  };
 }
