@@ -190,6 +190,114 @@ body.dark {
   --expiry-drawer-bg: #1E1E1E;
 }
 
+/* SUPER BLACK THEME */
+body.black {
+  --bg-body: #000000;
+  --container-bg: #000000;
+  --card-bg: #000000;
+  --card-alt-bg: #141414;
+  --border-light: #222222;
+  --border-card: #222222;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --icon-bg: #1A1A1A;
+  --wallet-bg: #1A1A1A;
+  --wallet-text: #FFFFFF;
+  --chip-bg: #000000;
+  --chip-active-bg: #008800;
+  --chip-active-text: #FFFFFF;
+  --arrow-bg: #1A1A1A;
+  --product-bg: #000000;
+  --product-border: #222222;
+  --badge-bg: #008800;
+  --badge-text: #FFFFFF;
+  --shadow-sm: 0 4px 12px rgba(255, 255, 255, 0.02);
+  --shadow-md: 0 6px 12px -6px rgba(255, 255, 255, 0.05);
+  --active-cat-bg: #008800;
+  --active-cat-text: #FFFFFF;
+  --positive-bg: #0A2A1A;
+  --positive-text: #4ADE80;
+  --negative-bg: #2B1A1A;
+  --negative-text: #F87171;
+  --algo-bg: linear-gradient(135deg, #004400, #002200);
+  --ai-bg: linear-gradient(135deg, #004400, #002200);
+  --nav-bg: #000000;
+  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  --nav-border: #1A1A1A;
+  --expiry-bg: linear-gradient(135deg, #A01010, #700000);
+  --footer-bg: #000000;
+  --footer-active: #00AA00;
+  --drawer-bg: #000000;
+  --drawer-handle: #00AA00;
+  --gold-silver-gradient: linear-gradient(135deg, #888888, #AA8822, #D4AF37, #AA8822, #777777);
+  --expiry-drawer-bg: #000000;
+}
+
+body.black .nav-app-name {
+  background: linear-gradient(135deg, #FFFFFF 0%, #CCCCCC 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+body.black .nav-app-name span {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #00CC00;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+body.black .ew-sheet {
+  background: #000000;
+}
+body.black .ew-handle {
+  background: #222;
+}
+body.black .ew-header {
+  border-bottom-color: #1a1a1a;
+}
+body.black .ew-cal-icon {
+  background: #1a1a1a;
+  color: #888;
+}
+body.black .ew-title {
+  color: #ffffff;
+}
+body.black .ew-close {
+  background: #1a1a1a;
+  color: #888;
+}
+body.black .ew-item {
+  background: #0d0d0d;
+  border-color: #1a1a1a;
+}
+body.black .ew-item--today {
+  background: #1a0a0a;
+  border-color: #3a1010;
+}
+body.black .ew-code {
+  background: #1a1a1a;
+  color: #888;
+}
+body.black .ew-name {
+  color: #e0e0e0;
+}
+body.black .ew-date-pill {
+  background: #1a1a1a;
+  color: #888;
+}
+body.black .ew-lot {
+  color: #555;
+}
+body.black .ew-arrow {
+  background: #1a1a1a;
+  color: #888;
+}
+body.black .ew-arrow--today {
+  background: #A01010;
+  color: #ffffff;
+}
 
 /* MOVED FROM PAGE.CSS */
 .app-container {

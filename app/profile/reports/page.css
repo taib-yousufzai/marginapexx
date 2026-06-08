@@ -363,3 +363,27 @@ body.dark .rp-date-input::-webkit-calendar-picker-indicator {
     filter: invert(1);
     opacity: 0.5;
 }
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black .rp-chip-btn.active {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #000000;
+}
+
+body.black .rp-root {
+    background: #000000;
+}
+
+body.black .rp-header {
+    background: #000000;
+    border-bottom-color: #000000;
+}
+
+body.black) {
+    background: #000000;
+}

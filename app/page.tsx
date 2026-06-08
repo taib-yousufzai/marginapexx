@@ -293,7 +293,9 @@ export default function Page() {
     if (savedTheme) {
       setTimeout(() => {
         setTheme(savedTheme);
-        document.body.classList.toggle('dark', savedTheme === 'dark');
+        document.body.classList.remove('dark', 'black');
+    if (savedTheme === 'dark') document.body.classList.add('dark');
+    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
       }, 0);
     }
   }, []);
@@ -301,7 +303,9 @@ export default function Page() {
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    document.body.classList.toggle('dark', newTheme === 'dark');
+    document.body.classList.remove('dark', 'black');
+    if (newTheme === 'dark') document.body.classList.add('dark');
+    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
     localStorage.setItem('marginApexTheme', newTheme);
   };
 

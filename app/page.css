@@ -1362,3 +1362,55 @@ body.dark .market-hour-pill.closed {
 .market-hour-val {
   font-weight: 800;
 }
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black {
+  --bg-body: #000000;
+  --container-bg: #000000;
+  --card-bg: #000000;
+  --card-alt-bg: #000000;
+  --border-light: #1A1A1A;
+  --border-card: #3A3A3A;
+  --text-primary: #F5F5F5;
+  --text-secondary: #B0B0B0;
+  --text-muted: #888888;
+  --icon-bg: #000000;
+  --wallet-bg: #000000;
+  --wallet-text: #F5F5F5;
+  --chip-bg: #000000;
+  --chip-active-bg: #006400;
+  --chip-active-text: #FFFFFF;
+  --arrow-bg: #000000;
+  --product-bg: #000000;
+  --product-border: #1A1A1A;
+  --badge-bg: #006400;
+  --badge-text: #FFFFFF;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.4);
+  --active-cat-bg: #006400;
+  --active-cat-text: #FFFFFF;
+  --positive-bg: #1A3A2A;
+  --positive-text: #4ADE80;
+  --negative-bg: #3B2A2A;
+  --negative-text: #F87171;
+  --algo-bg: linear-gradient(135deg, #006400, #004d00);
+  --ai-bg: linear-gradient(135deg, #006400, #004d00);
+  --nav-bg: #000000;
+  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --nav-border: #1A1A1A;
+  --expiry-bg: linear-gradient(135deg, #C62828, #9A1F1F);
+  --footer-bg: #000000;
+  --footer-active: #008000;
+  --drawer-bg: #000000;
+  --drawer-handle: #008000;
+  --gold-silver-gradient: linear-gradient(135deg, #B0B0B0, #D4AF37, #FFD700, #D4AF37, #A0A0A0);
+  --expiry-drawer-bg: #000000;
+}
+
+body.black .notif-item {
+  border-bottom-color: var(--border-light, #111);
+}

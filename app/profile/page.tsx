@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { getSession, signOut } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
@@ -9,7 +9,7 @@ import type { Session } from '@supabase/supabase-js';
 import './page.css';
 export default function ProfilePage() {
     useAuth();
-    const [isDark, setIsDark] = useState(false);
+    const [themeName, setThemeName] = useState<'light' | 'dark' | 'black'>('light');
     const [session, setSession] = useState<Session | null>(null);
     const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('profile:balance'));
     const [unreadCount, setUnreadCount] = useState<number>(() => pageCache.get<number>('profile:unread') || 0);
@@ -26,6 +26,8 @@ export default function ProfilePage() {
     const [profilePhone, setProfilePhone] = useState<string>(() => pageCache.get<string>('profile:phone') || '');
 
     const overlayRef = useRef<HTMLDivElement>(null);
+    const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+    const themeDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -73,11 +75,11 @@ export default function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        const saved = localStorage.getItem('marginApexTheme');
-        const dark = saved === 'dark';
-        setIsDark(dark);
-        if (dark) document.body.classList.add('dark');
-        else document.body.classList.remove('dark');
+        const saved = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | 'black' | null;
+        const currentTheme = saved === 'black' ? 'black' : saved === 'dark' ? 'dark' : 'light';
+        setThemeName(currentTheme);
+        document.body.classList.remove('dark', 'black');
+        if (currentTheme !== 'light') document.body.classList.add(currentTheme);
     }, []);
 
     useEffect(() => {
@@ -130,12 +132,27 @@ export default function ProfilePage() {
         ? '₹' + balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         : '—';
 
-    const toggleDark = () => {
-        const newDark = !isDark;
-        setIsDark(newDark);
-        document.body.classList.toggle('dark', newDark);
-        localStorage.setItem('marginApexTheme', newDark ? 'dark' : 'light');
-    };
+    const setTheme = useCallback((newTheme: 'light' | 'dark' | 'black') => {
+        setThemeName(newTheme);
+        document.body.classList.remove('dark', 'black');
+        if (newTheme !== 'light') {
+            document.body.classList.add(newTheme);
+        }
+        localStorage.setItem('marginApexTheme', newTheme);
+        setThemeDropdownOpen(false);
+    }, []);
+
+    // Close theme dropdown on outside click
+    useEffect(() => {
+        if (!themeDropdownOpen) return;
+        const handler = (e: MouseEvent) => {
+            if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) {
+                setThemeDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [themeDropdownOpen]);
 
     return (
         <div className="desktop-layout">
@@ -202,12 +219,32 @@ export default function ProfilePage() {
                     <div className="menu-group">
                         <div className="menu-group-title">App Preferences</div>
                         <div className="menu-list">
-                            <div className="menu-item" onClick={toggleDark} style={{cursor:'pointer'}}>
-                                <div className="m-icon" style={{background:'#FAF5FF',color:'#9333EA'}}><i className="fas fa-moon"></i></div>
-                                <div className="m-text">Dark Mode</div>
-                                <div className={`toggle-switch ${isDark ? 'active' : ''}`}>
-                                    <div className="toggle-thumb"></div>
+                            <div className="menu-item theme-dropdown-wrapper" ref={themeDropdownRef} onClick={() => setThemeDropdownOpen(v => !v)} style={{cursor:'pointer', position:'relative'}}>
+                                <div className="m-icon" style={{background:'#FAF5FF',color:'#9333EA'}}><i className={`fas ${themeName !== 'light' ? 'fa-moon' : 'fa-sun'}`}></i></div>
+                                <div className="m-text">Appearance</div>
+                                <div className="theme-current">
+                                    {themeName === 'black' ? 'Black' : themeName === 'dark' ? 'Dark' : 'Light'}
+                                    <i className={`fas fa-chevron-down theme-chevron ${themeDropdownOpen ? 'open' : ''}`}></i>
                                 </div>
+                                {themeDropdownOpen && (
+                                    <div className="theme-dropdown" onClick={e => e.stopPropagation()}>
+                                        <button className={`theme-option ${themeName === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>
+                                            <i className="fas fa-sun"></i>
+                                            <span>Light</span>
+                                            {themeName === 'light' && <i className="fas fa-check theme-check"></i>}
+                                        </button>
+                                        <button className={`theme-option ${themeName === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>
+                                            <i className="fas fa-moon"></i>
+                                            <span>Dark</span>
+                                            {themeName === 'dark' && <i className="fas fa-check theme-check"></i>}
+                                        </button>
+                                        <button className={`theme-option ${themeName === 'black' ? 'active' : ''}`} onClick={() => setTheme('black')}>
+                                            <i className="fas fa-circle"></i>
+                                            <span>Black</span>
+                                            {themeName === 'black' && <i className="fas fa-check theme-check"></i>}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                             <Link href="/profile/notifications" className="menu-item">
                                 <div className="m-icon" style={{background:'#FFFBEB',color:'#D97706'}}><i className="fas fa-bell"></i></div>

@@ -49,8 +49,8 @@ export default function HistoryPage() {
   useEffect(() => {
     // Apply dark mode class from localStorage on mount
     const saved = localStorage.getItem('marginApexTheme');
-    if (saved === 'dark') document.body.classList.add('dark');
-    else document.body.classList.remove('dark');
+    document.body.classList.remove('dark', 'black');
+    if (saved === 'dark' || saved === 'black') document.body.classList.add(saved);
   }, []);
 
   useEffect(() => {

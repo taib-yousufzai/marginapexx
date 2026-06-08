@@ -2103,3 +2103,180 @@ body.dark .convert-type-btn.carry {
   color: #E5E7EB;
   background: rgba(255, 255, 255, 0.15);
 }
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black .pos-detail-margin-row { border-top-color: #111; }
+
+body.black .pos-root {
+  background: #000000;
+}
+
+body.black .pos-shell {
+  background: #000000;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.black .pos-header {
+  background: #000000;
+  border-bottom-color: #2E2E2E;
+}
+
+body.black .pos-modal-card {
+  background: #000000;
+  border: 1px solid #111;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+body.black .pos-main-tabs {
+  background: #000000;
+}
+
+body.black .pos-main-tab.active {
+  background: #111;
+  color: #F5F5F5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.black .pos-content {
+  background: #000000;
+}
+
+body.black .pos-content::-webkit-scrollbar-thumb {
+  background: #1A1A1A;
+}
+
+body.black .pos-sticky-subheader {
+  background: #000000;
+  border-bottom-color: #2E2E2E;
+}
+
+body.black .pos-pnl-card {
+  background: #000000;
+  border-color: #111;
+}
+
+body.black .pos-pnl-card-title {
+  color: #B0B0B0;
+  border-bottom-color: #111;
+}
+
+body.black .pos-sub-tabs {
+  background: #000000;
+}
+
+body.black .pos-sub-tab.active {
+  background: #111;
+  color: #C62E2E;
+}
+
+body.black .pos-card {
+  background: #000000;
+  border-color: #111;
+}
+
+body.black .pos-card:hover {
+  border-color: #222;
+}
+
+body.black .pos-card-actions {
+  border-top-color: #111;
+}
+
+body.black .pos-detail-card {
+  background: #000000;
+  border-color: #111;
+}
+
+body.black .pos-section-label {
+  color: #B0B0B0;
+  border-bottom-color: #111;
+}
+
+body.black .pos-empty {
+  background: #000000;
+  color: #666;
+}
+
+body.black .pos-badge {
+  background: #000000;
+  color: #E5E7EB;
+}
+
+body.black .pos-sheet {
+  background: #000000;
+}
+
+body.black .pos-sheet-handle-bar {
+  background: #1A1A1A;
+}
+
+body.black .pos-sheet-content [style*="background: #F8FAFF"],
+body.black .pos-sheet-content [style*="background: rgb(248, 250, 255)"] {
+  background: #000000 !important;
+}
+
+body.black .pos-sheet-content [style*="background: #FFFFFF"],
+body.black .pos-sheet-content [style*="background: rgb(255, 255, 255)"] {
+  background: #000000 !important;
+}
+
+body.black .pos-sheet-content [style*="color: #000000"],
+body.black .pos-sheet-content [style*="color: rgb(26, 30, 43)"] {
+  color: #F5F5F5 !important;
+}
+
+body.black .pos-sheet-content [style*="background: #F0F2F8"],
+body.black .pos-sheet-content [style*="height: 1px"] {
+  background: #1A1A1A !important;
+}
+
+body.black .pos-sheet-content [style*="background: #E2E8F0"] {
+  background: #222222 !important;
+}
+
+body.black .ps-ohlc-row {
+  border-bottom-color: #1A1A1A;
+}
+
+body.black .ps-btn-add {
+  background: #000000;
+}
+
+body.black .ps-btn-partial {
+  background: #000000;
+}
+
+body.black .confirm-card {
+  background: #000000;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body.black .confirm-btn-cancel {
+  background: #000000;
+  color: #D0D0D0;
+}
+
+body.black .confirm-btn-cancel:hover {
+  background: #1A1A1A;
+}
+
+body.black .pos-sheet {
+  background: #000000;
+}
+
+body.black .pos-sheet-content div[style*="#F8FAFF"] {
+  background: #000000 !important;
+  border-color: #111 !important;
+}
+
+body.black .pos-sheet-content div[style*="#FFFFFF"] {
+  background: #000000 !important;
+}
+
+body.black .pos-sheet-content div[style*="color: #000000"] {
+  color: #F5F5F5 !important;
+}

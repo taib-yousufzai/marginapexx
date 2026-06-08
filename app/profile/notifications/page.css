@@ -252,3 +252,16 @@ body.dark .notif-item:active { background: var(--card-alt-bg, #2A2A2A); }
     opacity: 0.55;
     pointer-events: none;
 }
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black { background: #000000; }
+
+body.black .notif-root { background: #000000; }
+
+body.black) { background: #000000; }
+
+body.black .notif-item:active { background: var(--card-alt-bg, #000000); }

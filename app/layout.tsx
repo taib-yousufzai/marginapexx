@@ -45,6 +45,7 @@ export default function RootLayout({
             try {
               var t = localStorage.getItem('marginApexTheme');
               if(t === 'dark') document.body.classList.add('dark');
+              if(t === 'black') document.body.classList.add('black');
             } catch(e){}
             if('scrollRestoration' in history) history.scrollRestoration = 'manual';
             window.addEventListener('load', function() {

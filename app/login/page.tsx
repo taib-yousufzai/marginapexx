@@ -12,10 +12,9 @@ export default function LoginPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('marginApexTheme');
-      if (saved === 'dark') {
-        document.body.classList.add('dark');
-      } else {
-        document.body.classList.remove('dark');
+      document.body.classList.remove('dark', 'black');
+      if (saved === 'dark' || saved === 'black') {
+        document.body.classList.add(saved);
       }
     } catch {
       // localStorage unavailable — proceed without theme
@@ -245,9 +244,11 @@ export default function LoginPage() {
         </form>
 
         <p className="login-signup-link">
-          Don&apos;t have an account?{' '}
-          <a href="/register">Sign up</a>
+          Don&apos;t have an account?
         </p>
+        <a href="/register" className="login-create-btn">
+          Create your account
+        </a>
       </div>
     </div>
   );

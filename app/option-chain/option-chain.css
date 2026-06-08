@@ -1290,3 +1290,57 @@ body.dark .trade-sheet {
 }
 
 
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black .oc-tab.active { background: #FFFFFF; color: #000000; border-color: #FFFFFF; }
+
+body.black .expiry-capsule-bar {
+  background: #000000;
+  border-color: #000000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+body.black .expiry-divider { background: #111; }
+
+body.black .expiry-dates-inner-capsule { background: #000000; border-color: #3a3a3a; }
+
+body.black .oc-capsule-header { background: #000000; border-color: #000000; box-shadow: 0 2px 16px rgba(0,0,0,0.4); }
+
+body.black .oc-mode-toggle { background: #000000; border-color: #3a3a3a; }
+
+body.black .premium-back-btn { background: #000000; border-color: #3a3a3a; color: #e0e0e0; }
+
+body.black .ts-header,
+body.black .ts-bidask-row,
+body.black .ts-section-card,
+body.black .ts-info-cards-wrap,
+body.black .ts-info-card,
+body.black .ts-qty-container,
+body.black .ts-margin-card,
+body.black .ts-sticky-footer {
+    background: #000000;
+    border-color: #3A3A3A;
+}
+
+body.black .ts-toggle-switch {
+    background: #000000;
+}
+
+body.black .ts-qty-stepper {
+    background: #000000;
+    border-color: #3A3A3A;
+}
+
+body.black .ts-pill {
+    background: #000000;
+    border-color: #3A3A3A;
+    color: #9CA3AF;
+}
+
+body.black .trade-sheet {
+    background: var(--container-bg, #000000);
+}

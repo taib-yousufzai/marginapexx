@@ -1,5 +1,5 @@
 /* ===== LOGIN PAGE ===== */
-/* Uses the same CSS variables defined in app/page.css (:root / body.dark) */
+/* Uses the same CSS variables defined in app/page.css (:root / :is(body.dark, body.black)) */
 
 .login-page {
   min-height: 100dvh;
@@ -40,14 +40,14 @@
   color: #006400;
 }
 
-body.dark .login-brand-margin {
+:is(body.dark, body.black) .login-brand-margin {
   background: linear-gradient(135deg, #FFFFFF 0%, #E0E0E0 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
 }
 
-body.dark .login-brand-apex {
+:is(body.dark, body.black) .login-brand-apex {
   color: #00AA00;
 }
 
@@ -113,7 +113,7 @@ body.dark .login-brand-apex {
   box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
 }
 
-body.dark .login-input-wrapper:focus-within {
+:is(body.dark, body.black) .login-input-wrapper:focus-within {
   border-color: var(--text-primary, #F5F5F5);
   box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
 }
@@ -203,7 +203,7 @@ body.dark .login-input-wrapper:focus-within {
   gap: 8px;
 }
 
-body.dark .login-form-error {
+:is(body.dark, body.black) .login-form-error {
   background: #2A1515;
   border-color: #7F1D1D;
   color: #F87171;
@@ -242,11 +242,11 @@ body.dark .login-form-error {
   cursor: not-allowed;
 }
 
-body.dark .login-submit-btn {
+:is(body.dark, body.black) .login-submit-btn {
   background: #006400;
 }
 
-body.dark .login-submit-btn:hover:not(:disabled) {
+:is(body.dark, body.black) .login-submit-btn:hover:not(:disabled) {
   background: #008000;
 }
 
@@ -339,12 +339,12 @@ body.dark .login-submit-btn:hover:not(:disabled) {
   cursor: not-allowed;
 }
 
-body.dark .login-demo-btn {
+:is(body.dark, body.black) .login-demo-btn {
   border-color: #374151;
   color: #9CA3AF;
 }
 
-body.dark .login-demo-btn:hover:not(:disabled) {
+:is(body.dark, body.black) .login-demo-btn:hover:not(:disabled) {
   border-color: #00AA00;
   color: #00AA00;
   background: rgba(0, 170, 0, 0.06);
@@ -401,6 +401,48 @@ body.dark .login-demo-btn:hover:not(:disabled) {
   text-decoration: underline;
 }
 
-body.dark .login-signup-link a {
+:is(body.dark, body.black) .login-signup-link a {
   color: var(--text-primary, #F5F5F5);
+}
+
+/* ===== CREATE ACCOUNT BUTTON ===== */
+.login-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 15px;
+  margin-top: 8px;
+  background: transparent;
+  color: var(--text-primary, #1A1A1A);
+  border: 1.5px solid var(--border-light, #E8ECF0);
+  border-radius: 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.login-create-btn:hover {
+  border-color: #006400;
+  color: #006400;
+  background: rgba(0, 100, 0, 0.04);
+}
+
+.login-create-btn:active {
+  transform: scale(0.98);
+}
+
+:is(body.dark, body.black) .login-create-btn {
+  color: var(--text-primary, #F5F5F5);
+  border-color: #374151;
+}
+
+:is(body.dark, body.black) .login-create-btn:hover {
+  border-color: #00AA00;
+  color: #00AA00;
+  background: rgba(0, 170, 0, 0.06);
 }

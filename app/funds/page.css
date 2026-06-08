@@ -12,7 +12,7 @@
   overflow: hidden;
 }
 
-body.dark .balance-card {
+:is(body.dark, body.black) .balance-card {
   background: linear-gradient(135deg, #052611 0%, #031c0a 100%);
 }
 
@@ -77,7 +77,7 @@ body.dark .balance-card {
   z-index: 1;
 }
 
-body.dark .funds-toggle-slider {
+:is(body.dark, body.black) .funds-toggle-slider {
   background: #008000;
 }
 
@@ -646,7 +646,7 @@ body.dark .funds-toggle-slider {
   color: #006400;
 }
 
-body.dark .breakdown-total {
+:is(body.dark, body.black) .breakdown-total {
   color: #4ADE80;
 }
 
@@ -701,7 +701,7 @@ body.dark .breakdown-total {
   font-weight: 600;
 }
 
-body.dark .margin-footer {
+:is(body.dark, body.black) .margin-footer {
   color: #4ADE80;
 }
 
@@ -1173,7 +1173,7 @@ body.dark .margin-footer {
   cursor: not-allowed;
 }
 
-body.dark .selected-account-info i {
+:is(body.dark, body.black) .selected-account-info i {
   color: #4ADE80;
 }
 
@@ -1212,7 +1212,7 @@ body.dark .selected-account-info i {
   gap: 4px;
 }
 
-body.dark .sbi-logo {
+:is(body.dark, body.black) .sbi-logo {
   color: #60A5FA;
 }
 
@@ -1364,7 +1364,7 @@ body.dark .sbi-logo {
   letter-spacing: -1px;
 }
 
-body.dark .upi-logo-text {
+:is(body.dark, body.black) .upi-logo-text {
   color: #60A5FA;
 }
 

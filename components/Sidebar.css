@@ -187,65 +187,65 @@
 }
 
 /* ===== DARK MODE ===== */
-body.dark .desktop-sidebar {
+:is(body.dark, body.black) .desktop-sidebar {
   background: #1a1b1e;
   border-right-color: #2c2e33;
 }
 
-body.dark .sidebar-header {
+:is(body.dark, body.black) .sidebar-header {
   border-bottom-color: #2c2e33;
 }
 
-body.dark .logo-text {
+:is(body.dark, body.black) .logo-text {
   color: #e6edf3;
 }
 
-body.dark .logo-text span {
+:is(body.dark, body.black) .logo-text span {
   color: #00bb00;
 }
 
-body.dark .collapse-btn {
+:is(body.dark, body.black) .collapse-btn {
   background: #25262b;
   color: #909296;
 }
 
-body.dark .collapse-btn:hover {
+:is(body.dark, body.black) .collapse-btn:hover {
   background: #2c2e33;
   color: #c1c2c5;
 }
 
-body.dark .sidebar-item {
+:is(body.dark, body.black) .sidebar-item {
   color: #909296;
 }
 
-body.dark .sidebar-item:hover {
+:is(body.dark, body.black) .sidebar-item:hover {
   background: #25262b;
   color: #c1c2c5;
 }
 
-body.dark .sidebar-item.active {
+:is(body.dark, body.black) .sidebar-item.active {
   background: rgba(0, 128, 0, 0.15);
   color: #00bb00;
 }
 
-body.dark .active-indicator {
+:is(body.dark, body.black) .active-indicator {
   background: #00bb00;
 }
 
-body.dark .sidebar-footer {
+:is(body.dark, body.black) .sidebar-footer {
   border-top-color: #2c2e33;
 }
 
-body.dark .sidebar-action-btn {
+:is(body.dark, body.black) .sidebar-action-btn {
   color: #909296;
 }
 
-body.dark .sidebar-action-btn:hover {
+:is(body.dark, body.black) .sidebar-action-btn:hover {
   background: #25262b;
   color: #c1c2c5;
 }
 
-body.dark .sidebar-action-btn.logout:hover {
+:is(body.dark, body.black) .sidebar-action-btn.logout:hover {
   background: rgba(229, 62, 62, 0.1);
   color: #ff6b6b;
 }

@@ -35,10 +35,9 @@ function ResetPasswordForm() {
     // Apply theme
     try {
       const saved = localStorage.getItem('marginApexTheme');
-      if (saved === 'dark') {
-        document.body.classList.add('dark');
-      } else {
-        document.body.classList.remove('dark');
+      document.body.classList.remove('dark', 'black');
+      if (saved === 'dark' || saved === 'black') {
+        document.body.classList.add(saved);
       }
     } catch {
       // localStorage unavailable — proceed without theme

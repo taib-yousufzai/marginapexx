@@ -98,7 +98,9 @@ function RegisterForm() {
     if (ref) setBrokerRef(ref);
     try {
       const saved = localStorage.getItem('marginApexTheme');
-      document.body.classList.toggle('dark', saved === 'dark');
+      document.body.classList.remove('dark', 'black');
+    if (saved === 'dark') document.body.classList.add('dark');
+    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
     } catch { /* noop */ }
   }, [searchParams]);
 

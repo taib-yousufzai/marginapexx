@@ -670,3 +670,43 @@ body.dark .os-status-other    { color: #F87171; }
 .status-cancelled { color: #DC2626; }
 .os-status-cancelled { color: #DC2626; }
 
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.black .ord-root           { background: var(--bg-body, #000000); }
+
+body.black .ord-shell          { background: var(--container-bg, #000000); box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+
+body.black .ord-header         { background: var(--container-bg, #000000); border-bottom-color: var(--border-light, #2E2E2E); }
+
+body.black .ord-search-box     { background: var(--icon-bg, #000000); border-color: transparent; }
+
+body.black .ord-search-box:focus-within { background: #000000; border-color: rgba(198,46,46,0.4); }
+
+body.black .ord-tabs           { background: #000000; }
+
+body.black .ord-tab.active     { background: #111; color: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+
+body.black .ord-card           { background: var(--card-bg, #000000); border-color: var(--border-light, #111); box-shadow: none; }
+
+body.black .ord-card:hover     { border-color: var(--border-card, #222); }
+
+body.black .ord-type-pill      { background: var(--icon-bg, #000000); color: var(--text-secondary, #999); }
+
+body.black .ord-row-status     { border-top-color: var(--border-light, #111); }
+
+body.black .ord-modify-btn:hover { background: var(--icon-bg, #000000); border-color: var(--border-card, #222); color: var(--text-primary, #D0D0D0); }
+
+body.black .ord-empty          { background: var(--card-bg, #000000); border-color: var(--border-light, #111); color: var(--text-muted, #888888); }
+
+body.black .ord-sheet {
+  background: var(--card-bg, #000000);
+  border-top: 1px solid var(--border-light, #111);
+}
+
+body.black .ord-sheet-handle-bar {
+  background: var(--border-light, #111);
+}

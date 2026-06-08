@@ -53,7 +53,9 @@ export default function UnifiedSettingsPage() {
     const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
     if (savedTheme) {
       setTheme(savedTheme);
-      document.body.classList.toggle('dark', savedTheme === 'dark');
+      document.body.classList.remove('dark', 'black');
+    if (savedTheme === 'dark') document.body.classList.add('dark');
+    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
     }
   }, []);
 

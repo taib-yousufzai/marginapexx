@@ -73,8 +73,8 @@ export default function ReportsPage() {
 
     useEffect(() => {
         const saved = localStorage.getItem('marginApexTheme');
-        if (saved === 'dark') document.body.classList.add('dark');
-        else document.body.classList.remove('dark');
+        document.body.classList.remove('dark', 'black');
+    if (saved === 'dark' || saved === 'black') document.body.classList.add(saved);
 
         // Set default dates on client only (avoids SSR hydration mismatch)
         const today     = new Date().toISOString().split('T')[0];
