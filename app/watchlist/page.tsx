@@ -1403,8 +1403,8 @@ function WatchlistContent() {
               <InstrumentRow
                 key={item.symbol}
                 item={item}
-                quote={quotes[item.kiteSymbol]}
-                binanceQuote={item.binanceSymbol ? binanceQuotes[item.binanceSymbol] : undefined}
+                quote={marketQuotes[item.kiteSymbol]}
+                binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
                 onTrade={openTradeSheet}
                 onDetail={openDetailSheet}
