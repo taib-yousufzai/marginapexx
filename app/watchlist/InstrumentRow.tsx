@@ -91,7 +91,7 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
               isCrypto ? { background: '#F0A500', color: '#fff' } :
                 showComex ? { background: '#4A148C', color: '#fff' } : {}
             }>
-              {isCrypto ? 'BINANCE' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
+              {isCrypto ? 'CRYPTO' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
             </span>
           </div>
           {item.contractDate && (

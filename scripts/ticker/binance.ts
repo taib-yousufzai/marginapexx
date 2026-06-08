@@ -5,7 +5,7 @@ import type { TickData } from './dbWriter.ts';
 import { getAdminClient } from '../../lib/adminClient.ts';
 
 const BINANCE_WS_URL =
-  'wss://stream.binance.com:443/stream?streams=' +
+  'wss://stream.binance.us:9443/stream?streams=' +
   'btcusdt@ticker/ethusdt@ticker/bnbusdt@ticker/solusdt@ticker/xrpusdt@ticker/dogeusdt@ticker/adausdt@ticker/maticusdt@ticker';
 
 const HEARTBEAT_INTERVAL_MS = 30_000; // 30 seconds — detect stale connections

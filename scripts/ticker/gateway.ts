@@ -107,7 +107,7 @@ export class WebSocketGateway {
                 } else if (sym.endsWith('USDT')) {
                   // Fallback: If cache is empty (e.g. fresh Railway deploy), fetch from Binance REST API instantly
                   try {
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${sym}`);
+                    const res = await fetch(`https://api.binance.us/api/v3/ticker/24hr?symbol=${sym}`);
                     if (res.ok) {
                       const data = await res.json();
                       const tick: TickData = {
