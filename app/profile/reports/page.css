@@ -379,11 +379,21 @@ body.black .rp-root {
     background: #000000;
 }
 
+body.black .rp-chip-btn.active {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #000000;
+}
+
+body.black .rp-root {
+    background: #000000;
+}
+
 body.black .rp-header {
     background: #000000;
     border-bottom-color: #000000;
 }
 
-body.black) {
+html:has(body.black) {
     background: #000000;
 }
