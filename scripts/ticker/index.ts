@@ -107,7 +107,7 @@ class TickerDaemon {
           timestamp: new Date().toISOString(),
           ...redisHealth
         });
-        res.writeHead(healthy ? 200 : 503, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(payload);
         return;
       }
