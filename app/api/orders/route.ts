@@ -79,7 +79,7 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
     const remainingKiteIds = instruments.filter(id => !foundKiteIds.has(id));
     if (remainingKiteIds.length > 0) {
       try {
-        const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+        const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
         const params = new URLSearchParams({ symbols: remainingKiteIds.join(',') });
         const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
         if (resTicker.ok) {

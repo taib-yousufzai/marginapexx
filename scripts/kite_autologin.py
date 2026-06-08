@@ -99,6 +99,8 @@ def main():
 
     if not request_token:
         print(f"Failed to capture request_token. Final URL: {current_url}")
+        print("Response headers:", res.headers)
+        print("Response text:", res.text)
         sys.exit(1)
     
     print(f"Captured request_token: {request_token}")

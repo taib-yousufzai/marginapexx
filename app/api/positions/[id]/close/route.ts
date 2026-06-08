@@ -28,7 +28,7 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
     
     // 1. Check Ticker Daemon in-memory quotes API
     try {
-      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
       const params = new URLSearchParams({ symbols: instrument });
       const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
       if (resTicker.ok) {

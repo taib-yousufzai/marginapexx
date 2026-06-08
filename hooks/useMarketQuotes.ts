@@ -29,11 +29,11 @@ class MarketWSManager {
     if (!url && typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       // In development, the ticker daemon runs on port 8080.
-      // If we are on localhost, connect directly to port 8080. Otherwise connect to relative hostname.
+      // If we are on localhost, connect directly to port 8080. Otherwise connect to Railway production url as a safe fallback.
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         url = `${protocol}//localhost:8080`;
       } else {
-        url = `${protocol}//${window.location.host}`;
+        url = `wss://marginapexx-production.up.railway.app`;
       }
     }
     this.wsUrl = url || 'ws://localhost:8080';
