@@ -42,23 +42,6 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.join(',')}&fields=regularMarketPrice,regularMarketPreviousClose,regularMarketOpen,regularMarketDayHigh,regularMarketDayLow,regularMarketChange,regularMarketChangePercent,regularMarketVolume,currency,shortName`;
-
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 30 }, // cache 30 s
-    });
-
-    if (!res.ok) {
-      return NextResponse.json({ error: `Yahoo Finance error: ${res.status}` }, { status: 502 });
-    }
-
-    const data = await res.json();
-    const rawQuotes: YahooQuote[] = data?.quoteResponse?.result ?? [];
-
     const quotes: Record<string, {
       symbol: string;
       lastPrice: number;
@@ -73,21 +56,53 @@ export async function GET(req: NextRequest) {
       name: string;
     }> = {};
 
-    for (const q of rawQuotes) {
-      quotes[q.symbol] = {
-        symbol:        q.symbol,
-        lastPrice:     q.regularMarketPrice        ?? 0,
-        change:        q.regularMarketChange       ?? 0,
-        changePercent: q.regularMarketChangePercent ?? 0,
-        open:          q.regularMarketOpen         ?? 0,
-        high:          q.regularMarketDayHigh      ?? 0,
-        low:           q.regularMarketDayLow       ?? 0,
-        close:         q.regularMarketPreviousClose ?? 0,
-        volume:        q.regularMarketVolume       ?? 0,
-        currency:      q.currency                  ?? 'USD',
-        name:          q.shortName                 ?? q.symbol,
-      };
-    }
+    await Promise.all(
+      symbols.map(async (symbol) => {
+        try {
+          const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+          const res = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': 'application/json',
+            },
+            next: { revalidate: 30 },
+          });
+
+          if (!res.ok) {
+            console.warn(`[/api/market/comex] Failed to fetch ${symbol}: status ${res.status}`);
+            return;
+          }
+
+          const data = await res.json();
+          const result = data?.chart?.result?.[0];
+          if (!result) return;
+
+          const meta = result.meta || {};
+          const quote = result.indicators?.quote?.[0] || {};
+          
+          const lastPrice = meta.regularMarketPrice ?? quote.close?.[0] ?? 0;
+          const close = meta.chartPreviousClose ?? 0;
+          const change = lastPrice - close;
+          const changePercent = close !== 0 ? (change / close) * 100 : 0;
+
+          quotes[symbol] = {
+            symbol,
+            lastPrice,
+            change,
+            changePercent,
+            open:          quote.open?.[0] ?? lastPrice,
+            high:          meta.regularMarketDayHigh ?? quote.high?.[0] ?? lastPrice,
+            low:           meta.regularMarketDayLow ?? quote.low?.[0] ?? lastPrice,
+            close,
+            volume:        meta.regularMarketVolume ?? quote.volume?.[0] ?? 0,
+            currency:      meta.currency ?? 'USD',
+            name:          meta.shortName ?? symbol,
+          };
+        } catch (e) {
+          console.error(`[/api/market/comex] Error fetching symbol ${symbol}:`, e);
+        }
+      })
+    );
 
     return NextResponse.json({ quotes }, {
       headers: {
@@ -95,7 +110,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('[/api/market/comex] fetch error:', err);
+    console.error('[/api/market/comex] handler error:', err);
     return NextResponse.json({ error: 'Failed to fetch commodity data' }, { status: 500 });
   }
 }
