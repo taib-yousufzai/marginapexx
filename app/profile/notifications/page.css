@@ -262,6 +262,6 @@ body.black { background: #000000; }
 
 body.black .notif-root { background: #000000; }
 
-body.black) { background: #000000; }
+html:has(body.black) { background: #000000; }
 
 body.black .notif-item:active { background: var(--card-alt-bg, #000000); }
