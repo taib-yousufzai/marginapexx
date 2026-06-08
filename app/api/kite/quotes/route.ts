@@ -2,34 +2,16 @@
  * Kite Quotes API
  * GET /api/kite/quotes?instruments=NSE:NIFTY+50,NSE:RELIANCE,...
  * 
- * Optimized version:
- * 1. Bypasses DB lookup for instruments already in "EXCHANGE:SYMBOL" format.
- * 2. Fetches from Kite in batches.
- * 3. Falls back to stored market_quotes if Kite fails.
+ * Target Architecture:
+ * 1. Bypasses DB lookup entirely.
+ * 2. Fetches from the local Ticker Daemon quote cache first.
+ * 3. Falls back to Kite REST API in batches for missing/uncached instruments.
+ * 4. Caches instruments structure, but never stores raw quotes/ticks in the database.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import { getAdminClient } from '@/lib/adminClient';
-
-export interface KiteQuote {
-  instrument_token: number;
-  timestamp: string;
-  last_price: number;
-  last_quantity: number;
-  average_price: number;
-  volume: number;
-  buy_quantity: number;
-  sell_quantity: number;
-  ohlc: {
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-  };
-  net_change: number;
-  oi: number;
-}
 
 async function fetchKiteQuotesBatch(
   kiteRequestInstruments: string[],
@@ -125,52 +107,44 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
       }
     }
 
-    // 1. Fetch from database market_quotes table (populated in real-time by WebSockets Ticker Daemon)
-    // Only use DB rows that are fresh (updated within the last 30 seconds).
-    // Stale rows fall through to the Kite live REST API fallback below.
-    const STALE_THRESHOLD_MS = 30_000;
-    const now = Date.now();
-
-    const { data: dbQuotes, error: dbError } = await admin
-      .from('market_quotes')
-      .select('*')
-      .in('id', directKiteIds);
-
     const finalMappedData: Record<string, any> = {};
-    const fallbackData: Record<string, any> = {};
     const foundKiteIds = new Set<string>();
 
-    if (!dbError && dbQuotes) {
-      for (const row of dbQuotes) {
-        const reqId = realToRequestedMap[row.id];
-        if (!reqId) continue;
+    // 1. Fetch from Ticker Daemon in-memory quotes API
+    try {
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || 'http://localhost:8080';
+      const params = new URLSearchParams({ symbols: directKiteIds.join(',') });
+      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+      if (resTicker.ok) {
+        const json = await resTicker.json();
+        if (json.success && json.data) {
+          for (const [kiteId, quote] of Object.entries(json.data)) {
+            const reqId = realToRequestedMap[kiteId];
+            if (!reqId || !quote) continue;
 
-        const mappedRow = {
-          timestamp: row.quote_timestamp,
-          last_price: Number(row.last_price),
-          volume: Number(row.volume || 0),
-          ohlc: {
-            open: Number(row.open || 0),
-            high: Number(row.high || 0),
-            low: Number(row.low || 0),
-            close: Number(row.close || 0),
-          },
-          net_change: Number(row.last_price) - Number(row.close || 0),
-        };
-
-        // Skip stale rows — they'll be refreshed via Kite live API
-        const ageMs = now - new Date(row.updated_at).getTime();
-        if (ageMs > STALE_THRESHOLD_MS) {
-          fallbackData[reqId] = mappedRow;
-          continue;
+            const q = quote as any;
+            const close = q.ohlc?.close || q.close || 0;
+            finalMappedData[reqId] = {
+              timestamp: q.timestamp || new Date().toISOString(),
+              last_price: q.last_price,
+              volume: q.volume || 0,
+              ohlc: {
+                open: q.ohlc?.open || q.open || 0,
+                high: q.ohlc?.high || q.high || 0,
+                low: q.ohlc?.low || q.low || 0,
+                close: close,
+              },
+              net_change: q.last_price - close,
+            };
+            foundKiteIds.add(kiteId);
+          }
         }
-
-        foundKiteIds.add(row.id);
-        finalMappedData[reqId] = mappedRow;
       }
+    } catch (tickerErr) {
+      console.warn('[Kite Quotes API] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
     }
 
-    // 2. Find missing instruments that aren't in the database cache yet
+    // 2. Find missing instruments that aren't in the Daemon cache
     const missingKiteIds = directKiteIds.filter(id => !foundKiteIds.has(id));
 
     // 3. Fallback: Fetch missing instruments from Kite REST API on-demand
@@ -196,7 +170,6 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
 
         if (activeKiteData && Object.keys(activeKiteData).length > 0) {
           const instrumentUpserts: any[] = [];
-          const dbUpserts: any[] = [];
 
           for (const [kiteId, quote] of Object.entries(activeKiteData)) {
             const reqId = realToRequestedMap[kiteId];
@@ -206,7 +179,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
             const netChange = quote.net_change ?? (quote.last_price - closePrice);
 
             finalMappedData[reqId] = {
-              timestamp: quote.timestamp,
+              timestamp: quote.timestamp || new Date().toISOString(),
               last_price: quote.last_price,
               volume: quote.volume || 0,
               ohlc: {
@@ -231,41 +204,18 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
               segment: exchange,
               updated_at: new Date().toISOString()
             });
-
-            dbUpserts.push({
-              id: kiteId,
-              last_price: quote.last_price,
-              open: quote.ohlc?.open || 0,
-              high: quote.ohlc?.high || 0,
-              low: quote.ohlc?.low || 0,
-              close: closePrice,
-              volume: quote.volume || 0,
-              quote_timestamp: quote.timestamp || new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
           }
 
-          // Cache on-demand fetched instruments and quotes in background
+          // Cache on-demand fetched instruments in background (excluding quotes/ticks table)
           if (instrumentUpserts.length > 0) {
             (async () => {
               try {
-                // Upsert instruments first to satisfy foreign key
                 const { error: instErr } = await admin
                   .from('instruments')
                   .upsert(instrumentUpserts, { onConflict: 'id' });
 
                 if (instErr) {
                   console.error('[Quotes API] Background instruments upsert error:', instErr);
-                  return;
-                }
-
-                // Now upsert quotes
-                const { error: quoteErr } = await admin
-                  .from('market_quotes')
-                  .upsert(dbUpserts, { onConflict: 'id' });
-
-                if (quoteErr) {
-                  console.error('[Quotes API] Background cache upsert error:', quoteErr);
                 }
               } catch (err) {
                 console.error('[Quotes API] Background cache sync error:', err);
@@ -273,14 +223,6 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
             })();
           }
         }
-      }
-    }
-
-    // 4. Stale fallback: If we found no fresh data, fall back to whatever cached DB data we have
-    for (const id of directKiteIds) {
-      const reqId = realToRequestedMap[id];
-      if (reqId && !finalMappedData[reqId] && fallbackData[reqId]) {
-        finalMappedData[reqId] = fallbackData[reqId];
       }
     }
 

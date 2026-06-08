@@ -1,30 +1,23 @@
 /**
  * useBinanceQuotes
  *
- * Fetches live crypto prices directly from Binance's public REST API.
- * No API key required for market data endpoints.
- *
- * Polls every `refreshInterval` ms (default 5000ms).
- * Falls back gracefully on network errors — keeps last known prices.
- *
- * Usage:
- *   const { quotes } = useBinanceQuotes(['BTCUSDT', 'ETHUSDT']);
- *   quotes['BTCUSDT'].lastPrice // → 62340.21
+ * Fetches live crypto prices directly from Binance's public REST API
+ * and enriches/updates them using a single shared WebSocket connection.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface BinanceQuoteData {
   symbol: string;       // e.g. 'BTCUSDT'
   lastPrice: number;
-  change: number;       // absolute change
+  change: number;
   changePercent: number;
   open: number;
   high: number;
   low: number;
-  close: number;        // prev close
-  volume: number;       // base asset volume
-  quoteVolume: number;  // USDT volume
+  close: number;
+  volume: number;
+  quoteVolume: number;
   bid: number;
   ask: number;
 }
@@ -39,6 +32,121 @@ interface UseBinanceQuotesResult {
 const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
 
 let globalBinanceQuotesCache: Record<string, BinanceQuoteData> = {};
+
+// Singleton connection manager for Binance WebSockets
+class BinanceWSManager {
+  private ws: WebSocket | null = null;
+  private listeners: Set<(data: any) => void> = new Set();
+  private symbolRefCount: Map<string, number> = new Map();
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private wsUrl = 'wss://stream.binance.com:9443/ws';
+  private subscriptionId = 1;
+
+  private connect() {
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+      return;
+    }
+
+    console.log('[BinanceWS] Connecting to:', this.wsUrl);
+    this.ws = new WebSocket(this.wsUrl);
+
+    this.ws.onopen = () => {
+      console.log('[BinanceWS] Connection established');
+      // Resubscribe to all symbols
+      const activeSymbols = Array.from(this.symbolRefCount.keys());
+      if (activeSymbols.length > 0) {
+        const params = activeSymbols.map(s => `${s.toLowerCase()}@ticker`);
+        this.ws?.send(JSON.stringify({
+          method: 'SUBSCRIBE',
+          params,
+          id: this.subscriptionId++,
+        }));
+      }
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        // Combined stream / standard payload check
+        const data = payload.data || payload;
+        if (data && data.e === '24hrTicker') {
+          for (const listener of this.listeners) {
+            listener(data);
+          }
+        }
+      } catch (err) {
+        console.error('[BinanceWS] Parse error:', err);
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.warn('[BinanceWS] Connection closed, scheduling reconnect...');
+      this.scheduleReconnect();
+    };
+
+    this.ws.onerror = (err) => {
+      console.warn('[BinanceWS] Socket error:', err);
+    };
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    this.reconnectTimeout = setTimeout(() => this.connect(), 3000);
+  }
+
+  public subscribe(symbols: string[], listener: (data: any) => void) {
+    this.listeners.add(listener);
+    this.connect();
+
+    const toSubscribe: string[] = [];
+    for (const sym of symbols) {
+      const count = this.symbolRefCount.get(sym) || 0;
+      this.symbolRefCount.set(sym, count + 1);
+      if (count === 0) {
+        toSubscribe.push(`${sym.toLowerCase()}@ticker`);
+      }
+    }
+
+    if (toSubscribe.length > 0 && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        method: 'SUBSCRIBE',
+        params: toSubscribe,
+        id: this.subscriptionId++,
+      }));
+    }
+  }
+
+  public unsubscribe(symbols: string[], listener: (data: any) => void) {
+    const toUnsubscribe: string[] = [];
+    for (const sym of symbols) {
+      const count = this.symbolRefCount.get(sym) || 0;
+      if (count <= 1) {
+        this.symbolRefCount.delete(sym);
+        toUnsubscribe.push(`${sym.toLowerCase()}@ticker`);
+      } else {
+        this.symbolRefCount.set(sym, count - 1);
+      }
+    }
+
+    if (toUnsubscribe.length > 0 && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({
+        method: 'UNSUBSCRIBE',
+        params: toUnsubscribe,
+        id: this.subscriptionId++,
+      }));
+    }
+
+    if (this.symbolRefCount.size === 0) {
+      this.listeners.delete(listener);
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+    }
+  }
+}
+
+const wsManager = new BinanceWSManager();
 
 export function useBinanceQuotes(
   symbols: string[],
@@ -109,80 +217,45 @@ export function useBinanceQuotes(
 
   // Real-time WebSocket connection
   useEffect(() => {
-    if (symbols.length === 0) {
+    const currentSymbols = symbolsKey.split(',').filter(Boolean);
+    if (currentSymbols.length === 0) {
       setLoading(false);
       return;
     }
 
-    // Do REST lookup first to populate cache immediately
+    // Populate cache instantly
     fetchQuotes();
 
-    let ws: WebSocket | null = null;
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-    let isCancelled = false;
+    const onMessage = (data: any) => {
+      const symbol = data.s;
+      if (!currentSymbols.includes(symbol)) return;
 
-    function connect() {
-      if (isCancelled) return;
-
-      const streams = symbols.map(s => `${s.toLowerCase()}@ticker`).join('/');
-      const wsUrl = `wss://stream.binance.com:9443/stream?streams=${streams}`;
-
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        if (isCancelled) return;
-        setError(null);
+      const quoteData: BinanceQuoteData = {
+        symbol,
+        lastPrice: parseFloat(data.c),
+        change: parseFloat(data.p),
+        changePercent: parseFloat(data.P),
+        open: parseFloat(data.o),
+        high: parseFloat(data.h),
+        low: parseFloat(data.l),
+        close: parseFloat(data.x),
+        volume: parseFloat(data.v),
+        quoteVolume: parseFloat(data.q),
+        bid: parseFloat(data.b),
+        ask: parseFloat(data.a),
       };
 
-      ws.onmessage = (event) => {
-        if (isCancelled) return;
-        try {
-          const payload = JSON.parse(event.data);
-          const data = payload.data;
-          if (!data || data.e !== '24hrTicker') return;
+      setQuotes(prev => {
+        const updated = { ...prev };
+        updated[symbol] = quoteData;
+        return updated;
+      });
+    };
 
-          const symbol = data.s;
-          const quoteData: BinanceQuoteData = {
-            symbol,
-            lastPrice: parseFloat(data.c),
-            change: parseFloat(data.p),
-            changePercent: parseFloat(data.P),
-            open: parseFloat(data.o),
-            high: parseFloat(data.h),
-            low: parseFloat(data.l),
-            close: parseFloat(data.x),
-            volume: parseFloat(data.v),
-            quoteVolume: parseFloat(data.q),
-            bid: parseFloat(data.b),
-            ask: parseFloat(data.a),
-          };
-
-          setQuotes(prev => {
-            const updated = { ...prev };
-            updated[symbol] = quoteData;
-            return updated;
-          });
-        } catch (err) {
-          console.error('[Binance WS] Parse error:', err);
-        }
-      };
-
-      ws.onerror = () => {
-        setError('Binance WebSocket error');
-      };
-
-      ws.onclose = () => {
-        if (isCancelled) return;
-        reconnectTimeout = setTimeout(connect, 3000); // Reconnect in 3s
-      };
-    }
-
-    connect();
+    wsManager.subscribe(currentSymbols, onMessage);
 
     return () => {
-      isCancelled = true;
-      if (ws) ws.close();
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      wsManager.unsubscribe(currentSymbols, onMessage);
     };
   }, [symbolsKey, fetchQuotes]);
 

@@ -115,13 +115,37 @@ class TickerDaemon {
     // 3. Try to initialize Kite Ticker
     await this.initKite();
 
-    // 4. Setup periodic subscription checker and Kite session checker (every 10 seconds)
+    // 4. Setup periodic subscription checker and Kite session checker (every 60 seconds as fallback)
     this.subscriptionTimer = setInterval(async () => {
       if (!this.ticker && !this.isReconnecting) {
         await this.initKite();
       }
       await this.syncSubscriptions();
-    }, 10000);
+    }, 60000);
+
+    // Setup realtime listener for instant subscription sync on DB change events
+    this.subscriptionManager.setupRealtime(() => {
+      this.syncSubscriptions();
+    });
+
+    // Setup periodic metrics logger (every 30 seconds)
+    setInterval(() => {
+      const memory = process.memoryUsage();
+      const cpu = process.cpuUsage();
+      const processorMetrics = this.processor.getMetrics();
+      logger.info({
+        cpu: {
+          user: cpu.user,
+          system: cpu.system,
+        },
+        memory: {
+          heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
+          heapTotalMb: Math.round(memory.heapTotal / 1024 / 1024),
+          rssMb: Math.round(memory.rss / 1024 / 1024),
+        },
+        ticks: processorMetrics,
+      }, 'System Metrics Observability');
+    }, 30000);
 
     // 5. Register process shutdown handlers
     this.setupGracefulShutdown();

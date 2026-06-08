@@ -183,4 +183,25 @@ export class SubscriptionManager {
   public getSubscribedTokens(): number[] {
     return Array.from(this.activeTokens);
   }
+
+  public setupRealtime(onUpdate: () => void) {
+    const admin = getAdminClient();
+    admin
+      .channel('ticker-subscription-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'watchlists' }, () => {
+        logger.info('Watchlist change detected via Realtime. Re-syncing subscriptions...');
+        onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'positions' }, () => {
+        logger.info('Position change detected via Realtime. Re-syncing subscriptions...');
+        onUpdate();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        logger.info('Order change detected via Realtime. Re-syncing subscriptions...');
+        onUpdate();
+      })
+      .subscribe((status) => {
+        logger.info({ status }, 'Supabase Realtime subscription status for ticker sync');
+      });
+  }
 }

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { QuoteData } from '@/hooks/useKiteQuotes';
-import { BinanceQuoteData } from '@/hooks/useBinanceQuotes';
+import { QuoteData } from '@/hooks/useMarketQuotes';
 import { ComexQuoteData } from '@/hooks/useComexQuotes';
 import TickFlash from '@/components/TickFlash';
 
@@ -25,9 +24,13 @@ export interface WatchlistItem {
 interface InstrumentRowProps {
   item: WatchlistItem;
   quote?: QuoteData;
-  binanceQuote?: BinanceQuoteData;
+  binanceQuote?: QuoteData;
   comexQuote?: ComexQuoteData;
   onTrade: (item: WatchlistItem) => void;
+  onDetail?: (item: WatchlistItem) => void;
+  basketMode?: boolean;
+  onBasketBuy?: (item: WatchlistItem) => void;
+  onBasketSell?: (item: WatchlistItem) => void;
 }
 
 function getExchangeBadge(segment: string) {

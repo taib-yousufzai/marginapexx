@@ -51,6 +51,7 @@ export class TickProcessor extends EventEmitter {
   // Custom metrics tracking for observability
   private tickCount = 0;
   private duplicateDropCount = 0;
+  private lastProcessingLatency = 0;
 
   constructor(subscriptionManager: SubscriptionManager, dbWriter: DbBatchWriter) {
     super();
@@ -65,6 +66,7 @@ export class TickProcessor extends EventEmitter {
    * Main entry point to process a batch of incoming ticks from Kite.
    */
   public processTicks(ticks: any[]) {
+    const start = performance.now();
     for (const tick of ticks) {
       const token = tick.instrument_token;
       if (!token) continue;
@@ -119,6 +121,7 @@ export class TickProcessor extends EventEmitter {
       this.emit('tick', symbolKey, tickData);
       this.emit(`tick:${symbolKey}`, tickData);
     }
+    this.lastProcessingLatency = performance.now() - start;
   }
 
   /**
@@ -137,6 +140,7 @@ export class TickProcessor extends EventEmitter {
       tickCount: this.tickCount,
       duplicateDropCount: this.duplicateDropCount,
       activeSymbols: this.slidingWindows.size,
+      lastProcessingLatencyMs: parseFloat(this.lastProcessingLatency.toFixed(3)),
     };
   }
 }

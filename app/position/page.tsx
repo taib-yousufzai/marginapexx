@@ -22,7 +22,7 @@ export default function PositionPage() {
   const router = useRouter();
   useAuth();
   const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(1000);
-  const { closePosition, loading: closingPos } = useOrderEntry();
+  const { closePosition, closePositionsBatch, loading: closingPos } = useOrderEntry();
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
 
@@ -228,13 +228,16 @@ export default function PositionPage() {
       return;
     }
     
-    const promises = exitablePositions.map(p => closePosition(p.id));
-    const results = await Promise.all(promises);
+    const result = await closePositionsBatch(exitablePositions.map(p => p.id));
     
-    results.forEach(res => {
-      if (res.success) successCount++;
-      else failCount++;
-    });
+    if (result.success && result.results) {
+      result.results.forEach((res: any) => {
+        if (res.success) successCount++;
+        else failCount++;
+      });
+    } else {
+      failCount = exitablePositions.length;
+    }
     
     setIsExitingAll(false);
     setIsExitAllModalOpen(false);

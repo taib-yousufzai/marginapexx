@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { QuoteData } from '@/hooks/useKiteQuotes';
+import { QuoteData } from '@/hooks/useMarketQuotes';
 
 interface StrikeData {
   strike: number;

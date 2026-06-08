@@ -51,7 +51,7 @@ interface UseKiteOrdersResult {
   refresh: () => void;
 }
 
-export function useKiteOrders(refreshInterval = 5000): UseKiteOrdersResult {
+export function useKiteOrders(refreshInterval = 10000): UseKiteOrdersResult {
   const [orders, setOrders] = useState<KiteOrder[]>(() => pageCache.get<KiteOrder[]>('kite:orders') ?? []);
   const [connected, setConnected] = useState(() => pageCache.get<boolean>('kite:connected') ?? false);
   const [loading, setLoading] = useState(() => pageCache.get<KiteOrder[]>('kite:orders') === null);

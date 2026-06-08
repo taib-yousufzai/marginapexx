@@ -21,15 +21,50 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
     pricesMap.set(quote.id, quote.last_price);
   }
 
-  // 1. PROCESS PENDING ORDERS
-  const { data: pendingOrders, error: ordersError } = await admin
-    .from('orders')
-    .select('*')
-    .eq('status', 'PENDING');
+  // 1. Fetch pending orders and open positions in parallel
+  const [ordersRes, positionsRes] = await Promise.all([
+    admin.from('orders').select('*').eq('status', 'PENDING'),
+    admin.from('positions').select('*').eq('status', 'open')
+  ]);
 
-  if (ordersError) {
-    console.error('[Order Matching] Error fetching pending orders:', ordersError);
-  } else if (pendingOrders && pendingOrders.length > 0) {
+  const pendingOrders = ordersRes.data ?? [];
+  const openPositions = positionsRes.data ?? [];
+
+  if (ordersRes.error) {
+    console.error('[Order Matching] Error fetching pending orders:', ordersRes.error);
+  }
+  if (positionsRes.error) {
+    console.error('[Order Matching] Error fetching open positions:', positionsRes.error);
+  }
+
+  // Pre-fetch segment settings for all involved users in a single query
+  const userIds = Array.from(new Set([
+    ...pendingOrders.map(o => o.user_id),
+    ...openPositions.map(p => p.user_id)
+  ]));
+
+  const segmentSettingsCache = new Map<string, { entry_buffer: number; exit_buffer: number }>();
+  if (userIds.length > 0) {
+    const { data: allSegSettings, error: segSettingsErr } = await admin
+      .from('segment_settings')
+      .select('user_id, segment, side, entry_buffer, exit_buffer')
+      .in('user_id', userIds);
+
+    if (segSettingsErr) {
+      console.error('[Order Matching] Error pre-fetching segment settings:', segSettingsErr);
+    } else if (allSegSettings) {
+      for (const s of allSegSettings) {
+        const key = `${s.user_id}|${s.segment}|${s.side}`;
+        segmentSettingsCache.set(key, {
+          entry_buffer: Number(s.entry_buffer ?? 0.003),
+          exit_buffer: Number(s.exit_buffer ?? 0.0017)
+        });
+      }
+    }
+  }
+
+  // 1. PROCESS PENDING ORDERS
+  if (pendingOrders.length > 0) {
     console.log(`[Order Matching] Found ${pendingOrders.length} pending orders to evaluate.`);
 
     for (const order of pendingOrders) {
@@ -117,11 +152,11 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
       if (shouldTrigger) {
         console.log(`[Order Matching] Triggering order ${order.id} (${side} ${orderType} ${order.symbol}) at LTP: ${ltp}, Fill: ${fillPrice}`);
 
-          const { data: existingPos, error: posErrorCheck } = await admin
-            .from('positions')
-            .select('id, side')
-            .eq('symbol', symbolKey)
-            .eq('status', 'open');
+        const { data: existingPos, error: posErrorCheck } = await admin
+          .from('positions')
+          .select('id, side')
+          .eq('symbol', symbolKey)
+          .eq('status', 'open');
 
         if (posErrorCheck) {
           console.error('[Order Matching] Error checking existing positions for', symbolKey, ':', posErrorCheck);
@@ -199,14 +234,7 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
   }
 
   // 2. PROCESS OPEN POSITIONS
-  const { data: openPositions, error: posError } = await admin
-    .from('positions')
-    .select('*')
-    .eq('status', 'open');
-
-  if (posError) {
-    console.error('[Order Matching] Error fetching open positions:', posError);
-  } else if (openPositions && openPositions.length > 0) {
+  if (openPositions.length > 0) {
     console.log(`[Order Matching] Found ${openPositions.length} open positions to evaluate.`);
 
     // Group open positions by user_id
@@ -244,18 +272,16 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
       const drawdownLimit = - (autoSqoffPercent / 100.0) * balance;
 
-      // 2. Fetch segment settings for this user (to get entry/exit buffers)
-      const { data: segSettings } = await admin
-        .from('segment_settings')
-        .select('segment, side, entry_buffer, exit_buffer')
-        .eq('user_id', userId);
-
+      // 2. Map buffers from pre-fetched settings (to get entry/exit buffers)
       const entryBufferMap = new Map<string, number>();
       const exitBufferMap = new Map<string, number>();
-      if (segSettings) {
-        for (const s of segSettings) {
-          entryBufferMap.set(`${s.segment}|${s.side}`, Number(s.entry_buffer ?? 0.003));
-          exitBufferMap.set(`${s.segment}|${s.side}`, Number(s.exit_buffer ?? 0.0017));
+      for (const [key, val] of segmentSettingsCache.entries()) {
+        if (key.startsWith(`${userId}|`)) {
+          const parts = key.split('|');
+          const seg = parts[1];
+          const side = parts[2];
+          entryBufferMap.set(`${seg}|${side}`, val.entry_buffer);
+          exitBufferMap.set(`${seg}|${side}`, val.exit_buffer);
         }
       }
 
@@ -395,27 +421,11 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
         // Calculate exit price
         let exitPrice = ltp;
+        const exitBuffer = segmentSettingsCache.get(`${pos.user_id}|${pos.settlement}|${pos.side}`)?.exit_buffer ?? 0.0017;
         if (pos.side === 'BUY') {
-          const { data: segSet } = await admin
-            .from('segment_settings')
-            .select('exit_buffer')
-            .eq('user_id', pos.user_id)
-            .eq('segment', pos.settlement)
-            .eq('side', 'BUY')
-            .maybeSingle();
-          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          exitPrice = (ltp * 0.999) * (1 - buffer);
+          exitPrice = (ltp * 0.999) * (1 - exitBuffer);
         } else {
-          // Fetch buffer for this user
-          const { data: segSet } = await admin
-            .from('segment_settings')
-            .select('exit_buffer')
-            .eq('user_id', pos.user_id)
-            .eq('segment', pos.settlement)
-            .eq('side', 'SELL')
-            .maybeSingle();
-          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          exitPrice = (ltp * 1.001) * (1 + buffer);
+          exitPrice = (ltp * 1.001) * (1 + exitBuffer);
         }
         exitPrice = Math.round(exitPrice * 10000) / 10000;
 
@@ -429,44 +439,6 @@ export async function processPendingOrdersAndPositions(quotes: Quote[]): Promise
 
         if (closeRpcErr) {
           console.error(`[Order Matching] Failed to close position ${pos.id} via close_position RPC:`, closeRpcErr);
-        }
-      } else {
-        // If not closed, update the position's LTP and real-time P&L in the database
-        const qty = Number(pos.qty_open ?? 0);
-        let pnl = 0;
-        if (side === 'BUY') {
-          const { data: segSet } = await admin
-            .from('segment_settings')
-            .select('exit_buffer')
-            .eq('user_id', pos.user_id)
-            .eq('segment', pos.settlement)
-            .eq('side', 'BUY')
-            .maybeSingle();
-          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          pnl = (((ltp * 0.999) * (1 - buffer)) - entryPrice) * qty;
-        } else {
-          const { data: segSet } = await admin
-            .from('segment_settings')
-            .select('exit_buffer')
-            .eq('user_id', pos.user_id)
-            .eq('segment', pos.settlement)
-            .eq('side', 'SELL')
-            .maybeSingle();
-          const buffer = Number(segSet?.exit_buffer ?? 0.0017);
-          pnl = (entryPrice - ((ltp * 1.001) * (1 + buffer))) * qty;
-        }
-
-        const { error: updatePosErr } = await admin
-          .from('positions')
-          .update({
-            ltp: ltp,
-            pnl: pnl,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', pos.id);
-
-        if (updatePosErr) {
-          console.error(`[Order Matching] Failed to update LTP/PNL for position ${pos.id}:`, updatePosErr);
         }
       }
     }

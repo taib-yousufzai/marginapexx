@@ -103,9 +103,47 @@ export function useOrderEntry() {
     }
   }, []);
 
+  const closePositionsBatch = useCallback(async (positionIds: string[]) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        throw new Error('You must be logged in to close positions.');
+      }
+
+      const response = await fetch('/api/positions/close', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ positionIds })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to close positions');
+      }
+
+      return { success: true, ...result };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     placeOrder,
     closePosition,
+    closePositionsBatch,
     loading,
     error,
     setError

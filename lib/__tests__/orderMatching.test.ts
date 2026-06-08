@@ -4,6 +4,7 @@ import { processPendingOrdersAndPositions } from '../orderMatching';
 const mockQueryResult = (data: any) => {
   const qb: any = {
     eq: vi.fn().mockImplementation(() => qb),
+    in: vi.fn().mockImplementation(() => qb),
     single: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] || null : data, error: null }),
     maybeSingle: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] || null : data, error: null }),
     then: (resolve: any) => Promise.resolve({ data, error: null }).then(resolve)
@@ -61,8 +62,12 @@ describe('orderMatching', () => {
       }
     ];
 
-    // Mock fetching pending orders
-    mockSelect.mockReturnValue(mockQueryResult(orders));
+    // Mock fetching pending orders, positions, pre-fetch, and existing positions
+    mockSelect
+      .mockReturnValueOnce(mockQueryResult(orders)) // orders
+      .mockReturnValueOnce(mockQueryResult([]))     // positions
+      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult([]));    // positions existing check
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1495 }];
     await processPendingOrdersAndPositions(quotes);
@@ -99,7 +104,10 @@ describe('orderMatching', () => {
       }
     ];
 
-    mockSelect.mockReturnValue(mockQueryResult(orders));
+    mockSelect
+      .mockReturnValueOnce(mockQueryResult(orders)) // orders
+      .mockReturnValueOnce(mockQueryResult([]))     // positions
+      .mockReturnValueOnce(mockQueryResult([]));    // segment_settings pre-fetch
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1505 }];
     await processPendingOrdersAndPositions(quotes);
@@ -127,8 +135,10 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult(orders))
-      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open' }]));
+      .mockReturnValueOnce(mockQueryResult(orders)) // orders
+      .mockReturnValueOnce(mockQueryResult([]))     // positions
+      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open' }])); // positions existing check
 
     const quotes = [{ id: 'NSE:TCS', last_price: 3405 }];
     await processPendingOrdersAndPositions(quotes);
@@ -158,7 +168,11 @@ describe('orderMatching', () => {
       }
     ];
 
-    mockSelect.mockReturnValue(mockQueryResult(orders));
+    mockSelect
+      .mockReturnValueOnce(mockQueryResult(orders)) // orders
+      .mockReturnValueOnce(mockQueryResult([]))     // positions
+      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult([]));    // positions existing check
 
     const quotes = [{ id: 'NSE:RELIANCE', last_price: 2502 }];
     await processPendingOrdersAndPositions(quotes);
@@ -191,10 +205,10 @@ describe('orderMatching', () => {
 
     // Select chain mocking
     mockSelect
-      .mockReturnValueOnce(mockQueryResult([])) // pending orders
+      .mockReturnValueOnce(mockQueryResult([]))        // pending orders
       .mockReturnValueOnce(mockQueryResult(positions)) // open positions
-      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })) // profile
-      .mockReturnValueOnce(mockQueryResult([])); // segment settings
+      .mockReturnValueOnce(mockQueryResult([]))        // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })); // profile
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1475 }];
     await processPendingOrdersAndPositions(quotes);
@@ -226,10 +240,10 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult([]))
-      .mockReturnValueOnce(mockQueryResult(positions))
-      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 }))
-      .mockReturnValueOnce(mockQueryResult([]));
+      .mockReturnValueOnce(mockQueryResult([]))        // pending orders
+      .mockReturnValueOnce(mockQueryResult(positions)) // open positions
+      .mockReturnValueOnce(mockQueryResult([]))        // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })); // profile
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1605 }];
     await processPendingOrdersAndPositions(quotes);

@@ -55,7 +55,7 @@ interface UseKitePositionsResult {
   refresh: () => void;
 }
 
-export function useKitePositions(refreshInterval = 5000): UseKitePositionsResult {
+export function useKitePositions(refreshInterval = 10000): UseKitePositionsResult {
   const [netPositions, setNetPositions] = useState<KitePosition[]>(
     () => pageCache.get<PositionsCache>('kite:positions')?.net ?? []
   );
