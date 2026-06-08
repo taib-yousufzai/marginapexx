@@ -29,7 +29,7 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
   const fetchPositions = useCallback((silent = false) => {
     if (!uid) return;
     if (!silent) setPosLoading(true);
-    apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}`, { method: 'GET' })
+    apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}&rows=100000`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
         if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
@@ -259,17 +259,19 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
         </div>
       )}
 
-      <div className="adm-pos-stat-card">
-        <div className="adm-pos-stat-label">USER</div>
-        <div className="adm-pos-stat-value">{uid}</div>
-      </div>
-      <div className="adm-pos-stat-card">
-        <div className="adm-pos-stat-label">OPEN PNL</div>
-        <div className={`adm-pos-stat-value ${openPnl >= 0 ? 'pos' : 'neg'}`}>{(openPnl ?? 0).toFixed(2)}</div>
-      </div>
-      <div className="adm-pos-stat-card">
-        <div className="adm-pos-stat-label">WEEKLY PNL</div>
-        <div className="adm-pos-stat-value">0</div>
+      <div className="adm-pos-stats-grid">
+        <div className="adm-pos-stat-card">
+          <div className="adm-pos-stat-label">USER</div>
+          <div className="adm-pos-stat-value">{uid}</div>
+        </div>
+        <div className="adm-pos-stat-card">
+          <div className="adm-pos-stat-label">OPEN PNL</div>
+          <div className={`adm-pos-stat-value ${openPnl >= 0 ? 'pos' : 'neg'}`}>{(openPnl ?? 0).toFixed(2)}</div>
+        </div>
+        <div className="adm-pos-stat-card">
+          <div className="adm-pos-stat-label">WEEKLY PNL</div>
+          <div className="adm-pos-stat-value">0</div>
+        </div>
       </div>
 
       <div className="adm-pos-tabs">
@@ -302,10 +304,10 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
       </div>
       <button className="adm-ord-download"><i className="fas fa-download" /> Download Excel</button>
 
-      <div className="adm-ord-list">
+      <div className="adm-ord-list" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {posLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div className="adm-ord-card" key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="adm-pos-card" key={i} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <SkeletonLine width={100} height={14} />
@@ -317,93 +319,106 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
                 </div>
               </div>
               <SkeletonLine width="100%" height={1} style={{ background: '#21262d' }} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {Array.from({ length: 6 }).map((_, j) => <SkeletonLine key={j} height={12} width="70%" />)}
-              </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <SkeletonLine width={70} height={30} style={{ borderRadius: 6 }} />
-                <SkeletonLine width={50} height={30} style={{ borderRadius: 6 }} />
-                <SkeletonLine width={60} height={30} style={{ borderRadius: 6 }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+                {Array.from({ length: 8 }).map((_, j) => <SkeletonLine key={j} height={12} width="70%" />)}
               </div>
             </div>
           ))
         ) : displayed.length === 0 ? (
           <div className="adm-mw-empty">No positions found.</div>
         ) : displayed.map((p, i) => (
-          <div className="adm-ord-card" key={i}>
-            <div className="adm-ord-card-top">
-              <div>
-                <div className="adm-ord-symbol">{p.symbol}</div>
-                <div className="adm-ord-user">{uid}</div>
+          <div className="adm-pos-card" key={i}>
+            <div className="adm-pos-card-header">
+              <div className="adm-pos-card-title-group">
+                <span className="adm-pos-card-symbol">{p.symbol}</span>
+                <span className={`adm-pos-side-badge ${p.side === 'BUY' ? 'buy' : 'sell'}`}>{p.side}</span>
               </div>
-              <div className="adm-ord-badges">
-                <span className={`adm-ord-side ${p.side === 'BUY' ? 'buy' : 'sell'}`}>{p.side}</span>
-                <span className={`adm-pos-pnl ${p.pnl >= 0 ? 'pos' : 'neg'}`}>{(p.pnl ?? 0).toFixed(2)}</span>
+              <div className="adm-pos-card-pnl-group">
+                <span className={`adm-pos-pnl-badge ${p.pnl >= 0 ? 'pos' : 'neg'}`}>
+                  {p.pnl >= 0 ? '+' : ''}{(p.pnl ?? 0).toFixed(2)}
+                </span>
               </div>
             </div>
-            <div className="adm-ord-details">
-              <div className="adm-ord-detail-row">
-                <span className="adm-ord-dl">Qty</span>
-                <span className="adm-ord-dv">{p.qty}</span>
-                <span className="adm-ord-dl">Avg Price</span>
-                <span className="adm-ord-dv">{(p.avgPrice ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            
+            <div className="adm-pos-card-grid">
+              <div className="adm-pos-card-metric">
+                <span className="adm-pos-metric-label">Qty</span>
+                <span className="adm-pos-metric-value">{p.qty}</span>
               </div>
-              <div className="adm-ord-detail-row">
-                <span className="adm-ord-dl">Entry</span>
-                <span className="adm-ord-dv">{(p.entry ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              <div className="adm-pos-card-metric">
+                <span className="adm-pos-metric-label">Avg Price</span>
+                <span className="adm-pos-metric-value">{(p.avgPrice ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="adm-pos-card-metric">
+                <span className="adm-pos-metric-label">Entry Price</span>
+                <span className="adm-pos-metric-value">{(p.entry ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="adm-pos-card-metric">
                 {tab !== 'closed' ? (
-                  <><span className="adm-ord-dl">LTP</span>
-                    <span className="adm-ord-dv" style={{ color: '#388bfd' }}>{p.ltp?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
+                  <>
+                    <span className="adm-pos-metric-label">LTP</span>
+                    <span className="adm-pos-metric-value ltp">{(p.ltp ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </>
                 ) : (
-                  <><span className="adm-ord-dl">Exit</span>
-                    <span className="adm-ord-dv">{(p.exit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></>
+                  <>
+                    <span className="adm-pos-metric-label">Exit Price</span>
+                    <span className="adm-pos-metric-value">{(p.exit ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </>
                 )}
               </div>
-              <div className="adm-ord-detail-row">
-                <span className="adm-ord-dl">Duration</span>
-                <span className="adm-ord-dv">{p.duration}</span>
-                <span className="adm-ord-dl">Brokerage</span>
-                <span className="adm-ord-dv">{(p.brokerage ?? 0).toFixed(2)}</span>
+              <div className="adm-pos-card-metric">
+                <span className="adm-pos-metric-label">Duration</span>
+                <span className="adm-pos-metric-value">{p.duration}</span>
               </div>
-              <div className="adm-ord-detail-row">
-                <span className="adm-ord-dl">SL / TP</span>
-                <span className="adm-ord-dv" style={{ gridColumn: '2 / -1' }}>{p.slTp}</span>
+              <div className="adm-pos-card-metric">
+                <span className="adm-pos-metric-label">Brokerage</span>
+                <span className="adm-pos-metric-value">{(p.brokerage ?? 0).toFixed(2)}</span>
               </div>
-              {tab === 'closed' && (<>
-                <div className="adm-ord-detail-row">
-                  <span className="adm-ord-dl">Settlement</span>
-                  <span className="adm-ord-dv" style={{ gridColumn: '2 / -1', color: '#388bfd' }}>{p.settlement}</span>
-                </div>
-                <div className="adm-ord-detail-row">
-                  <span className="adm-ord-dl">Entry Time</span>
-                  <span className="adm-ord-dv" style={{ gridColumn: '2 / -1' }}>{p.entryTime}</span>
-                </div>
-                <div className="adm-ord-detail-row">
-                  <span className="adm-ord-dl">Exit Time</span>
-                  <span className="adm-ord-dv" style={{ gridColumn: '2 / -1' }}>{p.exitTime}</span>
-                </div>
-                <div className="adm-pos-card-actions">
-                  <button className="adm-pos-act-edit" onClick={() => openEdit(p)}>Edit</button>
-                  <button className="adm-pos-act-reopen" onClick={() => handleReopen(p)}>Reopen</button>
-                  <button className="adm-pos-act-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
-                </div>
-              </>)}
-              {tab !== 'closed' && (
-                <div className="adm-ord-detail-row">
-                  <span className="adm-ord-dl">Entry Time</span>
-                  <span className="adm-ord-dv" style={{ gridColumn: '2 / -1' }}>{p.entryTime}</span>
+              <div className="adm-pos-card-metric col-span-2">
+                <span className="adm-pos-metric-label">SL / TP</span>
+                <span className="adm-pos-metric-value">{p.slTp}</span>
+              </div>
+              {tab === 'closed' && (
+                <div className="adm-pos-card-metric col-span-2">
+                  <span className="adm-pos-metric-label">Settlement</span>
+                  <span className="adm-pos-metric-value settlement">{p.settlement || '–'}</span>
                 </div>
               )}
-              {tab === 'open' && (
-                <button className="adm-pos-act-sqoff-full" onClick={() => handleSqoff(p.id)}>Sqoff</button>
-              )}
-              {tab === 'active' && (
-                <div className="adm-pos-card-actions">
-                  <button className="adm-pos-act-sqoff" onClick={() => handleSqoff(p.id)}>Sqoff</button>
-                  <button className="adm-pos-act-edit" onClick={() => openEdit(p)}>Edit</button>
-                  <button className="adm-pos-act-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
+            </div>
+
+            <div className="adm-pos-card-footer">
+              <div className="adm-pos-time-group">
+                <div className="adm-pos-time-row">
+                  <span className="adm-pos-time-label">Entry:</span>
+                  <span className="adm-pos-time-value">{p.entryTime}</span>
                 </div>
-              )}
+                {tab === 'closed' && (
+                  <div className="adm-pos-time-row">
+                    <span className="adm-pos-time-label">Exit:</span>
+                    <span className="adm-pos-time-value">{p.exitTime}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="adm-pos-actions-group">
+                {tab === 'open' && (
+                  <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
+                )}
+                {tab === 'active' && (
+                  <>
+                    <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
+                    <button className="adm-pos-btn-edit" onClick={() => openEdit(p)}>Edit</button>
+                    <button className="adm-pos-btn-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
+                  </>
+                )}
+                {tab === 'closed' && (
+                  <>
+                    <button className="adm-pos-btn-edit" onClick={() => openEdit(p)}>Edit</button>
+                    <button className="adm-pos-btn-reopen" onClick={() => handleReopen(p)}>Reopen</button>
+                    <button className="adm-pos-btn-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
