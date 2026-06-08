@@ -77,7 +77,7 @@ class MarketWSManager {
     };
 
     this.ws.onerror = (err) => {
-      console.error('[MarketWS] Socket error:', err);
+      console.warn('[MarketWS] Socket error:', err);
     };
   }
 
