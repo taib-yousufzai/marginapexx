@@ -151,7 +151,7 @@ export async function apiCall(
     const data = await res.json();
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
-    console.error(`apiCall error [${path}]:`, err);
+    console.warn(`apiCall error [${path}]:`, err);
     return { ok: false, status: 500, data: { error: 'Network or Authentication Error' } };
   }
 }
