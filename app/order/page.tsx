@@ -283,7 +283,7 @@ export default function OrderPage() {
                       <div className="ord-row" style={{ marginTop: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span className="ord-type-pill" style={{ fontSize: '0.6rem' }}>{order.product_type}</span>
-                          {order.info && (
+                          {order.info && order.info !== 'Exit - USER' && (
                             <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>
                               {order.info}
                             </span>
@@ -471,7 +471,7 @@ export default function OrderPage() {
                       </div>
                     </div>
                   </div>
-                  {selectedOrder.info && (
+                  {selectedOrder.info && selectedOrder.info !== 'Exit - USER' && (
                     <div className="ord-rejection" style={{ marginTop: 0, marginBottom: '8px' }}>
                       <i className="fas fa-info-circle" /> {selectedOrder.info}
                     </div>
