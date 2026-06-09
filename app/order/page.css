@@ -577,6 +577,7 @@ body.dark .os-status-other    { color: #F87171; }
     left: 50%;
     transform: translateX(-50%);
   }
+
 }
 .ord-sheet-overlay {
   position: absolute;

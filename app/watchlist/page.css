@@ -126,6 +126,14 @@
     display: block;
 }
 
+.watchlist-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
 .mobile-app .main-content {
     flex: 1;
     overflow-y: auto;
@@ -2609,7 +2617,7 @@ body.dark .instrument-delete-btn:hover {
         width: 100%;
     }
 
-    /* ── Side-Panel Trade Sheet for Desktop ── */
+    /* ── Full-Screen Trade Sheet for Desktop ── */
     .mobile-app #tradeSheet,
     .mobile-app .trade-sheet,
     #tradeSheet,
@@ -2617,31 +2625,41 @@ body.dark .instrument-delete-btn:hover {
         position: fixed !important;
         top: 0 !important;
         bottom: 0 !important;
+        left: var(--sidebar-width, 260px) !important;
         right: 0 !important;
-        left: auto !important;
-        width: 450px !important;
+        width: calc(100% - var(--sidebar-width, 260px)) !important;
         height: 100vh !important;
         max-height: 100vh !important;
-        max-width: 450px !important;
+        max-width: 100% !important;
         margin: 0 !important;
         border-radius: 0 !important;
-        transform: translateX(100%) !important;
-        /* Start off-screen right */
+        transform: translateY(100%) !important;
+        /* Start off-screen bottom */
         opacity: 1 !important;
         visibility: visible !important;
         z-index: 99999 !important;
-        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2) !important;
         transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
         background: var(--container-bg, #FFFFFF) !important;
         display: flex !important;
         flex-direction: column !important;
     }
 
+    /* ── Bottom-Sheet Detail Sheet for Desktop (Do not make full screen) ── */
+    #detailSheet,
+    .detail-sheet {
+        top: auto !important;
+        bottom: 0 !important;
+        height: auto !important;
+        max-height: 85vh !important;
+        border-radius: 24px 24px 0 0 !important;
+    }
+
     .mobile-app #tradeSheet.open,
     .mobile-app .trade-sheet.open,
     #tradeSheet.open,
     .trade-sheet.open {
-        transform: translateX(0) !important;
+        transform: translateY(0) !important;
         visibility: visible !important;
     }
 
@@ -2658,7 +2676,8 @@ body.dark .instrument-delete-btn:hover {
     #tradeSheetOverlay {
         position: fixed !important;
         top: 0 !important;
-        left: 0 !important;
+        left: var(--sidebar-width, 260px) !important;
+        width: calc(100% - var(--sidebar-width, 260px)) !important;
         right: 0 !important;
         bottom: 0 !important;
         background: rgba(0, 0, 0, 0.4) !important;
@@ -2675,11 +2694,13 @@ body.dark .instrument-delete-btn:hover {
 
     .mobile-app .ts-sticky-footer,
     .ts-sticky-footer {
-        width: 450px !important;
-        left: auto !important;
+        width: calc(100% - var(--sidebar-width, 260px)) !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        left: var(--sidebar-width, 260px) !important;
         right: 0 !important;
-        bottom: 0 !important;
         border-radius: 0 !important;
+        background: var(--container-bg, #FFFFFF) !important;
         z-index: 100000 !important;
         display: none !important;
     }

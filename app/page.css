@@ -931,6 +931,7 @@ body.dark .circle-icon {
     overflow: hidden;
     padding-bottom: 0;
     padding-left: 0;
+    padding-right: 0;
   }
 
   .nav-bar-full {
@@ -973,9 +974,9 @@ body.dark .circle-icon {
       "whatsapp whatsapp"
       "margin learning"
       "options learning"
-      "expiry learning"
-      "markets learning"
-      "support learning";
+      "expiry expiry"
+      "markets markets"
+      "support support";
   }
 
   .whatsapp-community {

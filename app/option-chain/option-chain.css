@@ -273,34 +273,46 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
     padding: 24px 40px;
   }
 
-  /* ── Side-Panel Trade Sheet for Desktop ── */
+  /* ── Full-Screen Trade Sheet for Desktop ── */
   .trade-sheet {
     position: fixed !important;
     top: 0 !important;
     bottom: 0 !important;
+    left: var(--sidebar-width, 260px) !important;
     right: 0 !important;
-    left: auto !important;
-    width: 450px !important;
+    width: calc(100% - var(--sidebar-width, 260px)) !important;
     height: 100vh !important;
-    max-width: 450px !important;
+    max-height: 100vh !important;
+    max-width: 100% !important;
     margin: 0 !important;
     border-radius: 0 !important;
-    transform: translateX(100%);
+    transform: translateY(100%);
     z-index: 2000 !important;
-    box-shadow: -10px 0 30px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.2) !important;
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
     background: var(--container-bg) !important;
     pointer-events: auto !important;
   }
 
+  /* ── Bottom-Sheet Detail Sheet for Desktop (Do not make full screen) ── */
+  #detailSheet,
+  .detail-sheet {
+    top: auto !important;
+    bottom: 0 !important;
+    height: auto !important;
+    max-height: 85vh !important;
+    border-radius: 24px 24px 0 0 !important;
+  }
+
   .trade-sheet.open {
-    transform: translateX(0) !important;
+    transform: translateY(0) !important;
   }
 
   .trade-sheet-overlay {
     position: fixed;
     top: 0;
-    left: 0;
+    left: var(--sidebar-width, 260px) !important;
+    width: calc(100% - var(--sidebar-width, 260px)) !important;
     right: 0;
     bottom: 0;
     background: transparent;
@@ -339,8 +351,13 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
 
 .oc-app-container .header-wrapper, .oc-app-container .content-wrapper {
   width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
+  max-width: 100%;
+}
+
+/* Full stretch for the bottom redline arrow (account drawer) ONLY in Option Chain */
+.oc-app-container .account-drawer-ark {
+  max-width: 100% !important;
+  left: 0 !important;
 }
 
 .oc-app-container .app-header {

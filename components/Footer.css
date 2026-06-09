@@ -204,6 +204,7 @@ body.dark .footer-nav[data-active="history"]::before {
     max-width: none;
     width: auto;
     margin: 0;
+    bottom: 0 !important;
   }
 }
 

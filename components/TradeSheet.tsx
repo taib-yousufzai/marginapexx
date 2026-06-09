@@ -657,7 +657,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     <>
       <style>{`
         .ts2-overlay {
-          position: fixed; inset: 0;
+          position: absolute; inset: 0;
           background: rgba(0,0,0,0.55);
           z-index: 9998;
           opacity: 0; visibility: hidden;
@@ -666,8 +666,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-overlay.active { opacity: 1; visibility: visible; }
 
         .ts2-sheet {
-          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-          width: 100%; max-width: 500px; margin: 0 auto;
+          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+          width: 100%; max-width: 100%; margin: 0;
           background: var(--bg-body, #F5F7FB);
           z-index: 9999;
           transform: translateY(100%);
@@ -675,8 +675,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           display: flex; flex-direction: column;
           overflow: hidden;
         }
-        @media (max-width: 500px) { .ts2-sheet { max-width: 100%; } }
         .ts2-sheet.open { transform: translateY(0); }
+
 
         .ts2-header {
           background: var(--card-bg, #fff); padding: 10px 14px 12px;
@@ -897,15 +897,22 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
         .ts2-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        @media (min-width: 768px) {
-          .ts2-sheet {
-            position: fixed !important; top: 0 !important; bottom: unset !important;
-            height: 100vh !important; max-width: 500px !important;
-            left: unset !important; right: 0 !important; margin: 0 !important;
-            border-radius: 0 !important; transform: translateX(100%) !important;
+        @media (min-width: 1024px) {
+          .ts2-overlay {
+            position: fixed !important; top: 0 !important; bottom: 0 !important;
+            left: var(--sidebar-width, 260px) !important; right: 0 !important;
+            width: calc(100% - var(--sidebar-width, 260px)) !important;
           }
-          .ts2-sheet.open { transform: translateX(0) !important; }
-          .ts2-footer { right: 0; left: unset; width: 500px; }
+          .ts2-sheet {
+            position: fixed !important; top: 0 !important; bottom: 0 !important;
+            height: 100vh !important; max-height: 100vh !important;
+            left: var(--sidebar-width, 260px) !important; right: 0 !important;
+            width: calc(100% - var(--sidebar-width, 260px)) !important; max-width: 100% !important;
+            margin: 0 !important; border-radius: 0 !important;
+            transform: translateY(100%) !important; box-shadow: 0 -10px 30px rgba(0,0,0,0.2) !important;
+          }
+          .ts2-sheet.open { transform: translateY(0) !important; }
+          .ts2-footer { left: 0; right: 0; width: 100%; max-width: 100% !important; margin: 0; border-radius: 0; }
         }
       `}</style>
 
@@ -981,11 +988,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Max Lots</div>
-                      <div className="ts2-ic-val">{matchingSetting?.max_lot ?? '--'}</div>
+                      <div className="ts2-ic-val">{segSetting?.max_lot ?? '--'}</div>
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Order Lots</div>
-                      <div className="ts2-ic-val">{matchingSetting?.max_order_lot ?? '--'}</div>
+                      <div className="ts2-ic-val">{segSetting?.max_order_lot ?? '--'}</div>
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Total Qty</div>

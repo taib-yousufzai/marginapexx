@@ -395,21 +395,43 @@
     padding-left: 0;
   }
 
-  /* Balance card and payment form side-by-side in 2-column grid */
+  .funds-shell .main-content {
+    background: transparent !important;
+  }
+
+  /* Balance card and payment form single column */
   .funds-shell .content-padded {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "whatsapp"
+      "balance"
+      "toggle"
+      "form";
     gap: 32px;
     align-items: start;
     padding-top: 32px;
+    width: 100%;
   }
 
   .funds-shell .balance-card {
+    grid-area: balance;
     margin-bottom: 0;
   }
 
-  .funds-shell .funds-tabs {
-    margin-top: 20px;
+  .funds-shell .funds-toggle-wrapper {
+    grid-area: toggle;
+    margin-bottom: 0;
+  }
+
+  .funds-shell .payment-box {
+    grid-area: form;
+  }
+
+  .funds-shell .whatsapp-community {
+    grid-area: whatsapp;
+    margin-top: 0 !important;
+    margin-bottom: 0;
   }
 }
 
