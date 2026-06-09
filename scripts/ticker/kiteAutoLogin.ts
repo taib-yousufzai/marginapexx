@@ -82,6 +82,20 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
     'X-Kite-Version': '3',
   };
 
+  const cookies = new Map<string, string>();
+  const updateCookies = (res: Response) => {
+    // Some fetch implementations use getSetCookie() to return an array of strings
+    const rawCookies = typeof res.headers.getSetCookie === 'function' 
+      ? res.headers.getSetCookie() 
+      : ((res.headers.get('set-cookie') || '').split(',').map(c => c.trim()).filter(Boolean));
+      
+    for (const c of rawCookies) {
+      const pair = c.split(';')[0];
+      const [key, ...vals] = pair.split('=');
+      if (key) cookies.set(key, vals.join('='));
+    }
+  };
+
   // ── Step 1: Login ──────────────────────────────────────────────────────────
   logger.info('Kite autologin: Step 1 — posting credentials');
   const loginRes = await fetch(KITE_LOGIN_URL, {
@@ -89,6 +103,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
     headers,
     body: new URLSearchParams({ user_id: userId, password }).toString(),
   });
+  updateCookies(loginRes);
   const loginData = await loginRes.json() as any;
 
   if (loginData?.status !== 'success') {
@@ -102,7 +117,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   const totpCode = generateTOTP(totpSecret);
   const twofaRes = await fetch(KITE_TWOFA_URL, {
     method: 'POST',
-    headers,
+    headers: { ...headers, 'Cookie': Array.from(cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ') },
     body: new URLSearchParams({
       user_id: userId,
       request_id: requestId,
@@ -110,6 +125,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
       skip_session: '',
     }).toString(),
   });
+  updateCookies(twofaRes);
   const twofaData = await twofaRes.json() as any;
 
   if (twofaData?.status !== 'success') {
@@ -122,11 +138,12 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   const connectUrl = `${KITE_CONNECT_URL}?v=3&api_key=${apiKey}&skip_session=true`;
   let requestToken: string | null = null;
   let currentUrl = connectUrl;
+  const cookieStr = Array.from(cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
 
   for (let i = 0; i < 6 && !requestToken; i++) {
     const res = await fetch(currentUrl, {
       method: 'GET',
-      headers: { ...headers, 'Cookie': twofaRes.headers.get('set-cookie') || '' },
+      headers: { ...headers, 'Cookie': cookieStr },
       redirect: 'manual',
     });
 
