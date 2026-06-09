@@ -1,5 +1,6 @@
 import { getAdminClient } from '../../lib/adminClient.ts';
 import pino from 'pino';
+import type { WebSocketGateway } from './gateway.ts';
 
 const logger = pino({ name: 'ticker-subscription-manager' });
 
@@ -12,6 +13,15 @@ export class SubscriptionManager {
   private activeTokens: Set<number> = new Set();
   private tokenToSymbol: Map<number, string> = new Map();
   private symbolToToken: Map<string, number> = new Map();
+  private gateway: WebSocketGateway | null = null;
+
+  /**
+   * Links the WebSocket gateway so dynamic client subscriptions
+   * (e.g. option chain strikes) are included in Kite subscriptions.
+   */
+  public setGateway(gateway: WebSocketGateway) {
+    this.gateway = gateway;
+  }
 
   /**
    * Fetches active instruments from watchlists, open positions, and pending orders,
@@ -105,6 +115,17 @@ export class SubscriptionManager {
             }
           }
         });
+      }
+
+      // 4. Merge symbols dynamically requested by frontend WebSocket clients
+      //    (e.g. Option Chain strikes that aren't in any watchlist/position)
+      if (this.gateway) {
+        const clientSymbols = this.gateway.getActiveSubscribedSymbols();
+        for (const sym of clientSymbols) {
+          if (sym && sym.trim()) {
+            symbolsToResolve.add(sym.trim());
+          }
+        }
       }
 
       if (symbolsToResolve.size === 0) {

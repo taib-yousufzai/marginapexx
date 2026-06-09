@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
+import { EventEmitter } from 'events';
 import pino from 'pino';
 import { getRedisClient, createRedisPubSubClient } from '../../lib/redis.ts';
 import { telemetry } from '../../lib/metrics.ts';
@@ -12,7 +13,7 @@ export interface ClientConnection {
   subscribedSymbols: Set<string>;
 }
 
-export class WebSocketGateway {
+export class WebSocketGateway extends EventEmitter {
   private wss: WebSocketServer;
   private connections: Set<ClientConnection> = new Set();
   private quoteCache: Map<string, TickData> = new Map();
@@ -20,6 +21,7 @@ export class WebSocketGateway {
   private activeRedisSubscriptions: Set<string> = new Set();
 
   constructor(server: http.Server) {
+    super();
     this.wss = new WebSocketServer({ noServer: true });
     this.pubsubClient = createRedisPubSubClient();
 
@@ -94,8 +96,9 @@ export class WebSocketGateway {
               this.subscribeToSymbolChannel(sym);
             }
 
-            // Sync subscription counts
+            // Sync subscription counts and notify the ticker daemon
             this.syncTelemetrySubscriptions();
+            this.emit('subscription-change', payload.symbols);
 
             // Fetch latest quotes from Redis Hash cache
             const redis = getRedisClient();
@@ -145,6 +148,7 @@ export class WebSocketGateway {
               connection.subscribedSymbols.delete(sym);
             }
             this.syncTelemetrySubscriptions();
+            this.emit('subscription-change', payload.symbols);
             logger.info({ symbols: payload.symbols }, 'Client unsubscribed');
           }
         } catch (err) {
@@ -226,6 +230,20 @@ export class WebSocketGateway {
       if (q) res[sym] = q;
     }
     return res;
+  }
+
+  /**
+   * Returns the unique set of all symbols currently subscribed across all connected clients.
+   * Used by SubscriptionManager to forward on-demand option chain requests to Kite.
+   */
+  public getActiveSubscribedSymbols(): string[] {
+    const allSymbols = new Set<string>();
+    for (const conn of this.connections) {
+      for (const sym of conn.subscribedSymbols) {
+        allSymbols.add(sym);
+      }
+    }
+    return Array.from(allSymbols);
   }
 }
 

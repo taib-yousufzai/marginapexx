@@ -36,6 +36,7 @@ class TickerDaemon {
 
   private subscriptionTimer: NodeJS.Timeout | null = null;
   private telemetryTimer: NodeJS.Timeout | null = null;
+  private subscriptionDebounce: NodeJS.Timeout | null = null;
   private isReconnecting = false;
   private isStopping = false;
 
@@ -141,6 +142,20 @@ class TickerDaemon {
 
     this.gateway = new WebSocketGateway(server);
     this.candleAggregator = new CandleAggregator();
+
+    // Link gateway → subscription manager so dynamic client requests
+    // (e.g. option chain strikes) are included in Kite subscriptions
+    this.subscriptionManager.setGateway(this.gateway);
+
+    // When any frontend client subscribes/unsubscribes symbols, debounce a
+    // Kite subscription sync so the new instruments start streaming within ~500ms
+    this.gateway.on('subscription-change', () => {
+      if (this.subscriptionDebounce) clearTimeout(this.subscriptionDebounce);
+      this.subscriptionDebounce = setTimeout(() => {
+        logger.info('Frontend subscription change detected — syncing Kite subscriptions...');
+        this.syncSubscriptions();
+      }, 500);
+    });
 
     // Link dbWriter to gateway and aggregator
     this.dbWriter.setGatewayAndAggregator(this.gateway, this.candleAggregator);
@@ -376,6 +391,7 @@ class TickerDaemon {
 
       if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
       if (this.telemetryTimer)    clearInterval(this.telemetryTimer);
+      if (this.subscriptionDebounce) clearTimeout(this.subscriptionDebounce);
 
       // Stop the session monitor so it doesn't attempt login during shutdown
       this.sessionMonitor.stop();
