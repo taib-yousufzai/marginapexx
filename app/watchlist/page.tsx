@@ -325,7 +325,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
               isCrypto ? { background: '#F0A500', color: '#fff' } :
                 showComex ? { background: '#4A148C', color: '#fff' } : {}
             }>
-              {isCrypto ? 'BINANCE' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
+              {isCrypto ? 'CRYPTO' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
             </span>
           </div>
           {item.contractDate && (
@@ -1738,7 +1738,9 @@ function WatchlistContent() {
                   onClick={() => {
                     setChartItem(selectedItem);
                     const detailSheet = document.getElementById('detailSheet');
+                    const detailOverlay = document.getElementById('detailSheetOverlay');
                     if (detailSheet) detailSheet.classList.remove('open');
+                    if (detailOverlay) detailOverlay.classList.remove('active');
                     const chartSheet = document.getElementById('chartSheet');
                     const chartOverlay = document.getElementById('chartSheetOverlay');
                     if (chartSheet) chartSheet.classList.add('open');

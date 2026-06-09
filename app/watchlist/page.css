@@ -2690,6 +2690,48 @@ body.dark .instrument-delete-btn:hover {
     }
 }
 
+/* =============================================
+   CHART SHEET — DESKTOP OVERRIDE (≥1024px)
+   On desktop the regular trade-sheet becomes a narrow 450px
+   side-panel which is awful for charts. Override #chartSheet
+   to render as a wide, centred modal instead.
+   ============================================= */
+@media (min-width: 1024px) {
+    #chartSheet,
+    .mobile-app #chartSheet {
+        width: 80vw !important;
+        max-width: 1200px !important;
+        height: 85vh !important;
+        max-height: 85vh !important;
+        top: 50% !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) scale(0.92) !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        border-radius: 20px !important;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35) !important;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 0.3s ease,
+                    visibility 0.3s ease !important;
+    }
+
+    #chartSheet.open,
+    .mobile-app #chartSheet.open {
+        transform: translate(-50%, -50%) scale(1) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    #chartSheetOverlay,
+    .mobile-app #chartSheetOverlay {
+        backdrop-filter: blur(4px) !important;
+    }
+}
+
 /* ── Segment Tab Bar ── */
 .seg-tab-bar {
     display: flex;
