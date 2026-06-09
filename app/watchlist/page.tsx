@@ -8,6 +8,7 @@ import { useMarketQuotes, QuoteData } from '@/hooks/useMarketQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
+import TradingChart from '@/components/TradingChart';
 import './page.css';
 
 interface WatchlistItem {
@@ -596,6 +597,8 @@ function WatchlistContent() {
     const n = parseInt(val);
     if (!isNaN(n) && n > 0) setOrderQty(n);
   };
+
+  const [chartItem, setChartItem] = useState<WatchlistItem | null>(null);
 
   const stepQtyWl = (delta: number) => {
     const step = orderUnit === 'qty' ? lotSize : 1;
@@ -1732,7 +1735,15 @@ function WatchlistContent() {
                     marginBottom: '8px',
                     transition: 'all 0.18s'
                   }}
-                  onClick={() => showToast("Opening Trading Chart for " + selectedItem.name, false)}
+                  onClick={() => {
+                    setChartItem(selectedItem);
+                    const detailSheet = document.getElementById('detailSheet');
+                    if (detailSheet) detailSheet.classList.remove('open');
+                    const chartSheet = document.getElementById('chartSheet');
+                    const chartOverlay = document.getElementById('chartSheetOverlay');
+                    if (chartSheet) chartSheet.classList.add('open');
+                    if (chartOverlay) chartOverlay.classList.add('active');
+                  }}
                 >
                   <svg 
                     viewBox="0 0 24 24" 
@@ -2069,7 +2080,37 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '85dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+        <div className="sheet-handle"><div className="handle-bar"></div></div>
+        <div className="ts-header" style={{ paddingBottom: '10px' }}>
+          <button className="ts-back-btn" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}>
+            <i className="fas fa-chevron-down"></i>
+          </button>
+          <div className="ts-name-block">
+            <div className="ts-instr-name">{chartItem?.name || '---'}</div>
+            <span className="ts-segment-badge">{chartItem?.segment || '---'}</span>
+          </div>
+          <div className="ts-price-block">
+            <div className="ts-price-value" style={{ fontSize: '1rem' }}>
+              {(() => {
+                if (!chartItem) return '--';
+                const q = chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol];
+                return q ? `₹${q.lastPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
+              })()}
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {chartItem && (
+            <TradingChart
+              symbol={chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}
+              segment={chartItem.binanceSymbol ? 'CRYPTO' : chartItem.segment}
+              liveQuote={chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol]}
+            />
+          )}
+        </div>
+      </div>
 
       <Footer activeTab="watchlist" />
         </div>
