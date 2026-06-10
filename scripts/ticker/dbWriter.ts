@@ -16,6 +16,8 @@ export interface TickData {
   };
   volume?: number;
   timestamp?: string | Date;
+  bid?: number;
+  ask?: number;
 }
 
 export class DbBatchWriter {

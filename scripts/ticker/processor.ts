@@ -107,6 +107,9 @@ export class TickProcessor extends EventEmitter {
       }
       window.push({ price: tick.last_price, timestamp: tickTime });
 
+      const bid = tick.depth?.buy?.[0]?.price;
+      const ask = tick.depth?.sell?.[0]?.price;
+
       // 4. Send to throttled database writer
       const tickData: TickData = {
         instrument_token: token,
@@ -114,6 +117,8 @@ export class TickProcessor extends EventEmitter {
         ohlc: tick.ohlc,
         volume: tick.volume,
         timestamp: tickTime ? new Date(tickTime) : new Date(),
+        bid,
+        ask,
       };
       this.dbWriter.addTick(symbolKey, tickData);
 

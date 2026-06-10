@@ -29,8 +29,6 @@ const KITE_TWOFA_URL = 'https://kite.zerodha.com/api/twofa';
 const KITE_CONNECT_URL = 'https://kite.trade/connect/login';
 const KITE_TOKEN_URL = 'https://api.kite.trade/session/token';
 
-/** Renew session this many minutes before expiry */
-const RENEW_BEFORE_EXPIRY_MINUTES = 90;
 /** Check session age on this interval */
 const CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 /** Retry failed logins after this delay */
@@ -281,24 +279,18 @@ export class KiteSessionMonitor extends EventEmitter {
     this.status.minutesUntilExpiry = minutesLeft;
 
     if (minutesLeft <= 0) {
-      logger.error({ minutesLeft }, 'Kite session has expired — triggering emergency login');
-      this.emit('session-critical');
+      logger.warn({ minutesLeft }, 'Kite session has expired — triggering daily login');
+      // We don't emit session-critical here because expiration at 6AM is expected behavior.
       await this.attemptLogin('expired');
     } else if (minutesLeft <= 60) {
-      logger.warn({ minutesLeft }, 'Kite session expiring within 60 minutes — WARNING');
+      logger.info({ minutesLeft }, 'Kite session expiring within 60 minutes.');
       this.emit('session-warning', minutesLeft);
-      if (minutesLeft <= RENEW_BEFORE_EXPIRY_MINUTES) {
-        await this.attemptLogin('proactive');
-      }
-    } else if (minutesLeft <= RENEW_BEFORE_EXPIRY_MINUTES) {
-      logger.info({ minutesLeft }, `Kite session expiring within ${RENEW_BEFORE_EXPIRY_MINUTES} min — proactive renewal`);
-      await this.attemptLogin('proactive');
     } else {
       logger.debug({ minutesLeft }, 'Kite session healthy');
     }
   }
 
-  private async attemptLogin(reason: 'proactive' | 'expired') {
+  private async attemptLogin(reason: 'expired') {
     if (this.isLoginInProgress) return;
     this.isLoginInProgress = true;
     this.status.lastLoginAttempt = new Date();
