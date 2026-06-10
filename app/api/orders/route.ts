@@ -819,6 +819,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 10. Compute fill price (LTP ± buffer from segment_settings)
   let fillPrice: number;
+  let bufferFee = 0;
   const isImmediate = (order_type ?? 'MARKET') === 'MARKET' || order_type === 'SLM';
 
   if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
@@ -829,23 +830,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
     const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
 
+    let priceWithBuffer = baseLtp;
+
     if (side === 'BUY') {
       if (is_exit) {
         // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
-        fillPrice = (baseLtp * 1.001) * (1 + sellExitBuffer);
+        priceWithBuffer = (baseLtp * 1.001) * (1 + sellExitBuffer);
       } else {
         // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
-        fillPrice = (baseLtp * 1.001) * (1 + buyEntryBuffer);
+        priceWithBuffer = (baseLtp * 1.001) * (1 + buyEntryBuffer);
       }
     } else {
       if (is_exit) {
         // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - exitBuffer) of BUY side settings
-        fillPrice = (baseLtp * 0.999) * (1 - buyExitBuffer);
+        priceWithBuffer = (baseLtp * 0.999) * (1 - buyExitBuffer);
       } else {
         // Short Entry (Selling) executes at: Bid * (1 - entryBuffer) of SELL side settings
-        fillPrice = (baseLtp * 0.999) * (1 - sellEntryBuffer);
+        priceWithBuffer = (baseLtp * 0.999) * (1 - sellEntryBuffer);
       }
     }
+
+    // Calculate buffer fee correctly based on quantity and absolute difference
+    bufferFee = Math.round(Math.abs(priceWithBuffer - baseLtp) * qty * 100) / 100;
+    
+    // The user's position entry/exit price is now the PURE market price!
+    fillPrice = baseLtp;
   }
 
   fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp
@@ -886,7 +895,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       p_trigger_price: resolvedTriggerPrice,
       p_stop_loss:    resolvedStopLoss,
       p_target:       target ? parseFloat(target.toString()) : null,
-      p_is_exit:      is_exit ?? false
+      p_is_exit:      is_exit ?? false,
+      p_buffer_fee:   bufferFee
     });
     if (rpcErr) {
       throw new Error(rpcErr.message || 'Order execution failed. Please try again.');
