@@ -514,6 +514,9 @@ body.dark .ord-empty          { background: var(--card-bg, #252525); border-colo
 body.dark .sell-price         { color: var(--negative-text, #F87171); }
 body.dark .status-open        { color: var(--negative-text, #F87171); }
 
+body.dark .ord-list::-webkit-scrollbar-track { background: transparent; }
+body.dark .ord-list::-webkit-scrollbar-thumb { background: #333333; }
+
 body.dark .ord-sheet {
   background: var(--card-bg, #252525);
   border-top: 1px solid var(--border-light, #333);
@@ -702,6 +705,9 @@ body.black .ord-row-status     { border-top-color: var(--border-light, #111); }
 body.black .ord-modify-btn:hover { background: var(--icon-bg, #000000); border-color: var(--border-card, #222); color: var(--text-primary, #D0D0D0); }
 
 body.black .ord-empty          { background: var(--card-bg, #000000); border-color: var(--border-light, #111); color: var(--text-muted, #888888); }
+
+body.black .ord-list::-webkit-scrollbar-track { background: transparent; }
+body.black .ord-list::-webkit-scrollbar-thumb { background: #222222; }
 
 body.black .ord-sheet {
   background: var(--card-bg, #000000);

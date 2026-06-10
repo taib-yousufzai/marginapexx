@@ -178,7 +178,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <div className="main-content">
+                    <div className="profile-main-content">
                         {/* Overlapping Margin Card */}
                         <div className="margin-overlap-card">
                             <div className="margin-text">
@@ -302,12 +302,7 @@ export default function ProfilePage() {
 
                     </div>
 
-                    {/* Floating Pill Button */}
-                    <div className="floating-pill-container">
-                        <Link href="/portfolio" className="floating-pill-btn">
-                            VIEW POSITIONS <i className="fas fa-arrow-right"></i>
-                        </Link>
-                    </div>
+
 
                     {/* Quick Edit Bottom Sheet */}
                     {modalOpen && (

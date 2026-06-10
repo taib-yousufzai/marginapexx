@@ -3,11 +3,20 @@
 .mobile-app {
     display: flex;
     flex-direction: column;
+    height: 100dvh;
     min-height: 100dvh;
     width: 100%;
-    background: #F4F7FB; /* slightly cooler light gray */
+    background: #F4F7FB;
     position: relative;
-    padding-bottom: 80px; /* space for floating pill */
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.mobile-app::-webkit-scrollbar {
+    display: none;
 }
 
 @media (min-width: 501px) {
@@ -84,7 +93,7 @@
 .pg-edit-btn:active { transform: scale(0.9); }
 
 /* --- MAIN CONTENT CONTAINER --- */
-.main-content {
+.profile-main-content {
     flex: 1;
     padding: 0 20px;
     display: flex;
@@ -98,11 +107,11 @@
 }
 
 @media (min-width: 501px) {
-    .main-content { padding: 0 40px; margin-top: -50px; max-width: 900px; }
+    .profile-main-content { padding: 0 40px; margin-top: -50px; max-width: 900px; }
     .profile-gradient-header { padding: 40px 40px 100px 40px; }
 }
 @media (min-width: 1024px) {
-    .main-content { padding-left: calc(var(--sidebar-width) + 40px); max-width: 100%; }
+    .profile-main-content { padding-left: calc(var(--sidebar-width) + 40px); max-width: 100%; }
     .profile-gradient-header { padding-left: calc(var(--sidebar-width) + 40px); }
 }
 
