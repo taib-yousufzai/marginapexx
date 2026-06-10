@@ -246,6 +246,42 @@ export default function ProfilePage() {
                                 )}
                             </div>
 
+                            <Link href="/profile/bank" className="us-item">
+                                <div className="us-icon"><i className="fas fa-university"></i></div>
+                                <div className="us-text">Bank Details</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
+                            <Link href="/profile/transactions" className="us-item">
+                                <div className="us-icon"><i className="fas fa-history"></i></div>
+                                <div className="us-text">Transaction History</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
+                            <Link href="/profile/refer" className="us-item">
+                                <div className="us-icon"><i className="fas fa-gift"></i></div>
+                                <div className="us-text">Refer &amp; Earn</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
+                            <Link href="/profile/rules" className="us-item">
+                                <div className="us-icon"><i className="fas fa-book"></i></div>
+                                <div className="us-text">Rules &amp; Guidelines</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
+                            <Link href="/profile/policies" className="us-item">
+                                <div className="us-icon"><i className="fas fa-file-contract"></i></div>
+                                <div className="us-text">Trading Policies</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
+                            <Link href="/profile/support" className="us-item">
+                                <div className="us-icon"><i className="fas fa-headset"></i></div>
+                                <div className="us-text">Help &amp; Support</div>
+                                <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
+                            </Link>
+
                             <Link href="/profile/notifications" className="us-item">
                                 <div className="us-icon"><i className="fas fa-bell"></i></div>
                                 <div className="us-text">Notifications</div>

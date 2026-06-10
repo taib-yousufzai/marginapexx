@@ -64,7 +64,7 @@
 }
 
 .pos-brand-icon {
-  color: #B22234;
+  color: #DC2626;
   font-size: 15px;
 }
 
@@ -81,7 +81,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #B22234;
+  background: #DC2626;
   border: none;
   border-radius: 40px;
   padding: 7px 13px;
@@ -409,11 +409,11 @@
 }
 
 .pos-pnl-val.red {
-  color: #B22234;
+  color: #DC2626;
 }
 
 .pos-pnl-total {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 800;
   white-space: nowrap;
   letter-spacing: -0.8px;
@@ -424,7 +424,7 @@
 }
 
 .pos-pnl-total.red {
-  color: #B22234;
+  color: #DC2626;
 }
 
 /* ── Sub Tabs ────────────────────────────────── */
@@ -452,7 +452,7 @@
 
 .pos-sub-tab.active {
   background: #FFFFFF;
-  color: #B22234;
+  color: #DC2626;
   font-weight: 600;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
@@ -591,7 +591,7 @@
 
 .pos-badge.short {
   background: #FEF2F2;
-  color: #B22234;
+  color: #DC2626;
 }
 
 /* INTRADAY / CARRY product type badge */
@@ -623,7 +623,7 @@ body.dark .pos-product-badge.carry {
 }
 
 .pos-card-pnl {
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -632,7 +632,7 @@ body.dark .pos-product-badge.carry {
 }
 
 .pos-card-pnl.red {
-  color: #B22234;
+  color: #DC2626;
 }
 
 .pos-card-ltp {
@@ -825,7 +825,7 @@ body.dark .pos-detail-margin-val { color: #D0D0D0; }
 }
 
 .pos-detail-pnl.red {
-  color: #B22234;
+  color: #DC2626;
 }
 
 .pos-detail-pct {
@@ -1872,7 +1872,7 @@ body.dark .ps-btn-partial {
 
 .confirm-icon i {
   font-size: 26px;
-  color: #B22234;
+  color: #DC2626;
 }
 
 /* Title */
@@ -1933,7 +1933,7 @@ body.dark .ps-btn-partial {
 
 /* Yes Exit All — red primary */
 .confirm-btn-exit {
-  background: #B22234;
+  background: #DC2626;
   color: #FFFFFF;
   box-shadow: 0 6px 18px rgba(178, 34, 52, 0.32);
   flex: 1.4;
