@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     // ── Fetch the stored OTP record ───────────────────────────────────────────
     const { data: record, error: fetchError } = await admin
       .from('otp_verifications')
-      .select('otp_hash, expires_at, full_name, broker_ref')
+      .select('otp_hash, expires_at, full_name, phone, broker_ref')
       .eq('email', emailLower)
       .single();
 
@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
       email_confirm: true,
       user_metadata: {
         full_name: record.full_name,
+        phone: record.phone ?? null,
         broker_ref: record.broker_ref ?? null,
         role: 'user',
       },
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
         id: userId,
         email: emailLower,
         full_name: record.full_name,
+        phone: record.phone ?? null,
         role: 'user',
         parent_id: record.broker_ref ?? null,
         active: true,

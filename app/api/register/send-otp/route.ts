@@ -37,9 +37,10 @@ function createTransporter() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, fullName, brokerRef } = body as {
+    const { email, fullName, phone, brokerRef } = body as {
       email: string;
       fullName: string;
+      phone?: string;
       brokerRef?: string;
     };
 
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
         email: emailLower,
         otp_hash: otpHash,
         full_name: fullName.trim(),
+        phone: phone?.trim() || null,
         broker_ref: brokerRef?.trim() || null,
         expires_at: expiresAt,
         created_at: new Date().toISOString(), // refresh timestamp for rate-limit

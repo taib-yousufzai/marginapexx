@@ -17,7 +17,7 @@
 
 /* --- HEADER GRADIENT --- */
 .profile-gradient-header {
-    background: linear-gradient(135deg, #1E293B, #0F172A);
+    background: linear-gradient(135deg, #1A1E2B, #2C313F);
     padding: 32px 20px 80px 20px; /* Extra bottom padding for overlap */
     color: white;
     border-bottom-left-radius: 24px;
@@ -121,7 +121,7 @@
 
 .margin-text { display: flex; flex-direction: column; gap: 4px; }
 .margin-label { font-size: 0.75rem; font-weight: 700; color: #64748B; text-transform: uppercase; letter-spacing: 1px; }
-.margin-amount { font-size: 2.2rem; font-weight: 800; color: #0F172A; letter-spacing: -1px; }
+.margin-amount { font-size: 2.2rem; font-weight: 800; color: #1A1E2B; letter-spacing: -1px; }
 
 /* --- HORIZONTAL QUICK ACTIONS --- */
 .quick-actions-row {
@@ -244,7 +244,7 @@
 
 .floating-pill-btn {
     pointer-events: auto;
-    background: #0F172A;
+    background: #1A1E2B;
     color: white;
     padding: 16px 32px;
     border-radius: 30px;
@@ -291,7 +291,7 @@
 .qe-msg { padding: 10px 14px; border-radius: 12px; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .qe-msg.success { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
 .qe-msg.error   { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
-.qe-save-btn { width: 100%; padding: 15px; background: #0F172A; color: white; border: none; border-radius: 16px; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; box-shadow: 0 4px 12px rgba(15,23,42,0.3); }
+.qe-save-btn { width: 100%; padding: 15px; background: #1A1E2B; color: white; border: none; border-radius: 16px; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.2s; box-shadow: 0 4px 12px rgba(26,30,43,0.3); }
 .qe-save-btn:active { transform: scale(0.98); }
 .qe-save-btn:disabled { opacity: 0.7; cursor: not-allowed; }
 .qe-full-link { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 14px; background: #F8FAFF; border: 1px solid #EEF2F8; color: #0284C7; font-size: 0.85rem; font-weight: 700; text-decoration: none; transition: 0.2s; }

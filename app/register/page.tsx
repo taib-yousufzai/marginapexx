@@ -69,6 +69,7 @@ function RegisterForm() {
 
   // Step 1 fields
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -78,6 +79,7 @@ function RegisterForm() {
 
   // Field errors
   const [fullNameError, setFullNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
@@ -128,7 +130,7 @@ function RegisterForm() {
     const res = await fetch('/api/register/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), brokerRef }),
+      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), phone: phone.trim(), brokerRef }),
     });
     const data = await res.json();
 
@@ -176,7 +178,7 @@ function RegisterForm() {
     await fetch('/api/register/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), brokerRef }),
+      body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), phone: phone.trim(), brokerRef }),
     });
     setResendCooldown(60);
   };
@@ -225,6 +227,18 @@ function RegisterForm() {
                     autoComplete="name" disabled={isLoading} />
                 </div>
                 {fullNameError && <span className="login-field-error" role="alert">{fullNameError}</span>}
+              </div>
+
+              {/* Phone Number */}
+              <div className="login-field-group">
+                <label htmlFor="phone" className="login-label">Phone Number</label>
+                <div className={`login-input-wrapper${phoneError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-phone" /></span>
+                  <input id="phone" type="tel" className="login-input" value={phone}
+                    onChange={e => { setPhone(e.target.value); setPhoneError(''); setFormError(''); }}
+                    autoComplete="tel" disabled={isLoading} placeholder="e.g. 9876543210" />
+                </div>
+                {phoneError && <span className="login-field-error" role="alert">{phoneError}</span>}
               </div>
 
               {/* Email */}

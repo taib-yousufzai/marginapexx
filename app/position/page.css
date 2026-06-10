@@ -549,9 +549,7 @@
 }
 
 .pos-symbol-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-break: break-word;
   flex-shrink: 1;
 }
 
