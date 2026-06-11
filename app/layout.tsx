@@ -48,15 +48,6 @@ export default function RootLayout({
               if(t === 'black') document.body.classList.add('black');
             } catch(e){}
             if('scrollRestoration' in history) history.scrollRestoration = 'manual';
-            window.addEventListener('load', function() {
-              var el = document.getElementById('home-scroll');
-              if(el) el.scrollTop = 0;
-              window.scrollTo(0,0);
-            });
-            document.addEventListener('DOMContentLoaded', function() {
-              var el = document.getElementById('home-scroll');
-              if(el) el.scrollTop = 0;
-            });
           })();
         `}} />
         {children}

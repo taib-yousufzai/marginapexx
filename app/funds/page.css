@@ -1509,7 +1509,7 @@
   padding: 16px;
   background: var(--icon-bg);
   border: 1px solid var(--border-card);
-  borderRadius: 16px;
+  border-Radius: 16px;
   color: var(--text-primary);
   font-weight: 600;
   font-size: 0.95rem;
