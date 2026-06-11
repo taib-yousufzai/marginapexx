@@ -110,6 +110,13 @@ export async function POST(req: NextRequest) {
 
     // ── Upsert profile (explicit — also done by the DB trigger, but we are
     //    authoritative here for broker parent_id mapping) ──────────────────────
+    // Default segments granted to every new user.
+    // Admins can restrict specific segments later via the UpdateSegments admin panel.
+    const DEFAULT_SEGMENTS = [
+      'INDEX-FUT', 'INDEX-OPT', 'STOCK-FUT', 'STOCK-OPT',
+      'NSE-EQ', 'MCX-FUT', 'MCX-OPT', 'CRYPTO', 'FOREX', 'COMEX',
+    ];
+
     const { error: profileError } = await admin.from('profiles').upsert(
       {
         id: userId,
@@ -119,6 +126,7 @@ export async function POST(req: NextRequest) {
         role: 'user',
         parent_id: record.broker_ref ?? null,
         active: true,
+        segments: DEFAULT_SEGMENTS,
       },
       { onConflict: 'id' },
     );

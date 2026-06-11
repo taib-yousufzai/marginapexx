@@ -107,8 +107,9 @@ export class TickProcessor extends EventEmitter {
       }
       window.push({ price: tick.last_price, timestamp: tickTime });
 
-      const bid = tick.depth?.buy?.[0]?.price;
-      const ask = tick.depth?.sell?.[0]?.price;
+      // Fall back to last_price if Kite doesn't include depth data (e.g. LTP-only ticks)
+      const bid = tick.depth?.buy?.[0]?.price ?? tick.last_price;
+      const ask = tick.depth?.sell?.[0]?.price ?? tick.last_price;
 
       // 4. Send to throttled database writer
       const tickData: TickData = {

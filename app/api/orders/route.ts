@@ -517,7 +517,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       user_id: user.id,
       segment: dbSegment,
       side: 'BUY',
-      trade_allowed: !dbSegment.toUpperCase().includes('CRYPTO'),
+      trade_allowed: true, // segment-permission check above already gates access
       max_lot: 50,
       max_order_lot: 50,
       intraday_leverage,
@@ -541,7 +541,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       user_id: user.id,
       segment: dbSegment,
       side: 'SELL',
-      trade_allowed: !dbSegment.toUpperCase().includes('CRYPTO'),
+      trade_allowed: true, // segment-permission check above already gates access
       max_lot: 50,
       max_order_lot: 50,
       intraday_leverage,
