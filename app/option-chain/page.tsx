@@ -94,33 +94,34 @@ function OptionChainContent() {
   useEffect(() => {
     async function fetchUserIdAndSettings() {
       try {
+        const { getSharedSession } = await import('@/lib/sharedSession');
+        const { token, userId: uid } = await getSharedSession();
+        if (!token || !uid) return;
+        
+        setUserId(uid);
+        
         const { supabase: sb } = await import('@/lib/supabaseClient');
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) {
-          setUserId(session.user.id);
-          const token = session.access_token;
-          const { data: profile } = await sb
-            .from('profiles')
-            .select('trading_mode')
-            .eq('id', session.user.id)
-            .single();
-          const mode = profile?.trading_mode || 'normal';
-          const [res, resScript] = await Promise.all([
-            fetch(`/api/user/segments?mode=${mode}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            fetch('/api/user/script-settings', {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-          ]);
-          if (res.ok) {
-            const sData = await res.json();
-            setSegmentSettings(sData || []);
-          }
-          if (resScript.ok) {
-            const ssData = await resScript.json();
-            setScriptSettings(ssData || []);
-          }
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('trading_mode')
+          .eq('id', uid)
+          .single();
+        const mode = profile?.trading_mode || 'normal';
+        const [res, resScript] = await Promise.all([
+          fetch(`/api/user/segments?mode=${mode}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch('/api/user/script-settings', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        if (res.ok) {
+          const sData = await res.json();
+          setSegmentSettings(sData || []);
+        }
+        if (resScript.ok) {
+          const ssData = await resScript.json();
+          setScriptSettings(ssData || []);
         }
       } catch (err) {
         console.error('Failed to get session or settings', err);
@@ -244,19 +245,32 @@ function OptionChainContent() {
 
   // Fetch initial option chain data
   useEffect(() => {
+    // Check cache first to avoid re-fetching
+    if (typeof window !== 'undefined' && window.__optionChainCache?.[cacheKey]) {
+      const cached = window.__optionChainCache[cacheKey];
+      setData(cached);
+      setLoading(false);
+      setLoadingError(null);
+      if (!selectedExpiry && cached.expiry) {
+        setSelectedExpiry(cached.expiry);
+      }
+      return;
+    }
+
     async function fetchData() {
       setLoading(true);
-      setData(null);
       setLoadingError(null);
       try {
-        const { supabase: sb } = await import('@/lib/supabaseClient');
-        const { data: { session } } = await sb.auth.getSession();
+        const { getSharedSession } = await import('@/lib/sharedSession');
+        const { token } = await getSharedSession();
         const headers: Record<string, string> = {};
-        if (session) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
         }
+
         const url = `/api/market/option-chain?symbol=${normalizedSymbol}${selectedExpiry ? `&expiry=${selectedExpiry}` : ''}`;
         const res = await fetch(url, { headers });
+        
         if (res.status === 403) {
           setLoadingError('locked');
           return;
@@ -266,6 +280,8 @@ function OptionChainContent() {
           if (json.success) {
             window.__optionChainCache = window.__optionChainCache || {};
             window.__optionChainCache[cacheKey] = json;
+            window.__optionChainCache[`${normalizedSymbol}_${json.expiry}`] = json;
+            
             setData(json);
             if (!selectedExpiry) setSelectedExpiry(json.expiry);
           } else {

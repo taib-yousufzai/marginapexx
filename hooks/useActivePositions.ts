@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { getSharedSession } from '@/lib/sharedSession';
 
 export interface ActivePosition {
   id: string;
@@ -20,8 +20,7 @@ export function useActivePositions() {
 
   const fetchPositions = useCallback(async () => {
     try {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const { token } = await getSharedSession();
       if (!token) {
         setLoading(false);
         return;
