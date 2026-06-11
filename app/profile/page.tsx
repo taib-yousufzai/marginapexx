@@ -163,17 +163,30 @@ export default function ProfilePage() {
                     
                     {/* Header Gradient Area */}
                     <div className="profile-gradient-header" style={{ paddingTop: '24px' }}>
-                        <div className="pg-topbar" style={{ marginBottom: 0, alignItems: 'flex-start' }}>
-                            <Link href="/" className="pg-back-btn" style={{ transform: 'translateY(-8px)' }}>
+                        {/* Top Action Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <Link href="/" className="pg-back-btn">
                                 <i className="fas fa-arrow-left"></i>
                             </Link>
-                            <div className="pg-user-info" style={{ alignItems: 'flex-end', textAlign: 'right' }}>
-                                <div className="pg-text-group">
-                                    <h1 style={{ fontSize: '1.4rem' }}>{displayName}</h1>
-                                    <p style={{ justifyContent: 'flex-end' }}><i className="fas fa-fingerprint"></i> {clientId}</p>
-                                    {profilePhone && <p style={{ justifyContent: 'flex-end' }}><i className="fas fa-phone-alt"></i> {profilePhone}</p>}
-                                    <p style={{ justifyContent: 'flex-end', margin: 0 }}><i className="fas fa-envelope"></i> {email}</p>
-                                </div>
+                            
+                            <div style={{ 
+                                backgroundColor: 'rgba(255,255,255,0.08)', 
+                                padding: '6px 14px', 
+                                borderRadius: '12px',
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                fontSize: '1rem', fontWeight: 700, color: '#FFFFFF',
+                                border: '1px solid rgba(255,255,255,0.05)'
+                            }}>
+                                <i className="fas fa-fingerprint" style={{ color: '#94A3B8' }}></i> {clientId}
+                            </div>
+                        </div>
+
+                        {/* User Details Row */}
+                        <div className="pg-user-info" style={{ textAlign: 'left', display: 'block' }}>
+                            <div className="pg-text-group">
+                                <h1 style={{ fontSize: '1.4rem', marginBottom: '4px' }}>{displayName}</h1>
+                                {profilePhone && <p style={{ justifyContent: 'flex-start', color: '#CBD5E1' }}><i className="fas fa-phone-alt" style={{ width: '16px' }}></i> {profilePhone}</p>}
+                                <p style={{ justifyContent: 'flex-start', margin: 0, color: '#CBD5E1' }}><i className="fas fa-envelope" style={{ width: '16px' }}></i> {email}</p>
                             </div>
                         </div>
                     </div>
