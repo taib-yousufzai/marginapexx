@@ -208,9 +208,9 @@ export async function POST(
   // Exit price: opposite buffer to entry
   let exitPrice: number;
   if (pos.side === 'BUY') {
-    exitPrice = (baseLtp * 0.999) * (1 - exitBuffer);
+    exitPrice = baseLtp * (1 - exitBuffer);
   } else {
-    exitPrice = (baseLtp * 1.001) * (1 + exitBuffer);
+    exitPrice = baseLtp * (1 + exitBuffer);
   }
   exitPrice = Math.round(exitPrice * 100) / 100;
 
