@@ -125,6 +125,8 @@ export default function ProfilePage() {
     };
 
     const email = session?.user?.email ?? '';
+    const userId = session?.user?.id ?? '';
+    const clientId = userId ? userId.replace(/-/g, '').slice(0, 8).toUpperCase() : '—';
     const displayName = profileName
         || (email ? email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'User');
     const formattedBalance = balance !== null
@@ -160,20 +162,18 @@ export default function ProfilePage() {
                 <div className="mobile-app">
                     
                     {/* Header Gradient Area */}
-                    <div className="profile-gradient-header">
-                        <div className="pg-topbar">
-                            <Link href="/" className="pg-back-btn">
+                    <div className="profile-gradient-header" style={{ paddingTop: '24px' }}>
+                        <div className="pg-topbar" style={{ marginBottom: 0, alignItems: 'flex-start' }}>
+                            <Link href="/" className="pg-back-btn" style={{ transform: 'translateY(-8px)' }}>
                                 <i className="fas fa-arrow-left"></i>
                             </Link>
-                            <button className="pg-edit-btn" onClick={openModal} aria-label="Quick edit">
-                                <i className="fas fa-pen"></i>
-                            </button>
-                        </div>
-                        <div className="pg-user-info">
-                            <div className="pg-text-group">
-                                <h1>{displayName}</h1>
-                                {profilePhone && <p><i className="fas fa-phone-alt"></i> {profilePhone}</p>}
-                                <p><i className="fas fa-envelope"></i> {email}</p>
+                            <div className="pg-user-info" style={{ alignItems: 'flex-end', textAlign: 'right' }}>
+                                <div className="pg-text-group">
+                                    <h1 style={{ fontSize: '1.4rem' }}>{displayName}</h1>
+                                    <p style={{ justifyContent: 'flex-end' }}><i className="fas fa-fingerprint"></i> {clientId}</p>
+                                    {profilePhone && <p style={{ justifyContent: 'flex-end' }}><i className="fas fa-phone-alt"></i> {profilePhone}</p>}
+                                    <p style={{ justifyContent: 'flex-end', margin: 0 }}><i className="fas fa-envelope"></i> {email}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
