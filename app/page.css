@@ -779,7 +779,7 @@ body.dark .circle-icon {
   .app-container {
     max-width: 100% !important;
     width: 100vw !important;
-    height: 100vh !important;
+    height: 100dvh !important;
     margin: 0 !important;
     overflow-x: hidden !important;
     padding-bottom: 0 !important;

@@ -616,6 +616,7 @@ function WatchlistContent() {
   const [tpPrice, setTpPrice] = useState<string>('');
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
+  const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
 
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
@@ -970,12 +971,7 @@ function WatchlistContent() {
         const detailOverlay = document.getElementById('detailSheetOverlay');
         if (detailSheet) detailSheet.classList.remove('open');
         if (detailOverlay) detailOverlay.classList.remove('active');
-        const sheet = document.getElementById('tradeSheet');
-        const overlay = document.getElementById('tradeSheetOverlay');
-        const footer = document.getElementById('tsStickyFooter');
-        if (sheet) sheet.classList.add('open');
-        if (overlay) overlay.classList.add('active');
-        if (footer) footer.classList.add('visible');
+        setIsTradeSheetOpen(true);
       }
     };
 
@@ -1000,12 +996,7 @@ function WatchlistContent() {
       const detailOverlay = document.getElementById('detailSheetOverlay');
       if (detailSheet) detailSheet.classList.remove('open');
       if (detailOverlay) detailOverlay.classList.remove('active');
-      const sheet = document.getElementById('tradeSheet');
-      const overlay = document.getElementById('tradeSheetOverlay');
-      const footer = document.getElementById('tsStickyFooter');
-      if (sheet) sheet.classList.add('open');
-      if (overlay) overlay.classList.add('active');
-      if (footer) footer.classList.add('visible');
+      setIsTradeSheetOpen(true);
     };
 
     (window as any).__reactOpenDetailSheet = (symbol: string) => {
@@ -1084,22 +1075,11 @@ function WatchlistContent() {
     if (detailSheet) detailSheet.classList.remove('open');
     if (detailOverlay) detailOverlay.classList.remove('active');
 
-    // Trigger visual sheet open (compat with existing CSS)
-    const sheet = document.getElementById('tradeSheet');
-    const overlay = document.getElementById('tradeSheetOverlay');
-    const footer = document.getElementById('tsStickyFooter');
-    if (sheet) sheet.classList.add('open');
-    if (overlay) overlay.classList.add('active');
-    if (footer) footer.classList.add('visible');
+    setIsTradeSheetOpen(true);
   };
 
   const closeTradeSheet = () => {
-    const sheet = document.getElementById('tradeSheet');
-    const overlay = document.getElementById('tradeSheetOverlay');
-    const footer = document.getElementById('tsStickyFooter');
-    if (sheet) sheet.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
-    if (footer) footer.classList.remove('visible');
+    setIsTradeSheetOpen(false);
     setSelectedItem(null);
   };
 
@@ -1489,8 +1469,8 @@ function WatchlistContent() {
         </div>
       )}
 
-      <div id="tradeSheetOverlay" className="trade-sheet-overlay" onClick={closeTradeSheet}></div>
-      <div id="tradeSheet" className={`trade-sheet ts-sheet--${tradeSide === 'SELL' ? 'sell' : 'buy'}`}>
+      <div id="tradeSheetOverlay" className={`trade-sheet-overlay ${isTradeSheetOpen ? 'active' : ''}`} onClick={closeTradeSheet}></div>
+      <div id="tradeSheet" className={`trade-sheet ts-sheet--${tradeSide === 'SELL' ? 'sell' : 'buy'} ${isTradeSheetOpen ? 'open' : ''}`}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div className="ts-header">
           <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close" onClick={closeTradeSheet} suppressHydrationWarning>
@@ -1665,7 +1645,7 @@ function WatchlistContent() {
         </div>
       </div>
 
-      <div className="ts-sticky-footer" id="tsStickyFooter">
+      <div className={`ts-sticky-footer ${isTradeSheetOpen ? 'visible' : ''}`} id="tsStickyFooter">
         {(() => {
           const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN'));
           const hasBuyPos = existingPos?.side === 'BUY';
