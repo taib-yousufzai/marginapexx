@@ -1252,6 +1252,11 @@ body.dark .pos-empty {
   color: #666;
 }
 
+body.dark .pos-status-badge.open,
+body.black .pos-status-badge.open {
+  color: #FFFFFF;
+}
+
 body.dark .pos-badge {
   background: #2A2A2A;
   color: #E5E7EB;

@@ -282,9 +282,16 @@ export default function HistoryPage() {
                             </div>
                           </div>
                           <div className={currentTab === 'position' ? `pnl ${isPositive ? 'positive' : 'negative'}` : 'price-value'}>
-                            {currentTab === 'position'
-                              ? `${isPositive ? '+' : ''}${formatPrice(item.pnl)} (${isPositive ? '+' : ''}${pnlPercent}%)`
-                              : formatPrice(item.price)}
+                            {currentTab === 'position' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <span>{`${isPositive ? '+' : ''}${formatPrice(item.pnl)}`}</span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '2px' }}>
+                                  {`(${isPositive ? '+' : ''}${pnlPercent}%)`}
+                                </span>
+                              </div>
+                            ) : (
+                              formatPrice(item.price)
+                            )}
                           </div>
                         </div>
                         <div className="history-card-details">

@@ -2840,7 +2840,7 @@ body.dark .instrument-delete-btn:hover {
     width: 100%;
     padding: 12px 14px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
     transition: transform 0.3s ease;
@@ -2962,13 +2962,13 @@ body.dark .instrument-delete-btn:hover {
 }
 
 .instr-row__abs-change {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     color: #5B677E;
     margin-top: 2px;
 }
 
 .instr-row__pct-change {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 600;
     margin-top: 1px;
 }
