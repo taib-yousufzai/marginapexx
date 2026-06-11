@@ -118,12 +118,23 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   let askPrice = 0;
 
   if (currentLtp > 0) {
+    let rawBid = currentLtp;
+    let rawAsk = currentLtp;
+
+    if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
+      rawBid = marketQuotes[bSymbol].bid || currentLtp;
+      rawAsk = marketQuotes[bSymbol].ask || currentLtp;
+    } else if (item?.kiteSymbol && marketQuotes[item.kiteSymbol]) {
+      rawBid = marketQuotes[item.kiteSymbol].bid || currentLtp;
+      rawAsk = marketQuotes[item.kiteSymbol].ask || currentLtp;
+    }
+
     if (exitMode) {
-      bidPrice = (currentLtp * 0.999) * (1 - buyExitBuffer);
-      askPrice = (currentLtp * 1.001) * (1 + sellExitBuffer);
+      bidPrice = rawBid * (1 - buyExitBuffer);
+      askPrice = rawAsk * (1 + sellExitBuffer);
     } else {
-      bidPrice = (currentLtp * 0.999) * (1 - sellEntryBuffer);
-      askPrice = (currentLtp * 1.001) * (1 + buyEntryBuffer);
+      bidPrice = rawBid * (1 - sellEntryBuffer);
+      askPrice = rawAsk * (1 + buyEntryBuffer);
     }
   }
 

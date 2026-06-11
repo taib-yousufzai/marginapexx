@@ -94,13 +94,29 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
     }
   };
 
+  let dispatcher: any = undefined;
+  const proxyUrl = process.env.ZERODHA_PROXY_URL;
+  if (proxyUrl) {
+    try {
+      // Use require for undici so it doesn't break if not available in some environments
+      const { ProxyAgent } = require('undici');
+      dispatcher = new ProxyAgent(proxyUrl);
+      logger.info('Kite autologin: Using proxy from ZERODHA_PROXY_URL');
+    } catch (e: any) {
+      logger.warn(`Failed to initialize ProxyAgent: ${e.message}`);
+    }
+  }
+
+  // Helper to merge dispatcher into fetch options
+  const fetchOpts = (opts: RequestInit): any => dispatcher ? { ...opts, dispatcher } : opts;
+
   // ── Step 1: Login ──────────────────────────────────────────────────────────
   logger.info('Kite autologin: Step 1 — posting credentials');
-  const loginRes = await fetch(KITE_LOGIN_URL, {
+  const loginRes = await fetch(KITE_LOGIN_URL, fetchOpts({
     method: 'POST',
     headers,
     body: new URLSearchParams({ user_id: userId, password }).toString(),
-  });
+  }));
   updateCookies(loginRes);
   const loginData = await loginRes.json() as any;
 
@@ -113,7 +129,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   // ── Step 2: TOTP ───────────────────────────────────────────────────────────
   logger.info('Kite autologin: Step 2 — submitting TOTP');
   const totpCode = generateTOTP(totpSecret);
-  const twofaRes = await fetch(KITE_TWOFA_URL, {
+  const twofaRes = await fetch(KITE_TWOFA_URL, fetchOpts({
     method: 'POST',
     headers: { ...headers, 'Cookie': Array.from(cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ') },
     body: new URLSearchParams({
@@ -122,7 +138,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
       twofa_value: totpCode,
       skip_session: '',
     }).toString(),
-  });
+  }));
   updateCookies(twofaRes);
   const twofaData = await twofaRes.json() as any;
 
@@ -139,11 +155,11 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   const cookieStr = Array.from(cookies.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
 
   for (let i = 0; i < 6 && !requestToken; i++) {
-    const res = await fetch(currentUrl, {
+    const res = await fetch(currentUrl, fetchOpts({
       method: 'GET',
       headers: { ...headers, 'Cookie': cookieStr },
       redirect: 'manual',
-    });
+    }));
 
     const location = res.headers.get('location') || '';
     if (location) {
@@ -166,7 +182,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
   // ── Step 4: Exchange request_token for access_token ────────────────────────
   logger.info('Kite autologin: Step 4 — exchanging token');
   const checksum = generateChecksum(apiKey, requestToken, apiSecret);
-  const tokenRes = await fetch(KITE_TOKEN_URL, {
+  const tokenRes = await fetch(KITE_TOKEN_URL, fetchOpts({
     method: 'POST',
     headers: { ...headers },
     body: new URLSearchParams({
@@ -174,7 +190,7 @@ export async function performKiteLogin(): Promise<KiteSessionData> {
       request_token: requestToken,
       checksum,
     }).toString(),
-  });
+  }));
   const tokenData = await tokenRes.json() as any;
 
   if (!tokenRes.ok || !tokenData?.data?.access_token) {
@@ -298,20 +314,68 @@ export class KiteSessionMonitor extends EventEmitter {
     logger.info({ reason }, 'Attempting Kite auto-login...');
 
     try {
-      const session = await performKiteLogin();
+      const githubPat = process.env.GITHUB_PAT;
+      const githubRepo = process.env.GITHUB_REPO; // format: owner/repo
 
-      // Success
-      this.status.sessionValid = true;
-      this.status.expiresAt = session.expiresAt;
-      this.status.minutesUntilExpiry = this.computeMinutesLeft(session.expiresAt);
-      this.status.lastSuccessfulLogin = new Date();
-      this.status.consecutiveFailures = 0;
+      if (githubPat && githubRepo) {
+        logger.info('Delegating Kite login to GitHub Action (workflow_dispatch)');
+        
+        const ghRes = await fetch(`https://api.github.com/repos/${githubRepo}/actions/workflows/kite-autologin.yml/dispatches`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/vnd.github+json',
+            'Authorization': `Bearer ${githubPat}`,
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'Node.js',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ ref: 'main' })
+        });
+        
+        if (!ghRes.ok) {
+          throw new Error(`Failed to trigger GitHub Action: ${ghRes.status} ${await ghRes.text()}`);
+        }
+        
+        logger.info('GitHub Action triggered successfully. Waiting 90s for session to update in DB...');
+        // Wait 90 seconds for GitHub Action to run and update Supabase
+        await new Promise(resolve => setTimeout(resolve, 90_000));
+        
+        // Force bypass cache to load the freshly saved session from GitHub Action
+        invalidateSharedKiteSessionCache();
+        const { getSharedKiteSession } = require('../../lib/kiteSession.ts');
+        const session = await getSharedKiteSession();
+        
+        if (!session || this.computeMinutesLeft(session.expiresAt) <= 0) {
+          throw new Error('GitHub Action completed but session in DB was not renewed (still expired).');
+        }
 
-      // Bust the in-process session cache so initKite() picks up the new token
-      invalidateSharedKiteSessionCache();
+        // Success
+        this.status.sessionValid = true;
+        this.status.expiresAt = session.expiresAt;
+        this.status.minutesUntilExpiry = this.computeMinutesLeft(session.expiresAt);
+        this.status.lastSuccessfulLogin = new Date();
+        this.status.consecutiveFailures = 0;
 
-      logger.info({ expiresAt: session.expiresAt }, '✅ Kite session renewed successfully');
-      this.emit('session-refreshed', session);
+        logger.info({ expiresAt: session.expiresAt }, '✅ Kite session renewed successfully via GitHub Action');
+        this.emit('session-refreshed', session);
+
+      } else {
+        // Fallback: Attempt local headless scrape
+        const session = await performKiteLogin();
+
+        // Success
+        this.status.sessionValid = true;
+        this.status.expiresAt = session.expiresAt;
+        this.status.minutesUntilExpiry = this.computeMinutesLeft(session.expiresAt);
+        this.status.lastSuccessfulLogin = new Date();
+        this.status.consecutiveFailures = 0;
+
+        // Bust the in-process session cache so initKite() picks up the new token
+        invalidateSharedKiteSessionCache();
+
+        logger.info({ expiresAt: session.expiresAt }, '✅ Kite session renewed successfully via local scrape');
+        this.emit('session-refreshed', session);
+      }
     } catch (err: any) {
       this.status.consecutiveFailures++;
       this.status.lastLoginFailure = new Date();

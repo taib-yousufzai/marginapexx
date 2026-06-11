@@ -87,8 +87,11 @@ export default function Page() {
         return num.toLocaleString('en-IN', { minimumFractionDigits: 2 });
     }
 
-    function generateBidAsk(price) { 
-        return { bid: (price * 0.999) * (1 - 0.0017), ask: (price * 1.001) * (1 + 0.003) }; 
+    function generateBidAsk(script) {
+        var price = script.price;
+        var rawBid = script.bid || price;
+        var rawAsk = script.ask || price;
+        return { bid: rawBid * (1 - 0.0017), ask: rawAsk * (1 + 0.003) }; 
     }
 
     function openTradeSheet(script) {
@@ -99,7 +102,7 @@ export default function Page() {
         var isPositive = script.change.includes('+'); 
         document.getElementById('tradeChange').innerText = script.change;
         document.getElementById('tradeChange').className = \`sheet-change \${isPositive ? 'positive' : 'negative'}\`;
-        const { bid, ask } = generateBidAsk(script.price); 
+        const { bid, ask } = generateBidAsk(script); 
         document.getElementById('tradeBid').innerText = formatPrice(bid); 
         document.getElementById('tradeAsk').innerText = formatPrice(ask);
         tradeSheet.classList.add('open'); 

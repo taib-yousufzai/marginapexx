@@ -165,13 +165,28 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0.0017;
         const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0.0017;
 
+        let rawBid = ltp;
+        let rawAsk = ltp;
+
+        if (seg.includes('CRYPTO')) {
+          const binanceKey = p.symbol.replace('/', '');
+          rawBid = marketQuotes[binanceKey]?.bid || ltp;
+          rawAsk = marketQuotes[binanceKey]?.ask || ltp;
+        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+          rawBid = comexQuotes[p.symbol]?.bid || ltp;
+          rawAsk = comexQuotes[p.symbol]?.ask || ltp;
+        } else {
+          rawBid = marketQuotes[p.symbol]?.bid || ltp;
+          rawAsk = marketQuotes[p.symbol]?.ask || ltp;
+        }
+
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
-            const currentBid = (ltp * 0.999) * (1 - buyExitBuffer);
+            const currentBid = rawBid * (1 - buyExitBuffer);
             unrealised = (currentBid - p.entry_price) * p.qty_open;
           } else {
-            const currentAsk = (ltp * 1.001) * (1 + sellExitBuffer);
+            const currentAsk = rawAsk * (1 + sellExitBuffer);
             unrealised = (p.entry_price - currentAsk) * p.qty_open;
           }
         }

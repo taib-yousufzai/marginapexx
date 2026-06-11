@@ -154,7 +154,7 @@ async function measureLatency() {
 }
 setInterval(measureLatency, 10000);
 
-export function getRedisClient() {
+export function getRedisClient(): any {
   return redisProxyClient;
 }
 

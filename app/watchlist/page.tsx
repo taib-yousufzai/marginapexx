@@ -31,7 +31,7 @@ interface WatchlistItem {
 declare global {
   interface Window {
     __kiteQuotes: Record<string, QuoteData>;
-    __binanceQuotes: Record<string, BinanceQuoteData>;
+    __binanceQuotes: Record<string, QuoteData>;
     __comexQuotes: Record<string, ComexQuoteData>;
     __watchlistItems: WatchlistItem[];
     __renderWatchlist: () => void;
@@ -254,7 +254,7 @@ function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
 interface InstrumentRowProps {
   item: WatchlistItem;
   quote?: QuoteData;
-  binanceQuote?: BinanceQuoteData;
+  binanceQuote?: QuoteData;
   comexQuote?: ComexQuoteData;
   onTrade: (item: WatchlistItem) => void;
   onDetail: (item: WatchlistItem) => void;
@@ -1273,8 +1273,22 @@ function WatchlistContent() {
   const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
   const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
 
-  const bidPrice = currentLtp * 0.999 * (1 - sellEntryBuffer);
-  const askPrice = (currentLtp * 1.001) * (1 + buyEntryBuffer);
+  let rawBid = currentLtp;
+  let rawAsk = currentLtp;
+
+  if (isCrypto && currentBinanceQuote) {
+    rawBid = currentBinanceQuote.bid || currentLtp;
+    rawAsk = currentBinanceQuote.ask || currentLtp;
+  } else if (isComex && currentComexQuote) {
+    rawBid = currentComexQuote.bid || currentLtp;
+    rawAsk = currentComexQuote.ask || currentLtp;
+  } else if (currentKiteQuote) {
+    rawBid = currentKiteQuote.bid || currentLtp;
+    rawAsk = currentKiteQuote.ask || currentLtp;
+  }
+
+  const bidPrice = rawBid * (1 - sellEntryBuffer);
+  const askPrice = rawAsk * (1 + buyEntryBuffer);
 
   const intradayLeverage = segSetting?.intraday_leverage ?? 1;
   const holdingLeverage  = segSetting?.holding_leverage  ?? 1;

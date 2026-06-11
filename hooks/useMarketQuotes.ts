@@ -180,8 +180,8 @@ export function useMarketQuotes(symbols: string[]) {
             low: q.ohlc?.low || q.low || 0,
             close: close,
             volume: q.volume || 0,
-            bid: q.last_price,
-            ask: q.last_price,
+            bid: q.bid !== undefined ? q.bid : q.last_price,
+            ask: q.ask !== undefined ? q.ask : q.last_price,
           };
           mapped[key] = quoteData;
         }
@@ -203,8 +203,8 @@ export function useMarketQuotes(symbols: string[]) {
           low: q.ohlc?.low || q.low || 0,
           close: close,
           volume: q.volume || 0,
-          bid: q.last_price,
-          ask: q.last_price,
+          bid: q.bid !== undefined ? q.bid : q.last_price,
+          ask: q.ask !== undefined ? q.ask : q.last_price,
         };
 
         pendingUpdatesRef.current[symbol] = quoteData;
