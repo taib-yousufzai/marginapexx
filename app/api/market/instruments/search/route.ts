@@ -184,11 +184,14 @@ export async function GET(request: NextRequest) {
     const parsed = parseOptionQuery(q);
 
     if (parsed) {
+      const today = new Date().toISOString().split('T')[0];
+
       let dbQuery = supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
         .eq('underlying_symbol', parsed.underlying)
         .eq('strike_price', parsed.strike)
+        .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
 
@@ -202,10 +205,12 @@ export async function GET(request: NextRequest) {
     // Fallback: tradingsymbol ilike (spaces removed)
     if (!data || data.length === 0) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
+      const today = new Date().toISOString().split('T')[0];
       ({ data, error } = await supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
         .or(`tradingsymbol.ilike.%${qNoSpace}%,tradingsymbol.ilike.%${q}%,name.ilike.%${q}%`)
+        .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150));
     }

@@ -959,14 +959,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
             {/* Bid / Ask */}
             <div className="ts2-bidask">
-              <div className="ts2-ba-cell">
+              <div className="ts2-ba-col">
                 <span className="ts2-ba-label">BID</span>
-                <span className="ts2-ba-bid">{fmt(bidPrice)}</span>
+                <span className="ts2-ba-bid">{marketQuotes[item?.kiteSymbol || '']?.bid ? fmt(bidPrice) : '--'}</span>
               </div>
-              <div className="ts2-ba-divider" />
-              <div className="ts2-ba-cell">
+              <div className="ts2-ba-col" style={{ alignItems: 'flex-end' }}>
                 <span className="ts2-ba-label">ASK</span>
-                <span className="ts2-ba-ask">{fmt(askPrice)}</span>
+                <span className="ts2-ba-ask">{marketQuotes[item?.kiteSymbol || '']?.ask ? fmt(askPrice) : '--'}</span>
               </div>
             </div>
 
