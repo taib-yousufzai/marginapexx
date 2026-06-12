@@ -62,8 +62,7 @@ body {
   .notif-root {
     max-width: 100% !important;
     width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100% !important;
+    min-height: 100dvh !important;
     margin: 0 !important;
     box-shadow: none !important;
   }
@@ -306,7 +305,6 @@ body.black .ew-arrow--today {
   margin: 0 auto;
   background: var(--bg-body, #F0F2F5);
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
-  overflow: clip;
   height: 100dvh;
   min-height: 100dvh;
   position: relative;
@@ -345,6 +343,7 @@ body.black .ew-arrow--today {
   overflow-anchor: none;
   scroll-behavior: auto;
   min-height: 0;
+  padding-top: 60px;
   padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
@@ -393,9 +392,10 @@ body.black .ew-arrow--today {
   box-shadow: var(--nav-shadow);
   border-bottom: 1px solid var(--nav-border);
   width: 100%;
-  position: sticky;
+  max-width: 500px;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  z-index: 100;
   flex-shrink: 0;
 }
 

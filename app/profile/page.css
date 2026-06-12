@@ -3,16 +3,12 @@
 .mobile-app {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
     min-height: 100dvh;
     width: 100%;
     background: #F4F7FB;
     position: relative;
     box-sizing: border-box;
-    overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
 }
 
 .mobile-app::-webkit-scrollbar {
@@ -103,6 +99,7 @@
     width: 100%;
     box-sizing: border-box;
     margin-top: -50px; /* This pulls the content up to overlap the header */
+    padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 24px);
     z-index: 2;
 }
 

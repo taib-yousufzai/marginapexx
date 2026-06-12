@@ -229,9 +229,13 @@ export async function GET(request: NextRequest) {
     // Map to watchlist-compatible shape
     const results = rows.map((inst: any) => {
       let segmentLabel = '';
-      if (inst.instrument_type === 'CE' || inst.instrument_type === 'PE') {
+      if (inst.instrument_type === 'OPTSTK') {
+        segmentLabel = `${inst.exchange} - Stock Options`;
+      } else if (inst.instrument_type === 'OPTIDX' || inst.instrument_type === 'CE' || inst.instrument_type === 'PE') {
         segmentLabel = `${inst.exchange} - Options`;
-      } else if (['FUT', 'MAPPED_FUT', 'FUTIDX', 'FUTSTK', 'FUTCOM', 'FUTCUR'].includes(inst.instrument_type)) {
+      } else if (inst.instrument_type === 'FUTSTK') {
+        segmentLabel = `${inst.exchange} - Stock Futures`;
+      } else if (['FUT', 'MAPPED_FUT', 'FUTIDX', 'FUTCOM', 'FUTCUR'].includes(inst.instrument_type)) {
         segmentLabel = `${inst.exchange} - Futures`;
       } else if (inst.instrument_type === 'EQ') {
         segmentLabel = `${inst.exchange} - Equity`;

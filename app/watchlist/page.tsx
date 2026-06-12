@@ -142,60 +142,84 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
 // ── Tab Labels ──────────────────────────────────────────────────────────────
 
 export type TabLabel =
-  | 'WATCHLIST'
-  | 'WATCHLIST-1'
-  | 'WATCHLIST-2'
-  | 'WATCHLIST-3'
-  | 'INDEX-FUT' | 'INDEX-OPT'
-  | 'STOCK-FUT' | 'STOCK-OPT'
-  | 'MCX-FUT' | 'MCX-OPT'
-  | 'NSF-EQ' | 'CRYPTO'
-  | 'FOREX' | 'COI';
+  | 'All'
+  | 'Index-fut'
+  | 'Index-opt'
+  | 'Mcx-fut'
+  | 'Mcx-opt'
+  | 'Stock-fut'
+  | 'Stock-opt'
+  | 'Nse-eq'
+  | 'Crypto'
+  | 'Comex'
+  | 'Forex';
 
 export const TAB_LABELS: TabLabel[] = [
-  'WATCHLIST',
-  'WATCHLIST-1',
-  'WATCHLIST-2',
-  'WATCHLIST-3',
+  'All',
+  'Index-fut',
+  'Index-opt',
+  'Mcx-fut',
+  'Mcx-opt',
+  'Stock-fut',
+  'Stock-opt',
+  'Nse-eq',
+  'Crypto',
+  'Comex',
+  'Forex'
 ];
 
 // ── Segment → Tab Mapping ────────────────────────────────────────────────────
 
 export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
-  'NSE - Futures': 'INDEX-FUT',
-  'BSE - Futures': 'INDEX-FUT',
-  'NSE - Options': 'INDEX-OPT',
-  'BSE - Options': 'INDEX-OPT',
-  'NSE - Stock Futures': 'STOCK-FUT',
-  'BSE - Stock Futures': 'STOCK-FUT',
-  'NSE - Stock Options': 'STOCK-OPT',
-  'BSE - Stock Options': 'STOCK-OPT',
-  'MCX - Futures': 'MCX-FUT',
-  'MCX - Options': 'MCX-OPT',
-  'NSE - Equity': 'NSF-EQ',
-  'BSE - Equity': 'NSF-EQ',
-  'Crypto': 'CRYPTO',
-  'CRYPTO': 'CRYPTO',
-  'Forex': 'FOREX',
-  'FOREX': 'FOREX',
-  'CDS - Futures': 'FOREX',
-  'CDS - Options': 'FOREX',
-  'COMEX - Futures': 'COI',
-  'COMEX - Options': 'COI',
+  'NSE - Futures': 'Index-fut',
+  'BSE - Futures': 'Index-fut',
+  'NSE - Options': 'Index-opt',
+  'BSE - Options': 'Index-opt',
+  'NSE - Stock Futures': 'Stock-fut',
+  'BSE - Stock Futures': 'Stock-fut',
+  'NSE - Stock Options': 'Stock-opt',
+  'BSE - Stock Options': 'Stock-opt',
+  'MCX - Futures': 'Mcx-fut',
+  'MCX - Options': 'Mcx-opt',
+  'NSE - Equity': 'Nse-eq',
+  'BSE - Equity': 'Nse-eq',
+  'Crypto': 'Crypto',
+  'CRYPTO': 'Crypto',
+  'Forex': 'Forex',
+  'FOREX': 'Forex',
+  'CDS - Futures': 'Forex',
+  'CDS - Options': 'Forex',
+  'COMEX - Futures': 'Comex',
+  'COMEX - Options': 'Comex',
+  'COMEX': 'Comex',
+  'COI': 'Comex',
 };
 
 // ── Pure Helper Functions ────────────────────────────────────────────────────
 
 /** Maps a WatchlistItem to its TabLabel. Checks category first, then segment. */
 export function getTabForItem(item: WatchlistItem): TabLabel {
-  if (item.category && TAB_LABELS.includes(item.category as TabLabel)) {
-    return item.category as TabLabel;
+  if (item.category) {
+    const c = item.category.toUpperCase();
+    if (c.includes('INDEX - FUTURE')) return 'Index-fut';
+    if (c.includes('INDEX - OPTIONS')) return 'Index-opt';
+    if (c.includes('STOCKS - FUTURE')) return 'Stock-fut';
+    if (c.includes('MCX - FUTURE')) return 'Mcx-fut';
+    if (c.includes('MCX - OPTIONS')) return 'Mcx-opt';
+    if (c.includes('CRYPTO')) return 'Crypto';
+    if (c.includes('FOREX')) return 'Forex';
+    if (c.includes('COMEX')) return 'Comex';
   }
-  return 'WATCHLIST';
+
+  if (item.segment && SEGMENT_TAB_MAP[item.segment]) {
+    return SEGMENT_TAB_MAP[item.segment];
+  }
+  return 'Index-fut'; // Fallback
 }
 
 /** Filters items to those belonging to the active tab. */
 export function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistItem[] {
+  if (tab === 'All') return items;
   return items.filter(item => getTabForItem(item) === tab);
 }
 
@@ -510,7 +534,7 @@ function WatchlistContent() {
 
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabLabel>('WATCHLIST');
+  const [activeTab, setActiveTab] = useState<TabLabel>('All');
   const [searchText, setSearchText] = useState<string>('');
   const [isFolderDrawerOpen, setIsFolderDrawerOpen] = useState(false);
   const [expandedSegments, setExpandedSegments] = useState<Record<string, boolean>>({});
@@ -660,6 +684,10 @@ function WatchlistContent() {
 
   // Available Balance State
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    (window as any).__activeTab = activeTab;
+  }, [activeTab]);
 
   useEffect(() => {
     async function fetchBalance() {
@@ -1397,9 +1425,9 @@ function WatchlistContent() {
                 <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '1.5rem', color: '#C62E2E', opacity: 0.6 }} />
                 <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading watchlist…</span>
               </div>
-            ) : filteredItems.length === 0 ? <EmptyState /> : filteredItems.map(item => (
+            ) : filteredItems.length === 0 ? <EmptyState /> : filteredItems.map((item, index) => (
               <InstrumentRow
-                key={item.symbol}
+                key={`${item.symbol}_${index}`}
                 item={item}
                 quote={marketQuotes[item.kiteSymbol]}
                 binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
@@ -2441,9 +2469,40 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           clearSearchBtn.style.display = 'block';
 
           // Hardcoded results turant dikhao
+          var activeTab = window.__activeTab || 'All';
+          function getTabForSearchItem(seg, cat) {
+            if (cat) {
+              var c = cat.toUpperCase();
+              if (c.indexOf('INDEX - FUTURE') >= 0) return 'Index-fut';
+              if (c.indexOf('INDEX - OPTIONS') >= 0) return 'Index-opt';
+              if (c.indexOf('STOCKS - FUTURE') >= 0) return 'Stock-fut';
+              if (c.indexOf('MCX - FUTURE') >= 0) return 'Mcx-fut';
+              if (c.indexOf('MCX - OPTIONS') >= 0) return 'Mcx-opt';
+              if (c.indexOf('CRYPTO') >= 0) return 'Crypto';
+              if (c.indexOf('FOREX') >= 0) return 'Forex';
+              if (c.indexOf('COMEX') >= 0) return 'Comex';
+            }
+            if (!seg) return 'Index-fut';
+            var m = {
+              'NSE - Futures': 'Index-fut', 'BSE - Futures': 'Index-fut',
+              'NSE - Options': 'Index-opt', 'BSE - Options': 'Index-opt',
+              'NSE - Stock Futures': 'Stock-fut', 'BSE - Stock Futures': 'Stock-fut',
+              'NSE - Stock Options': 'Stock-opt', 'BSE - Stock Options': 'Stock-opt',
+              'MCX - Futures': 'Mcx-fut', 'MCX - Options': 'Mcx-opt',
+              'NSE - Equity': 'Nse-eq', 'BSE - Equity': 'Nse-eq',
+              'Crypto': 'Crypto', 'CRYPTO': 'Crypto',
+              'Forex': 'Forex', 'FOREX': 'Forex',
+              'CDS - Futures': 'Forex', 'CDS - Options': 'Forex',
+              'COMEX - Futures': 'Comex', 'COMEX - Options': 'Comex', 'COMEX': 'Comex', 'COI': 'Comex'
+            };
+            return m[seg] || 'Index-fut';
+          }
+
           var localResults = allScriptsDB.filter(function(s) {
-            return s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 ||
-                   s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+            var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+            if (!match) return false;
+            if (activeTab === 'All') return true;
+            return getTabForSearchItem(s.segment, s.category) === activeTab;
           });
           renderSearchResults(localResults);
 
@@ -2470,6 +2529,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
                 var merged = liveResults.concat(hardcodedExtra);
                 // Sirf tab update karo jab query abhi bhi same ho
                 if (searchInput.value.trim() === query) {
+                  var activeTabLive = window.__activeTab || 'All';
+                  if (activeTabLive !== 'All') {
+                    merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
+                  }
                   renderSearchResults(merged);
                 }
               })

@@ -1253,8 +1253,10 @@ body.dark .pos-empty {
 }
 
 body.dark .pos-status-badge.open,
-body.black .pos-status-badge.open {
-  color: #FFFFFF;
+body.black .pos-status-badge.open,
+body.dark .pos-status-badge.OPEN,
+body.black .pos-status-badge.OPEN {
+  color: #FFFFFF !important;
 }
 
 body.dark .pos-badge {
