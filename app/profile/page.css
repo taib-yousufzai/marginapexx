@@ -152,7 +152,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     text-decoration: none;
     color: #1E293B;
@@ -161,16 +161,17 @@
     cursor: pointer;
 }
 .quick-action-btn:active { transform: scale(0.96); background: #F8FAFF; }
+
 .qa-icon {
-    width: 40px; height: 40px;
-    border-radius: 12px;
+    width: 48px; height: 48px;
+    border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
 }
-.qa-icon.add { background: #E0F2FE; color: #0284C7; }
-.qa-icon.withdraw { background: #FEF2F2; color: #DC2626; }
-.qa-icon.reports { background: #F3E8FF; color: #9333EA; }
-.qa-icon.security { background: #DCFCE7; color: #16A34A; }
+.qa-icon.add { background: #E8F0FE; color: #0B57D0; }
+.qa-icon.withdraw { background: #E8F0FE; color: #0B57D0; }
+.qa-icon.reports { background: #E8F0FE; color: #0B57D0; }
+.qa-icon.security { background: #E8F0FE; color: #0B57D0; }
 
 .qa-text { font-size: 0.75rem; font-weight: 700; text-align: center; line-height: 1.2; }
 
@@ -314,10 +315,10 @@ body.dark .margin-overlap-card { background: #18181b; border-color: #27272a; }
 body.dark .margin-amount { color: #F5F5F5; }
 body.dark .quick-action-btn { background: #18181b; border-color: #27272a; color: #e4e4e7; }
 body.dark .quick-action-btn:active { background: #27272a; }
-body.dark .qa-icon.add { background: rgba(2,132,199,0.2); }
-body.dark .qa-icon.withdraw { background: rgba(220,38,38,0.2); }
-body.dark .qa-icon.reports { background: rgba(147,51,234,0.2); }
-body.dark .qa-icon.security { background: rgba(22,163,74,0.2); }
+body.dark .qa-icon.add { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+body.dark .qa-icon.withdraw { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+body.dark .qa-icon.reports { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+body.dark .qa-icon.security { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
 body.dark .unified-settings-card { background: #18181b; border-color: #27272a; }
 body.dark .us-item { border-bottom-color: #27272a; color: #e4e4e7; }
 body.dark .us-item:active { background: #27272a; }
