@@ -51,6 +51,33 @@ declare global {
   }
 }
 
+// Read cache safely from localStorage
+function getLocalCache(key: string) {
+  if (typeof window === 'undefined') return null;
+  // First check memory
+  if (window.__optionChainCache?.[key]) return window.__optionChainCache[key];
+  // Then check localStorage
+  try {
+    const raw = localStorage.getItem(`oc_cache_${key}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.timestamp && (Date.now() - parsed.timestamp < 1000 * 60 * 60)) {
+        return parsed.data;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function setLocalCache(key: string, data: any) {
+  if (typeof window === 'undefined') return;
+  window.__optionChainCache = window.__optionChainCache || {};
+  window.__optionChainCache[key] = data;
+  try {
+    localStorage.setItem(`oc_cache_${key}`, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch (e) {}
+}
+
 function OptionChainContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -229,9 +256,9 @@ function OptionChainContent() {
     expiries: string[];
     strikes: any[];
     expiry: string;
-  } | null>(typeof window !== 'undefined' ? window.__optionChainCache?.[cacheKey] || null : null);
+  } | null>(getLocalCache(cacheKey));
   
-  const [loading, setLoading] = useState(!(typeof window !== 'undefined' && window.__optionChainCache?.[cacheKey]));
+  const [loading, setLoading] = useState(!getLocalCache(cacheKey));
   const [isSegmentsOpen, setIsSegmentsOpen] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
@@ -245,16 +272,14 @@ function OptionChainContent() {
 
   // Fetch initial option chain data
   useEffect(() => {
-    // Check cache first to avoid re-fetching
-    if (typeof window !== 'undefined' && window.__optionChainCache?.[cacheKey]) {
-      const cached = window.__optionChainCache[cacheKey];
+    const cached = getLocalCache(cacheKey);
+    if (cached) {
       setData(cached);
       setLoading(false);
       setLoadingError(null);
       if (!selectedExpiry && cached.expiry) {
         setSelectedExpiry(cached.expiry);
       }
-      return;
     }
 
     async function fetchData() {
@@ -278,9 +303,8 @@ function OptionChainContent() {
         if (res.ok) {
           const json = await res.json();
           if (json.success) {
-            window.__optionChainCache = window.__optionChainCache || {};
-            window.__optionChainCache[cacheKey] = json;
-            window.__optionChainCache[`${normalizedSymbol}_${json.expiry}`] = json;
+            setLocalCache(cacheKey, json);
+            setLocalCache(`${normalizedSymbol}_${json.expiry}`, json);
             
             setData(json);
             if (!selectedExpiry) setSelectedExpiry(json.expiry);

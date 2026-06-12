@@ -1,0 +1,235 @@
+/* trading-chart.css */
+
+.tc-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background-color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333333;
+}
+
+.dark .tc-wrapper {
+  background-color: #131722;
+  color: #D1D4DC;
+}
+
+/* --- Top Toolbar --- */
+.tc-top-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #E0E3EB;
+  gap: 16px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.tc-top-toolbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.dark .tc-top-toolbar {
+  border-bottom-color: #2A2E39;
+}
+
+.tc-icon-btn {
+  background: transparent;
+  border: none;
+  color: #131722;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+.tc-icon-btn:hover {
+  background-color: #F0F3FA;
+}
+.dark .tc-icon-btn {
+  color: #D1D4DC;
+}
+.dark .tc-icon-btn:hover {
+  background-color: #2A2E39;
+}
+
+.tc-symbol-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.tc-symbol-search:hover {
+  background-color: #F0F3FA;
+}
+.dark .tc-symbol-search:hover {
+  background-color: #2A2E39;
+}
+
+.tc-timeframe {
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  position: relative;
+}
+.tc-timeframe:hover {
+  background-color: #F0F3FA;
+}
+.dark .tc-timeframe:hover {
+  background-color: #2A2E39;
+}
+.tc-timeframe.active {
+  color: #2962FF;
+}
+
+.tc-divider {
+  width: 1px;
+  height: 24px;
+  background-color: #E0E3EB;
+}
+.dark .tc-divider {
+  background-color: #2A2E39;
+}
+
+.tc-right-icons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto; /* Push to the right */
+}
+
+/* --- Main Area (Left Toolbar + Chart) --- */
+.tc-main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* --- Left Toolbar --- */
+.tc-left-toolbar {
+  display: flex;
+  flex-direction: column;
+  width: 40px;
+  border-right: 1px solid #E0E3EB;
+  padding: 8px 0;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.tc-left-toolbar::-webkit-scrollbar {
+  display: none;
+}
+.dark .tc-left-toolbar {
+  border-right-color: #2A2E39;
+}
+
+.tc-tool-icon {
+  color: #131722;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+}
+.tc-tool-icon:hover {
+  background-color: #F0F3FA;
+  opacity: 1;
+}
+.tc-tool-icon.active {
+  color: #2962FF;
+  background-color: rgba(41, 98, 255, 0.1);
+  opacity: 1;
+}
+.dark .tc-tool-icon {
+  color: #D1D4DC;
+}
+.dark .tc-tool-icon:hover {
+  background-color: #2A2E39;
+}
+
+/* --- Chart Container --- */
+.tc-chart-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Legend Overlay --- */
+.tc-legend-overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  pointer-events: none; /* Let clicks pass through to the chart */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tc-legend-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+.tc-legend-title {
+  font-weight: 600;
+  color: #131722;
+}
+.dark .tc-legend-title {
+  color: #D1D4DC;
+}
+.tc-legend-tf, .tc-legend-exchange {
+  color: #131722;
+}
+.dark .tc-legend-tf, .dark .tc-legend-exchange {
+  color: #D1D4DC;
+}
+.tc-legend-status {
+  width: 8px;
+  height: 8px;
+  background-color: #089981;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.tc-legend-bottom {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.tc-legend-price {
+  font-weight: 500;
+}
+.tc-legend-price.up { color: #089981; }
+.tc-legend-price.down { color: #F23645; }
+
+/* Custom Price Line Marker */
+.tc-price-marker {
+  position: absolute;
+  right: 0;
+  background-color: #F23645;
+  color: white;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 10;
+}

@@ -8,7 +8,8 @@ import { useMarketQuotes, QuoteData } from '@/hooks/useMarketQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
-import TradingChart from '@/components/TradingChart';
+import dynamic from 'next/dynamic';
+const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import './page.css';
 
 interface WatchlistItem {
