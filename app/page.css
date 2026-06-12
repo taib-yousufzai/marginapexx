@@ -99,13 +99,23 @@ body.dark {
 }
 
 .order-app,
-.mobile-app,
 .app-container {
   max-width: 500px;
   margin: 0 auto;
   background: var(--bg-body);
   height: 100dvh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+.mobile-app {
+  max-width: 500px;
+  margin: 0 auto;
+  background: var(--bg-body);
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;

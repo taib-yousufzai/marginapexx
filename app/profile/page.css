@@ -3,12 +3,12 @@
 .mobile-app {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
+    min-height: 100dvh;
     width: 100%;
     background: #F4F7FB;
     position: relative;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .mobile-app::-webkit-scrollbar {
@@ -101,7 +101,6 @@
     margin-top: -50px; /* This pulls the content up to overlap the header */
     padding-bottom: 24px;
     z-index: 2;
-    overflow-y: auto;
 }
 
 @media (min-width: 501px) {
