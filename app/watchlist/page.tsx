@@ -1491,12 +1491,12 @@ function WatchlistContent() {
         <div className="ts-bidask-row">
           <div className="ts-ba-cell">
             <span className="ts-ba-label">BID</span>
-            <span className="ts-ba-val bid-val" id="sheetBid">{formatPrice(bidPrice)}</span>
+            <span className="ts-ba-val bid-val" id="sheetBid">{formatPrice(rawBid)}</span>
           </div>
           <div className="ts-ba-divider"></div>
           <div className="ts-ba-cell">
             <span className="ts-ba-label">ASK</span>
-            <span className="ts-ba-val ask-val" id="sheetAsk">{formatPrice(askPrice)}</span>
+            <span className="ts-ba-val ask-val" id="sheetAsk">{formatPrice(rawAsk)}</span>
           </div>
         </div>
         <div className="sheet-content-scroll">
@@ -1779,26 +1779,26 @@ function WatchlistContent() {
                   Open Trading Chart
                 </button>
 
-                <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>{fmt(bid)}</div>
+                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>BID</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669' }}>{fmt(rawBid)}</div>
+                    </div>
+                    <div style={{ width: '1px', background: 'var(--border-card)', height: '24px' }}></div>
+                    <div style={{ flex: 1, textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>{fmt(rawAsk)}</div>
+                    </div>
                   </div>
-                  <div style={{ width: '1px', background: 'var(--border-card)', height: '24px' }}></div>
-                  <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>ASK</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#DC2626' }}>{fmt(ask)}</div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>PRICE SUMMARY</div>
+                    <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.open) || (isComex && currentComexQuote?.ohlc?.open) || currentKiteQuote?.ohlc?.open || selectedItem.open)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.high) || (isComex && currentComexQuote?.ohlc?.high) || currentKiteQuote?.ohlc?.high || selectedItem.high)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.low) || (isComex && currentComexQuote?.ohlc?.low) || currentKiteQuote?.ohlc?.low || selectedItem.low)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.close) || (isComex && currentComexQuote?.ohlc?.close) || currentKiteQuote?.ohlc?.close || selectedItem.close)}</div></div>
+                    </div>
                   </div>
-                </div>
-                <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>PRICE SUMMARY</div>
-                  <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.open)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt(selectedItem.high)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt(selectedItem.low)}</div></div>
-                    <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)' }}>{fmt(selectedItem.close)}</div></div>
-                  </div>
-                </div>
                 <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <div style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}><i className="far fa-calendar-alt"></i> CONTRACT DATE</div>
                   <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
