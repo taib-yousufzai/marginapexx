@@ -427,105 +427,22 @@ interface TradingInstrument {
 interface TradingSubCategory { name: string; instruments: TradingInstrument[]; }
 interface TradingSegment { name: string; icon: string; instruments?: TradingInstrument[]; subCategories?: TradingSubCategory[]; }
 
-const TRADING_SEGMENTS: TradingSegment[] = [
-  {
-    name: 'INDEX - FUTURE', icon: 'fa-chart-line',
-    instruments: [
-      { name: 'NIFTY 50 INDEX', symbol: 'NIFTY_INDEX', kiteSymbol: 'NSE:NIFTY 50', price: 22456.80, change: '+0.45%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 22350, high: 22580, low: 22320, close: 22456.80 },
-      { name: 'SENSEX INDEX', symbol: 'SENSEX_INDEX', kiteSymbol: 'BSE:SENSEX', price: 74230.15, change: '+0.32%', segment: 'BSE - Futures', contractDate: '28 Mar 2025', open: 73950, high: 74500, low: 73800, close: 74230.15 },
-      { name: 'BANKNIFTY INDEX', symbol: 'BANKNIFTY_INDEX', kiteSymbol: 'NSE:NIFTY BANK', price: 48210.50, change: '-0.21%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 48350, high: 48500, low: 48100, close: 48210.50 },
-      { name: 'FINNIFTY INDEX', symbol: 'FINNIFTY_INDEX', kiteSymbol: 'NSE:NIFTY FIN SERVICE', price: 21234.90, change: '+0.67%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 21080, high: 21350, low: 21050, close: 21234.90 },
-      { name: 'MIDCAP NIFTY INDEX', symbol: 'MIDCP_INDEX', kiteSymbol: 'NSE:NIFTY MIDCAP 50', price: 11820.45, change: '+0.88%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 11700, high: 11880, low: 11680, close: 11820.45 },
-    ]
-  },
-  {
-    name: 'INDEX - OPTIONS', icon: 'fa-chart-gantt',
-    subCategories: [
-      { name: 'NIFTY Options', instruments: [
-        { name: 'NIFTY 22300 PE', symbol: 'NIFTY22300PE', kiteSymbol: '', price: 65.10, change: '-2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 66, high: 68, low: 64, close: 65.10 },
-        { name: 'NIFTY 22400 PE', symbol: 'NIFTY22400PE', kiteSymbol: '', price: 78.20, change: '-1.2%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 79.50, high: 80, low: 77.50, close: 78.20 },
-        { name: 'NIFTY 22500 CE', symbol: 'NIFTY22500CE', kiteSymbol: '', price: 125.40, change: '+2.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128.50, low: 121, close: 125.40 },
-        { name: 'NIFTY 22600 CE', symbol: 'NIFTY22600CE', kiteSymbol: '', price: 85.30, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 84, high: 88, low: 82, close: 85.30 },
-        { name: 'NIFTY 22700 CE', symbol: 'NIFTY22700CE', kiteSymbol: '', price: 55.20, change: '+3.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 53, high: 57, low: 51, close: 55.20 },
-      ]},
-      { name: 'SENSEX Options', instruments: [
-        { name: 'SENSEX 74100 PE', symbol: 'SENSEX741PE', kiteSymbol: '', price: 150.20, change: '-1.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 152, high: 155, low: 148, close: 150.20 },
-        { name: 'SENSEX 74500 CE', symbol: 'SENSEX745CE', kiteSymbol: '', price: 210.30, change: '+0.9%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 208, high: 212.50, low: 207.50, close: 210.30 },
-        { name: 'SENSEX 74900 CE', symbol: 'SENSEX749CE', kiteSymbol: '', price: 125.10, change: '+2.5%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 122, high: 128, low: 120, close: 125.10 },
-      ]},
-      { name: 'BANKEX Options', instruments: [
-        { name: 'BANKEX 51800 PE', symbol: 'BANKEX518PE', kiteSymbol: '', price: 240.50, change: '-1.4%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 245, high: 248, low: 238, close: 240.50 },
-        { name: 'BANKEX 52000 CE', symbol: 'BANKEX520CE', kiteSymbol: '', price: 310.75, change: '+1.1%', segment: 'BSE - Options', contractDate: '28 Mar 2025', open: 307, high: 314, low: 306.50, close: 310.75 },
-      ]},
-      { name: 'BANKNIFTY Options', instruments: [
-        { name: 'BANKNIFTY 47800 PE', symbol: 'BN47800PE', kiteSymbol: '', price: 110.15, change: '+0.3%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 109, high: 112, low: 108, close: 110.15 },
-        { name: 'BANKNIFTY 48000 PE', symbol: 'BN48000PE', kiteSymbol: '', price: 140.25, change: '+0.7%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 139, high: 142, low: 138.50, close: 140.25 },
-        { name: 'BANKNIFTY 48200 CE', symbol: 'BN48200CE', kiteSymbol: '', price: 280.40, change: '-1.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 282, high: 285, low: 279, close: 280.40 },
-        { name: 'BANKNIFTY 48500 CE', symbol: 'BN48500CE', kiteSymbol: '', price: 215.60, change: '-0.4%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 216.50, high: 218, low: 214, close: 215.60 },
-        { name: 'BANKNIFTY 48800 CE', symbol: 'BN48800CE', kiteSymbol: '', price: 155.80, change: '-0.8%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 157, high: 160, low: 154, close: 155.80 },
-        { name: 'BANKNIFTY 49000 CE', symbol: 'BN49000CE', kiteSymbol: '', price: 120.40, change: '-1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 122, high: 125, low: 118, close: 120.40 },
-      ]},
-      { name: 'FINNIFTY Options', instruments: [
-        { name: 'FINNIFTY 21300 PE', symbol: 'FIN21300PE', kiteSymbol: '', price: 45.20, change: '-2.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 48, high: 50, low: 44, close: 45.20 },
-        { name: 'FINNIFTY 21500 CE', symbol: 'FIN21500CE', kiteSymbol: '', price: 92.50, change: '+1.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 91, high: 94, low: 90.50, close: 92.50 },
-        { name: 'FINNIFTY 21700 CE', symbol: 'FIN21700CE', kiteSymbol: '', price: 32.10, change: '+4.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 30, high: 34, low: 28, close: 32.10 },
-      ]},
-      { name: 'MID CAP NIFTY Options', instruments: [
-        { name: 'MIDCPNIFTY 11800 CE', symbol: 'MIDCP118CE', kiteSymbol: '', price: 65.30, change: '+2.1%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 63.80, high: 66.50, low: 63.50, close: 65.30 },
-        { name: 'MIDCPNIFTY 12000 CE', symbol: 'MIDCP120CE', kiteSymbol: '', price: 25.50, change: '+6.5%', segment: 'NSE - Options', contractDate: '28 Mar 2025', open: 22, high: 28, low: 20, close: 25.50 },
-      ]},
-    ]
-  },
-  {
-    name: 'STOCKS - FUTURE', icon: 'fa-building',
-    instruments: [
-      { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', kiteSymbol: 'NSE:RELIANCE', price: 2856.40, change: '+0.75%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 2835, high: 2870, low: 2830, close: 2856.40 },
-      { name: 'TCS FUT', symbol: 'TCS_FUT', kiteSymbol: 'NSE:TCS', price: 3987.20, change: '-0.33%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 4000, high: 4015, low: 3975, close: 3987.20 },
-      { name: 'HDFCBANK FUT', symbol: 'HDFCBANK_FUT', kiteSymbol: 'NSE:HDFCBANK', price: 1680.90, change: '+0.22%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 1675, high: 1688, low: 1672, close: 1680.90 },
-    ]
-  },
-  {
-    name: 'MCX - FUTURE', icon: 'fa-coins',
-    instruments: [
-      { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
-      { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
-      { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 },
-    ]
-  },
-  {
-    name: 'MCX - OPTIONS', icon: 'fa-chart-line',
-    instruments: [
-      { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: '', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 812, high: 828, low: 810, close: 820 },
-      { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: '', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 140, high: 152, low: 138, close: 145 }
-    ]
-  },
-  {
-    name: 'CRYPTO', icon: 'fa-bitcoin',
-    instruments: [
-      { name: 'BTC/USDT', symbol: 'BTCUSDT', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 68450.20, change: '+2.1%', segment: 'Crypto', contractDate: 'Perpetual', open: 67000, high: 69000, low: 66800, close: 68450.20 },
-      { name: 'ETH/USDT', symbol: 'ETHUSDT', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 3420.80, change: '+1.4%', segment: 'Crypto', contractDate: 'Perpetual', open: 3370, high: 3450, low: 3360, close: 3420.80 },
-      { name: 'SOL/USDT', symbol: 'SOLUSDT', kiteSymbol: '', binanceSymbol: 'SOLUSDT', price: 182.30, change: '-0.7%', segment: 'Crypto', contractDate: 'Perpetual', open: 183.50, high: 184, low: 181, close: 182.30 },
-    ]
-  },
-  {
-    name: 'FOREX', icon: 'fa-globe',
-    instruments: [
-      { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JUNFUT', price: 95.96, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 95.72, high: 96.03, low: 95.59, close: 95.61 },
-      { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 },
-      { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 },
-    ]
-  },
-  {
-    name: 'COMEX', icon: 'fa-gem',
-    instruments: [
-      { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
-      { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
-      { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', comexSymbol: 'CL=F', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 },
-    ]
-  },
-];
-
 function WatchlistContent() {
+  const [tradingSegments, setTradingSegments] = useState<TradingSegment[]>([]);
+  const tradingSegmentsRef = useRef<TradingSegment[]>([]);
+
+  useEffect(() => {
+    fetch('/api/market/instruments/library')
+      .then(res => res.json())
+      .then(data => {
+        if (data.segments) {
+          setTradingSegments(data.segments);
+          tradingSegmentsRef.current = data.segments;
+        }
+      })
+      .catch(err => console.error('Failed to load library segments:', err));
+  }, []);
+
   const router = useRouter();
   const searchParams = useSearchParams();
   useAuth();
@@ -763,7 +680,7 @@ function WatchlistContent() {
       // Fallback: Try to find in master segments lists first
       if (!item) {
         let masterFound: any = null;
-        for (const seg of TRADING_SEGMENTS) {
+        for (const seg of tradingSegmentsRef.current) {
           if (seg.instruments) {
             const found = seg.instruments.find(i => 
               i.symbol.toUpperCase() === query || 
@@ -953,7 +870,7 @@ function WatchlistContent() {
         || watchlistItems.find(i => i.symbol === symbol);
 
       if (!item) {
-        for (const seg of TRADING_SEGMENTS) {
+        for (const seg of tradingSegmentsRef.current) {
           const insts = [
             ...(seg.instruments || []),
             ...(seg.subCategories?.flatMap(s => s.instruments) || [])
@@ -1034,7 +951,7 @@ function WatchlistContent() {
         || watchlistItems.find(i => i.symbol === symbol);
 
       if (!item) {
-        for (const seg of TRADING_SEGMENTS) {
+        for (const seg of tradingSegmentsRef.current) {
           const insts = [
             ...(seg.instruments || []),
             ...(seg.subCategories?.flatMap(s => s.instruments) || [])
@@ -2003,7 +1920,7 @@ function WatchlistContent() {
               if (n === 'COMEX') return 'COMEX';
               return name;
             };
-            const visibleSegments = TRADING_SEGMENTS.filter(seg => {
+            const visibleSegments = tradingSegments.filter(seg => {
               if (allowedSegments === null) return false; // still loading
               if (allowedSegments.length === 0) return true;
               return allowedSegments.includes(mapCategoryToDbSegment(seg.name));

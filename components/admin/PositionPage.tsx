@@ -402,7 +402,11 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
 
               <div className="adm-pos-actions-group">
                 {tab === 'open' && (
-                  <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
+                  <>
+                    <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
+                    <button className="adm-pos-btn-edit" onClick={() => openEdit(p)}>Edit</button>
+                    <button className="adm-pos-btn-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
+                  </>
                 )}
                 {tab === 'active' && (
                   <>

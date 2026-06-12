@@ -227,13 +227,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
           exitPrice = Math.round(exitPrice * 100) / 100;
 
-          // Anti-scalping check
-          const pnlValue = pos.side === 'BUY'
-            ? (exitPrice - Number(pos.entry_price)) * Number(pos.qty_open)
-            : (Number(pos.entry_price) - exitPrice) * Number(pos.qty_open);
+          const entryBuffer = segSetting?.entry_buffer ?? 0.003;
+          let rawEntryLtp = Number(pos.entry_price);
+          if (pos.side === 'BUY') {
+            rawEntryLtp = rawEntryLtp / (1 + entryBuffer);
+          } else {
+            rawEntryLtp = rawEntryLtp / (1 - entryBuffer);
+          }
+
+          const rawPnlValue = pos.side === 'BUY'
+            ? (baseLtp - rawEntryLtp) * Number(pos.qty_open)
+            : (rawEntryLtp - baseLtp) * Number(pos.qty_open);
 
           const durationSec = Math.floor((Date.now() - new Date(pos.entry_time).getTime()) / 1000);
-          const requiredHold = pnlValue >= 0 ? profitHoldSec : lossHoldSec;
+          const requiredHold = rawPnlValue > 0 ? profitHoldSec : lossHoldSec;
 
           if (durationSec < requiredHold) {
             return {

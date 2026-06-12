@@ -714,12 +714,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
     estExitPrice = Math.round(estExitPrice * 100) / 100;
 
-    const pnlValue = activePosition.side === 'BUY'
-      ? (estExitPrice - Number(activePosition.entry_price)) * Number(qty)
-      : (Number(activePosition.entry_price) - estExitPrice) * Number(qty);
+    const entryBuffer = segSetting?.entry_buffer ?? 0.003;
+    let rawEntryLtp = Number(activePosition.entry_price);
+    if (activePosition.side === 'BUY') {
+      rawEntryLtp = rawEntryLtp / (1 + entryBuffer);
+    } else {
+      rawEntryLtp = rawEntryLtp / (1 - entryBuffer);
+    }
+
+    const rawPnlValue = activePosition.side === 'BUY'
+      ? (baseLtp - rawEntryLtp) * Number(qty)
+      : (rawEntryLtp - baseLtp) * Number(qty);
 
     const durationSec = Math.floor((Date.now() - new Date(activePosition.entry_time).getTime()) / 1000);
-    const requiredHold = pnlValue >= 0 ? profitHoldSec : lossHoldSec;
+    const requiredHold = rawPnlValue > 0 ? profitHoldSec : lossHoldSec;
 
     if (durationSec < requiredHold) {
       return NextResponse.json({
