@@ -104,7 +104,8 @@ body.dark {
   max-width: 500px;
   margin: 0 auto;
   background: var(--bg-body);
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
