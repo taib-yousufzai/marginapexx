@@ -19,7 +19,7 @@ import { TOTP, Secret } from 'otpauth';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
 import pino from 'pino';
-import { saveKiteSession, kiteTokenExpiresAt, invalidateSharedKiteSessionCache } from '../../lib/kiteSession.ts';
+import { saveKiteSession, kiteTokenExpiresAt, invalidateSharedKiteSessionCache, getSharedKiteSession } from '../../lib/kiteSession.ts';
 import type { KiteSessionData } from '../../lib/kiteSession.ts';
 
 const logger = pino({ name: 'kite-autologin' });
@@ -356,9 +356,12 @@ export class KiteSessionMonitor extends EventEmitter {
         await new Promise(resolve => setTimeout(resolve, 90_000));
         
         // Force bypass cache to load the freshly saved session from GitHub Action
+        // Use the already-imported invalidateSharedKiteSessionCache and getSharedKiteSession
+        // from the top-level ES import — NOT require(), which would get a separate module
+        // instance with its own uncleared cache.
         invalidateSharedKiteSessionCache();
-        const { getSharedKiteSession } = require('../../lib/kiteSession.ts');
-        const session = await getSharedKiteSession();
+        const { getSharedKiteSession: freshGetSession } = await import('../../lib/kiteSession.ts');
+        const session = await freshGetSession();
         
         if (!session || this.computeMinutesLeft(session.expiresAt) <= 0) {
           throw new Error('GitHub Action completed but session in DB was not renewed (still expired).');

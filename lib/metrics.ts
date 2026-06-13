@@ -165,16 +165,25 @@ class TelemetryRegistry {
     this.kite_last_login_failure = lastFailure;
     this.kite_consecutive_failures = consecutiveFailures;
 
+    // Deduplicate alerts — only fire once per unique state transition, not on every
+    // 30-second telemetry tick. Compare against the last alert message we stored.
+    const lastAlert = this.alerts[0];
+    const isDuplicate = (msg: string) => lastAlert?.message === msg;
+
     if (minutesLeft !== null && minutesLeft <= 0) {
-      this.triggerAlert('CRITICAL', 'Kite session has EXPIRED. Indian equity feed is offline.');
+      const msg = 'Kite session has EXPIRED. Indian equity feed is offline.';
+      if (!isDuplicate(msg)) this.triggerAlert('CRITICAL', msg);
     } else if (minutesLeft !== null && minutesLeft <= 60) {
-      this.triggerAlert('WARNING', `Kite session expires in ${minutesLeft} minutes. Auto-login pending.`);
+      const msg = `Kite session expires in ${minutesLeft} minutes. Auto-login pending.`;
+      if (!isDuplicate(msg)) this.triggerAlert('WARNING', msg);
     }
 
     if (consecutiveFailures >= 3) {
-      this.triggerAlert('CRITICAL', `Kite auto-login has failed ${consecutiveFailures} times consecutively. Manual intervention may be required.`);
+      const msg = `Kite auto-login has failed ${consecutiveFailures} times consecutively. Manual intervention may be required.`;
+      if (!isDuplicate(msg)) this.triggerAlert('CRITICAL', msg);
     } else if (lastFailure && consecutiveFailures > 0) {
-      this.triggerAlert('WARNING', `Kite auto-login failed (attempt ${consecutiveFailures}). Retrying in 3 minutes.`);
+      const msg = `Kite auto-login failed (attempt ${consecutiveFailures}). Retrying in 3 minutes.`;
+      if (!isDuplicate(msg)) this.triggerAlert('WARNING', msg);
     }
   }
 
