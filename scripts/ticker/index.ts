@@ -8,7 +8,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 // @ts-ignore
 import { KiteTicker } from 'kiteconnect';
 import pino from 'pino';
-import { getSharedKiteSession } from '../../lib/kiteSession.ts';
+import { getSharedKiteSession, invalidateSharedKiteSessionCache } from '../../lib/kiteSession.ts';
 import { KiteSessionMonitor } from './kiteAutoLogin.ts';
 import { SubscriptionManager } from './subscriptionManager.ts';
 import { DbBatchWriter } from './dbWriter.ts';
@@ -294,6 +294,29 @@ class TickerDaemon {
 
     this.ticker.on('disconnect', (error: any) => {
       logger.warn({ err: error }, 'Kite WebSocket disconnected.');
+
+      // A close code of 1006 paired with an HTTP 403 response means the
+      // access_token was rejected by Kite's server. Retrying with the same
+      // token (autoReconnect) is pointless — abort the retry loop immediately,
+      // bust the session cache, and let reconnectFromScratch pick up a fresh
+      // token from the database (or wait for session-refreshed from the monitor).
+      const isAuthRejection =
+        error?.code === 1006 &&
+        (error?.target?._req?.res?.statusCode === 403 ||
+          // kiteconnect sometimes serialises the response status on the error object
+          error?.status === 403 ||
+          error?.statusCode === 403);
+
+      if (isAuthRejection) {
+        logger.error(
+          { statusCode: error?.target?._req?.res?.statusCode ?? 403 },
+          'Kite WebSocket rejected with 403 — token is invalid. Aborting autoReconnect and refreshing session.',
+        );
+        // Stop autoReconnect so it doesn't keep firing with the dead token
+        try { this.ticker.autoReconnect(false); } catch (_) {}
+        this.reconnectFromScratch(true);
+        return;
+      }
     });
 
     this.ticker.on('reconnecting', (interval: number, attempt: number) => {
@@ -357,7 +380,7 @@ class TickerDaemon {
     process.exit(1);
   }
 
-  private async reconnectFromScratch() {
+  private async reconnectFromScratch(tokenExpired = false) {
     if (this.isStopping) return;
 
     logger.warn('Attempting a full connection reset in 1 minute to keep process alive...');
@@ -373,11 +396,22 @@ class TickerDaemon {
       this.ticker = null;
     }
 
-    // 2. Schedule reconnection after 1 minute (to avoid spamming during market-closed/offline periods)
+    // 2. If the disconnect was caused by a rejected (403) token, bust the
+    //    in-process session cache immediately so initKite() fetches a fresh
+    //    token from Supabase rather than re-using the expired one.
+    if (tokenExpired) {
+      logger.info('Invalidating session cache due to token rejection before reconnect.');
+      invalidateSharedKiteSessionCache();
+    }
+
+    // 3. Schedule reconnection after 1 minute (to avoid spamming during market-closed/offline periods)
     setTimeout(async () => {
       if (this.isStopping) return;
       logger.info('Re-initializing KiteTicker connection...');
       this.isReconnecting = false;
+      // Always bust the cache right before reconnecting — ensures we pick up any
+      // session that may have been renewed by the session monitor in the interim.
+      invalidateSharedKiteSessionCache();
       await this.initKite();
     }, 60000);
   }

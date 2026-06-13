@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Papa from 'papaparse';
+import { revalidatePath } from 'next/cache';
 
 // Ensure this route is always dynamically executed
 export const dynamic = 'force-dynamic';
@@ -221,6 +222,9 @@ export async function GET(request: Request) {
       }
       console.log('[Sync Instruments] Successfully upserted all instruments.');
     }
+
+    // Revalidate the library endpoint so cache is updated instantly
+    revalidatePath('/api/market/instruments/library');
 
     return NextResponse.json({
       success: true,

@@ -1908,22 +1908,34 @@ function WatchlistContent() {
         </div>
         <div className="folder-tree-scroll">
           {(() => {
-            const mapCategoryToDbSegment = (name: string): string => {
-              const n = name.toUpperCase();
-              if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
-              if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
-              if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
-              if (n === 'MCX - FUTURE') return 'MCX-FUT';
-              if (n === 'MCX - OPTIONS') return 'MCX-OPT';
-              if (n === 'CRYPTO') return 'CRYPTO';
-              if (n === 'FOREX') return 'FOREX';
-              if (n === 'COMEX') return 'COMEX';
-              return name;
+            // Map API segment names to the DB keys stored in profile.segments
+            const DRAWER_SEG_TO_DB_KEY: Record<string, string> = {
+              'Index-FUT': 'INDEX-FUT',
+              'Index-OPT': 'INDEX-OPT',
+              'Mcx-FUT':   'MCX-FUT',
+              'Mcx-OPT':   'MCX-OPT',
+              'Stock-FUT': 'STOCK-FUT',
+              'Stock-OPT': 'STOCK-OPT',
+              'Nse-EQ':    'NSE-EQ',
+              'Crypto':    'CRYPTO',
+              'Comex':     'COMEX',
+              'Forex':     'FOREX',
             };
-            const visibleSegments = tradingSegments.filter(seg => {
+            // Define the desired display order
+            const SEGMENT_ORDER = ['Index-FUT','Index-OPT','Mcx-FUT','Mcx-OPT','Stock-FUT','Stock-OPT','Nse-EQ','Crypto','Comex','Forex'];
+            const sortedSegments = [...tradingSegments].sort((a, b) => {
+              const ai = SEGMENT_ORDER.indexOf(a.name);
+              const bi = SEGMENT_ORDER.indexOf(b.name);
+              if (ai === -1 && bi === -1) return 0;
+              if (ai === -1) return 1;
+              if (bi === -1) return -1;
+              return ai - bi;
+            });
+            const visibleSegments = sortedSegments.filter(seg => {
               if (allowedSegments === null) return false; // still loading
               if (allowedSegments.length === 0) return true;
-              return allowedSegments.includes(mapCategoryToDbSegment(seg.name));
+              const dbKey = DRAWER_SEG_TO_DB_KEY[seg.name] ?? seg.name.toUpperCase();
+              return allowedSegments.includes(dbKey);
             });
             return visibleSegments.map((seg) => {
               const count = (seg.instruments?.length ?? 0) + (seg.subCategories?.reduce((a, s) => a + s.instruments.length, 0) ?? 0);
@@ -2186,6 +2198,25 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
             { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
             { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 }
           ]
+        },
+        {
+          name: 'STOCKS - OPTIONS',
+          icon: 'fa-layer-group',
+          instruments: [
+            { name: 'RELIANCE OPT', symbol: 'RELIANCE_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'TCS OPT', symbol: 'TCS_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'HDFCBANK OPT', symbol: 'HDFCBANK_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 }
+          ]
+        },
+        {
+          name: 'NSE - EQUITY',
+          icon: 'fa-landmark',
+          instruments: [
+            { name: 'RELIANCE', symbol: 'RELIANCE_EQ', kiteSymbol: 'NSE:RELIANCE', price: 0, change: '0%', segment: 'NSE - Equity', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'TCS', symbol: 'TCS_EQ', kiteSymbol: 'NSE:TCS', price: 0, change: '0%', segment: 'NSE - Equity', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'HDFCBANK', symbol: 'HDFCBANK_EQ', kiteSymbol: 'NSE:HDFCBANK', price: 0, change: '0%', segment: 'NSE - Equity', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'INFY', symbol: 'INFY_EQ', kiteSymbol: 'NSE:INFY', price: 0, change: '0%', segment: 'NSE - Equity', contractDate: '', open: 0, high: 0, low: 0, close: 0 }
+          ]
         }
       ];
 
@@ -2194,8 +2225,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
         if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
         if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
+        if (n === 'STOCKS - OPTIONS') return 'STOCK-OPT';
         if (n === 'MCX - FUTURE') return 'MCX-FUT';
         if (n === 'MCX - OPTIONS') return 'MCX-OPT';
+        if (n === 'NSE - EQUITY') return 'NSE-EQ';
         if (n === 'CRYPTO') return 'CRYPTO';
         if (n === 'FOREX') return 'FOREX';
         if (n === 'COMEX') return 'COMEX';

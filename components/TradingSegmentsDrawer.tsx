@@ -88,16 +88,6 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'STOCKS - FUTURE',
-    icon: 'fa-building',
-    count: 3,
-    instruments: [
-      { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', segment: 'NSE - Futures' },
-      { name: 'TCS FUT', symbol: 'TCS_FUT', segment: 'NSE - Futures' },
-      { name: 'HDFCBANK FUT', symbol: 'HDFCBANK_FUT', segment: 'NSE - Futures' }
-    ]
-  },
-  {
     name: 'MCX - FUTURE',
     icon: 'fa-coins',
     count: 3,
@@ -105,6 +95,47 @@ const TRADING_SEGMENTS: Segment[] = [
       { name: 'GOLD FUT', symbol: 'GOLD_FUT', segment: 'MCX - Futures' },
       { name: 'SILVER FUT', symbol: 'SILVER_FUT', segment: 'MCX - Futures' },
       { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', segment: 'MCX - Futures' }
+    ]
+  },
+  {
+    name: 'MCX - OPTIONS',
+    icon: 'fa-circle-dot',
+    count: 3,
+    instruments: [
+      { name: 'GOLD OPT', symbol: 'GOLD_OPT', segment: 'MCX - Options' },
+      { name: 'SILVER OPT', symbol: 'SILVER_OPT', segment: 'MCX - Options' },
+      { name: 'CRUDEOIL OPT', symbol: 'CRUDEOIL_OPT', segment: 'MCX - Options' }
+    ]
+  },
+  {
+    name: 'STOCKS - FUTURE',
+    icon: 'fa-building',
+    count: 3,
+    instruments: [
+      { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', segment: 'NSE - Stock Futures' },
+      { name: 'TCS FUT', symbol: 'TCS_FUT', segment: 'NSE - Stock Futures' },
+      { name: 'HDFCBANK FUT', symbol: 'HDFCBANK_FUT', segment: 'NSE - Stock Futures' }
+    ]
+  },
+  {
+    name: 'STOCKS - OPTIONS',
+    icon: 'fa-layer-group',
+    count: 3,
+    instruments: [
+      { name: 'RELIANCE OPT', symbol: 'RELIANCE_OPT', segment: 'NSE - Stock Options' },
+      { name: 'TCS OPT', symbol: 'TCS_OPT', segment: 'NSE - Stock Options' },
+      { name: 'HDFCBANK OPT', symbol: 'HDFCBANK_OPT', segment: 'NSE - Stock Options' }
+    ]
+  },
+  {
+    name: 'NSE - EQUITY',
+    icon: 'fa-landmark',
+    count: 4,
+    instruments: [
+      { name: 'RELIANCE', symbol: 'RELIANCE_EQ', segment: 'NSE - Equity' },
+      { name: 'TCS', symbol: 'TCS_EQ', segment: 'NSE - Equity' },
+      { name: 'HDFCBANK', symbol: 'HDFCBANK_EQ', segment: 'NSE - Equity' },
+      { name: 'INFY', symbol: 'INFY_EQ', segment: 'NSE - Equity' }
     ]
   },
   {
@@ -118,12 +149,25 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
+    name: 'COMEX',
+    icon: 'fa-gem',
+    count: 4,
+    instruments: [
+      { name: 'Gold', symbol: 'GOLD_FUT', segment: 'MCX - Futures' },
+      { name: 'Silver', symbol: 'SILVER_FUT', segment: 'MCX - Futures' },
+      { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', segment: 'MCX - Futures' },
+      { name: 'Copper', symbol: 'COPPER_FUT', segment: 'MCX - Futures' }
+    ]
+  },
+  {
     name: 'FOREX',
     icon: 'fa-globe',
-    count: 2,
+    count: 4,
     instruments: [
       { name: 'USD/INR', symbol: 'USDINR_FUT', segment: 'CDS - Futures' },
-      { name: 'EUR/INR', symbol: 'EURINR_FUT', segment: 'CDS - Futures' }
+      { name: 'EUR/INR', symbol: 'EURINR_FUT', segment: 'CDS - Futures' },
+      { name: 'GBP/INR', symbol: 'GBPINR_FUT', segment: 'CDS - Futures' },
+      { name: 'JPY/INR', symbol: 'JPYINR_FUT', segment: 'CDS - Futures' }
     ]
   }
 ];
@@ -169,21 +213,24 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
     setExpandedSegment(expandedSegment === name ? null : name);
   };
 
-  const mapCategoryToDbSegment = (name: string): string => {
-    const n = name.toUpperCase();
-    if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
-    if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
-    if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
-    if (n === 'MCX - FUTURE') return 'MCX-FUT';
-    if (n === 'CRYPTO') return 'CRYPTO';
-    if (n === 'FOREX') return 'FOREX';
-    if (n === 'COMEX') return 'COMEX';
-    return name;
+  // Map drawer segment names to the DB segment keys stored in profile.segments
+  const SEGMENT_NAME_TO_DB_KEY: Record<string, string> = {
+    'INDEX - FUTURE':   'INDEX-FUT',
+    'INDEX - OPTIONS':  'INDEX-OPT',
+    'MCX - FUTURE':     'MCX-FUT',
+    'MCX - OPTIONS':    'MCX-OPT',
+    'STOCKS - FUTURE':  'STOCK-FUT',
+    'STOCKS - OPTIONS': 'STOCK-OPT',
+    'NSE - EQUITY':     'NSE-EQ',
+    'CRYPTO':           'CRYPTO',
+    'COMEX':            'COMEX',
+    'FOREX':            'FOREX',
   };
 
   const visibleSegments = TRADING_SEGMENTS.filter(seg => {
     if (allowedSegments.length === 0) return true;
-    return allowedSegments.includes(mapCategoryToDbSegment(seg.name));
+    const dbKey = SEGMENT_NAME_TO_DB_KEY[seg.name] ?? seg.name.toUpperCase();
+    return allowedSegments.includes(dbKey);
   });
 
   return (
