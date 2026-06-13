@@ -95,7 +95,14 @@ export async function GET(request: Request) {
     }
 
     // c. Add Options (NFO, BFO, MCX-OPT, CDS-OPT)
-    const ALLOWED_NAMES = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS'];
+    const ALLOWED_NAMES = [
+      'NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 
+      'CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS',
+      'RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'ITC', 'TCS', 'LT', 'BHARTIARTL',
+      'SBIN', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'M&M', 'TATAMOTORS', 'MARUTI',
+      'SUNPHARMA', 'ASIANPAINT', 'HCLTECH', 'TITAN', 'ULTRACEMCO',
+      'USDINR', 'EURINR', 'GBPINR', 'JPYINR'
+    ];
     
     const options = parsed.data.filter((row: any) => {
       const isOption = row.instrument_type === 'CE' || row.instrument_type === 'PE';
@@ -110,17 +117,12 @@ export async function GET(request: Request) {
       const symbol = (row.tradingsymbol || row.trading_symbol || '').toUpperCase();
       let underlying = '';
       
-      // Strict prefix matching
-      if (symbol.startsWith('BANKNIFTY')) underlying = 'BANKNIFTY';
-      else if (symbol.startsWith('FINNIFTY')) underlying = 'FINNIFTY';
-      else if (symbol.startsWith('MIDCPNIFTY')) underlying = 'MIDCPNIFTY';
-      else if (symbol.startsWith('NIFTY')) underlying = 'NIFTY';
-      else if (symbol.startsWith('BANKEX')) underlying = 'BANKEX';
-      else if (symbol.startsWith('SENSEX')) underlying = 'SENSEX';
-      else if (symbol.startsWith('CRUDEOIL')) underlying = 'CRUDEOIL';
-      else if (symbol.startsWith('GOLD')) underlying = 'GOLD';
-      else if (symbol.startsWith('SILVER')) underlying = 'SILVER';
-      else if (symbol.startsWith('NATURALGAS')) underlying = 'NATURALGAS';
+      for (const name of ALLOWED_NAMES) {
+        if (symbol.startsWith(name)) {
+          underlying = name;
+          break;
+        }
+      }
 
       if (!underlying) continue;
 
@@ -162,7 +164,46 @@ export async function GET(request: Request) {
         });
     }
 
-    console.log(`[Sync Instruments] Found ${nseEquities.length} EQ/Indices, ${Object.keys(groups).length} Futures, and ${options.length} Options.`);
+    // e. Sync Top 20 Binance Crypto Pairs
+    let binanceCount = 0;
+    try {
+      console.log('[Sync Instruments] Fetching from Binance...');
+      const binanceRes = await fetch('https://api.binance.com/api/v3/exchangeInfo');
+      if (binanceRes.ok) {
+        const binanceData = await binanceRes.json();
+        const topCryptos = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'DOGE', 'ADA', 'MATIC', 'DOT', 'LINK', 'SHIB', 'AVAX', 'TRX', 'UNI', 'ATOM', 'LTC', 'NEAR', 'APT', 'FIL', 'ARB'];
+        const usdtPairs = binanceData.symbols.filter((s: any) => s.quoteAsset === 'USDT' && s.status === 'TRADING' && topCryptos.includes(s.baseAsset));
+        
+        for (const pair of usdtPairs) {
+          finalInstruments.push({
+            id: pair.symbol,
+            instrument_token: 0,
+            tradingsymbol: pair.symbol,
+            name: pair.baseAsset,
+            exchange: 'CRYPTO',
+            instrument_type: 'CRYPTO',
+            segment: 'CRYPTO',
+            underlying_symbol: pair.baseAsset
+          });
+          // Add the short symbol as well for legacy UI matching
+          finalInstruments.push({
+            id: pair.baseAsset,
+            instrument_token: 0,
+            tradingsymbol: pair.baseAsset,
+            name: pair.baseAsset,
+            exchange: 'CRYPTO',
+            instrument_type: 'CRYPTO',
+            segment: 'CRYPTO',
+            underlying_symbol: pair.baseAsset
+          });
+          binanceCount++;
+        }
+      }
+    } catch (err) {
+      console.error('[Sync Instruments] Binance Fetch Error:', err);
+    }
+
+    console.log(`[Sync Instruments] Found ${nseEquities.length} EQ/Indices, ${Object.keys(groups).length} Futures, ${options.length} Options, and ${binanceCount} Crypto pairs.`);
 
     // 5. Bulk Upsert to Supabase
     if (finalInstruments.length > 0) {
