@@ -39,8 +39,8 @@ export function parseBinanceTicker(raw: string): { symbol: string; tickData: Tic
     },
     volume:    Math.round(parseFloat(data.v)),
     timestamp: new Date(),
-    bid: parseFloat(data.b),
-    ask: parseFloat(data.a),
+    bid: parseFloat(data.b) > 0 ? parseFloat(data.b) : 0,
+    ask: parseFloat(data.a) > 0 ? parseFloat(data.a) : 0,
   };
 
   return { symbol, tickData };

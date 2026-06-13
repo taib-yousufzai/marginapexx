@@ -672,8 +672,8 @@ function WatchlistContent() {
 
     const tryOpen = (items: WatchlistItem[]) => {
       let item = items.find(i =>
-        i.symbol.toUpperCase() === query ||
-        i.name.toUpperCase().includes(query) ||
+        i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') ||
+        i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') ||
         (i.kiteSymbol && i.kiteSymbol.toUpperCase().includes(query))
       );
 
@@ -683,8 +683,8 @@ function WatchlistContent() {
         for (const seg of tradingSegmentsRef.current) {
           if (seg.instruments) {
             const found = seg.instruments.find(i => 
-              i.symbol.toUpperCase() === query || 
-              i.name.toUpperCase() === query || 
+              i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') || 
+              i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') || 
               (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
               (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
             );
@@ -693,8 +693,8 @@ function WatchlistContent() {
           if (seg.subCategories) {
             for (const sub of seg.subCategories) {
               const found = sub.instruments.find(i => 
-                i.symbol.toUpperCase() === query || 
-                i.name.toUpperCase() === query || 
+                i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') || 
+                i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') || 
                 (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
                 (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
               );

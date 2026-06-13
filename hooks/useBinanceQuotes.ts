@@ -200,8 +200,8 @@ export function useBinanceQuotes(
           close: parseFloat(ticker.prevClosePrice),
           volume: parseFloat(ticker.volume),
           quoteVolume: parseFloat(ticker.quoteVolume),
-          bid: parseFloat(ticker.bidPrice),
-          ask: parseFloat(ticker.askPrice),
+          bid: parseFloat(ticker.bidPrice) > 0 ? parseFloat(ticker.bidPrice) : 0,
+          ask: parseFloat(ticker.askPrice) > 0 ? parseFloat(ticker.askPrice) : 0,
         };
       }
 
@@ -241,8 +241,8 @@ export function useBinanceQuotes(
         close: parseFloat(data.x),
         volume: parseFloat(data.v),
         quoteVolume: parseFloat(data.q),
-        bid: parseFloat(data.b),
-        ask: parseFloat(data.a),
+        bid: parseFloat(data.b) > 0 ? parseFloat(data.b) : 0,
+        ask: parseFloat(data.a) > 0 ? parseFloat(data.a) : 0,
       };
 
       setQuotes(prev => {
