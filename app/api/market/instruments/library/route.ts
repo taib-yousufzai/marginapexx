@@ -32,7 +32,7 @@ export async function GET() {
         }
       });
       segments.push({
-        name: 'Index-FUT',
+        name: 'INDEX-FUT',
         icon: 'fa-chart-line',
         instruments: Array.from(earliestExpiries.values()).map(i => ({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
@@ -59,7 +59,7 @@ export async function GET() {
       }
       return null;
     }))).filter(Boolean);
-    if (indexOptCats.length > 0) segments.push({ name: 'Index-OPT', icon: 'fa-chart-pie', subCategories: indexOptCats });
+    if (indexOptCats.length > 0) segments.push({ name: 'INDEX-OPT', icon: 'fa-chart-pie', subCategories: indexOptCats });
 
     // 3. Mcx-FUT & Mcx-OPT
     const commodities = ['CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS'];
@@ -89,8 +89,8 @@ export async function GET() {
        }
     }));
     
-    if (mcxFutCats.length > 0) segments.push({ name: 'Mcx-FUT', icon: 'fa-oil-well', subCategories: mcxFutCats });
-    if (mcxOptCats.length > 0) segments.push({ name: 'Mcx-OPT', icon: 'fa-oil-well', subCategories: mcxOptCats });
+    if (mcxFutCats.length > 0) segments.push({ name: 'MCX-FUT', icon: 'fa-oil-well', subCategories: mcxFutCats });
+    if (mcxOptCats.length > 0) segments.push({ name: 'MCX-OPT', icon: 'fa-oil-well', subCategories: mcxOptCats });
 
     // 4. Stock-FUT, Stock-OPT, Nse-EQ
     const topStocks = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'ITC', 'TCS', 'LT', 'BHARTIARTL', 'SBIN', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'M&M', 'TATAMOTORS', 'MARUTI', 'SUNPHARMA', 'ASIANPAINT', 'HCLTECH', 'TITAN', 'ULTRACEMCO'];
@@ -129,9 +129,9 @@ export async function GET() {
       }
     }));
     
-    if (stockFutCats.length > 0) segments.push({ name: 'Stock-FUT', icon: 'fa-building', subCategories: stockFutCats });
-    if (stockOptCats.length > 0) segments.push({ name: 'Stock-OPT', icon: 'fa-building', subCategories: stockOptCats });
-    if (nseEqCats.length > 0) segments.push({ name: 'Nse-EQ', icon: 'fa-building', subCategories: nseEqCats });
+    if (stockFutCats.length > 0) segments.push({ name: 'STOCK-FUT', icon: 'fa-building', subCategories: stockFutCats });
+    if (stockOptCats.length > 0) segments.push({ name: 'STOCK-OPT', icon: 'fa-building', subCategories: stockOptCats });
+    if (nseEqCats.length > 0) segments.push({ name: 'NSE-EQ', icon: 'fa-building', subCategories: nseEqCats });
 
     // 5. Crypto
     const { data: cryptos } = await supabase.from('instruments').select('*').eq('segment', 'CRYPTO').order('name', { ascending: true });
@@ -147,7 +147,7 @@ export async function GET() {
         icon: 'fa-bitcoin',
         instruments: Array.from(uniqueCryptos.values()).map((i: any) => ({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: i.id,
-          price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: 'CRYPTO', contractDate: '', open: 0, high: 0, low: 0, close: 0
         }))
       });
     }
@@ -156,7 +156,7 @@ export async function GET() {
     const { data: comex } = await supabase.from('instruments').select('*').eq('segment', 'COMEX').order('name', { ascending: true });
     if (comex && comex.length > 0) {
       segments.push({
-        name: 'Comex',
+        name: 'COMEX',
         icon: 'fa-globe',
         instruments: comex.map((i: any) => ({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: i.id,
@@ -184,7 +184,7 @@ export async function GET() {
        if (catInstruments.length > 0) forexCats.push({ name: curr, instruments: catInstruments });
     }));
     
-    if (forexCats.length > 0) segments.push({ name: 'Forex', icon: 'fa-coins', subCategories: forexCats });
+    if (forexCats.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', subCategories: forexCats });
 
     return NextResponse.json({ segments });
   } catch (error: any) {

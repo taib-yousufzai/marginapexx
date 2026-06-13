@@ -143,56 +143,56 @@ function getDefaultWatchlistItems(): WatchlistItem[] {
 
 export type TabLabel =
   | 'All'
-  | 'Index-fut'
-  | 'Index-opt'
-  | 'Mcx-fut'
-  | 'Mcx-opt'
-  | 'Stock-fut'
-  | 'Stock-opt'
-  | 'Nse-eq'
-  | 'Crypto'
-  | 'Comex'
-  | 'Forex';
+  | 'INDEX-FUT'
+  | 'INDEX-OPT'
+  | 'MCX-FUT'
+  | 'MCX-OPT'
+  | 'STOCK-FUT'
+  | 'STOCK-OPT'
+  | 'NSE-EQ'
+  | 'CRYPTO'
+  | 'COMEX'
+  | 'FOREX';
 
 export const TAB_LABELS: TabLabel[] = [
   'All',
-  'Index-fut',
-  'Index-opt',
-  'Mcx-fut',
-  'Mcx-opt',
-  'Stock-fut',
-  'Stock-opt',
-  'Nse-eq',
-  'Crypto',
-  'Comex',
-  'Forex'
+  'INDEX-FUT',
+  'INDEX-OPT',
+  'MCX-FUT',
+  'MCX-OPT',
+  'STOCK-FUT',
+  'STOCK-OPT',
+  'NSE-EQ',
+  'CRYPTO',
+  'COMEX',
+  'FOREX'
 ];
 
 // ── Segment → Tab Mapping ────────────────────────────────────────────────────
 
 export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
-  'NSE - Futures': 'Index-fut',
-  'BSE - Futures': 'Index-fut',
-  'NSE - Options': 'Index-opt',
-  'BSE - Options': 'Index-opt',
-  'NSE - Stock Futures': 'Stock-fut',
-  'BSE - Stock Futures': 'Stock-fut',
-  'NSE - Stock Options': 'Stock-opt',
-  'BSE - Stock Options': 'Stock-opt',
-  'MCX - Futures': 'Mcx-fut',
-  'MCX - Options': 'Mcx-opt',
-  'NSE - Equity': 'Nse-eq',
-  'BSE - Equity': 'Nse-eq',
-  'Crypto': 'Crypto',
-  'CRYPTO': 'Crypto',
-  'Forex': 'Forex',
-  'FOREX': 'Forex',
-  'CDS - Futures': 'Forex',
-  'CDS - Options': 'Forex',
-  'COMEX - Futures': 'Comex',
-  'COMEX - Options': 'Comex',
-  'COMEX': 'Comex',
-  'COI': 'Comex',
+  'NSE - Futures': 'INDEX-FUT',
+  'BSE - Futures': 'INDEX-FUT',
+  'NSE - Options': 'INDEX-OPT',
+  'BSE - Options': 'INDEX-OPT',
+  'NSE - Stock Futures': 'STOCK-FUT',
+  'BSE - Stock Futures': 'STOCK-FUT',
+  'NSE - Stock Options': 'STOCK-OPT',
+  'BSE - Stock Options': 'STOCK-OPT',
+  'MCX - Futures': 'MCX-FUT',
+  'MCX - Options': 'MCX-OPT',
+  'NSE - Equity': 'NSE-EQ',
+  'BSE - Equity': 'NSE-EQ',
+  'Crypto': 'CRYPTO',
+  'CRYPTO': 'CRYPTO',
+  'Forex': 'FOREX',
+  'FOREX': 'FOREX',
+  'CDS - Futures': 'FOREX',
+  'CDS - Options': 'FOREX',
+  'COMEX - Futures': 'COMEX',
+  'COMEX - Options': 'COMEX',
+  'COMEX': 'COMEX',
+  'COI': 'COMEX',
 };
 
 // ── Pure Helper Functions ────────────────────────────────────────────────────
@@ -201,20 +201,20 @@ export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
 export function getTabForItem(item: WatchlistItem): TabLabel {
   if (item.category) {
     const c = item.category.toUpperCase();
-    if (c.includes('INDEX - FUTURE')) return 'Index-fut';
-    if (c.includes('INDEX - OPTIONS')) return 'Index-opt';
-    if (c.includes('STOCKS - FUTURE')) return 'Stock-fut';
-    if (c.includes('MCX - FUTURE')) return 'Mcx-fut';
-    if (c.includes('MCX - OPTIONS')) return 'Mcx-opt';
-    if (c.includes('CRYPTO')) return 'Crypto';
-    if (c.includes('FOREX')) return 'Forex';
-    if (c.includes('COMEX')) return 'Comex';
+    if (c.includes('INDEX - FUTURE')) return 'INDEX-FUT';
+    if (c.includes('INDEX - OPTIONS')) return 'INDEX-OPT';
+    if (c.includes('STOCKS - FUTURE')) return 'STOCK-FUT';
+    if (c.includes('MCX - FUTURE')) return 'MCX-FUT';
+    if (c.includes('MCX - OPTIONS')) return 'MCX-OPT';
+    if (c.includes('CRYPTO')) return 'CRYPTO';
+    if (c.includes('FOREX')) return 'FOREX';
+    if (c.includes('COMEX')) return 'COMEX';
   }
 
   if (item.segment && SEGMENT_TAB_MAP[item.segment]) {
     return SEGMENT_TAB_MAP[item.segment];
   }
-  return 'Index-fut'; // Fallback
+  return 'INDEX-FUT'; // Fallback
 }
 
 /** Filters items to those belonging to the active tab. */
@@ -432,6 +432,11 @@ function WatchlistContent() {
   const tradingSegmentsRef = useRef<TradingSegment[]>([]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).__initialTradingSegments) {
+      setTradingSegments((window as any).__initialTradingSegments);
+      tradingSegmentsRef.current = (window as any).__initialTradingSegments;
+    }
+
     fetch('/api/market/instruments/library')
       .then(res => res.json())
       .then(data => {
@@ -1908,21 +1913,20 @@ function WatchlistContent() {
         </div>
         <div className="folder-tree-scroll">
           {(() => {
-            // Map API segment names to the DB keys stored in profile.segments
             const DRAWER_SEG_TO_DB_KEY: Record<string, string> = {
-              'Index-FUT': 'INDEX-FUT',
-              'Index-OPT': 'INDEX-OPT',
-              'Mcx-FUT':   'MCX-FUT',
-              'Mcx-OPT':   'MCX-OPT',
-              'Stock-FUT': 'STOCK-FUT',
-              'Stock-OPT': 'STOCK-OPT',
-              'Nse-EQ':    'NSE-EQ',
-              'Crypto':    'CRYPTO',
-              'Comex':     'COMEX',
-              'Forex':     'FOREX',
+              'INDEX-FUT': 'INDEX-FUT',
+              'INDEX-OPT': 'INDEX-OPT',
+              'MCX-FUT':   'MCX-FUT',
+              'MCX-OPT':   'MCX-OPT',
+              'STOCK-FUT': 'STOCK-FUT',
+              'STOCK-OPT': 'STOCK-OPT',
+              'NSE-EQ':    'NSE-EQ',
+              'CRYPTO':    'CRYPTO',
+              'COMEX':     'COMEX',
+              'FOREX':     'FOREX',
             };
             // Define the desired display order
-            const SEGMENT_ORDER = ['Index-FUT','Index-OPT','Mcx-FUT','Mcx-OPT','Stock-FUT','Stock-OPT','Nse-EQ','Crypto','Comex','Forex'];
+            const SEGMENT_ORDER = ['INDEX-FUT','INDEX-OPT','MCX-FUT','MCX-OPT','STOCK-FUT','STOCK-OPT','NSE-EQ','CRYPTO','COMEX','FOREX'];
             const sortedSegments = [...tradingSegments].sort((a, b) => {
               const ai = SEGMENT_ORDER.indexOf(a.name);
               const bi = SEGMENT_ORDER.indexOf(b.name);
@@ -2081,7 +2085,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       var segmentSettings = ${JSON.stringify(segmentSettings)};
       var tradingSegments = [
         {
-          name: 'INDEX - FUTURE',
+          name: 'INDEX-FUT',
           icon: 'fa-chart-line',
           instruments: [
             { name: 'NIFTY 50 INDEX', symbol: 'NIFTY_INDEX', kiteSymbol: 'NSE:NIFTY 50', price: 22456.80, change: '+0.45%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 22350, high: 22580, low: 22320, close: 22456.80 },
@@ -2092,7 +2096,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'INDEX - OPTIONS',
+          name: 'INDEX-OPT',
           icon: 'fa-chart-gantt',
           subCategories: [
             {
@@ -2149,7 +2153,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'STOCKS - FUTURE',
+          name: 'STOCK-FUT',
           icon: 'fa-building',
           instruments: [
             { name: 'RELIANCE FUT', symbol: 'RELIANCE_FUT', kiteSymbol: 'NSE:RELIANCE', price: 2856.40, change: '+0.75%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 2835, high: 2870, low: 2830, close: 2856.40 },
@@ -2158,7 +2162,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'MCX - FUTURE',
+          name: 'MCX-FUT',
           icon: 'fa-coins',
           instruments: [
             { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
@@ -2167,7 +2171,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'MCX - OPTIONS',
+          name: 'MCX-OPT',
           icon: 'fa-chart-line',
           instruments: [
             { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: '', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 812, high: 828, low: 810, close: 820 },
@@ -2200,7 +2204,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'STOCKS - OPTIONS',
+          name: 'STOCK-OPT',
           icon: 'fa-layer-group',
           instruments: [
             { name: 'RELIANCE OPT', symbol: 'RELIANCE_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
@@ -2209,7 +2213,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           ]
         },
         {
-          name: 'NSE - EQUITY',
+          name: 'NSE-EQ',
           icon: 'fa-landmark',
           instruments: [
             { name: 'RELIANCE', symbol: 'RELIANCE_EQ', kiteSymbol: 'NSE:RELIANCE', price: 0, change: '0%', segment: 'NSE - Equity', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
@@ -2222,13 +2226,13 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function mapCategoryToDbSegment(name) {
         var n = name.toUpperCase();
-        if (n === 'INDEX - FUTURE') return 'INDEX-FUT';
-        if (n === 'INDEX - OPTIONS') return 'INDEX-OPT';
-        if (n === 'STOCKS - FUTURE') return 'STOCK-FUT';
-        if (n === 'STOCKS - OPTIONS') return 'STOCK-OPT';
-        if (n === 'MCX - FUTURE') return 'MCX-FUT';
-        if (n === 'MCX - OPTIONS') return 'MCX-OPT';
-        if (n === 'NSE - EQUITY') return 'NSE-EQ';
+        if (n === 'INDEX-FUT') return 'INDEX-FUT';
+        if (n === 'INDEX-OPT') return 'INDEX-OPT';
+        if (n === 'STOCK-FUT') return 'STOCK-FUT';
+        if (n === 'STOCK-OPT') return 'STOCK-OPT';
+        if (n === 'MCX-FUT') return 'MCX-FUT';
+        if (n === 'MCX-OPT') return 'MCX-OPT';
+        if (n === 'NSE-EQ') return 'NSE-EQ';
         if (n === 'CRYPTO') return 'CRYPTO';
         if (n === 'FOREX') return 'FOREX';
         if (n === 'COMEX') return 'COMEX';
@@ -2239,6 +2243,8 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           return allowedSegments.indexOf(mapCategoryToDbSegment(seg.name)) !== -1;
         });
       }
+      
+      window.__initialTradingSegments = tradingSegments;
 
       function getAllScripts() {
         var scripts = [];
@@ -2423,29 +2429,29 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           function getTabForSearchItem(seg, cat) {
             if (cat) {
               var c = cat.toUpperCase();
-              if (c.indexOf('INDEX - FUTURE') >= 0) return 'Index-fut';
-              if (c.indexOf('INDEX - OPTIONS') >= 0) return 'Index-opt';
-              if (c.indexOf('STOCKS - FUTURE') >= 0) return 'Stock-fut';
-              if (c.indexOf('MCX - FUTURE') >= 0) return 'Mcx-fut';
-              if (c.indexOf('MCX - OPTIONS') >= 0) return 'Mcx-opt';
-              if (c.indexOf('CRYPTO') >= 0) return 'Crypto';
-              if (c.indexOf('FOREX') >= 0) return 'Forex';
-              if (c.indexOf('COMEX') >= 0) return 'Comex';
+              if (c.indexOf('INDEX - FUTURE') >= 0) return 'INDEX-FUT';
+              if (c.indexOf('INDEX - OPTIONS') >= 0) return 'INDEX-OPT';
+              if (c.indexOf('STOCKS - FUTURE') >= 0) return 'STOCK-FUT';
+              if (c.indexOf('MCX - FUTURE') >= 0) return 'MCX-FUT';
+              if (c.indexOf('MCX - OPTIONS') >= 0) return 'MCX-OPT';
+              if (c.indexOf('CRYPTO') >= 0) return 'CRYPTO';
+              if (c.indexOf('FOREX') >= 0) return 'FOREX';
+              if (c.indexOf('COMEX') >= 0) return 'COMEX';
             }
-            if (!seg) return 'Index-fut';
+            if (!seg) return 'INDEX-FUT';
             var m = {
-              'NSE - Futures': 'Index-fut', 'BSE - Futures': 'Index-fut',
-              'NSE - Options': 'Index-opt', 'BSE - Options': 'Index-opt',
-              'NSE - Stock Futures': 'Stock-fut', 'BSE - Stock Futures': 'Stock-fut',
-              'NSE - Stock Options': 'Stock-opt', 'BSE - Stock Options': 'Stock-opt',
-              'MCX - Futures': 'Mcx-fut', 'MCX - Options': 'Mcx-opt',
-              'NSE - Equity': 'Nse-eq', 'BSE - Equity': 'Nse-eq',
-              'Crypto': 'Crypto', 'CRYPTO': 'Crypto',
-              'Forex': 'Forex', 'FOREX': 'Forex',
-              'CDS - Futures': 'Forex', 'CDS - Options': 'Forex',
-              'COMEX - Futures': 'Comex', 'COMEX - Options': 'Comex', 'COMEX': 'Comex', 'COI': 'Comex'
+              'NSE - Futures': 'INDEX-FUT', 'BSE - Futures': 'INDEX-FUT',
+              'NSE - Options': 'INDEX-OPT', 'BSE - Options': 'INDEX-OPT',
+              'NSE - Stock Futures': 'STOCK-FUT', 'BSE - Stock Futures': 'STOCK-FUT',
+              'NSE - Stock Options': 'STOCK-OPT', 'BSE - Stock Options': 'STOCK-OPT',
+              'MCX - Futures': 'MCX-FUT', 'MCX - Options': 'MCX-OPT',
+              'NSE - Equity': 'NSE-EQ', 'BSE - Equity': 'NSE-EQ',
+              'Crypto': 'CRYPTO', 'CRYPTO': 'CRYPTO',
+              'Forex': 'FOREX', 'FOREX': 'FOREX',
+              'CDS - Futures': 'FOREX', 'CDS - Options': 'FOREX',
+              'COMEX - Futures': 'COMEX', 'COMEX - Options': 'COMEX', 'COMEX': 'COMEX', 'COI': 'COMEX'
             };
-            return m[seg] || 'Index-fut';
+            return m[seg] || 'INDEX-FUT';
           }
 
           var localResults = allScriptsDB.filter(function(s) {

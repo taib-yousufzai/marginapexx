@@ -18,7 +18,7 @@ interface Segment {
 
 const TRADING_SEGMENTS: Segment[] = [
   {
-    name: 'INDEX - FUTURE',
+    name: 'Index-fut',
     icon: 'fa-chart-line',
     count: 5,
     instruments: [
@@ -30,7 +30,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'INDEX - OPTIONS',
+    name: 'Index-opt',
     icon: 'fa-chart-gantt',
     count: 8,
     subCategories: [
@@ -88,7 +88,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'MCX - FUTURE',
+    name: 'Mcx-fut',
     icon: 'fa-coins',
     count: 3,
     instruments: [
@@ -98,7 +98,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'MCX - OPTIONS',
+    name: 'Mcx-opt',
     icon: 'fa-circle-dot',
     count: 3,
     instruments: [
@@ -108,7 +108,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'STOCKS - FUTURE',
+    name: 'Stock-fut',
     icon: 'fa-building',
     count: 3,
     instruments: [
@@ -118,7 +118,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'STOCKS - OPTIONS',
+    name: 'Stock-opt',
     icon: 'fa-layer-group',
     count: 3,
     instruments: [
@@ -128,7 +128,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'NSE - EQUITY',
+    name: 'Nse-eq',
     icon: 'fa-landmark',
     count: 4,
     instruments: [
@@ -139,7 +139,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'CRYPTO',
+    name: 'Crypto',
     icon: 'fa-bitcoin-sign',
     count: 3,
     instruments: [
@@ -149,7 +149,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'COMEX',
+    name: 'Comex',
     icon: 'fa-gem',
     count: 4,
     instruments: [
@@ -160,7 +160,7 @@ const TRADING_SEGMENTS: Segment[] = [
     ]
   },
   {
-    name: 'FOREX',
+    name: 'Forex',
     icon: 'fa-globe',
     count: 4,
     instruments: [
@@ -215,16 +215,16 @@ export default function TradingSegmentsDrawer({ isOpen, onClose, onSelect }: Tra
 
   // Map drawer segment names to the DB segment keys stored in profile.segments
   const SEGMENT_NAME_TO_DB_KEY: Record<string, string> = {
-    'INDEX - FUTURE':   'INDEX-FUT',
-    'INDEX - OPTIONS':  'INDEX-OPT',
-    'MCX - FUTURE':     'MCX-FUT',
-    'MCX - OPTIONS':    'MCX-OPT',
-    'STOCKS - FUTURE':  'STOCK-FUT',
-    'STOCKS - OPTIONS': 'STOCK-OPT',
-    'NSE - EQUITY':     'NSE-EQ',
-    'CRYPTO':           'CRYPTO',
-    'COMEX':            'COMEX',
-    'FOREX':            'FOREX',
+    'Index-fut':   'INDEX-FUT',
+    'Index-opt':  'INDEX-OPT',
+    'Mcx-fut':     'MCX-FUT',
+    'Mcx-opt':    'MCX-OPT',
+    'Stock-fut':  'STOCK-FUT',
+    'Stock-opt': 'STOCK-OPT',
+    'Nse-eq':     'NSE-EQ',
+    'Crypto':           'CRYPTO',
+    'Comex':            'COMEX',
+    'Forex':            'FOREX',
   };
 
   const visibleSegments = TRADING_SEGMENTS.filter(seg => {
