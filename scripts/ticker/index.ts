@@ -314,6 +314,9 @@ class TickerDaemon {
         );
         // Stop autoReconnect so it doesn't keep firing with the dead token
         try { this.ticker.autoReconnect(false); } catch (_) {}
+        // Tell the session monitor the token is invalid NOW — this triggers an
+        // immediate re-login attempt rather than waiting for the scheduled expiry check.
+        this.sessionMonitor.forceRefresh();
         this.reconnectFromScratch(true);
         return;
       }

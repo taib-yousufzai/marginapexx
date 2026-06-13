@@ -272,6 +272,21 @@ export class KiteSessionMonitor extends EventEmitter {
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = null; }
   }
 
+  /**
+   * Force an immediate re-login attempt regardless of the stored expiry time.
+   * Call this when Kite's WebSocket returns a 403 — the token was invalidated
+   * server-side before its scheduled expiry (e.g. Zerodha rotated it, or a
+   * second login elsewhere revoked it).
+   */
+  public forceRefresh() {
+    if (this.isLoginInProgress || this.isStopping) return;
+    logger.warn('forceRefresh called — marking session as expired and triggering re-login immediately');
+    // Zero out the stored expiry so check() sees minutesLeft <= 0
+    this.status.expiresAt = new Date(0);
+    this.status.sessionValid = false;
+    this.check();
+  }
+
   public getStatus(): SessionStatus {
     // Refresh computed minutesUntilExpiry
     if (this.status.expiresAt) {
