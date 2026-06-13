@@ -25,6 +25,13 @@ const INTERVAL_MS: Record<string, number> = {
 export class CandleAggregator {
   // Map of symbol -> interval -> Candle
   private activeCandles: Map<string, Map<string, Candle>> = new Map();
+  private pendingCandles: Candle[] = [];
+  private flushInterval: NodeJS.Timeout;
+
+  constructor() {
+    // Flush completed candles every 5 seconds to batch DB writes and prevent log spam
+    this.flushInterval = setInterval(() => this.flush(), 5000);
+  }
 
   /**
    * Processes a tick to update or complete candles across intervals.
@@ -89,8 +96,28 @@ export class CandleAggregator {
     }
 
     if (completedCandles.length > 0) {
-      await this.saveCandles(completedCandles);
+      this.pendingCandles.push(...completedCandles);
     }
+  }
+
+  /**
+   * Flushes any pending completed candles to Supabase in a single batch.
+   */
+  private async flush() {
+    if (this.pendingCandles.length === 0) return;
+    
+    const candlesToSave = [...this.pendingCandles];
+    this.pendingCandles = []; // Clear queue immediately
+    
+    await this.saveCandles(candlesToSave);
+  }
+
+  /**
+   * Stops the periodic flusher and persists any remaining candles.
+   */
+  public stop() {
+    clearInterval(this.flushInterval);
+    this.flush();
   }
 
   /**

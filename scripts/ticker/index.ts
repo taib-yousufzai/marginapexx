@@ -452,6 +452,8 @@ class TickerDaemon {
         logger.info('Stopping Binance WebSocket Ticker...');
         this.binanceTicker.stop();
 
+        this.candleAggregator.stop();
+
         await this.dbWriter.stop();
         logger.info('Graceful cleanup completed. Exiting.');
         process.exit(0);
