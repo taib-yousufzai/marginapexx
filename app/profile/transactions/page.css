@@ -1,0 +1,237 @@
+/* Transaction History Styling - Premium Layout */
+
+.th-root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    width: 100%;
+    background: #F8FAFF;
+    align-self: stretch;
+}
+
+.th-header {
+    display: flex;
+    justify-content: flex-start;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 20px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #EEF2F8;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.th-back-btn {
+    width: 36px;
+    height: 36px;
+    background: #F8FAFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1A1E2B;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: 1px solid #EEF2F8;
+    transition: 0.2s;
+    flex-shrink: 0;
+}
+
+.th-back-btn:active {
+    transform: scale(0.9);
+}
+
+.th-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1A1E2B;
+    letter-spacing: -0.2px;
+    margin: 0;
+    flex: 1;
+}
+
+.th-content {
+    padding: 20px;
+    background: #F8FAFF;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Premium List Container */
+.th-list-container {
+    background: #FFFFFF;
+    border-radius: 20px;
+    border: 1px solid #EEF2F8;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.th-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #EEF2F8;
+    transition: background 0.2s;
+}
+
+.th-item:last-child {
+    border-bottom: none;
+}
+
+.th-item:active {
+    background: #F8FAFF;
+}
+
+.th-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.th-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* Subtle Colors */
+.th-icon.deposit {
+    background: rgba(44, 142, 90, 0.1);
+    color: #2C8E5A;
+}
+
+.th-icon.withdrawal {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+.th-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.th-type {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: #1A1E2B;
+    margin: 0;
+}
+
+.th-date {
+    font-size: 0.78rem;
+    color: #8F9BB3;
+    margin: 0;
+    font-weight: 500;
+}
+
+.th-amount-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.th-amount {
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+}
+
+.th-amount.deposit {
+    color: #2C8E5A;
+}
+
+.th-amount.withdrawal {
+    color: #1A1E2B;
+}
+
+/* Status with dot indicator */
+.th-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.th-status-badge .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.th-status-badge.pending { color: #D97706; }
+.th-status-badge.pending .status-dot { background: #D97706; }
+
+.th-status-badge.approved { color: #16A34A; }
+.th-status-badge.approved .status-dot { background: #16A34A; }
+
+.th-status-badge.rejected { color: #DC2626; }
+.th-status-badge.rejected .status-dot { background: #DC2626; }
+
+.th-empty {
+    text-align: center;
+    padding: 60px 20px;
+    background: #FFFFFF;
+    border-radius: 20px;
+    border: 1px dashed #E2E8F0;
+}
+
+.th-empty i {
+    font-size: 3rem;
+    color: #CBD5E1;
+    margin-bottom: 16px;
+}
+
+.th-empty p {
+    color: #8F9BB3;
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Dark Mode */
+body.dark .th-root, body.dark .th-content { background: #121212; }
+body.dark .th-header { background: #1E1E1E; border-bottom-color: #333; }
+body.dark .th-list-container { background: #1E1E1E; border-color: #3A3A3A; box-shadow: none; }
+body.dark .th-item { border-bottom-color: #333; }
+body.dark .th-item:active { background: #2A2A2A; }
+body.dark .th-type, body.dark .th-title { color: #F5F5F5; }
+body.dark .th-date { color: #888; }
+body.dark .th-amount.withdrawal { color: #F5F5F5; }
+body.dark .th-icon.deposit { background: rgba(44, 142, 90, 0.15); color: #4ADE80; }
+body.dark .th-amount.deposit { color: #4ADE80; }
+body.dark .th-icon.withdrawal { background: #2A2A2A; color: #CBD5E1; }
+body.dark .th-back-btn { background: #2A2A2A; border-color: #3A3A3A; color: #F5F5F5; }
+body.dark .th-empty { background: #1E1E1E; border-color: #3A3A3A; }
+
+body.dark .th-status-badge.pending { color: #FBBF24; }
+body.dark .th-status-badge.pending .status-dot { background: #FBBF24; }
+
+body.dark .th-status-badge.approved { color: #4ADE80; }
+body.dark .th-status-badge.approved .status-dot { background: #4ADE80; }
+
+body.dark .th-status-badge.rejected { color: #F87171; }
+body.dark .th-status-badge.rejected .status-dot { background: #F87171; }
+
+/* Black Theme */
+body.black .th-root, body.black .th-content, body.black .th-header, body.black .th-empty, body.black .th-list-container {
+    background: #000; border-color: #111;
+}
+body.black .th-item { border-bottom-color: #111; }
+body.black .th-item:active { background: #111; }
+body.black .th-icon.withdrawal { background: #111; color: #94A3B8; }
+body.black .th-back-btn { background: #111111; border-color: #222; }

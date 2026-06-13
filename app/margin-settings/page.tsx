@@ -291,7 +291,6 @@ export default function UnifiedSettingsPage() {
                     <div className="settings-section">
                       <div className="section-title-faint">TRADING & COMMISSIONS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Trading Allowed</span><span className="detail-value">{item.trade_allowed ? 'Yes' : 'No'}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
                       </div>
@@ -360,7 +359,6 @@ export default function UnifiedSettingsPage() {
                     <div className="settings-section">
                       <div className="section-title-faint">TRADING & COMMISSIONS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Trading Allowed</span><span className="detail-value">{item.trade_allowed ? 'Yes' : 'No'}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
                       </div>

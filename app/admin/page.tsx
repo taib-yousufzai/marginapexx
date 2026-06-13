@@ -19,6 +19,7 @@ import ActLedgerPage from '@/components/admin/ActLedgerPage';
 import AccountsPage from '@/components/admin/AccountsPage';
 import PayinOutPage from '@/components/admin/PayinOutPage';
 import PayAccountsPage from '@/components/admin/PayAccountsPage';
+import TransactionsPage from '@/components/admin/TransactionsPage';
 import UserPanel from '@/components/admin/UserPanel';
 
 const navItems = [
@@ -33,6 +34,7 @@ const navItems = [
   { key: 'actledger', label: 'ACT LEDGER' },
   { key: 'accounts', label: 'ACCOUNTS' },
   { key: 'payinout', label: 'PAYIN-OUT' },
+  { key: 'transactions', label: 'TRANSACTIONS' },
   { key: 'logout', label: 'LOGOUT' },
 ];
 
@@ -203,6 +205,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
       <div style={show('actledger')}><ActLedgerPage /></div>
       <div style={show('accounts')}><AccountsPage /></div>
       <div style={show('payinout')}><PayinOutPage /></div>
+      <div style={show('transactions')}><TransactionsPage /></div>
       <div style={show('paymentaccounts')}><PayAccountsPage /></div>
     </>
   );

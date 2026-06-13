@@ -212,6 +212,7 @@ export default function LoginPage() {
             className="login-submit-btn"
             disabled={isLoading}
             aria-label="Log in to Margin Apex"
+            suppressHydrationWarning
           >
             {isLoading ? (
               <>
