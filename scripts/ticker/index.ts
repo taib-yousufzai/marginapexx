@@ -37,6 +37,7 @@ class TickerDaemon {
   private subscriptionTimer: NodeJS.Timeout | null = null;
   private telemetryTimer: NodeJS.Timeout | null = null;
   private subscriptionDebounce: NodeJS.Timeout | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
   private isReconnecting = false;
   private isStopping = false;
 
@@ -207,12 +208,19 @@ class TickerDaemon {
     this.sessionMonitor.on('session-refreshed', async (newSession) => {
       logger.info({ kiteUserId: newSession.kiteUserId, expiresAt: newSession.expiresAt },
         'Session refreshed by auto-login — reconnecting KiteTicker with new token');
+      // Cancel any pending reconnectFromScratch timer — we have a fresh token now
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
       // Cleanly disconnect the old ticker
       if (this.ticker) {
         try { this.ticker.disconnect(); } catch (_) {}
         this.ticker = null;
-        this.isReconnecting = false;
       }
+      // Clear reconnecting flag — session-refreshed is authoritative, it overrides
+      // any pending reconnectFromScratch timer so initKite() is allowed to proceed.
+      this.isReconnecting = false;
       // Brief pause to let the old connection close
       await new Promise(r => setTimeout(r, 1000));
       await this.initKite();
@@ -408,8 +416,9 @@ class TickerDaemon {
     }
 
     // 3. Schedule reconnection after 1 minute (to avoid spamming during market-closed/offline periods)
-    setTimeout(async () => {
+    this.reconnectTimer = setTimeout(async () => {
       if (this.isStopping) return;
+      this.reconnectTimer = null;
       logger.info('Re-initializing KiteTicker connection...');
       this.isReconnecting = false;
       // Always bust the cache right before reconnecting — ensures we pick up any
@@ -429,6 +438,7 @@ class TickerDaemon {
       if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
       if (this.telemetryTimer)    clearInterval(this.telemetryTimer);
       if (this.subscriptionDebounce) clearTimeout(this.subscriptionDebounce);
+      if (this.reconnectTimer)    clearTimeout(this.reconnectTimer);
 
       // Stop the session monitor so it doesn't attempt login during shutdown
       this.sessionMonitor.stop();
