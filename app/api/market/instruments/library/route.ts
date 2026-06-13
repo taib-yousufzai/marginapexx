@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getRedisClient } from '@/lib/redis';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,23 +37,53 @@ export async function GET() {
         icon: 'fa-chart-line',
         instruments: Array.from(earliestExpiries.values()).map(i => ({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
         }))
       });
     }
 
     // 2. Index-OPT
+    const redis = getRedisClient();
     const indexOptCats = (await Promise.all(['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].map(async (idx) => {
       const { data: expData } = await supabase.rpc('get_option_expiries', { p_symbol: idx, p_min_date: today });
       if (expData && expData.length > 0) {
         const nearestExpiry = expData[0].expiry;
         const { data: opts } = await supabase.from('instruments').select('tradingsymbol, name, exchange, instrument_type, strike_price, option_type, expiry, underlying_symbol').eq('underlying_symbol', idx).eq('expiry', nearestExpiry).order('strike_price', { ascending: true });
         if (opts && opts.length > 0) {
+          let selectedOpts = opts;
+          
+          try {
+            const kiteIdMap: Record<string, string> = {
+              'NIFTY': 'NSE:NIFTY 50',
+              'BANKNIFTY': 'NSE:NIFTY BANK',
+              'FINNIFTY': 'NSE:NIFTY FIN SERVICE',
+              'MIDCPNIFTY': 'NSE:NIFTY MIDCAP 50',
+              'SENSEX': 'BSE:SENSEX',
+              'BANKEX': 'BSE:BANKEX'
+            };
+            const kiteId = kiteIdMap[idx];
+            if (kiteId) {
+              const cached = await redis.hget('market:quotes', kiteId);
+              if (cached) {
+                const q = JSON.parse(cached);
+                const price = q.last_price || q.ohlc?.close || q.close;
+                if (price) {
+                  const strikes = Array.from(new Set(opts.map((o: any) => o.strike_price))) as number[];
+                  strikes.sort((a, b) => Math.abs(a - price) - Math.abs(b - price));
+                  const top10Strikes = new Set(strikes.slice(0, 10));
+                  selectedOpts = opts.filter((o: any) => top10Strikes.has(o.strike_price));
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Failed to filter options by ATM', e);
+          }
+
           return {
             name: `${idx} Options`,
-            instruments: opts.map((i: any) => ({
+            instruments: selectedOpts.map((i: any) => ({
               name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-              price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+              price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
             }))
           };
         }
@@ -104,7 +135,7 @@ export async function GET() {
       if (futs && futs.length > 0) {
          stockFutCats.push({
            name: stk,
-           instruments: futs.map((i: any) => ({ name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
+           instruments: futs.map((i: any) => ({ name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
          });
       }
       // OPT
@@ -115,7 +146,7 @@ export async function GET() {
         if (opts && opts.length > 0) {
            stockOptCats.push({
              name: stk,
-             instruments: opts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
+             instruments: opts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
            });
         }
       }
