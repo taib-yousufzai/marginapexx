@@ -235,7 +235,14 @@ export default function PayinOutPage() {
   const totalPages = Math.max(1, Math.ceil(requests.length / rowsNum));
   const displayed = requests.slice((page - 1) * rowsNum, page * rowsNum);
 
-  const statusColor = (s: string) => s === 'APPROVED' ? '#2ea043' : s === 'PENDING' ? '#e3b341' : '#f85149';
+  const statusColor = (s: string) => {
+    if (s === 'APPROVED') return '#2ea043';
+    if (s === 'PENDING') return '#e3b341';
+    if (s === 'CANCELLED_BY_USER') return '#8b949e';
+    return '#f85149'; // REJECTED
+  };
+
+  const statusLabel = (s: string) => s === 'CANCELLED_BY_USER' ? 'Cancelled by User' : s;
 
   return (
     <div className="adm-pay-root">
@@ -366,7 +373,7 @@ export default function PayinOutPage() {
             <div className="adm-al-date-field">
               <label className="adm-al-label">Status</label>
               <select className="adm-upd-input" style={{ height: 40, cursor: 'pointer' }} value={status} onChange={e => setStatus(e.target.value)}>
-                {['All Status', 'APPROVED', 'PENDING', 'REJECTED'].map(s => <option key={s}>{s}</option>)}
+                {['All Status', 'APPROVED', 'PENDING', 'REJECTED', 'CANCELLED_BY_USER'].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div className="adm-al-date-field">
@@ -425,7 +432,7 @@ export default function PayinOutPage() {
                   </div>
                 </div>
                 <span className="adm-pay-status" style={{ background: statusColor(r.status) + '15', color: statusColor(r.status), border: `1px solid ${statusColor(r.status)}40` }}>
-                  {r.status}
+                  {statusLabel(r.status)}
                 </span>
               </div>
 
