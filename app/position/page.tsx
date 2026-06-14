@@ -21,7 +21,7 @@ const formatHoldTime = (sec: number) => {
 export default function PositionPage() {
   const router = useRouter();
   useAuth();
-  const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(1000);
+  const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(5000);
   const { closePosition, closePositionsBatch, loading: closingPos } = useOrderEntry();
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);

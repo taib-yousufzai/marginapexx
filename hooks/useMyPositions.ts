@@ -104,9 +104,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      const controller = new AbortController();
       const res = await fetch('/api/positions', {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: controller.signal,
       });
 
       if (!res.ok) throw new Error('Failed to fetch positions');
@@ -114,6 +116,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       globalPositionsCache = data.positions || [];
       setRawPositions(globalPositionsCache);
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
@@ -158,6 +161,12 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
   // Enrich positions with live calculations
   const enrichedPositions = useMemo(() => {
+    // Pre-build settings map to avoid O(n²) finds per tick
+    const settingsMap = new Map<string, any>();
+    for (const s of segmentSettings) {
+      settingsMap.set(`${s.segment}|${s.side}`, s);
+    }
+
     return rawPositions.map(p => {
       // Overwrite product_type if there is an in-flight conversion for this position
       const product_type = inFlightConversions[p.id] || p.product_type;
@@ -198,7 +207,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
       // Anti-Scalping calculations
-      const sideSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === p.side);
+      const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
       const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
 

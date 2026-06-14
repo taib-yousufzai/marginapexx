@@ -188,6 +188,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   })() : 0;
 
   const userHasEditedQty = useRef(false);
+  const activePositionsRef = useRef(activePositions);
+  useEffect(() => { activePositionsRef.current = activePositions; }, [activePositions]);
 
   // Sync qtyInput → orderQty when input is a valid number (supports decimals in lot mode)
   const handleQtyChange = (val: string) => {
@@ -250,21 +252,24 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   }, [item?.symbol, propProductType, exitMode, initialOrder]);
 
-  // Sync maximum position quantity when side is SELL — only if user hasn't manually edited qty
+  // Sync maximum position quantity when side is SELL on initial open only
   useEffect(() => {
-    if (isOpen && activePositions && item && !initialOrder && !userHasEditedQty.current) {
+    if (isOpen && item && !initialOrder) {
       if (side === 'SELL' && exitMode) {
         const targetPT = propProductType || productType;
-        const existingPos = activePositions.find(
+        const existingPos = activePositionsRef.current?.find(
           p => p.symbol === item.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY' && p.product_type === targetPT
         );
-        if (existingPos) {
+        if (existingPos && !userHasEditedQty.current) {
           setOrderQty(existingPos.qty_open);
           setQtyInput(String(existingPos.qty_open));
         }
       }
     }
-  }, [side, activePositions, isOpen, item?.symbol, propProductType, productType, initialOrder, exitMode]);
+  // Intentionally exclude activePositions — only run when sheet opens or side changes,
+  // never on background polls (which would stomp user-edited qty)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [side, isOpen, item?.symbol, propProductType, exitMode]);
 
   // Fetch balance, active positions, and segment settings
   useEffect(() => {
