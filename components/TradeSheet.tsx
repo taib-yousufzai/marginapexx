@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import { useActivePositions } from '@/hooks/useActivePositions';
@@ -187,10 +187,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   })() : 0;
 
+  const userHasEditedQty = useRef(false);
+
   // Sync qtyInput → orderQty when input is a valid number (supports decimals in lot mode)
   const handleQtyChange = (val: string) => {
     // Allow digits, a leading optional zero, and a single decimal point
     if (val !== '' && !/^\d*\.?\d*$/.test(val)) return;
+    userHasEditedQty.current = true;
     setQtyInput(val);
     const n = parseFloat(val);
     // Only update the committed qty when we have a real positive number
@@ -242,13 +245,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         setSlPrice('');
         setTpPrice('');
         setGttSubOption(exitMode ? 'TARGET' : 'LIMIT');
+        userHasEditedQty.current = false;
       }
     }
   }, [item?.symbol, propProductType, exitMode, initialOrder]);
 
-  // Sync maximum position quantity when side is SELL
+  // Sync maximum position quantity when side is SELL — only if user hasn't manually edited qty
   useEffect(() => {
-    if (isOpen && activePositions && item && !initialOrder) {
+    if (isOpen && activePositions && item && !initialOrder && !userHasEditedQty.current) {
       if (side === 'SELL' && exitMode) {
         const targetPT = propProductType || productType;
         const existingPos = activePositions.find(
