@@ -39,6 +39,8 @@ body {
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg-body, #F0F2F5);
 }
 
