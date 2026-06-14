@@ -860,7 +860,10 @@ function WatchlistContent() {
     };
     window.__removeFromWatchlistCallback = (symbol: string) => {
       setWatchlistItems(prev => {
-        const next = prev.filter(i => !(i.symbol === symbol && getTabForItem(i) === activeTab));
+        const next = prev.filter(i => {
+          if (activeTab === 'All') return i.symbol !== symbol;
+          return !(i.symbol === symbol && getTabForItem(i) === activeTab);
+        });
         saveWatchlistToStorage(next, userId);
         return next;
       });
