@@ -339,6 +339,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       return;
     }
 
+    // DEBUG: show exactly what will be sent
+    const debugQty = orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty;
+    const debugLots = orderUnit === 'lot' ? parsedInputQty : 0;
+    showToast(`Sending qty=${debugQty} lots=${debugLots} unit=${orderUnit} input="${qtyInput}"`);
+    await new Promise(r => setTimeout(r, 3000));
+
     // Load setting specific to the side being placed
     const placeSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === placeSide);
     const pTopLimit = placeSetting?.top_limit ?? 0;
