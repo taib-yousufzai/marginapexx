@@ -332,6 +332,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
     if (!item) return;
 
+    // Parse qty fresh from the input string at submit time — avoids stale state issues
+    const parsedInputQty = parseFloat(qtyInput);
+    if (isNaN(parsedInputQty) || parsedInputQty <= 0) {
+      showToast('Please enter a valid quantity.');
+      return;
+    }
+
     // Load setting specific to the side being placed
     const placeSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === placeSide);
     const pTopLimit = placeSetting?.top_limit ?? 0;
@@ -645,8 +652,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       kite_instrument: item.kiteSymbol || item.symbol,
       segment: item.segment,
       side: placeSide,
-      qty: totalQty,
-      lots: orderUnit === 'lot' ? orderQty : 0,
+      qty: orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty,
+      lots: orderUnit === 'lot' ? parsedInputQty : 0,
       order_type: resolvedOrderType as any,
       product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
       client_price: resolvedClientPrice,
