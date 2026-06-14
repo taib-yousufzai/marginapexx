@@ -150,7 +150,6 @@ export class InMemoryMatchingEngine {
         }
 
         let shouldTrigger = false;
-        let fillPrice = Number(order.price ?? ltp);
 
         const orderType = order.order_type;
         const side = order.side;
@@ -166,10 +165,8 @@ export class InMemoryMatchingEngine {
         } else if ((orderType === 'SL' || orderType === 'SLM') && triggerPrice !== null) {
           if (side === 'BUY' && ltp >= triggerPrice) {
             shouldTrigger = true;
-            fillPrice = ltp;
           } else if (side === 'SELL' && ltp <= triggerPrice) {
             shouldTrigger = true;
-            fillPrice = ltp;
           }
         } else if (orderType === 'GTT') {
           if (triggerPrice !== null) {
@@ -207,29 +204,44 @@ export class InMemoryMatchingEngine {
               }
             }
           }
-
-          if (shouldTrigger) {
-            fillPrice = ltp;
-          }
         }
 
         if (shouldTrigger) {
-          // Verify existing position rules entirely in-memory
-          const existingPos = openPositions.filter((p) => p.symbol === symbolKey);
-
+          // For exit orders only: verify an opposing open position exists in memory
+          // (Entry orders are always allowed — each creates its own position row)
           if (order.is_exit) {
+            const existingPos = openPositions.filter((p) => p.symbol === symbolKey);
             if (order.side === 'BUY') {
               if (!existingPos.some((p) => p.side === 'SELL')) continue;
             } else if (order.side === 'SELL') {
               if (!existingPos.some((p) => p.side === 'BUY')) continue;
             }
-          } else {
-            if (order.side === 'BUY') {
-              if (existingPos.some((p) => p.side === 'SELL')) continue;
-            } else if (order.side === 'SELL') {
-              if (existingPos.some((p) => p.side === 'BUY')) continue;
-            }
           }
+
+          // ─── Apply entry/exit buffers (same logic as orders/route.ts) ───
+          // fillPrice stays as raw LTP for the user's position record.
+          // bufferFee = absolute price difference * qty, charged as BUFFER_FEE_DEBIT.
+          const buySetting  = this.segmentSettings.get(`${order.user_id}|${order.segment}|BUY`);
+          const sellSetting = this.segmentSettings.get(`${order.user_id}|${order.segment}|SELL`);
+          const buyEntryBuffer  = buySetting?.entry_buffer  ?? 0.003;
+          const buyExitBuffer   = buySetting?.exit_buffer   ?? 0.0017;
+          const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
+          const sellExitBuffer  = sellSetting?.exit_buffer  ?? 0.0017;
+
+          let priceWithBuffer = ltp;
+          if (order.side === 'BUY') {
+            priceWithBuffer = order.is_exit
+              ? ltp * (1 + sellExitBuffer)   // buying back a short: ask + exit buffer
+              : ltp * (1 + buyEntryBuffer);   // long entry: ask + entry buffer
+          } else {
+            priceWithBuffer = order.is_exit
+              ? ltp * (1 - buyExitBuffer)     // selling to close a long: bid - exit buffer
+              : ltp * (1 - sellEntryBuffer);  // short entry: bid - entry buffer
+          }
+
+          const bufferFee = Math.round(Math.abs(priceWithBuffer - ltp) * Number(order.qty) * 100) / 100;
+          // fill_price written to DB is raw LTP — same as MARKET orders in orders/route.ts
+          const executionFillPrice = Math.round(ltp * 100) / 100;
 
           // Trigger Executed Order Write (Business Event)
           const dbStart = performance.now();
@@ -237,7 +249,8 @@ export class InMemoryMatchingEngine {
             .from('orders')
             .update({
               status: 'EXECUTED',
-              fill_price: fillPrice,
+              fill_price: executionFillPrice,
+              buffer_fee: bufferFee,
               updated_at: new Date().toISOString(),
             })
             .eq('id', order.id);
@@ -271,7 +284,7 @@ export class InMemoryMatchingEngine {
             target_user_id: order.user_id,
             symbol: order.symbol,
             qty: order.qty,
-            price: fillPrice,
+            price: executionFillPrice,
             reason: `${orderType} Order Triggered @ ${ltp}`,
           });
           telemetry.recordDbCall('write', performance.now() - auditStart);
@@ -327,8 +340,8 @@ export class InMemoryMatchingEngine {
           const sellExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
 
           const pnl = pos.side === 'BUY' 
-            ? (((ltp * 0.999) * (1 - buyExitBuffer)) - entryPrice) * qty 
-            : (entryPrice - ((ltp * 1.001) * (1 + sellExitBuffer))) * qty;
+            ? ((ltp * (1 - buyExitBuffer)) - entryPrice) * qty 
+            : (entryPrice - (ltp * (1 + sellExitBuffer))) * qty;
 
           totalUnrealised += pnl;
 
@@ -343,10 +356,10 @@ export class InMemoryMatchingEngine {
             let exitPrice = ltp;
             if (pos.side === 'BUY') {
               const exitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
-              exitPrice = (ltp * 0.999) * (1 - exitBuffer);
+              exitPrice = ltp * (1 - exitBuffer);
             } else {
               const exitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
-              exitPrice = (ltp * 1.001) * (1 + exitBuffer);
+              exitPrice = ltp * (1 + exitBuffer);
             }
             exitPrice = Math.round(exitPrice * 10000) / 10000;
 
@@ -421,9 +434,9 @@ export class InMemoryMatchingEngine {
           let exitPrice = ltp;
           const exitBuffer = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`)?.exit_buffer ?? 0.0017;
           if (pos.side === 'BUY') {
-            exitPrice = (ltp * 0.999) * (1 - exitBuffer);
+            exitPrice = ltp * (1 - exitBuffer);
           } else {
-            exitPrice = (ltp * 1.001) * (1 + exitBuffer);
+            exitPrice = ltp * (1 + exitBuffer);
           }
           exitPrice = Math.round(exitPrice * 10000) / 10000;
 
