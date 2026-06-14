@@ -138,7 +138,7 @@ CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 DECLARE
   v_order record;
   v_pos record;
@@ -422,7 +422,7 @@ BEGIN
     END IF;
   END IF;
 END;
-$;
+$$;
 
 -- 5. Re-grant permissions
 REVOKE EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric, numeric, numeric, boolean, numeric) FROM PUBLIC;
