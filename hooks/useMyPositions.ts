@@ -180,19 +180,21 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       // Derive DB segment once — used for both PnL and anti-scalping calculations
       const dbSeg = mapSegmentToDbSegment(p.settlement || '');
 
+      const avgPrice = p.avg_price || p.entry_price;
+
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
         if (p.side === 'BUY') {
-          // BUY (Long): Profit when market price increases above entry_price
-          unrealised = (ltp - p.entry_price) * p.qty_open;
+          // BUY (Long): Profit when market price increases above avg_price
+          unrealised = (ltp - avgPrice) * p.qty_open;
         } else {
-          // SELL (Short): Profit when market price decreases below entry_price
-          unrealised = (p.entry_price - ltp) * p.qty_open;
+          // SELL (Short): Profit when market price decreases below avg_price
+          unrealised = (avgPrice - ltp) * p.qty_open;
         }
       }
 
       const total_pnl = (p.status === 'closed') ? p.pnl : unrealised;
-      const investment = p.entry_price * p.qty_open;
+      const investment = avgPrice * p.qty_open;
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
       // Anti-Scalping calculations

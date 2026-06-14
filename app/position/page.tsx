@@ -241,7 +241,7 @@ export default function PositionPage() {
           product_type: pos.product_type,
           settlement: pos.settlement || '',
           qty_open: pos.qty_open,
-          avg_price: pos.entry_price,
+          avg_price: pos.avg_price || pos.entry_price,
           current_ltp: pos.current_ltp,
           total_pnl: pos.total_pnl,
           pnl_percent: pos.pnl_percent,
@@ -252,7 +252,7 @@ export default function PositionPage() {
       } else {
         const newQty = existing.qty_open + pos.qty_open;
         const newAvg = newQty > 0
-          ? (existing.avg_price * existing.qty_open + pos.entry_price * pos.qty_open) / newQty
+          ? (existing.avg_price * existing.qty_open + (pos.avg_price || pos.entry_price) * pos.qty_open) / newQty
           : existing.avg_price;
         const newPnl = existing.total_pnl + pos.total_pnl;
         const investment = newAvg * newQty;
@@ -504,15 +504,9 @@ export default function PositionPage() {
                               </button>
                               <button
                                 className={`pca-btn pca-exit${group.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={async () => {
+                                onClick={() => {
                                   if (group.hold_lock_active) return;
-                                  if (group.ids.length === 1) {
-                                    await closePosition(group.ids[0]);
-                                  } else {
-                                    await closePositionsBatch(group.ids);
-                                  }
-                                  showToast(`Closed ${group.ids.length} position(s)`);
-                                  refresh();
+                                  openExitSheet(group.representativePos);
                                 }}
                                 disabled={group.hold_lock_active}
                               >
@@ -846,7 +840,7 @@ export default function PositionPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginBottom: '8px' }}>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Avg Price</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedPos.avg_price || selectedPos.entry_price, selectedPos.settlement)}</div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Quantity</div>
@@ -969,7 +963,7 @@ export default function PositionPage() {
                       <div className="ps-meta-row">
                         <div>
                           <div className="ps-meta-label">Avg Price</div>
-                          <div className="ps-meta-val">{fmtPrice(selectedPos.entry_price, selectedPos.settlement)}</div>
+                          <div className="ps-meta-val">{fmtPrice(selectedPos.avg_price || selectedPos.entry_price, selectedPos.settlement)}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div className="ps-meta-label">Quantity</div>

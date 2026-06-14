@@ -751,11 +751,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-bidask {
           background: var(--card-bg, #fff); display: flex; align-items: center;
           padding: 8px 16px; border-bottom: 1px solid var(--border-light, #EEF2F8); flex-shrink: 0;
+          gap: 8px;
         }
-        .ts2-ba-cell {
-          flex: 1; display: flex; justify-content: space-between;
-          align-items: center; padding: 0 4px;
+        .ts2-ba-col {
+          flex: 1; display: flex; flex-direction: column; gap: 2px;
         }
+        .ts2-ba-col:last-child { align-items: flex-end; }
         .ts2-ba-label {
           font-size: 0.6rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; letter-spacing: 0.5px;
@@ -961,11 +962,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
             <div className="ts2-bidask">
               <div className="ts2-ba-col">
                 <span className="ts2-ba-label">BID</span>
-                <span className="ts2-ba-bid">{marketQuotes[item?.kiteSymbol || '']?.bid ? fmt(bidPrice) : '--'}</span>
+                <span className="ts2-ba-bid">
+                  {(isCrypto ? marketQuotes[bSymbol || '']?.bid : marketQuotes[item?.kiteSymbol || '']?.bid)
+                    ? fmt(bidPrice) : '--'}
+                </span>
               </div>
+              <div className="ts2-ba-divider" />
               <div className="ts2-ba-col" style={{ alignItems: 'flex-end' }}>
                 <span className="ts2-ba-label">ASK</span>
-                <span className="ts2-ba-ask">{marketQuotes[item?.kiteSymbol || '']?.ask ? fmt(askPrice) : '--'}</span>
+                <span className="ts2-ba-ask">
+                  {(isCrypto ? marketQuotes[bSymbol || '']?.ask : marketQuotes[item?.kiteSymbol || '']?.ask)
+                    ? fmt(askPrice) : '--'}
+                </span>
               </div>
             </div>
 
