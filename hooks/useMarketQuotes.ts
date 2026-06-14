@@ -181,8 +181,8 @@ export function useMarketQuotes(symbols: string[]) {
             close: close,
             volume: q.volume || 0,
             // Guard against null/undefined/0 from stale Redis cache entries
-            bid: (q.bid != null && q.bid > 0) ? q.bid : 0,
-            ask: (q.ask != null && q.ask > 0) ? q.ask : 0,
+            bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
+            ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
           };
           mapped[key] = quoteData;
         }
@@ -205,8 +205,8 @@ export function useMarketQuotes(symbols: string[]) {
           close: close,
           volume: q.volume || 0,
           // Guard against null/undefined/0 from stale Redis cache entries
-          bid: (q.bid != null && q.bid > 0) ? q.bid : 0,
-          ask: (q.ask != null && q.ask > 0) ? q.ask : 0,
+          bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
+          ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
         };
 
         pendingUpdatesRef.current[symbol] = quoteData;

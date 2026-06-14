@@ -89,9 +89,7 @@ export default function Page() {
 
     function generateBidAsk(script) {
         var price = script.price;
-        var rawBid = script.bid || price;
-        var rawAsk = script.ask || price;
-        return { bid: rawBid * (1 - 0.0017), ask: rawAsk * (1 + 0.003) }; 
+        return { bid: price * 0.9995, ask: price * 1.0005 }; 
     }
 
     function openTradeSheet(script) {
