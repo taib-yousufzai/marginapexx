@@ -2556,34 +2556,37 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         exitSelectionMode();
       };
 
-      // Capture all clicks when selectionMode is active to toggle checkboxes easily
-      document.addEventListener('click', function(e) {
-        if (!selectionMode) return;
-        
-        var card = e.target.closest('.watchlist-card');
-        if (!card) return;
-        
-        // Skip swipe delete buttons or checkbox itself to avoid double-toggling
-        if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox') || e.target.closest('.mcx-comex-switch')) {
-          return;
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        var cb = card.querySelector('.wc-checkbox');
-        if (cb) {
-          cb.checked = !cb.checked;
-          updateSelectionUI();
-        }
-      }, true);
+      if (!window.__watchlistEventsAttached) {
+        window.__watchlistEventsAttached = true;
+        // Capture all clicks when selectionMode is active to toggle checkboxes easily
+        document.addEventListener('click', function(e) {
+          if (!window.__selectionModeActive) return;
+          
+          var card = e.target.closest('.watchlist-card');
+          if (!card) return;
+          
+          // Skip swipe delete buttons or checkbox itself to avoid double-toggling
+          if (e.target.closest('.wc-swipe-actions') || e.target.classList.contains('wc-checkbox') || e.target.closest('.mcx-comex-switch')) {
+            return;
+          }
+          
+          e.preventDefault();
+          e.stopPropagation();
+          
+          var cb = card.querySelector('.wc-checkbox');
+          if (cb) {
+            cb.checked = !cb.checked;
+            if (typeof window.__updateSelectionUI === 'function') window.__updateSelectionUI();
+          }
+        }, true);
 
-      // Handle delegating checkbox change listener to keep count updated
-      document.addEventListener('change', function(e) {
-        if (e.target && e.target.classList.contains('wc-checkbox')) {
-          updateSelectionUI();
-        }
-      });
+        // Handle delegating checkbox change listener to keep count updated
+        document.addEventListener('change', function(e) {
+          if (e.target && e.target.classList.contains('wc-checkbox')) {
+            if (typeof window.__updateSelectionUI === 'function') window.__updateSelectionUI();
+          }
+        });
+      }
 
       var basketModeBtn = document.getElementById('basketModeBtn');
       // basketModeBtn click is handled by React - no JS handler needed
@@ -2632,6 +2635,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function enterSelectionMode() {
         selectionMode = true;
+        window.__selectionModeActive = true;
         if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(true);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'flex';
@@ -2641,6 +2645,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function exitSelectionMode() {
         selectionMode = false;
+        window.__selectionModeActive = false;
         if (window.__reactSetSelectionActive) window.__reactSetSelectionActive(false);
         document.querySelectorAll('.wc-checkbox-wrapper').forEach(function(el) {
           el.style.display = 'none';
@@ -2654,6 +2659,8 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         var checked = document.querySelectorAll('.wc-checkbox:checked').length;
         if (selectedCountSpan) selectedCountSpan.textContent = checked + ' selected';
       }
+      window.__updateSelectionUI = updateSelectionUI;
+      window.__selectionModeActive = selectionMode;
 
       window.__renderWatchlist = function() { /* Now handled by React */ };
       window.attachSwipeHandlers = attachSwipeHandlers;

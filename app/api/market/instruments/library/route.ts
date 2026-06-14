@@ -196,9 +196,30 @@ export async function GET() {
         const nearestExpiry = expData[0].expiry;
         const { data: opts } = await supabase.from('instruments').select('*').eq('underlying_symbol', stk).eq('expiry', nearestExpiry).order('strike_price', { ascending: true });
         if (opts && opts.length > 0) {
+          let selectedOpts: Instrument[] = opts as Instrument[];
+          try {
+            const kiteId = `NSE:${stk}`;
+            const cached = await redis.hget('market:quotes', kiteId);
+            let atmPrice = 0;
+            if (cached) {
+              const q = JSON.parse(cached);
+              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            }
+            if (!atmPrice && opts.length > 0) {
+              console.warn(`[library] No ATM price for Stock ${stk}, falling back to median strike`);
+              const middleIndex = Math.floor(opts.length / 2);
+              atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
+            }
+            if (atmPrice) {
+              selectedOpts = applyStrikeRangeFilter(opts as Instrument[], atmPrice, strikeConfig.indexOptionsRange);
+            }
+          } catch (e) {
+            console.error(`[library] Failed to apply strike range filter for Stock ${stk}:`, e);
+          }
+
           stockOptCats.push({
             name: stk,
-            instruments: opts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
+            instruments: selectedOpts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
           });
         }
       }
