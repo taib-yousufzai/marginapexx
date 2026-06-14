@@ -189,8 +189,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   // Sync qtyInput → orderQty when input is a valid number (supports decimals in lot mode)
   const handleQtyChange = (val: string) => {
+    // Allow digits, a leading optional zero, and a single decimal point
+    if (val !== '' && !/^\d*\.?\d*$/.test(val)) return;
     setQtyInput(val);
     const n = parseFloat(val);
+    // Only update the committed qty when we have a real positive number
     if (!isNaN(n) && n > 0) setOrderQty(n);
   };
 
@@ -1028,15 +1031,19 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     </button>
                     <input
                       className="ts2-qty-val"
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={qtyInput}
-                      step={orderUnit === 'lot' ? 0.1 : 1}
-                      min={orderUnit === 'lot' ? 0.1 : 1}
                       onChange={e => handleQtyChange(e.target.value)}
                       onBlur={() => {
                         // On blur, if empty or invalid, reset to current orderQty
-                        if (!qtyInput || parseFloat(qtyInput) <= 0) {
+                        const n = parseFloat(qtyInput);
+                        if (!qtyInput || isNaN(n) || n <= 0) {
                           setQtyInput(String(orderQty));
+                        } else {
+                          // Normalise display (remove trailing dot like "0.")
+                          setQtyInput(String(n));
+                          setOrderQty(n);
                         }
                       }}
                     />
