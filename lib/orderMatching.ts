@@ -239,9 +239,10 @@ export class InMemoryMatchingEngine {
               : ltp * (1 - sellEntryBuffer);  // short entry: bid - entry buffer
           }
 
-          const bufferFee = Math.round(Math.abs(priceWithBuffer - ltp) * Number(order.qty) * 100) / 100;
-          // fill_price written to DB is raw LTP — same as MARKET orders in orders/route.ts
-          const executionFillPrice = Math.round(ltp * 100) / 100;
+          // Fill price is the actual execution price (ask for BUY, bid for SELL).
+          // Buffer is baked into the fill price so avg_price reflects what the user paid.
+          const bufferFee = 0;
+          const executionFillPrice = Math.round(priceWithBuffer * 100) / 100;
 
           // Trigger Executed Order Write (Business Event)
           const dbStart = performance.now();

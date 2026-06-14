@@ -893,11 +893,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Calculate buffer fee correctly based on quantity and absolute difference
-    bufferFee = Math.round(Math.abs(priceWithBuffer - baseLtp) * qty * 100) / 100;
-    
-    // The user's position entry/exit price is now the PURE market price!
-    fillPrice = baseLtp;
+    // Fill price is the actual execution price (ask for BUY, bid for SELL).
+    // Buffer is baked into the fill price so avg_price reflects what the user paid.
+    bufferFee = 0;
+    fillPrice = priceWithBuffer;
   }
 
   fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp
