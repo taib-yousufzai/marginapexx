@@ -289,12 +289,11 @@ export default function BankDetailsPage() {
           </div>
 
           <div className="bd-content">
-            <p className="bd-subtitle">Manage your linked bank accounts for seamless withdrawals and deposits.</p>
+            <p className="bd-subtitle">Manage your linked bank accounts for withdrawals and deposits.</p>
 
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#8F9BB3' }}>
-                <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
-                <p>Loading details...</p>
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--bd-muted, #8F9BB3)' }}>
+                <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem' }}></i>
               </div>
             ) : (
               <>
@@ -314,36 +313,36 @@ export default function BankDetailsPage() {
                             </div>
                             <div>
                               <h3 className="bd-bank-name">{acc.bankName || 'Bank Account'}</h3>
-                              {acc.isPrimary && <span className="bd-badge-primary">Primary Account</span>}
+                              {acc.isPrimary && <span className="bd-badge-primary">Primary</span>}
                             </div>
                           </div>
                           <div className="bd-card-actions">
-                            <button type="button" className="bd-icon-btn edit" onClick={() => openEditModal(acc)} suppressHydrationWarning>
+                            <button type="button" className="bd-icon-btn edit" onClick={() => openEditModal(acc)} suppressHydrationWarning title="Edit">
                               <i className="fas fa-pen"></i>
                             </button>
-                            <button type="button" className="bd-icon-btn" onClick={() => confirmDelete(acc)} suppressHydrationWarning style={{ color: '#C62E2E' }}>
+                            <button type="button" className="bd-icon-btn" onClick={() => confirmDelete(acc)} suppressHydrationWarning title="Delete" style={{ color: '#C62E2E' }}>
                               <i className="fas fa-trash"></i>
                             </button>
                           </div>
                         </div>
-                        
+
                         <div className="bd-card-body">
                           <div className="bd-detail-row">
-                            <div className="bd-detail-label">ACCOUNT NO.</div>
-                            <div className="bd-detail-value">{acc.accountNumber || '—'}</div>
+                            <span className="bd-detail-label">Account No.</span>
+                            <span className="bd-detail-value">{acc.accountNumber || '—'}</span>
                           </div>
                           <div className="bd-detail-row">
-                            <div className="bd-detail-label">IFSC CODE</div>
-                            <div className="bd-detail-value">{acc.ifsc || '—'}</div>
+                            <span className="bd-detail-label">IFSC</span>
+                            <span className="bd-detail-value">{acc.ifsc || '—'}</span>
                           </div>
                           <div className="bd-detail-row">
-                            <div className="bd-detail-label">HOLDER NAME</div>
-                            <div className="bd-detail-value">{acc.accountHolderName || '—'}</div>
+                            <span className="bd-detail-label">Holder Name</span>
+                            <span className="bd-detail-value">{acc.accountHolderName || '—'}</span>
                           </div>
                           {acc.upiId && (
                             <div className="bd-detail-row">
-                              <div className="bd-detail-label">UPI ID</div>
-                              <div className="bd-detail-value">{acc.upiId}</div>
+                              <span className="bd-detail-label">UPI ID</span>
+                              <span className="bd-detail-value">{acc.upiId}</span>
                             </div>
                           )}
                         </div>
@@ -351,7 +350,7 @@ export default function BankDetailsPage() {
                         {!acc.isPrimary && (
                           <div className="bd-card-footer">
                             <button className="bd-set-primary-btn" onClick={() => confirmSetPrimary(acc.id)}>
-                              Set as Primary
+                              <i className="fas fa-star" style={{ marginRight: 6, fontSize: '0.75rem' }}></i>Set as Primary
                             </button>
                           </div>
                         )}
@@ -361,7 +360,7 @@ export default function BankDetailsPage() {
                 </div>
 
                 <button type="button" className="bd-add-btn" onClick={openAddModal} suppressHydrationWarning>
-                  <i className="fas fa-plus-circle"></i> Add New Bank Account
+                  <i className="fas fa-plus"></i> Add Bank Account
                 </button>
               </>
             )}
