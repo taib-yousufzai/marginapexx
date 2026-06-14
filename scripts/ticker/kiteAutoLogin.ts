@@ -355,13 +355,10 @@ export class KiteSessionMonitor extends EventEmitter {
         // Wait 90 seconds for GitHub Action to run and update Supabase
         await new Promise(resolve => setTimeout(resolve, 90_000));
         
-        // Force bypass cache to load the freshly saved session from GitHub Action
-        // Use the already-imported invalidateSharedKiteSessionCache and getSharedKiteSession
-        // from the top-level ES import — NOT require(), which would get a separate module
-        // instance with its own uncleared cache.
+        // Force bypass cache then fetch fresh session using the top-level imported
+        // getSharedKiteSession — same module instance, so cache invalidation works.
         invalidateSharedKiteSessionCache();
-        const { getSharedKiteSession: freshGetSession } = await import('../../lib/kiteSession.ts');
-        const session = await freshGetSession();
+        const session = await getSharedKiteSession();
         
         if (!session || this.computeMinutesLeft(session.expiresAt) <= 0) {
           throw new Error('GitHub Action completed but session in DB was not renewed (still expired).');

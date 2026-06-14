@@ -12,22 +12,6 @@ interface FooterProps {
   hideDrawer?: boolean;
 }
 
-const mapSegmentToDbSegment = (s: string): string => {
-  if (!s) return '';
-  const trimmed = s.trim();
-  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
-  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
-  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
-  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
-  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
-  if (trimmed === 'MCX - Options') return 'MCX-OPT';
-  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
-  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
-  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
-  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
-  return trimmed;
-};
-
 const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -47,7 +31,6 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
   const [balance, setBalance] = useState(0);
   const [rawPositions, setRawPositions] = useState<any[]>([]);
-  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -72,22 +55,6 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       if (posRes.ok) {
         const { positions } = await posRes.json();
         setRawPositions(positions || []);
-      }
-
-      // Fetch profile and segment settings
-      const profRes = await fetch('/api/user/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (profRes.ok) {
-        const profile = await profRes.json();
-        const mode = profile?.trading_mode || 'normal';
-        const resSettings = await fetch(`/api/user/segments?mode=${mode}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (resSettings.ok) {
-          const settingsData = await resSettings.json();
-          setSegmentSettings(settingsData || []);
-        }
       }
     } catch (err) {
       if (err instanceof TypeError) return;
@@ -159,35 +126,12 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
           ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
         }
 
-        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
-        const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-        const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
-        const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0.0017;
-        const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0.0017;
-
-        let rawBid = ltp;
-        let rawAsk = ltp;
-
-        if (seg.includes('CRYPTO')) {
-          const binanceKey = p.symbol.replace('/', '');
-          rawBid = marketQuotes[binanceKey]?.bid || ltp;
-          rawAsk = marketQuotes[binanceKey]?.ask || ltp;
-        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
-          rawBid = comexQuotes[p.symbol]?.bid || ltp;
-          rawAsk = comexQuotes[p.symbol]?.ask || ltp;
-        } else {
-          rawBid = marketQuotes[p.symbol]?.bid || ltp;
-          rawAsk = marketQuotes[p.symbol]?.ask || ltp;
-        }
-
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
-            const currentBid = rawBid * (1 - buyExitBuffer);
-            unrealised = (currentBid - p.entry_price) * p.qty_open;
+            unrealised = (ltp - p.entry_price) * p.qty_open;
           } else {
-            const currentAsk = rawAsk * (1 + sellExitBuffer);
-            unrealised = (p.entry_price - currentAsk) * p.qty_open;
+            unrealised = (p.entry_price - ltp) * p.qty_open;
           }
         }
         totalUnrealised += unrealised;
@@ -201,7 +145,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       usedMargin: totalUsedMargin,
       positionValue: totalPositionValue
     };
-  }, [rawPositions, marketQuotes, comexQuotes, segmentSettings]);
+  }, [rawPositions, marketQuotes, comexQuotes]);
 
   const equity = positionValue;
   const freeMargin = (balance + floatingPnl) - usedMargin;
