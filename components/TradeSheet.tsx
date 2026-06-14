@@ -187,17 +187,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   })() : 0;
 
-  // Sync qtyInput → orderQty when input is a valid number
+  // Sync qtyInput → orderQty when input is a valid number (supports decimals in lot mode)
   const handleQtyChange = (val: string) => {
     setQtyInput(val);
-    const n = parseInt(val);
+    const n = parseFloat(val);
     if (!isNaN(n) && n > 0) setOrderQty(n);
   };
 
-  // Stepper buttons update both
+  // Stepper: lot mode steps by 0.1, qty mode steps by lotSize
   const stepQty = (delta: number) => {
-    const step = orderUnit === 'qty' ? lotSize : 1;
-    const next = Math.max(step, orderQty + delta * step);
+    const step = orderUnit === 'lot' ? 0.1 : lotSize;
+    const next = Math.max(step, parseFloat((orderQty + delta * step).toFixed(2)));
     setOrderQty(next);
     setQtyInput(String(next));
   };
@@ -991,7 +991,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       >QTY</button>
                       <button
                         className={`ts2-toggle-opt${orderUnit === 'lot' ? ' active' : ''}`}
-                        onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
+                        onClick={() => { setOrderUnit('lot'); setOrderQty(0.1); setQtyInput('0.1'); }}
                       >LOT</button>
                     </div>
                   </div>
@@ -1014,7 +1014,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Total Qty</div>
-                      <div className="ts2-ic-val">{totalQty}</div>
+                      <div className="ts2-ic-val">{Number(totalQty.toFixed(4))}</div>
                     </div>
                   </div>
                 </div>
@@ -1030,10 +1030,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       className="ts2-qty-val"
                       type="number"
                       value={qtyInput}
+                      step={orderUnit === 'lot' ? 0.1 : 1}
+                      min={orderUnit === 'lot' ? 0.1 : 1}
                       onChange={e => handleQtyChange(e.target.value)}
                       onBlur={() => {
                         // On blur, if empty or invalid, reset to current orderQty
-                        if (!qtyInput || parseInt(qtyInput) < 1) {
+                        if (!qtyInput || parseFloat(qtyInput) <= 0) {
                           setQtyInput(String(orderQty));
                         }
                       }}
