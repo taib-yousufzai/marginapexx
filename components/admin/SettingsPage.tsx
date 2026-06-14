@@ -5,8 +5,9 @@ import SettingsTradingHours from './settings/SettingsTradingHours';
 import SettingsCurrency from './settings/SettingsCurrency';
 import SettingsApp from './settings/SettingsApp';
 import SettingsBroadcaster from './settings/SettingsBroadcaster';
+import SettingsFiltering from './settings/SettingsFiltering';
 
-type SettingsTab = 'scripts' | 'trading_hours' | 'currency' | 'app' | 'broadcaster';
+type SettingsTab = 'scripts' | 'trading_hours' | 'currency' | 'app' | 'broadcaster' | 'filtering';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('scripts');
@@ -23,6 +24,8 @@ export default function SettingsPage() {
         return <SettingsApp />;
       case 'broadcaster':
         return <SettingsBroadcaster />;
+      case 'filtering':
+        return <SettingsFiltering />;
       default:
         return <SettingsScripts />;
     }
@@ -61,6 +64,11 @@ export default function SettingsPage() {
             active={activeTab === 'broadcaster'} 
             onClick={() => setActiveTab('broadcaster')}
             label="Broadcaster"
+          />
+          <SidebarButton
+            active={activeTab === 'filtering'}
+            onClick={() => setActiveTab('filtering')}
+            label="Filtering Settings"
           />
         </nav>
       </div>

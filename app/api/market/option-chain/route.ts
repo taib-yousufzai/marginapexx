@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getRedisClient } from '@/lib/redis';
+import {
+  loadStrikeConfig,
+  applyExpiryFilter,
+  applyStrikeRangeFilter,
+  type Instrument,
+} from '@/lib/filterEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -98,8 +105,11 @@ export async function GET(request: Request) {
     }
 
     if (expiriesRes.error) throw expiriesRes.error;
-    
-    const uniqueExpiries = Array.from(new Set(expiriesRes.data.map((e: any) => e.expiry)));
+
+    const allExpiries = Array.from(new Set(expiriesRes.data.map((e: any) => e.expiry))) as string[];
+    // Collapse to nearest active expiry only (Requirement 4.2, 4.4)
+    const activeExpiries = applyExpiryFilter(allExpiries, today);
+    const uniqueExpiries = activeExpiries; // expose only the nearest active expiry
     const selectedExpiry = expiry || uniqueExpiries[0];
     let options = optionsRes?.data;
 
@@ -126,7 +136,43 @@ export async function GET(request: Request) {
       });
     }
 
-    // 5. Group by strike price
+    // 5. Apply strike range filter using Redis ATM price
+    if (options && options.length > 0) {
+      try {
+        const strikeConfig = await loadStrikeConfig(supabase);
+        const redis = getRedisClient();
+
+        // Determine the segment to pick the right strike range
+        const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(symbol);
+        const isMcx = ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(symbol);
+        const range = isMcx ? strikeConfig.mcxOptionsRange : strikeConfig.indexOptionsRange;
+
+        // Look up ATM price from Redis
+        const kiteIdMap: Record<string, string> = {
+          'NIFTY': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
+          'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MIDCAP 50',
+          'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
+        };
+        const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;
+        const cached = await redis.hget('market:quotes', kiteId);
+
+        if (cached) {
+          const q = JSON.parse(cached);
+          const atmPrice = q.last_price || q.ohlc?.close || q.close;
+          if (atmPrice) {
+            options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
+          } else {
+            console.warn(`[option-chain] No ATM price in Redis for ${symbol}, returning all strikes`);
+          }
+        } else {
+          console.warn(`[option-chain] Redis ATM price unavailable for ${symbol}, returning all strikes`);
+        }
+      } catch (e) {
+        console.error(`[option-chain] Strike range filter error for ${symbol}:`, e);
+      }
+    }
+
+    // 6. Group by strike price
     const strikeMap: Record<number, any> = {};
     options.forEach(opt => {
       const strike = opt.strike_price;

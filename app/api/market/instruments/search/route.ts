@@ -9,6 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import { getUserFromRequest } from '@/lib/adminClient';
+import {
+  applyForexFilter,
+  applyCryptoWhitelist,
+  applyExpiryFilter,
+  type Instrument,
+} from '@/lib/filterEngine';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -220,7 +226,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    const rows = data ?? [];
+    let rows: any[] = data ?? [];
+
+    // Apply Filter Engine rules server-side before returning results
+    const today = new Date().toISOString().split('T')[0];
+
+    // Split by segment type, filter, then reassemble
+    const forexRows = rows.filter((r: any) => r.exchange === 'CDS' || r.segment === 'CDS');
+    const cryptoRows = rows.filter((r: any) => r.segment === 'CRYPTO');
+    const optionRows = rows.filter((r: any) =>
+      !['CDS', 'CRYPTO'].includes(r.exchange) &&
+      r.segment !== 'CDS' && r.segment !== 'CRYPTO' &&
+      (r.option_type === 'CE' || r.option_type === 'PE')
+    );
+    const otherRows = rows.filter((r: any) =>
+      r.exchange !== 'CDS' && r.segment !== 'CDS' &&
+      r.segment !== 'CRYPTO' &&
+      r.option_type !== 'CE' && r.option_type !== 'PE'
+    );
+
+    // 1. Forex: keep only futures (exclude CE/PE)
+    const filteredForex = applyForexFilter(forexRows as Instrument[]);
+
+    // 2. Crypto: keep only whitelist (BTC, ETH, DOGE)
+    const filteredCrypto = applyCryptoWhitelist(cryptoRows as Instrument[]);
+
+    // 3. Options: keep only current (nearest active) expiry
+    let filteredOptions = optionRows as Instrument[];
+    if (filteredOptions.length > 0) {
+      const expiries = [...new Set(filteredOptions.map((r: any) => r.expiry).filter(Boolean))] as string[];
+      const activeExpiries = applyExpiryFilter(expiries, today);
+      if (activeExpiries.length > 0) {
+        const activeSet = new Set(activeExpiries);
+        filteredOptions = filteredOptions.filter((r: any) => !r.expiry || activeSet.has(r.expiry));
+      }
+    }
+
+    rows = [...filteredForex, ...filteredCrypto, ...filteredOptions, ...otherRows];
 
     // Fetch live prices for all results
     const kiteIds = rows.map((inst: any) => `${inst.exchange}:${inst.tradingsymbol}`);

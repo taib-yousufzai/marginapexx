@@ -5,6 +5,11 @@
  */
 
 import { requireAdmin } from '../../_auth';
+import {
+  applyForexFilter,
+  applyCryptoWhitelist,
+  type Instrument,
+} from '@/lib/filterEngine';
 
 export async function GET(request: Request): Promise<Response> {
   try {
@@ -42,7 +47,13 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return Response.json(data ?? [], { status: 200 });
+    let results: Instrument[] = (data ?? []) as Instrument[];
+
+    // Apply production filtering rules so admin search reflects what traders see
+    results = applyForexFilter(results);       // Requirement 1.1 — no Forex CE/PE
+    results = applyCryptoWhitelist(results);   // Requirement 5.2 — BTC/ETH/DOGE only
+
+    return Response.json(results, { status: 200 });
   } catch (err: any) {
     return Response.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }

@@ -145,7 +145,7 @@ const TRADING_SEGMENTS: Segment[] = [
     instruments: [
       { name: 'BTC/USDT', symbol: 'BTCUSDT', segment: 'Crypto' },
       { name: 'ETH/USDT', symbol: 'ETHUSDT', segment: 'Crypto' },
-      { name: 'SOL/USDT', symbol: 'SOLUSDT', segment: 'Crypto' }
+      { name: 'DOGE/USDT', symbol: 'DOGEUSDT', segment: 'Crypto' }
     ]
   },
   {
