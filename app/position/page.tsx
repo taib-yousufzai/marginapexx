@@ -211,6 +211,63 @@ export default function PositionPage() {
   const closedPositions = positions.filter(p => p.status === 'closed');
   const hasOpenPositions = openPositions.length > 0;
 
+  // ── Cumulative grouping: merge same symbol+side+product_type into one row ──
+  interface GroupedPosition {
+    key: string;
+    symbol: string;
+    side: 'BUY' | 'SELL';
+    product_type: string;
+    settlement: string;
+    qty_open: number;
+    avg_price: number;          // weighted average entry price
+    current_ltp: number;
+    total_pnl: number;
+    pnl_percent: number;
+    hold_lock_active: boolean;
+    ids: string[];              // all underlying position IDs
+    representativePos: EnrichedPosition; // first position for actions
+  }
+
+  const groupedOpenPositions: GroupedPosition[] = (() => {
+    const map = new Map<string, GroupedPosition>();
+    for (const pos of openPositions) {
+      const key = `${pos.symbol}|${pos.side}|${pos.product_type}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          symbol: pos.symbol,
+          side: pos.side,
+          product_type: pos.product_type,
+          settlement: pos.settlement || '',
+          qty_open: pos.qty_open,
+          avg_price: pos.entry_price,
+          current_ltp: pos.current_ltp,
+          total_pnl: pos.total_pnl,
+          pnl_percent: pos.pnl_percent,
+          hold_lock_active: pos.hold_lock_active,
+          ids: [pos.id],
+          representativePos: pos,
+        });
+      } else {
+        const newQty = existing.qty_open + pos.qty_open;
+        const newAvg = newQty > 0
+          ? (existing.avg_price * existing.qty_open + pos.entry_price * pos.qty_open) / newQty
+          : existing.avg_price;
+        const newPnl = existing.total_pnl + pos.total_pnl;
+        const investment = newAvg * newQty;
+        existing.qty_open = newQty;
+        existing.avg_price = newAvg;
+        existing.current_ltp = pos.current_ltp; // same symbol, LTP is same
+        existing.total_pnl = newPnl;
+        existing.pnl_percent = investment > 0 ? parseFloat(((newPnl / investment) * 100).toFixed(2)) : 0;
+        existing.hold_lock_active = existing.hold_lock_active || pos.hold_lock_active;
+        existing.ids.push(pos.id);
+      }
+    }
+    return Array.from(map.values());
+  })();
+
   const handleExitAllConfirm = async () => {
     if (!hasOpenPositions) return;
     setIsExitingAll(true);
@@ -391,112 +448,93 @@ export default function PositionPage() {
                 {!posLoading && !posError && (
                   currentMain === 'cumulative' ? (
                     currentSub === 'open' ? (
-                      openPositions.length === 0 ? (
+                      groupedOpenPositions.length === 0 ? (
                         <div className="pos-empty">
                           <i className="fas fa-chart-simple" />
                           <p>No open positions</p>
                         </div>
-                      ) : openPositions.map(pos => (
-                        <div key={pos.id} className={`pos-card${expandedPosId === pos.id ? ' pos-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`} onClick={() => toggleExpand(pos.id)}>
+                      ) : groupedOpenPositions.map(group => (
+                        <div key={group.key} className={`pos-card${expandedPosId === group.key ? ' pos-card--expanded' : ''}${group.hold_lock_active ? ' pos-card--locked' : ''}`} onClick={() => toggleExpand(group.key)}>
                           <div className="pos-card-main">
                             <div className="pos-card-left">
                               <div className="pos-card-symbol">
-                                <span className="pos-symbol-text">{pos.symbol}</span>
+                                <span className="pos-symbol-text">{group.symbol}</span>
+                                {group.ids.length > 1 && (
+                                  <span style={{ marginLeft: '6px', fontSize: '0.6rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
+                                    {group.ids.length} trades
+                                  </span>
+                                )}
                               </div>
                               <div className="pos-card-details">
-                                <span>Avg: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
-                                <span>Qty: <strong>{pos.qty_open}</strong></span>
+                                <span>Avg: <strong>{fmtPrice(group.avg_price, group.settlement)}</strong></span>
+                                <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
-                              {pos.product_type && (
+                              {group.product_type && (
                                 <div
-                                  className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
+                                  className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
                                   style={{ marginTop: '5px' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    await toggleProductType(pos);
+                                    await toggleProductType(group.representativePos);
                                   }}
                                 >
-                                  {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                                  {group.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
                                 </div>
                               )}
                             </div>
                             <div className="pos-card-right">
-                              <span className={`pos-badge${pos.side === 'BUY' ? ' long' : ' short'}`}>{pos.side}</span>
-                              <div className={`pos-card-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                                {fmtUSD(pos.total_pnl, pos.settlement)}
+                              <span className={`pos-badge${group.side === 'BUY' ? ' long' : ' short'}`}>{group.side}</span>
+                              <div className={`pos-card-pnl${group.total_pnl >= 0 ? ' green' : ' red'}`}>
+                                {fmtUSD(group.total_pnl, group.settlement)}
                               </div>
                               <div className="pos-card-ltp">
-                                {pos.product_type && (
-                                  <span className={`pos-product-badge ${pos.product_type === 'CARRY' ? 'carry' : ''}`}>
-                                    {pos.product_type}
+                                {group.product_type && (
+                                  <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
+                                    {group.product_type}
                                   </span>
                                 )}
-                                <span>LTP: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
+                                <span>LTP: <strong>{fmtPrice(group.current_ltp, group.settlement)}</strong></span>
                               </div>
                             </div>
                           </div>
-                          {expandedPosId === pos.id && (
+                          {expandedPosId === group.key && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-                              <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
+                              <button className="pca-btn pca-add" onClick={() => openAddMore(group.representativePos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
-                                className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(pos); }}
-                                disabled={pos.hold_lock_active}
+                                className={`pca-btn pca-exit${group.hold_lock_active ? ' disabled-lock' : ''}`}
+                                onClick={async () => {
+                                  if (group.hold_lock_active) return;
+                                  if (group.ids.length === 1) {
+                                    await closePosition(group.ids[0]);
+                                  } else {
+                                    await closePositionsBatch(group.ids);
+                                  }
+                                  showToast(`Closed ${group.ids.length} position(s)`);
+                                  refresh();
+                                }}
+                                disabled={group.hold_lock_active}
                               >
-                                <i className="fas fa-times-circle" /> Exit
+                                <i className="fas fa-times-circle" /> Exit All
                               </button>
                               <button
                                 style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '42px',
-                                  height: '38px',
-                                  borderRadius: '16px',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  width: '42px', height: '38px', borderRadius: '16px',
                                   border: '1.5px solid var(--border-card, #CBD5E1)',
-                                  background: 'var(--card-bg, #ffffff)',
-                                  color: 'var(--text-primary, #1F2937)',
-                                  cursor: 'pointer',
-                                  flexShrink: 0,
-                                  transition: 'all 0.15s'
+                                  background: 'var(--card-bg, #ffffff)', color: 'var(--text-primary, #1F2937)',
+                                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s'
                                 }}
-                                onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
+                                onClick={() => showToast("Opening Trading Chart for " + group.symbol)}
                               >
-                                <svg 
-                                  viewBox="0 0 24 24" 
-                                  style={{
-                                    width: '1.25rem',
-                                    height: '1.25rem',
-                                    display: 'inline-block',
-                                    verticalAlign: 'middle',
-                                  }}
-                                >
-                                  {/* Bars */}
+                                <svg viewBox="0 0 24 24" style={{ width: '1.25rem', height: '1.25rem', display: 'inline-block', verticalAlign: 'middle' }}>
                                   <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
                                   <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
                                   <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
                                   <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                                  
-                                  {/* Trendline */}
-                                  <path 
-                                    d="M 4 14 L 8 9 L 13 12 L 20 4" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                  />
-                                  {/* Arrowhead */}
-                                  <polyline 
-                                    points="15 4 20 4 20 9" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                  />
+                                  <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               </button>
                             </div>
