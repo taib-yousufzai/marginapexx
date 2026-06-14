@@ -5,6 +5,7 @@ import {
   loadStrikeConfig,
   applyExpiryFilter,
   applyStrikeRangeFilter,
+  applyMcxStrikeRangeFilter,
   type Instrument,
 } from '@/lib/filterEngine';
 
@@ -160,7 +161,11 @@ export async function GET(request: Request) {
           const q = JSON.parse(cached);
           const atmPrice = q.last_price || q.ohlc?.close || q.close;
           if (atmPrice) {
-            options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
+            if (isMcx) {
+              options = applyMcxStrikeRangeFilter(options as Instrument[], atmPrice) as any[];
+            } else {
+              options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
+            }
           } else {
             console.warn(`[option-chain] No ATM price in Redis for ${symbol}, returning all strikes`);
           }

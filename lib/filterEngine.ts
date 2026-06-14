@@ -253,6 +253,69 @@ export function applyStrikeRangeFilter(
 }
 
 // ---------------------------------------------------------------------------
+// applyMcxStrikeRangeFilter
+// ---------------------------------------------------------------------------
+
+/**
+ * MCX-specific strike range filter: directional split around ATM.
+ * Returns 10 CE above ATM + 10 CE below ATM + 10 PE above ATM + 10 PE below ATM = 40 total.
+ * The count per direction is fixed at 10.
+ *
+ * CE above ATM = N CE contracts with strike_price >= atmPrice (ascending, nearest first)
+ * CE below ATM = N CE contracts with strike_price <  atmPrice (descending, nearest first)
+ * PE above ATM = N PE contracts with strike_price >= atmPrice (ascending, nearest first)
+ * PE below ATM = N PE contracts with strike_price <  atmPrice (descending, nearest first)
+ *
+ * If the pool has fewer than N contracts in a direction, all available are returned.
+ */
+export const MCX_STRIKES_PER_DIRECTION = 10;
+
+export function applyMcxStrikeRangeFilter(
+  instruments: Instrument[],
+  atmPrice: number,
+): Instrument[] {
+  const n = MCX_STRIKES_PER_DIRECTION;
+  const timestamp = new Date().toISOString();
+
+  const select = (pool: Instrument[], ascending: boolean, limit: number): Instrument[] => {
+    const sorted = [...pool].sort((a, b) =>
+      ascending
+        ? (a.strike_price ?? 0) - (b.strike_price ?? 0)
+        : (b.strike_price ?? 0) - (a.strike_price ?? 0),
+    );
+    const selected = sorted.slice(0, limit);
+    const excluded = sorted.slice(limit);
+    for (const instrument of excluded) {
+      console.log(
+        JSON.stringify({
+          event: 'instrument_excluded',
+          symbol: instrument.tradingsymbol,
+          rule: 'STRIKE_RANGE',
+          segment: instrument.segment ?? instrument.exchange ?? '',
+          timestamp,
+        } satisfies FilterLog),
+      );
+    }
+    return selected;
+  };
+
+  const ceAbove = instruments.filter((i) => i.option_type === 'CE' && (i.strike_price ?? 0) >= atmPrice);
+  const ceBelow = instruments.filter((i) => i.option_type === 'CE' && (i.strike_price ?? 0) < atmPrice);
+  const peAbove = instruments.filter((i) => i.option_type === 'PE' && (i.strike_price ?? 0) >= atmPrice);
+  const peBelow = instruments.filter((i) => i.option_type === 'PE' && (i.strike_price ?? 0) < atmPrice);
+
+  const others = instruments.filter((i) => i.option_type !== 'CE' && i.option_type !== 'PE');
+
+  return [
+    ...others,
+    ...select(ceAbove, true, n),   // nearest N above ATM (ascending)
+    ...select(ceBelow, false, n),  // nearest N below ATM (descending = closest first)
+    ...select(peAbove, true, n),
+    ...select(peBelow, false, n),
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // applyExpiryFilter
 // ---------------------------------------------------------------------------
 

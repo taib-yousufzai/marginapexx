@@ -7,6 +7,7 @@ import {
   applyCryptoWhitelist,
   applyExpiryFilter,
   applyStrikeRangeFilter,
+  applyMcxStrikeRangeFilter,
   type Instrument,
 } from '@/lib/filterEngine';
 
@@ -117,17 +118,17 @@ export async function GET() {
 
     // 3. Mcx-FUT & Mcx-OPT — apply applyExpiryFilter + applyStrikeRangeFilter for OPT
     const commodities = ['CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS'];
-    const mcxFutCats: any[] = [];
+    const mcxFutInstruments: any[] = [];  // flat list — no subCategories
     const mcxOptCats: any[] = [];
 
     await Promise.all(commodities.map(async (cmd) => {
-      // FUT
+      // FUT — collect directly into flat instruments array
       const { data: futs } = await supabase.from('instruments').select('*').eq('name', cmd).in('instrument_type', ['FUTCOM', 'FUT', 'MAPPED_FUT']).gte('expiry', today).order('expiry', { ascending: true }).limit(2);
       if (futs && futs.length > 0) {
-        mcxFutCats.push({
-          name: cmd,
-          instruments: futs.map((i: any) => ({ name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
-        });
+        futs.forEach((i: any) => mcxFutInstruments.push({
+          name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
+          price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+        }));
       }
       // OPT — apply expiry + strike range filter
       const { data: expData } = await supabase.rpc('get_option_expiries', { p_symbol: cmd, p_min_date: today });
@@ -148,7 +149,7 @@ export async function GET() {
               const q = JSON.parse(cached);
               const atmPrice = q.last_price || q.ohlc?.close || q.close;
               if (atmPrice) {
-                selectedOpts = applyStrikeRangeFilter(opts as Instrument[], atmPrice, strikeConfig.mcxOptionsRange);
+                selectedOpts = applyMcxStrikeRangeFilter(opts as Instrument[], atmPrice);
               } else {
                 console.warn(`[library] No ATM price for MCX ${cmd}, returning all strikes`);
               }
@@ -167,23 +168,23 @@ export async function GET() {
       }
     }));
 
-    if (mcxFutCats.length > 0) segments.push({ name: 'MCX-FUT', icon: 'fa-oil-well', subCategories: mcxFutCats });
+    if (mcxFutInstruments.length > 0) segments.push({ name: 'MCX-FUT', icon: 'fa-oil-well', instruments: mcxFutInstruments });
     if (mcxOptCats.length > 0) segments.push({ name: 'MCX-OPT', icon: 'fa-oil-well', subCategories: mcxOptCats });
 
     // 4. Stock-FUT, Stock-OPT, Nse-EQ
     const topStocks = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'ITC', 'TCS', 'LT', 'BHARTIARTL', 'SBIN', 'BAJFINANCE', 'AXISBANK', 'KOTAKBANK', 'M&M', 'TATAMOTORS', 'MARUTI', 'SUNPHARMA', 'ASIANPAINT', 'HCLTECH', 'TITAN', 'ULTRACEMCO'];
-    const stockFutCats: any[] = [];
+    const stockFutInstruments: any[] = [];  // flat
     const stockOptCats: any[] = [];
-    const nseEqCats: any[] = [];
+    const nseEqInstruments: any[] = [];     // flat
 
     await Promise.all(topStocks.map(async (stk) => {
-      // FUT
+      // FUT — flat into instruments array
       const { data: futs } = await supabase.from('instruments').select('*').eq('name', stk).in('instrument_type', ['FUTSTK', 'FUT', 'MAPPED_FUT']).gte('expiry', today).order('expiry', { ascending: true }).limit(2);
       if (futs && futs.length > 0) {
-        stockFutCats.push({
-          name: stk,
-          instruments: futs.map((i: any) => ({ name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
-        });
+        futs.forEach((i: any) => stockFutInstruments.push({
+          name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
+          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+        }));
       }
       // OPT
       const { data: expData } = await supabase.rpc('get_option_expiries', { p_symbol: stk, p_min_date: today });
@@ -197,19 +198,19 @@ export async function GET() {
           });
         }
       }
-      // EQ
+      // EQ — flat into instruments array
       const { data: eq } = await supabase.from('instruments').select('*').eq('instrument_type', 'EQ').eq('tradingsymbol', stk).limit(1);
       if (eq && eq.length > 0) {
-        nseEqCats.push({
-          name: stk,
-          instruments: eq.map((i: any) => ({ name: `${i.tradingsymbol} (EQ)`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Equity`, contractDate: '', open: 0, high: 0, low: 0, close: 0 }))
-        });
+        eq.forEach((i: any) => nseEqInstruments.push({
+          name: `${i.tradingsymbol} (EQ)`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
+          price: 0, change: '0%', segment: `${i.exchange} - Equity`, contractDate: '', open: 0, high: 0, low: 0, close: 0
+        }));
       }
     }));
 
-    if (stockFutCats.length > 0) segments.push({ name: 'STOCK-FUT', icon: 'fa-building', subCategories: stockFutCats });
+    if (stockFutInstruments.length > 0) segments.push({ name: 'STOCK-FUT', icon: 'fa-building', instruments: stockFutInstruments });
     if (stockOptCats.length > 0) segments.push({ name: 'STOCK-OPT', icon: 'fa-building', subCategories: stockOptCats });
-    if (nseEqCats.length > 0) segments.push({ name: 'NSE-EQ', icon: 'fa-building', subCategories: nseEqCats });
+    if (nseEqInstruments.length > 0) segments.push({ name: 'NSE-EQ', icon: 'fa-building', instruments: nseEqInstruments });
 
     // 5. Crypto — apply applyCryptoWhitelist
     const { data: cryptos } = await supabase.from('instruments').select('*').eq('segment', 'CRYPTO').order('name', { ascending: true });
@@ -248,7 +249,7 @@ export async function GET() {
 
     // 7. Forex — apply applyForexFilter (excludes CE/PE options, keeps Futures only)
     const currencies = ['USDINR', 'EURINR', 'GBPINR', 'JPYINR'];
-    const forexCats: any[] = [];
+    const forexInstruments: any[] = [];  // flat — no subCategories
 
     await Promise.all(currencies.map(async (curr) => {
       const { data: futs } = await supabase.from('instruments').select('*').eq('name', curr).in('instrument_type', ['FUTCUR', 'FUT', 'MAPPED_FUT']).gte('expiry', today).order('expiry', { ascending: true }).limit(2);
@@ -260,24 +261,19 @@ export async function GET() {
         opts = data;
       }
 
-      // Combine futs + opts, then apply forex filter (removes CE/PE)
-      const combined: Instrument[] = [
-        ...(futs ?? []),
-        ...(opts ?? []),
-      ] as Instrument[];
+      // Combine futs + opts, apply forex filter (removes CE/PE), push flat
+      const combined: Instrument[] = [...(futs ?? []), ...(opts ?? [])] as Instrument[];
       const filtered = applyForexFilter(combined);
 
-      const catInstruments = filtered.map((i: any) => {
-        if (['CE', 'PE'].includes(i.option_type)) {
-          return { name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 };
-        }
-        return { name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 };
+      filtered.forEach((i: any) => {
+        const entry = ['CE', 'PE'].includes(i.option_type)
+          ? { name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }
+          : { name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 };
+        forexInstruments.push(entry);
       });
-
-      if (catInstruments.length > 0) forexCats.push({ name: curr, instruments: catInstruments });
     }));
 
-    if (forexCats.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', subCategories: forexCats });
+    if (forexInstruments.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', instruments: forexInstruments });
 
     return NextResponse.json({ segments });
   } catch (error: any) {
