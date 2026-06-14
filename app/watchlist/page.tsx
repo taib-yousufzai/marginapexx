@@ -450,6 +450,15 @@ function WatchlistContent() {
   const { placeOrder, loading: placingOrder, error: placeOrderError } = useOrderEntry();
   const { positions: activePositions } = useActivePositions();
 
+  // Reset body overflow when this page unmounts (prevents scroll lock on other pages)
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
+      window.__selectionModeActive = false;
+    };
+  }, []);
+
   const [watchlistItems, setWatchlistItems] = useState<WatchlistItem[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<TabLabel>('All');
@@ -1263,6 +1272,17 @@ function WatchlistContent() {
     return () => {
       if (document.body.contains(script)) document.body.removeChild(script);
       scriptMountedRef.current = false;
+      // Clean up global state that persists across navigation and blocks other pages
+      window.__selectionModeActive = false;
+      window.__watchlistEventsAttached = false;
+      window.__isBasketModeActive = false;
+      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
+      // Force close any open drawers/overlays left behind
+      const drawerOverlay = document.getElementById('drawerOverlay');
+      const folderDrawer = document.getElementById('scriptsFolderDrawer');
+      if (drawerOverlay) drawerOverlay.classList.remove('active');
+      if (folderDrawer) folderDrawer.classList.remove('open');
     };
   }, [allowedSegments, segmentSettings]);
 
