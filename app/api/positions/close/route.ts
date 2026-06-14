@@ -2,91 +2,103 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 
-async function fetchKiteLtpBatch(instruments: string[]): Promise<Record<string, number>> {
+/**
+ * Fetch LTPs for a mixed batch of instruments (Kite + Binance crypto).
+ * Each entry in the map is keyed by the instrument's lookup key:
+ *   - Kite instruments: "NSE:NIFTY FUT" etc.
+ *   - Binance crypto:   "BTCUSDT" etc.
+ * Uses Redis → Ticker Daemon → REST cascade for both.
+ */
+async function fetchLtpBatch(
+  kiteInstruments: string[],
+  cryptoSymbols: string[]
+): Promise<Record<string, number>> {
   const quotesMap: Record<string, number> = {};
-  if (instruments.length === 0) return quotesMap;
+  const allSymbols = [...kiteInstruments, ...cryptoSymbols];
+  if (allSymbols.length === 0) return quotesMap;
 
-  // 1. Check Ticker Daemon in-memory quotes API
+  const missing = new Set(allSymbols);
+
+  // 1. Redis cache (both Kite and Binance prices land here)
+  try {
+    const { getRedisClient } = await import('@/lib/redis');
+    const redis = getRedisClient();
+    await Promise.all(Array.from(missing).map(async (sym) => {
+      const cached = await redis.hget('market:quotes', sym);
+      if (cached) {
+        const q = JSON.parse(cached);
+        if (q && q.last_price !== undefined) {
+          quotesMap[sym] = Number(q.last_price);
+          missing.delete(sym);
+        }
+      }
+    }));
+  } catch { /* fall through */ }
+
+  if (missing.size === 0) return quotesMap;
+
+  // 2. Ticker Daemon (serves both Kite and Binance streams)
   try {
     const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
-    const params = new URLSearchParams({ symbols: instruments.join(',') });
+    const params = new URLSearchParams({ symbols: Array.from(missing).join(',') });
     const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
     if (resTicker.ok) {
       const json = await resTicker.json();
       if (json.success && json.data) {
-        for (const inst of instruments) {
-          if (json.data[inst]) {
-            quotesMap[inst] = Number(json.data[inst].last_price);
+        for (const sym of Array.from(missing)) {
+          if (json.data[sym]) {
+            quotesMap[sym] = Number(json.data[sym].last_price);
+            missing.delete(sym);
           }
         }
       }
     }
   } catch (tickerErr) {
-    console.warn('[fetchKiteLtpBatch] Failed to query Ticker Daemon, falling back to REST:', tickerErr);
+    console.warn('[fetchLtpBatch] Ticker Daemon failed, falling back to REST:', tickerErr);
   }
 
-  // Find instruments not found in Ticker Daemon cache
-  const missing = instruments.filter(inst => quotesMap[inst] === undefined);
-  if (missing.length === 0) return quotesMap;
+  if (missing.size === 0) return quotesMap;
 
-  // 2. On-demand fallback to Kite REST API for missing ones
-  try {
-    const apiKey = process.env.KITE_API_KEY;
-    if (!apiKey) return quotesMap;
-    const session = await getSharedKiteSession();
-    if (!session) return quotesMap;
-
-    const params = new URLSearchParams();
-    for (const inst of missing) {
-      params.append('i', inst);
-    }
-
-    const res = await fetch(`https://api.kite.trade/quote?${params}`, {
-      headers: {
-        'X-Kite-Version': '3',
-        Authorization: `token ${apiKey}:${session.accessToken}`,
-      },
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      const data = await res.json() as { data?: Record<string, { last_price: number; instrument_token?: number; ohlc?: { close?: number } }> };
-      if (data.data) {
-        const admin = getAdminClient();
-        const upsertPromises: Promise<any>[] = [];
-
-        for (const inst of missing) {
-          const quote = data.data[inst];
-          if (quote) {
-            quotesMap[inst] = quote.last_price;
-
-            // Asynchronously cache instruments
-            upsertPromises.push((async () => {
-              try {
-                const parts = inst.split(':');
-                const exchange = parts[0] || 'NSE';
-                const tradingsymbol = parts[1] || '';
-                await admin.from('instruments').upsert({
-                  id: inst,
-                  instrument_token: quote.instrument_token || 0,
-                  tradingsymbol: tradingsymbol,
-                  exchange: exchange,
-                  instrument_type: exchange === 'NFO' || exchange === 'MCX' || exchange === 'CDS' ? 'FUTOPT' : 'EQ',
-                  segment: exchange,
-                  updated_at: new Date().toISOString()
-                }, { onConflict: 'id' });
-              } catch (err) {
-                console.error('[fetchKiteLtpBatch] Background cache error:', err);
-              }
-            })());
+  // 3a. Kite REST for remaining non-crypto instruments
+  const missingKite = Array.from(missing).filter(s => kiteInstruments.includes(s));
+  if (missingKite.length > 0) {
+    try {
+      const apiKey = process.env.KITE_API_KEY;
+      const session = apiKey ? await getSharedKiteSession() : null;
+      if (apiKey && session) {
+        const params = new URLSearchParams();
+        missingKite.forEach(i => params.append('i', i));
+        const res = await fetch(`https://api.kite.trade/quote?${params}`, {
+          headers: { 'X-Kite-Version': '3', Authorization: `token ${apiKey}:${session.accessToken}` },
+          cache: 'no-store',
+        });
+        if (res.ok) {
+          const data = await res.json() as { data?: Record<string, { last_price: number }> };
+          for (const inst of missingKite) {
+            const quote = data.data?.[inst];
+            if (quote) { quotesMap[inst] = quote.last_price; missing.delete(inst); }
           }
         }
-        // Run caching in background
-        Promise.all(upsertPromises).catch(() => {});
       }
+    } catch (err) {
+      console.error('[fetchLtpBatch] Kite REST error:', err);
     }
-  } catch (err) {
-    console.error('[fetchKiteLtpBatch] Unexpected REST error:', err);
+  }
+
+  // 3b. Binance REST for remaining crypto symbols
+  const missingCrypto = Array.from(missing).filter(s => cryptoSymbols.includes(s));
+  if (missingCrypto.length > 0) {
+    await Promise.all(missingCrypto.map(async (sym) => {
+      try {
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.price) { quotesMap[sym] = parseFloat(data.price); missing.delete(sym); }
+        }
+      } catch (err) {
+        console.error(`[fetchLtpBatch] Binance REST error for ${sym}:`, err);
+      }
+    }));
   }
 
   return quotesMap;
@@ -151,29 +163,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // 3. Resolve all full symbols and prepare to batch fetch LTPs
-    const symbolsToFetch = new Set<string>();
+    // Crypto positions use Binance key (BTCUSDT), others use Kite exchange-prefixed key
+    const kiteSymbolsToFetch = new Set<string>();
+    const cryptoSymbolsToFetch = new Set<string>();
+
     const posSymbols = positions.map(pos => {
-      let fullSymbol = pos.symbol;
-      if (!pos.symbol.includes(':') && pos.settlement !== 'CRYPTO') {
-        let exchange = 'NSE';
-        if (pos.settlement) {
-          const s = pos.settlement.toUpperCase();
-          if (s.includes('MCX')) exchange = 'MCX';
-          else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-          else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-          else if (s.includes('BSE')) exchange = 'BSE';
+      const isCrypto = (pos.settlement || '').toUpperCase().includes('CRYPTO');
+      let lookupKey: string;
+
+      if (isCrypto) {
+        let cleanSym = (pos.symbol || '').replace('/', '').toUpperCase();
+        if (!cleanSym.endsWith('USDT')) cleanSym = cleanSym + 'USDT';
+        lookupKey = cleanSym;
+        cryptoSymbolsToFetch.add(lookupKey);
+      } else {
+        let fullSymbol = pos.symbol;
+        if (!pos.symbol.includes(':')) {
+          let exchange = 'NSE';
+          if (pos.settlement) {
+            const s = pos.settlement.toUpperCase();
+            if (s.includes('MCX')) exchange = 'MCX';
+            else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+            else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+            else if (s.includes('BSE')) exchange = 'BSE';
+          }
+          fullSymbol = `${exchange}:${pos.symbol}`;
         }
-        fullSymbol = `${exchange}:${pos.symbol}`;
+        lookupKey = fullSymbol;
+        kiteSymbolsToFetch.add(lookupKey);
       }
-      symbolsToFetch.add(fullSymbol);
-      return { pos, fullSymbol };
+
+      return { pos, lookupKey };
     });
 
-    const quotesMap = await fetchKiteLtpBatch(Array.from(symbolsToFetch));
+    const quotesMap = await fetchLtpBatch(
+      Array.from(kiteSymbolsToFetch),
+      Array.from(cryptoSymbolsToFetch)
+    );
 
     // 4. Process closing for each position
     const results = await Promise.all(
-      posSymbols.map(async ({ pos, fullSymbol }) => {
+      posSymbols.map(async ({ pos, lookupKey }) => {
         try {
           // Check market hours
           const symbol = pos.symbol || '';
@@ -216,7 +246,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
           const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
-          const baseLtp = quotesMap[fullSymbol] ?? Number(pos.ltp ?? pos.entry_price);
+          const baseLtp = quotesMap[lookupKey] ?? Number(pos.ltp ?? pos.entry_price);
 
           // Exit price computation
           let exitPrice: number;

@@ -24,17 +24,40 @@ import type {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Fetch the Binance LTP for a crypto symbol.
+ * Fetch the Binance LTP for a crypto symbol using the same
+ * Redis → Ticker Daemon → Binance REST cascade as the Kite path.
  */
 async function fetchBinanceQuote(symbol: string): Promise<number | null> {
+  let cleanSym = symbol.replace('/', '').toUpperCase();
+  if (!cleanSym.endsWith('USDT')) cleanSym = cleanSym + 'USDT';
+
+  // 1. Redis cache (Ticker Daemon writes Binance prices here too)
   try {
-    let cleanSym = symbol.replace('/', '').toUpperCase();
-    if (!cleanSym.endsWith('USDT')) {
-      cleanSym = cleanSym + 'USDT';
+    const { getRedisClient } = await import('@/lib/redis');
+    const redis = getRedisClient();
+    const cached = await redis.hget('market:quotes', cleanSym);
+    if (cached) {
+      const q = JSON.parse(cached);
+      if (q && q.last_price !== undefined) return Number(q.last_price);
     }
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, {
-      cache: 'no-store'
-    });
+  } catch { /* fall through */ }
+
+  // 2. Ticker Daemon in-memory endpoint
+  try {
+    const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
+    const params = new URLSearchParams({ symbols: cleanSym });
+    const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+    if (resTicker.ok) {
+      const json = await resTicker.json();
+      if (json.success && json.data && json.data[cleanSym]) {
+        return Number(json.data[cleanSym].last_price);
+      }
+    }
+  } catch { /* fall through */ }
+
+  // 3. Direct Binance REST fallback
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
     return data.price ? parseFloat(data.price) : null;
@@ -610,25 +633,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 8. Balance check — use the balance from the profile query
+  // 8. Balance check — use server-fetched LTP for accurate margin calculation
   const balance = Number(profile.balance ?? 0);
   const targetProductType = product_type ?? 'INTRADAY';
   const leverage = targetProductType === 'CARRY'
     ? (segSetting.holding_leverage ?? 1)
     : (segSetting.intraday_leverage ?? 1);
-  const exposure      = qty * client_price;
+
+  // 9. Fill price — use the already-fetched kiteLtp (no second Kite call)
+  // For MARKET/SLM orders, we require a live server price — never fall back to the UI's stale client_price.
+  // For LIMIT/SL/GTT, the user's client_price IS the intended fill price, so use that directly.
+  let baseLtp: number;
+  if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
+    baseLtp = client_price;
+  } else {
+    if (!kiteLtp || kiteLtp <= 0) {
+      return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
+    }
+    baseLtp = kiteLtp;
+  }
+
+  // Use server price for margin check so it's always accurate regardless of UI staleness
+  const marginPrice = (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT')
+    ? client_price   // pending orders: use the user's specified price
+    : baseLtp;       // MARKET/SLM: use live server price
+  const exposure      = qty * marginPrice;
   const requiredMargin = exposure / leverage;
 
   if (balance < requiredMargin) {
     return NextResponse.json({
       error: `Insufficient margin. Available: ₹${balance.toFixed(2)}, Required: ₹${requiredMargin.toFixed(2)}`,
     }, { status: 400 });
-  }
-
-  // 9. Fill price — use the already-fetched kiteLtp (no second Kite call)
-  const baseLtp = kiteLtp ?? client_price;
-  if (!baseLtp || baseLtp <= 0) {
-    return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }
 
   // Validate Limit price constraints relative to LTP

@@ -90,6 +90,70 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
   }
 }
 
+/**
+ * Fetch the Binance LTP for a crypto symbol using the same
+ * Redis → Ticker Daemon → Binance REST cascade as the Kite path.
+ */
+async function fetchBinanceLtp(symbol: string): Promise<number | null> {
+  let cleanSym = symbol.replace('/', '').toUpperCase();
+  if (!cleanSym.endsWith('USDT')) cleanSym = cleanSym + 'USDT';
+
+  // 1. Redis cache
+  try {
+    const { getRedisClient } = await import('@/lib/redis');
+    const redis = getRedisClient();
+    const cached = await redis.hget('market:quotes', cleanSym);
+    if (cached) {
+      const q = JSON.parse(cached);
+      if (q && q.last_price !== undefined) return Number(q.last_price);
+    }
+  } catch { /* fall through */ }
+
+  // 2. Ticker Daemon
+  try {
+    const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
+    const params = new URLSearchParams({ symbols: cleanSym });
+    const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+    if (resTicker.ok) {
+      const json = await resTicker.json();
+      if (json.success && json.data && json.data[cleanSym]) {
+        return Number(json.data[cleanSym].last_price);
+      }
+    }
+  } catch { /* fall through */ }
+
+  // 3. Direct Binance REST fallback
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.price ? parseFloat(data.price) : null;
+  } catch (err) {
+    console.error('[fetchBinanceLtp] Error:', err);
+    return null;
+  }
+}
+
+/**
+ * Fetch LTP for any instrument — routes to Binance for CRYPTO, Kite for everything else.
+ */
+async function fetchLtp(symbol: string, settlement: string): Promise<number | null> {
+  if ((settlement || '').toUpperCase().includes('CRYPTO')) {
+    return fetchBinanceLtp(symbol);
+  }
+  let fullSymbol = symbol;
+  if (!symbol.includes(':')) {
+    let exchange = 'NSE';
+    const s = settlement.toUpperCase();
+    if (s.includes('MCX')) exchange = 'MCX';
+    else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+    else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+    else if (s.includes('BSE')) exchange = 'BSE';
+    fullSymbol = `${exchange}:${symbol}`;
+  }
+  return fetchKiteLtp(fullSymbol);
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -175,27 +239,12 @@ export async function POST(
   const lookupId = profileResult.data?.parent_id ?? user.id;
   const [segSettingResult, kiteLtp] = await Promise.all([
     admin.from(targetTable)
-      .select('exit_buffer, profit_hold_sec, loss_hold_sec')
+      .select('exit_buffer, profit_hold_sec, loss_hold_sec, entry_buffer')
       .eq('user_id', lookupId)
       .eq('segment', pos.settlement ?? '')
       .eq('side', pos.side)
       .maybeSingle(),
-    (() => {
-      if (!pos.symbol) return Promise.resolve(null);
-      let fullSymbol = pos.symbol;
-      if (!pos.symbol.includes(':') && pos.settlement !== 'CRYPTO') {
-        let exchange = 'NSE';
-        if (pos.settlement) {
-          const s = pos.settlement.toUpperCase();
-          if (s.includes('MCX')) exchange = 'MCX';
-          else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-          else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-          else if (s.includes('BSE')) exchange = 'BSE';
-        }
-        fullSymbol = `${exchange}:${pos.symbol}`;
-      }
-      return fetchKiteLtp(fullSymbol);
-    })(),
+    fetchLtp(pos.symbol, pos.settlement ?? ''),
   ]);
 
   const { data: segSetting } = segSettingResult;
