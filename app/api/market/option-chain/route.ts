@@ -157,20 +157,22 @@ export async function GET(request: Request) {
         const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;
         const cached = await redis.hget('market:quotes', kiteId);
 
+        let atmPrice = 0;
         if (cached) {
           const q = JSON.parse(cached);
-          const atmPrice = q.last_price || q.ohlc?.close || q.close;
-          if (atmPrice) {
-            if (isMcx) {
-              options = applyMcxStrikeRangeFilter(options as Instrument[], atmPrice) as any[];
-            } else {
-              options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
-            }
+          atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+        }
+        if (!atmPrice && options.length > 0) {
+          console.warn(`[option-chain] Redis ATM price unavailable for ${symbol}, falling back to median strike`);
+          const middleIndex = Math.floor(options.length / 2);
+          atmPrice = (options as Instrument[])[middleIndex]?.strike_price || 0;
+        }
+        if (atmPrice) {
+          if (isMcx) {
+            options = applyMcxStrikeRangeFilter(options as Instrument[], atmPrice) as any[];
           } else {
-            console.warn(`[option-chain] No ATM price in Redis for ${symbol}, returning all strikes`);
+            options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
           }
-        } else {
-          console.warn(`[option-chain] Redis ATM price unavailable for ${symbol}, returning all strikes`);
         }
       } catch (e) {
         console.error(`[option-chain] Strike range filter error for ${symbol}:`, e);

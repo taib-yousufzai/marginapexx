@@ -41,12 +41,12 @@ export default function SettingsFiltering() {
     const indexVal = parseInt(indexOptionsRange, 10);
     const mcxVal = parseInt(mcxOptionsRange, 10);
 
-    if (!Number.isInteger(indexVal) || indexVal <= 0 || String(indexVal) !== indexOptionsRange.trim()) {
-      setToast({ message: 'Index Options Strike Range must be a positive integer', type: 'error' });
+    if (!Number.isInteger(indexVal) || indexVal <= 0 || indexVal > 40 || String(indexVal) !== indexOptionsRange.trim()) {
+      setToast({ message: 'Index Options Strike Range must be between 1 and 40', type: 'error' });
       return;
     }
-    if (!Number.isInteger(mcxVal) || mcxVal <= 0 || String(mcxVal) !== mcxOptionsRange.trim()) {
-      setToast({ message: 'MCX Options Strike Range must be a positive integer', type: 'error' });
+    if (!Number.isInteger(mcxVal) || mcxVal <= 0 || mcxVal > 40 || String(mcxVal) !== mcxOptionsRange.trim()) {
+      setToast({ message: 'MCX Options Strike Range must be between 1 and 40', type: 'error' });
       return;
     }
 
@@ -116,6 +116,7 @@ export default function SettingsFiltering() {
               onChange={(e) => setIndexOptionsRange(e.target.value)}
               placeholder="5"
               min="1"
+              max="40"
               step="1"
               style={{ maxWidth: 160 }}
             />
@@ -133,6 +134,7 @@ export default function SettingsFiltering() {
               onChange={(e) => setMcxOptionsRange(e.target.value)}
               placeholder="7"
               min="1"
+              max="40"
               step="1"
               style={{ maxWidth: 160 }}
             />

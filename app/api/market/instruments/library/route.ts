@@ -90,16 +90,18 @@ export async function GET() {
         const kiteId = kiteIdMap[idx];
         if (kiteId) {
           const cached = await redis.hget('market:quotes', kiteId);
+          let atmPrice = 0;
           if (cached) {
             const q = JSON.parse(cached);
-            const atmPrice = q.last_price || q.ohlc?.close || q.close;
-            if (atmPrice) {
-              selectedOpts = applyStrikeRangeFilter(opts as Instrument[], atmPrice, strikeConfig.indexOptionsRange);
-            } else {
-              console.warn(`[library] No ATM price for ${idx}, returning all strikes`);
-            }
-          } else {
-            console.warn(`[library] Redis ATM price unavailable for ${idx}, returning all strikes`);
+            atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+          }
+          if (!atmPrice && opts.length > 0) {
+            console.warn(`[library] Redis ATM price unavailable for ${idx}, falling back to median strike`);
+            const middleIndex = Math.floor(opts.length / 2);
+            atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
+          }
+          if (atmPrice) {
+            selectedOpts = applyStrikeRangeFilter(opts as Instrument[], atmPrice, strikeConfig.indexOptionsRange);
           }
         }
       } catch (e) {
@@ -145,16 +147,18 @@ export async function GET() {
             // MCX ATM price — try Redis market quotes
             const kiteId = `MCX:${cmd}`;
             const cached = await redis.hget('market:quotes', kiteId);
+            let atmPrice = 0;
             if (cached) {
               const q = JSON.parse(cached);
-              const atmPrice = q.last_price || q.ohlc?.close || q.close;
-              if (atmPrice) {
-                selectedOpts = applyMcxStrikeRangeFilter(opts as Instrument[], atmPrice);
-              } else {
-                console.warn(`[library] No ATM price for MCX ${cmd}, returning all strikes`);
-              }
-            } else {
-              console.warn(`[library] Redis ATM price unavailable for MCX ${cmd}, returning all strikes`);
+              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            }
+            if (!atmPrice && opts.length > 0) {
+              console.warn(`[library] No ATM price for MCX ${cmd}, falling back to median strike`);
+              const middleIndex = Math.floor(opts.length / 2);
+              atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
+            }
+            if (atmPrice) {
+              selectedOpts = applyMcxStrikeRangeFilter(opts as Instrument[], atmPrice);
             }
           } catch (e) {
             console.error(`[library] Failed to apply strike range filter for MCX ${cmd}:`, e);

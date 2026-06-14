@@ -78,16 +78,15 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validate positive integers
-    if (!Number.isInteger(indexOptionsRange) || indexOptionsRange <= 0) {
+    if (!Number.isInteger(indexOptionsRange) || indexOptionsRange <= 0 || indexOptionsRange > 40) {
       return Response.json(
-        { error: 'indexOptionsRange must be a positive integer greater than zero' },
+        { error: 'indexOptionsRange must be a positive integer between 1 and 40' },
         { status: 400 },
       );
     }
-    if (!Number.isInteger(mcxOptionsRange) || mcxOptionsRange <= 0) {
+    if (!Number.isInteger(mcxOptionsRange) || mcxOptionsRange <= 0 || mcxOptionsRange > 40) {
       return Response.json(
-        { error: 'mcxOptionsRange must be a positive integer greater than zero' },
+        { error: 'mcxOptionsRange must be a positive integer between 1 and 40' },
         { status: 400 },
       );
     }
