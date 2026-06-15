@@ -119,7 +119,7 @@ export async function GET() {
     if (indexOptCats.length > 0) segments.push({ name: 'INDEX-OPT', icon: 'fa-chart-pie', subCategories: indexOptCats });
 
     // 3. Mcx-FUT & Mcx-OPT — apply applyExpiryFilter + applyStrikeRangeFilter for OPT
-    const commodities = ['CRUDEOIL', 'GOLD', 'SILVER', 'NATURALGAS'];
+    const commodities = ['CRUDEOIL', 'CRUDEOILM', 'GOLD', 'GOLDM', 'SILVER', 'SILVERM', 'SILVERMIC', 'NATURALGAS', 'NATGASMINI', 'ALUMINIUM', 'ALUMINI', 'ZINC', 'ZINCMINI', 'LEAD', 'LEADMINI', 'COPPER'];
     const mcxFutInstruments: any[] = [];  // flat list — no subCategories
     const mcxOptCats: any[] = [];
 
@@ -144,13 +144,16 @@ export async function GET() {
         if (opts && opts.length > 0) {
           let selectedOpts: Instrument[] = opts as Instrument[];
           try {
-            // MCX ATM price — try Redis market quotes
-            const kiteId = `MCX:${cmd}`;
-            const cached = await redis.hget('market:quotes', kiteId);
+            // MCX ATM price — use nearest future's market quote instead of spot
             let atmPrice = 0;
-            if (cached) {
-              const q = JSON.parse(cached);
-              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            if (futs && futs.length > 0) {
+              const nearestFut = futs[0];
+              const kiteId = `${nearestFut.exchange}:${nearestFut.tradingsymbol}`;
+              const cached = await redis.hget('market:quotes', kiteId);
+              if (cached) {
+                const q = JSON.parse(cached);
+                atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+              }
             }
             if (!atmPrice && opts.length > 0) {
               console.warn(`[library] No ATM price for MCX ${cmd}, falling back to median strike`);
