@@ -23,6 +23,8 @@ export function getAdminClient(): SupabaseClient {
   return _adminClient;
 }
 
+const pendingRequests = new Map<string, Promise<any>>();
+
 /**
  * Resolve and verify a Supabase Bearer JWT from an Authorization header.
  * Returns the user object or null if invalid.
@@ -45,22 +47,43 @@ export async function getUserFromRequest(request: Request) {
     // Ignore Redis errors
   }
 
-  const admin = getAdminClient();
-  const { data, error } = await admin.auth.getUser(token);
-  if (error || !data?.user) return null;
-
-  try {
-    const { getRedisClient } = await import('./redis');
-    const redis = getRedisClient();
-    // Cache the user for 60 seconds to avoid hitting Supabase API rate limits
-    if (redis.setex) {
-      await redis.setex(`auth_user:${token}`, 60, JSON.stringify(data.user));
-    } else {
-      await redis.set(`auth_user:${token}`, JSON.stringify(data.user), 'EX', 60);
+  // Prevent cache stampede by reusing pending requests for the same token
+  if (pendingRequests.has(token)) {
+    try {
+      return await pendingRequests.get(token);
+    } catch (e) {
+      return null;
     }
-  } catch (err) {
-    // Ignore Redis errors
   }
 
-  return data.user;
+  const fetchUser = async () => {
+    const admin = getAdminClient();
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data?.user) {
+      console.error('[getUserFromRequest] Auth error:', error);
+      return null;
+    }
+
+    try {
+      const { getRedisClient } = await import('./redis');
+      const redis = getRedisClient();
+      // Cache the user for 1 hour to avoid hitting Supabase API rate limits
+      // Token usually expires in 1 hour anyway.
+      if (redis.setex) {
+        await redis.setex(`auth_user:${token}`, 3600, JSON.stringify(data.user));
+      } else {
+        await redis.set(`auth_user:${token}`, JSON.stringify(data.user), 'EX', 3600);
+      }
+    } catch (err) {
+      // Ignore Redis errors
+    }
+    return data.user;
+  };
+
+  const promise = fetchUser().finally(() => {
+    pendingRequests.delete(token);
+  });
+  pendingRequests.set(token, promise);
+
+  return promise;
 }
