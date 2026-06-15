@@ -206,7 +206,7 @@
         .type-btn { flex: 1; min-width: 70px; padding: 8px; border: 1px solid #E8ECF0; background: white; border-radius: 30px; font-size: 0.7rem; font-weight: 600; cursor: pointer; text-align: center; }
         .type-btn.active { background: #C62E2E; color: white; border-color: #C62E2E; }
         .price-input-container { margin-top: 10px; display: none; }
-        .price-input { width: 100%; padding: 10px; border-radius: 30px; border: 1px solid #E8ECF0; font-size: 0.85rem; }
+        .price-input { width: 100%; padding: 10px; border-radius: 30px; border: 1px solid #E8ECF0; font-size: 16px; }
 
         .margin-details { background: linear-gradient(135deg, #F8FAFF, #FFFFFF); padding: 12px 14px; border-radius: 18px; margin-bottom: 14px; border: 1px solid #EEF2F8; }
         .margin-title { font-size: 0.7rem; font-weight: 700; color: #C62E2E; margin-bottom: 10px; }

@@ -88,7 +88,7 @@
 .pd-input {
     width: 100%; padding: 10px 14px;
     border: 1.5px solid #E2E8F0; border-radius: 12px;
-    font-size: 0.95rem; font-weight: 600; color: #1A1E2B;
+    font-size: 16px; font-weight: 600; color: #1A1E2B;
     background: #F8FAFF; outline: none; transition: border-color 0.2s;
     box-sizing: border-box; font-family: inherit;
 }

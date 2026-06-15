@@ -31,7 +31,7 @@
 .sec-label i { font-size: 0.7rem; }
 
 .sec-input-wrap { position: relative; display: flex; align-items: center; }
-.sec-input { width: 100%; padding: 12px 44px 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 14px; font-size: 0.95rem; font-weight: 500; color: #1A1E2B; background: #F8FAFF; outline: none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit; }
+.sec-input { width: 100%; padding: 12px 44px 12px 14px; border: 1.5px solid #E2E8F0; border-radius: 14px; font-size: 16px; font-weight: 500; color: #1A1E2B; background: #F8FAFF; outline: none; transition: border-color 0.2s; box-sizing: border-box; font-family: inherit; }
 .sec-input:focus { border-color: #2C8E5A; background: #FFFFFF; }
 .sec-eye-btn { position: absolute; right: 12px; background: none; border: none; color: #9AA4BF; cursor: pointer; padding: 4px; font-size: 0.9rem; transition: color 0.2s; }
 .sec-eye-btn:hover { color: #5B677E; }
