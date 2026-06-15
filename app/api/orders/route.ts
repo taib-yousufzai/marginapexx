@@ -640,18 +640,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ? (segSetting.holding_leverage ?? 1)
     : (segSetting.intraday_leverage ?? 1);
 
-  // 9. Fill price — use the already-fetched kiteLtp (no second Kite call)
-  // For MARKET/SLM orders, we require a live server price — never fall back to the UI's stale client_price.
-  // For LIMIT/SL/GTT, the user's client_price IS the intended fill price, so use that directly.
-  let baseLtp: number;
-  if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
-    baseLtp = client_price;
-  } else {
-    if (!kiteLtp || kiteLtp <= 0) {
-      return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
-    }
-    baseLtp = kiteLtp;
+  // 9. Base LTP from server
+  if (!kiteLtp || kiteLtp <= 0) {
+    return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
   }
+  const baseLtp = kiteLtp;
 
   // Use server price for margin check so it's always accurate regardless of UI staleness
   const marginPrice = (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT')
