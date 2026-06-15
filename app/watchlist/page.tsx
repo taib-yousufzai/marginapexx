@@ -1360,7 +1360,7 @@ function WatchlistContent() {
               </div>
             </div>
           </div>
-          <div className="watchlist-card-list">
+          <div className="watchlist-card-list" style={{ paddingBottom: basketMode ? '120px' : '0px' }}>
             {allowedSegments === null ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', gap: '12px', color: 'var(--text-secondary, #6B7280)' }}>
                 <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '1.5rem', color: '#C62E2E', opacity: 0.6 }} />
