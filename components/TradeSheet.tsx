@@ -574,35 +574,60 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-'))) {
       const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '');
       const isSl = modifyingOrderId.startsWith('pos-sl-');
-      const updateData = isSl 
-        ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null } 
-        : { target: resolvedClientPrice || resolvedTarget || null };
+      
+      const isStillTarget = isSl === false && (orderType === 'TARGET' || orderType === 'LIMIT');
+      const isStillSl = isSl === true && (orderType === 'SL' || orderType === 'SLM');
 
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers.Authorization = `Bearer ${token}`;
+      if (isStillTarget || isStillSl) {
+        const updateData = isSl 
+          ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null } 
+          : { target: resolvedClientPrice || resolvedTarget || null };
 
-        const patchRes = await fetch(`/api/positions/${positionId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify(updateData),
-        });
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers.Authorization = `Bearer ${token}`;
 
-        if (!patchRes.ok) {
-          const body = await patchRes.json();
-          showToast(body.error || 'Failed to update position stop loss/target.');
+          const patchRes = await fetch(`/api/positions/${positionId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(updateData),
+          });
+
+          if (!patchRes.ok) {
+            const body = await patchRes.json();
+            showToast(body.error || 'Failed to update position stop loss/target.');
+            return;
+          }
+
+          showToast('Stop loss/target updated successfully');
+          onSuccess?.();
+          onClose();
+          return;
+        } catch (err) {
+          showToast('Failed to update position stop loss/target.');
           return;
         }
+      } else {
+        // User changed the order type (e.g. from Target to Market or SL)
+        // Clear the old target or stop loss first so it doesn't linger
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers.Authorization = `Bearer ${token}`;
 
-        showToast('Stop loss/target updated successfully');
-        onSuccess?.();
-        onClose();
-        return;
-      } catch (err) {
-        showToast('Failed to update position stop loss/target.');
-        return;
+          const clearData = isSl ? { stop_loss: null } : { target: null };
+          await fetch(`/api/positions/${positionId}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(clearData),
+          });
+        } catch (e) {
+          console.error('[DEBUG TradeSheet handlePlace] Error clearing old target/SL:', e);
+        }
+        // Do not return; let execution continue to place the new order type
       }
     }
     if (exitMode && (orderType === 'SL' || orderType === 'TARGET' || orderType === 'GTT')) {
