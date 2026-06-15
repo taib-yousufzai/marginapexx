@@ -151,7 +151,7 @@ export async function GET(request: Request) {
         // Look up ATM price from Redis
         const kiteIdMap: Record<string, string> = {
           'NIFTY': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
-          'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MIDCAP 50',
+          'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
           'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
         };
         const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;

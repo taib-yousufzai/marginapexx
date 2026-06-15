@@ -60,7 +60,7 @@ export async function GET() {
       'NIFTY': 'NSE:NIFTY 50',
       'BANKNIFTY': 'NSE:NIFTY BANK',
       'FINNIFTY': 'NSE:NIFTY FIN SERVICE',
-      'MIDCPNIFTY': 'NSE:NIFTY MIDCAP 50',
+      'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
       'SENSEX': 'BSE:SENSEX',
       'BANKEX': 'BSE:BANKEX',
     };

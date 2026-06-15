@@ -196,44 +196,55 @@ export function applyCryptoWhitelist(instruments: Instrument[]): Instrument[] {
   return result;
 }
 
-// ---------------------------------------------------------------------------
-// applyStrikeRangeFilter
-// ---------------------------------------------------------------------------
-
-/**
- * Selects the N closest CE contracts and N closest PE contracts by absolute
- * distance to atmPrice. If fewer than N of either type are available, returns
- * all available contracts of that type. Logs each excluded strike.
- *
- * Requirements: 2.2, 3.2, 9.8
- */
 export function applyStrikeRangeFilter(
   instruments: Instrument[],
   atmPrice: number,
   range: number,
 ): Instrument[] {
-  const ceContracts = instruments.filter((i) => i.option_type === 'CE');
-  const peContracts = instruments.filter((i) => i.option_type === 'PE');
+  const others = instruments.filter((i) => i.option_type !== 'CE' && i.option_type !== 'PE');
+  const options = instruments.filter((i) => i.option_type === 'CE' || i.option_type === 'PE');
 
-  // Sort each group by distance from ATM (ascending)
-  const byDistance = (a: Instrument, b: Instrument) => {
-    const distA = Math.abs((a.strike_price ?? 0) - atmPrice);
-    const distB = Math.abs((b.strike_price ?? 0) - atmPrice);
-    return distA - distB;
-  };
+  if (options.length === 0) return others;
 
-  ceContracts.sort(byDistance);
-  peContracts.sort(byDistance);
+  // Extract unique strikes and sort them
+  const strikes = Array.from(new Set(options.map((i) => i.strike_price ?? 0))).sort((a, b) => a - b);
+  
+  if (strikes.length === 0) return others;
 
-  const selectedCe = ceContracts.slice(0, range);
-  const selectedPe = peContracts.slice(0, range);
+  // Find the exact closest strike index
+  let closestIdx = 0;
+  let minDiff = Infinity;
+  for (let i = 0; i < strikes.length; i++) {
+    const diff = Math.abs(strikes[i] - atmPrice);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestIdx = i;
+    }
+  }
 
-  const excludedCe = ceContracts.slice(range);
-  const excludedPe = peContracts.slice(range);
+  // Calculate slice boundaries
+  const half = Math.floor(range / 2);
+  let startIdx = closestIdx - half;
+  let endIdx = closestIdx + half;
+
+  // Adjust if hitting boundaries (to maintain total range count if possible)
+  if (startIdx < 0) {
+    endIdx += Math.abs(startIdx);
+    startIdx = 0;
+  }
+  if (endIdx >= strikes.length) {
+    const excess = endIdx - (strikes.length - 1);
+    startIdx = Math.max(0, startIdx - excess);
+    endIdx = strikes.length - 1;
+  }
+
+  const selectedStrikes = new Set(strikes.slice(startIdx, endIdx + 1));
+  
+  const kept = options.filter((i) => selectedStrikes.has(i.strike_price ?? 0));
+  const excluded = options.filter((i) => !selectedStrikes.has(i.strike_price ?? 0));
 
   const timestamp = new Date().toISOString();
-
-  for (const instrument of [...excludedCe, ...excludedPe]) {
+  for (const instrument of excluded) {
     const log: FilterLog = {
       event: 'instrument_excluded',
       symbol: instrument.tradingsymbol,
@@ -244,12 +255,7 @@ export function applyStrikeRangeFilter(
     console.log(JSON.stringify(log));
   }
 
-  // Also pass through non-CE/PE instruments unchanged
-  const otherInstruments = instruments.filter(
-    (i) => i.option_type !== 'CE' && i.option_type !== 'PE',
-  );
-
-  return [...otherInstruments, ...selectedCe, ...selectedPe];
+  return [...others, ...kept];
 }
 
 // ---------------------------------------------------------------------------
@@ -257,16 +263,7 @@ export function applyStrikeRangeFilter(
 // ---------------------------------------------------------------------------
 
 /**
- * MCX-specific strike range filter: directional split around ATM.
- * Returns 10 CE above ATM + 10 CE below ATM + 10 PE above ATM + 10 PE below ATM = 40 total.
- * The count per direction is fixed at 10.
- *
- * CE above ATM = N CE contracts with strike_price >= atmPrice (ascending, nearest first)
- * CE below ATM = N CE contracts with strike_price <  atmPrice (descending, nearest first)
- * PE above ATM = N PE contracts with strike_price >= atmPrice (ascending, nearest first)
- * PE below ATM = N PE contracts with strike_price <  atmPrice (descending, nearest first)
- *
- * If the pool has fewer than N contracts in a direction, all available are returned.
+ * MCX-specific strike range filter. Now forwards to the perfectly centered unified algorithm.
  */
 export const MCX_STRIKES_PER_DIRECTION = 10;
 
@@ -274,45 +271,9 @@ export function applyMcxStrikeRangeFilter(
   instruments: Instrument[],
   atmPrice: number,
 ): Instrument[] {
-  const n = MCX_STRIKES_PER_DIRECTION;
-  const timestamp = new Date().toISOString();
-
-  const select = (pool: Instrument[], ascending: boolean, limit: number): Instrument[] => {
-    const sorted = [...pool].sort((a, b) =>
-      ascending
-        ? (a.strike_price ?? 0) - (b.strike_price ?? 0)
-        : (b.strike_price ?? 0) - (a.strike_price ?? 0),
-    );
-    const selected = sorted.slice(0, limit);
-    const excluded = sorted.slice(limit);
-    for (const instrument of excluded) {
-      console.log(
-        JSON.stringify({
-          event: 'instrument_excluded',
-          symbol: instrument.tradingsymbol,
-          rule: 'STRIKE_RANGE',
-          segment: instrument.segment ?? instrument.exchange ?? '',
-          timestamp,
-        } satisfies FilterLog),
-      );
-    }
-    return selected;
-  };
-
-  const ceAbove = instruments.filter((i) => i.option_type === 'CE' && (i.strike_price ?? 0) >= atmPrice);
-  const ceBelow = instruments.filter((i) => i.option_type === 'CE' && (i.strike_price ?? 0) < atmPrice);
-  const peAbove = instruments.filter((i) => i.option_type === 'PE' && (i.strike_price ?? 0) >= atmPrice);
-  const peBelow = instruments.filter((i) => i.option_type === 'PE' && (i.strike_price ?? 0) < atmPrice);
-
-  const others = instruments.filter((i) => i.option_type !== 'CE' && i.option_type !== 'PE');
-
-  return [
-    ...others,
-    ...select(ceAbove, true, n),   // nearest N above ATM (ascending)
-    ...select(ceBelow, false, n),  // nearest N below ATM (descending = closest first)
-    ...select(peAbove, true, n),
-    ...select(peBelow, false, n),
-  ];
+  // Use the unified filtering algorithm with an assumed range of 11 (5 above, 1 ATM, 5 below)
+  // if this is called directly without a range parameter.
+  return applyStrikeRangeFilter(instruments, atmPrice, 11);
 }
 
 // ---------------------------------------------------------------------------
