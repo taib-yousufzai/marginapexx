@@ -1,14 +1,17 @@
 /* ===== NEW PREMIUM FINTECH PROFILE STYLES ===== */
 
-.mobile-app {
+.mobile-app.profile-app {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    min-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
     width: 100%;
     background: #F4F7FB;
     position: relative;
     box-sizing: border-box;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
 }
 
 .mobile-app::-webkit-scrollbar {

@@ -159,7 +159,7 @@ export default function ProfilePage() {
         <div className="desktop-layout">
             <Sidebar />
             <main className="main-viewport">
-                <div className="mobile-app">
+                <div className="mobile-app profile-app">
                     
                     {/* Header Gradient Area */}
                     <div className="profile-gradient-header" style={{ paddingTop: '24px' }}>
