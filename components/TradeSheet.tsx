@@ -773,9 +773,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           gap: 8px;
         }
         .ts2-ba-col {
-          flex: 1; display: flex; flex-direction: column; gap: 2px;
+          flex: 1; display: flex; flex-direction: row; align-items: center; gap: 8px;
         }
-        .ts2-ba-col:last-child { align-items: flex-end; }
+        .ts2-ba-col:last-child { justify-content: flex-end; }
         .ts2-ba-label {
           font-size: 0.6rem; font-weight: 700; color: var(--text-secondary, #6B7280);
           text-transform: uppercase; letter-spacing: 0.5px;
