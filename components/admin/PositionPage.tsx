@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ConfirmDialog, SkeletonLine, Position, PositionItem, positionItemToPosition } from './AdminUtils';
 
-export default function PositionPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+export default function PositionPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string }, onOpenUserPanel?: () => void }) {
   const [tab, setTab] = useState<'open' | 'active' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
@@ -262,7 +262,20 @@ export default function PositionPage({ selectedUser }: { selectedUser: { id: str
       <div className="adm-pos-stats-grid">
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">USER</div>
-          <div className="adm-pos-stat-value">{uid}</div>
+          <div className="adm-pos-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {uid ? (uid.length > 12 ? uid.slice(0, 12) + '...' : uid) : 'None'}
+            {onOpenUserPanel && (
+              <button 
+                onClick={onOpenUserPanel} 
+                style={{ 
+                  background: '#161b22', border: '1px solid #30363d', color: '#4493f8', 
+                  fontSize: '11px', cursor: 'pointer', padding: '2px 8px', borderRadius: '4px' 
+                }}
+              >
+                Change
+              </button>
+            )}
+          </div>
         </div>
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">OPEN PNL</div>

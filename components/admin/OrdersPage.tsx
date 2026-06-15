@@ -57,7 +57,7 @@ function exportToCsv(orders: Order[], filename = 'orders.csv') {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function OrdersPage({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string }, onOpenUserPanel?: () => void }) {
   // Tab / view state
   const [tab, setTab] = useState<'executed' | 'limit' | 'rejected' | 'pending'>('executed');
   const [viewMode, setViewMode] = useState<ViewMode>('user');
@@ -215,8 +215,20 @@ export default function OrdersPage({ selectedUser }: { selectedUser: { id: strin
             <button
               className={`adm-ord-vtab ${viewMode === 'user' ? 'active' : ''}`}
               onClick={() => { setViewMode('user'); setPage(1); }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               {uid ? `User: ${uid.slice(0, 8)}…` : 'User View'}
+              {viewMode === 'user' && onOpenUserPanel && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); onOpenUserPanel(); }}
+                  style={{
+                    background: '#161b22', border: '1px solid #30363d', color: '#4493f8',
+                    fontSize: '11px', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px'
+                  }}
+                >
+                  Change
+                </span>
+              )}
             </button>
             <button
               className={`adm-ord-vtab ${viewMode === 'global' ? 'active' : ''}`}
