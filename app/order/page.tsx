@@ -517,8 +517,27 @@ export default function OrderPage() {
                 refresh();
                 if (modifyingOrderId) {
                   // Only cancel the old order if it is not a virtual position order
-                  if (!modifyingOrderId.startsWith('pos-sl-') && !modifyingOrderId.startsWith('pos-target-')) {
+                  if (!modifyingOrderId.startsWith('pos-sl-') && !modifyingOrderId.startsWith('pos-target-') && !modifyingOrderId.startsWith('pos-gtt-')) {
                     cancelOrder(modifyingOrderId);
+                  } else {
+                    const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '').replace('pos-gtt-', '');
+                    const isSl = modifyingOrderId.startsWith('pos-sl-');
+                    const isTarget = modifyingOrderId.startsWith('pos-target-');
+                    const isGtt = modifyingOrderId.startsWith('pos-gtt-');
+                    
+                    let clearData: any = {};
+                    if (isSl) clearData = { stop_loss: null };
+                    else if (isTarget) clearData = { target: null };
+                    else if (isGtt) clearData = { stop_loss: null, target: null };
+
+                    fetch(`/api/positions/${positionId}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(clearData)
+                    }).then(() => {
+                      fetchOrders();
+                      setCancelConfirmId(null);
+                    });
                   }
                   showToast('Order modified successfully');
                   setModifyingOrderId(null);

@@ -571,17 +571,22 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
-    if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-'))) {
-      const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '');
+    if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-') || modifyingOrderId.startsWith('pos-gtt-'))) {
+      const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '').replace('pos-gtt-', '');
       const isSl = modifyingOrderId.startsWith('pos-sl-');
+      const isTarget = modifyingOrderId.startsWith('pos-target-');
+      const isGtt = modifyingOrderId.startsWith('pos-gtt-');
       
-      const isStillTarget = isSl === false && (orderType === 'TARGET' || orderType === 'LIMIT');
-      const isStillSl = isSl === true && (orderType === 'SL' || orderType === 'SLM');
+      const isStillTarget = isTarget && (orderType === 'TARGET' || orderType === 'LIMIT');
+      const isStillSl = isSl && (orderType === 'SL' || orderType === 'SLM');
+      const isStillGtt = isGtt && orderType === 'GTT';
 
-      if (isStillTarget || isStillSl) {
+      if (isStillTarget || isStillSl || isStillGtt) {
         const updateData = isSl 
           ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null } 
-          : { target: resolvedClientPrice || resolvedTarget || null };
+          : isTarget 
+            ? { target: resolvedClientPrice || resolvedTarget || null }
+            : { stop_loss: resolvedStopLoss || null, target: resolvedTarget || null };
 
         try {
           const { data: sessionData } = await supabase.auth.getSession();
@@ -618,7 +623,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers.Authorization = `Bearer ${token}`;
 
-          const clearData = isSl ? { stop_loss: null } : { target: null };
+          let clearData: any = {};
+          if (isSl) clearData = { stop_loss: null };
+          else if (isTarget) clearData = { target: null };
+          else if (isGtt) clearData = { stop_loss: null, target: null };
+
           await fetch(`/api/positions/${positionId}`, {
             method: 'PATCH',
             headers,

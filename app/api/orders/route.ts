@@ -298,46 +298,68 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const stopLoss = pos.stop_loss ? Number(pos.stop_loss) : (pos.sl ? Number(pos.sl) : null);
       const target = pos.target ? Number(pos.target) : (pos.tp ? Number(pos.tp) : null);
 
-      if (stopLoss !== null && stopLoss > 0) {
+      if (stopLoss !== null && stopLoss > 0 && target !== null && target > 0) {
         virtualOrders.push({
-          id: `pos-sl-${pos.id}`,
+          id: `pos-gtt-${pos.id}`,
           symbol: pos.symbol,
           segment: pos.settlement || '',
-          side: pos.side === 'BUY' ? 'SELL' : 'BUY', // Stop loss exit is opposite side
+          side: pos.side === 'BUY' ? 'SELL' : 'BUY',
           status: 'PENDING',
           qty: Number(pos.qty_open),
           lots: Number(pos.lots ?? 0) || (pos.qty_open > 0 ? 1 : 0),
-          fill_price: stopLoss,
+          fill_price: 0,
           ltp_at_entry: Number(pos.avg_price ?? pos.entry_price),
-          order_type: 'SL',
+          order_type: 'GTT',
           product_type: (pos.product_type as any) ?? 'INTRADAY',
-          info: 'Stop Loss (Exit)',
+          info: 'GTT (Exit)',
           brokerage: 0,
           trigger_price: stopLoss,
           stop_loss: stopLoss,
-          created_at: pos.created_at || new Date().toISOString(),
-        });
-      }
-
-      if (target !== null && target > 0) {
-        virtualOrders.push({
-          id: `pos-target-${pos.id}`,
-          symbol: pos.symbol,
-          segment: pos.settlement || '',
-          side: pos.side === 'BUY' ? 'SELL' : 'BUY', // Target exit is opposite side
-          status: 'PENDING',
-          qty: Number(pos.qty_open),
-          lots: Number(pos.lots ?? 0) || (pos.qty_open > 0 ? 1 : 0),
-          fill_price: target,
-          ltp_at_entry: Number(pos.avg_price ?? pos.entry_price),
-          order_type: 'LIMIT',
-          product_type: (pos.product_type as any) ?? 'INTRADAY',
-          info: 'Target (Exit)',
-          brokerage: 0,
-          client_price: target,
           target: target,
           created_at: pos.created_at || new Date().toISOString(),
         });
+      } else {
+        if (stopLoss !== null && stopLoss > 0) {
+          virtualOrders.push({
+            id: `pos-sl-${pos.id}`,
+            symbol: pos.symbol,
+            segment: pos.settlement || '',
+            side: pos.side === 'BUY' ? 'SELL' : 'BUY', // Stop loss exit is opposite side
+            status: 'PENDING',
+            qty: Number(pos.qty_open),
+            lots: Number(pos.lots ?? 0) || (pos.qty_open > 0 ? 1 : 0),
+            fill_price: stopLoss,
+            ltp_at_entry: Number(pos.avg_price ?? pos.entry_price),
+            order_type: 'SL',
+            product_type: (pos.product_type as any) ?? 'INTRADAY',
+            info: 'Stop Loss (Exit)',
+            brokerage: 0,
+            trigger_price: stopLoss,
+            stop_loss: stopLoss,
+            created_at: pos.created_at || new Date().toISOString(),
+          });
+        }
+  
+        if (target !== null && target > 0) {
+          virtualOrders.push({
+            id: `pos-target-${pos.id}`,
+            symbol: pos.symbol,
+            segment: pos.settlement || '',
+            side: pos.side === 'BUY' ? 'SELL' : 'BUY', // Target exit is opposite side
+            status: 'PENDING',
+            qty: Number(pos.qty_open),
+            lots: Number(pos.lots ?? 0) || (pos.qty_open > 0 ? 1 : 0),
+            fill_price: target,
+            ltp_at_entry: Number(pos.avg_price ?? pos.entry_price),
+            order_type: 'LIMIT',
+            product_type: (pos.product_type as any) ?? 'INTRADAY',
+            info: 'Target (Exit)',
+            brokerage: 0,
+            client_price: target,
+            target: target,
+            created_at: pos.created_at || new Date().toISOString(),
+          });
+        }
       }
     }
 

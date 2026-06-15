@@ -26,13 +26,18 @@ export async function PATCH(
 
     const admin = getAdminClient();
 
-    // Check if virtual order (SL/Target attached to position)
+    // Check if virtual order (SL/Target/GTT attached to position)
     const isVirtualSl = id.startsWith('pos-sl-');
     const isVirtualTarget = id.startsWith('pos-target-');
+    const isVirtualGtt = id.startsWith('pos-gtt-');
 
-    if (isVirtualSl || isVirtualTarget) {
-      const positionId = id.replace('pos-sl-', '').replace('pos-target-', '');
-      const updateField = isVirtualSl ? { stop_loss: null } : { target: null };
+    if (isVirtualSl || isVirtualTarget || isVirtualGtt) {
+      const positionId = id.replace('pos-sl-', '').replace('pos-target-', '').replace('pos-gtt-', '');
+      
+      let updateField: any = {};
+      if (isVirtualSl) updateField = { stop_loss: null };
+      else if (isVirtualTarget) updateField = { target: null };
+      else if (isVirtualGtt) updateField = { stop_loss: null, target: null };
 
       const { data, error } = await admin
         .from('positions')
