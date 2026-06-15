@@ -13,8 +13,23 @@ class MockRedis {
     return typeof val === 'string' ? val : null;
   }
 
-  public async set(key: string, value: string): Promise<'OK'> {
+  public async set(key: string, value: string, ...args: any[]): Promise<'OK'> {
     this.store.set(key, value);
+    
+    // Simple EX support for mock
+    if (args.length >= 2 && args[0] === 'EX') {
+      setTimeout(() => {
+        if (this.store.get(key) === value) this.store.delete(key);
+      }, args[1] * 1000);
+    }
+    return 'OK';
+  }
+
+  public async setex(key: string, seconds: number, value: string): Promise<'OK'> {
+    this.store.set(key, value);
+    setTimeout(() => {
+      if (this.store.get(key) === value) this.store.delete(key);
+    }, seconds * 1000);
     return 'OK';
   }
 

@@ -482,7 +482,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const profile = profileResult.data;
   const profileErr = profileResult.error;
   const openPositions = positionsResult?.data ?? [];
-  const kiteLtp = quotesMap[kiteInst] ?? null;
   const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
 
   // 4. Profile checks
@@ -494,6 +493,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   if (profile.read_only) {
     return NextResponse.json({ error: 'Account is in read-only mode' }, { status: 403 });
+  }
+
+  // 9. Base LTP from server
+  let kiteLtp = quotesMap[kiteInst] ?? null;
+
+  if (!kiteLtp || kiteLtp <= 0) {
+    if (client_price && client_price > 0) {
+      kiteLtp = client_price;
+      console.warn(`[orders] Market quote not found for ${kiteInst}, falling back to client_price: ${client_price}`);
+    } else {
+      return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
+    }
   }
 
   // 5. Segment permission check

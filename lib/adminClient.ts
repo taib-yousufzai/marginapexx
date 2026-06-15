@@ -34,9 +34,33 @@ export async function getUserFromRequest(request: Request) {
   const token = auth.slice(7).trim();
   if (!token) return null;
 
+  try {
+    const { getRedisClient } = await import('./redis');
+    const redis = getRedisClient();
+    const cachedUser = await redis.get(`auth_user:${token}`);
+    if (cachedUser) {
+      return JSON.parse(cachedUser);
+    }
+  } catch (err) {
+    // Ignore Redis errors
+  }
+
   const admin = getAdminClient();
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data?.user) return null;
+
+  try {
+    const { getRedisClient } = await import('./redis');
+    const redis = getRedisClient();
+    // Cache the user for 60 seconds to avoid hitting Supabase API rate limits
+    if (redis.setex) {
+      await redis.setex(`auth_user:${token}`, 60, JSON.stringify(data.user));
+    } else {
+      await redis.set(`auth_user:${token}`, JSON.stringify(data.user), 'EX', 60);
+    }
+  } catch (err) {
+    // Ignore Redis errors
+  }
 
   return data.user;
 }
