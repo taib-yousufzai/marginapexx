@@ -133,14 +133,14 @@ export async function GET() {
         }));
       }
       // OPT — apply expiry + strike range filter
-      const { data: expData } = await supabase.rpc('get_option_expiries', { p_symbol: cmd, p_min_date: today });
+      const { data: expData } = await supabase.from('instruments').select('expiry').eq('name', cmd).in('instrument_type', ['CE', 'PE', 'FUTOPT']).gte('expiry', today);
       if (expData && expData.length > 0) {
-        const allExpiries: string[] = expData.map((e: any) => e.expiry);
+        const allExpiries: string[] = [...new Set(expData.map((e: any) => e.expiry))];
         const activeExpiries = applyExpiryFilter(allExpiries, today);
         if (activeExpiries.length === 0) return;
         const nearestExpiry = activeExpiries[0];
 
-        const { data: opts } = await supabase.from('instruments').select('*').eq('underlying_symbol', cmd).eq('expiry', nearestExpiry).order('strike_price', { ascending: true });
+        const { data: opts } = await supabase.from('instruments').select('*').eq('name', cmd).eq('expiry', nearestExpiry).order('strike_price', { ascending: true });
         if (opts && opts.length > 0) {
           let selectedOpts: Instrument[] = opts as Instrument[];
           try {
