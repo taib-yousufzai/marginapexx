@@ -404,7 +404,154 @@
 .panel-content { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 8px; overflow-y: auto; max-height: 200px; }
 
 /* Rows */
-.chain-row, .order-row, .position-row {
+/* Option Chain Styles */
+.chain-table-header {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  padding: 6px 0 5px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #8B92A8;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  background: #F8FAFE;
+  z-index: 1;
+  border-bottom: 1px solid #E8ECF0;
+}
+.dark .chain-table-header {
+  background: #131722;
+  border-bottom-color: #2A2E39;
+}
+.chain-table-header .ch-ce { text-align: left; color: #1db954; padding-left: 10px; }
+.chain-table-header .ch-strike { text-align: center; }
+.chain-table-header .ch-pe { text-align: right; color: #e53935; padding-right: 10px; }
+
+.chain-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  background: #ffffff;
+  border-bottom: 1px solid #F0F2F5;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dark .chain-row {
+  background: #1a1e2a;
+  border-bottom-color: #2A2E39;
+}
+.chain-row:active .chain-cell-ce,
+.chain-row:active .chain-cell-pe {
+  filter: brightness(.96);
+}
+.chain-cell-ce, .chain-cell-pe {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background .12s;
+  min-height: 52px;
+}
+.chain-cell-ce { border-right: 1px solid #F0F2F5; }
+.chain-cell-pe { border-left: 1px solid #F0F2F5; align-items: flex-end; }
+.dark .chain-cell-ce { border-right-color: #2A2E39; }
+.dark .chain-cell-pe { border-left-color: #2A2E39; }
+
+.chain-cell-ce:active { background: #e8faf0; }
+.chain-cell-pe:active { background: #fde8e8; }
+.dark .chain-cell-ce:active { background: rgba(29, 185, 84, 0.1); }
+.dark .chain-cell-pe:active { background: rgba(229, 57, 53, 0.1); }
+
+.chain-cell-strike {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0A2540;
+  background: #F8FAFE;
+  gap: 2px;
+  border-left: 1px solid #E8ECF0;
+  border-right: 1px solid #E8ECF0;
+}
+.dark .chain-cell-strike {
+  color: #D1D4DC;
+  background: #131722;
+  border-left-color: #2A2E39;
+  border-right-color: #2A2E39;
+}
+.chain-top-row { display: flex; align-items: baseline; gap: 5px; }
+.chain-ltp { font-size: 11px; font-weight: 700; }
+.chain-iv  { font-size: 9px; font-weight: 500; color: #8B92A8; }
+.chain-oi  { font-size: 8px; font-weight: 500; color: #B0B8C8; margin-top: 2px; }
+.chain-ce-ltp { color: #1db954; }
+.chain-pe-ltp { color: #e53935; }
+.chain-itm-ce { background: #F0FDF6; }
+.chain-itm-pe { background: #FFF5F5; }
+.dark .chain-itm-ce { background: rgba(29, 185, 84, 0.05); }
+.dark .chain-itm-pe { background: rgba(229, 57, 53, 0.05); }
+.chain-atm .chain-cell-strike { background: #0A2540; color: #fff; }
+.dark .chain-atm .chain-cell-strike { background: #2962FF; color: #fff; }
+
+.chain-cell-ce.selected { background: #D1FAE5; }
+.chain-cell-pe.selected { background: #FEE2E2; }
+
+/* GTT Row and Fields */
+.gtt-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+.gtt-field {
+  background: #F5F7FB;
+  border: 1px solid #E8ECF0;
+  border-radius: 40px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 40px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.dark .gtt-field {
+  background: #202432;
+  border-color: #2A2E39;
+}
+.gtt-field .gtt-tag {
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: .3px;
+}
+.gtt-field.sl-field .gtt-tag { color: #e53935; }
+.gtt-field.tgt-field .gtt-tag { color: #1db954; }
+.gtt-field input {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: #0A2540;
+  outline: none;
+}
+.dark .gtt-field input {
+  color: #ffffff;
+}
+
+.order-row, .position-row {
   display: flex; justify-content: space-between; background: #fff;
   padding: 8px 12px; border-radius: 12px; font-size: 11px;
   border: 1px solid #E8ECF0; align-items: center;
@@ -503,5 +650,14 @@
 }
 .black .pnl-toggle-btn, .black .close-order-block {
   background-color: #222222;
+}
+
+/* Quick-order flash animation */
+.trade-btn.quick-flash {
+  animation: quickFlash 0.35s ease;
+}
+@keyframes quickFlash {
+  0%   { filter: brightness(1.5); transform: scale(1.05); }
+  100% { filter: brightness(1);   transform: scale(1); }
 }
 

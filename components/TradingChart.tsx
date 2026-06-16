@@ -59,12 +59,94 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [qtyValue, setQtyValue] = useState<number>(100);
   const [useLots, setUseLots] = useState<boolean>(false);
   const [orderCarry, setOrderCarry] = useState<'normal' | 'carry'>('normal');
-  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
+  const [orderType, setOrderType] = useState<'market' | 'limit' | 'slm' | 'gtt' | 'sl'>('market');
   const [limitPrice, setLimitPrice] = useState<string>('');
+  const [triggerPrice, setTriggerPrice] = useState<string>('');
+  const [gttSlPrice, setGttSlPrice] = useState<string>('');
+  const [gttTargetPrice, setGttTargetPrice] = useState<string>('');
+  const [chainContract, setChainContract] = useState<{ name: string; expiry: string; ltp: number; iv: number; bid: number; ask: number } | null>(null);
   const [activeSegment, setActiveSegment] = useState<'chain' | 'orders' | 'positions'>('orders');
   const [isPanelExpanded, setIsPanelExpanded] = useState<boolean>(false);
+  const [isBottomSectionVisible, setIsBottomSectionVisible] = useState<boolean>(true);
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
+
+  // ── Strike data generator ──
+  const getChainStrikes = () => {
+    const s = currentPrice || 71.00;
+    const atm = Math.round(s / 100) * 100; // nearest 100
+    const strikes = [];
+    for (let i = -4; i <= 4; i++) strikes.push(atm + i * 100);
+    return strikes.map(strike => {
+      const dist = s - strike;
+      const ceIntrinsic = Math.max(0, dist);
+      const ceTime = Math.max(0.5, 8 - Math.abs(dist) * 0.05);
+      const ceLtp = parseFloat((ceIntrinsic + ceTime + Math.random() * 0.5).toFixed(1));
+      const ceIV  = parseFloat((22 + Math.abs(dist) * 0.02 + Math.random()).toFixed(1));
+      const ceOI  = Math.round((500 + Math.random() * 200) * (1 - Math.abs(dist)/500));
+      
+      const peIntrinsic = Math.max(0, -dist);
+      const peTime = Math.max(0.5, 8 - Math.abs(dist) * 0.05);
+      const peLtp = parseFloat((peIntrinsic + peTime + Math.random() * 0.5).toFixed(1));
+      const peIV  = parseFloat((24 + Math.abs(dist) * 0.02 + Math.random()).toFixed(1));
+      const peOI  = Math.round((450 + Math.random() * 200) * (1 - Math.abs(dist)/500));
+      
+      const isITM_CE = dist > 0;
+      const isITM_PE = dist < 0;
+      return { strike, ceLtp, ceIV, ceOI, peLtp, peIV, peOI, isITM_CE, isITM_PE };
+    });
+  };
+
+  const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number) => {
+    setIsPanelExpanded(false);
+    const bid = ltp;
+    const ask = parseFloat((ltp + Math.max(0.05, ltp * 0.005)).toFixed(2));
+    const contract = { name: contractName, expiry, ltp, iv, bid, ask };
+    setChainContract(contract);
+    setOrderSide(defaultAction);
+    const displayPrice = defaultAction === 'BUY' ? ask : bid;
+    setLimitPrice(displayPrice.toFixed(2));
+    setTriggerPrice(displayPrice.toFixed(2));
+    setGttSlPrice((displayPrice * 0.99).toFixed(2));
+    setGttTargetPrice((displayPrice * 1.01).toFixed(2));
+    setOrderType('market');
+    setOrderCarry('normal');
+    setUseLots(false);
+    setQtyValue(100);
+    setIsOrderBlockVisible(true);
+  };
+
+  // ── Advanced Drawing States & Toggles ──
+  const [overlayIds, setOverlayIds] = useState<string[]>([]);
+  const [isMagnetMode, setIsMagnetMode] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [keepDrawingMode, setKeepDrawingMode] = useState<boolean>(false);
+  const [hideDrawings, setHideDrawings] = useState<boolean>(false);
+
+  const toggleLockDrawings = () => {
+    const next = !isLocked;
+    setIsLocked(next);
+    overlayIds.forEach(id => {
+      chartRef.current?.overrideOverlay({ id, lock: next });
+    });
+    showToast(next ? "Drawings locked" : "Drawings unlocked");
+  };
+
+  const toggleHideDrawings = () => {
+    const next = !hideDrawings;
+    setHideDrawings(next);
+    overlayIds.forEach(id => {
+      chartRef.current?.overrideOverlay({ id, visible: !next });
+    });
+    showToast(next ? "Drawings hidden" : "Drawings visible");
+  };
+
+  const clearAllDrawings = () => {
+    chartRef.current?.removeOverlay();
+    setOverlayIds([]);
+    setActiveDrawingTool(null);
+    showToast("All drawings cleared");
+  };
 
   // Get lot size of instrument
   const lotSize = useMemo(() => getLotSize(symbol), [symbol]);
@@ -348,21 +430,77 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setActiveDrawingTool(null);
     } else {
       setActiveDrawingTool(toolName);
-      chartRef.current.createOverlay({
-        name: toolName,
-        id: `overlay_${Date.now()}`,
-        onDrawEnd: (event: any) => {
-          if (toolName === 'simpleAnnotation') {
-            const text = window.prompt('Enter your text annotation:');
-            if (text) {
-              chartRef.current?.overrideOverlay({ id: event.overlay.id, name: toolName, extendData: text });
-            } else {
-              chartRef.current?.removeOverlay({ id: event.overlay.id });
+      
+      const newId = `overlay_${Date.now()}`;
+      setOverlayIds(prev => [...prev, newId]);
+
+      const onDrawEnd = (event: any) => {
+        // 1. Magnet mode snapping to nearest candle OHL/C price
+        if (isMagnetMode && event.overlay && event.overlay.points && chartRef.current) {
+          const dataList = chartRef.current.getDataList();
+          const snappedPoints = event.overlay.points.map((p: any) => {
+            if (p.timestamp && dataList.length > 0) {
+              let nearestCandle = dataList[0];
+              let minDiff = Math.abs(dataList[0].timestamp - p.timestamp);
+              for (let k = 1; k < dataList.length; k++) {
+                const diff = Math.abs(dataList[k].timestamp - p.timestamp);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  nearestCandle = dataList[k];
+                }
+              }
+              const prices = [nearestCandle.open, nearestCandle.high, nearestCandle.low, nearestCandle.close];
+              let snappedPrice = prices[0];
+              let minPriceDiff = Math.abs(prices[0] - p.value);
+              for (let j = 1; j < prices.length; j++) {
+                const pDiff = Math.abs(prices[j] - p.value);
+                if (pDiff < minPriceDiff) {
+                  minPriceDiff = pDiff;
+                  snappedPrice = prices[j];
+                }
+              }
+              return { ...p, timestamp: nearestCandle.timestamp, value: snappedPrice };
             }
-          }
-          setActiveDrawingTool(null);
-          return true;
+            return p;
+          });
+          chartRef.current.overrideOverlay({ id: event.overlay.id, name: toolName, points: snappedPoints });
         }
+
+        // 2. Simple Annotation text prompt
+        if (toolName === 'simpleAnnotation') {
+          const text = window.prompt('Enter your text annotation:');
+          if (text) {
+            chartRef.current?.overrideOverlay({ id: event.overlay.id, name: toolName, extendData: text });
+          } else {
+            chartRef.current?.removeOverlay({ id: event.overlay.id });
+          }
+        }
+
+        // 3. Keep drawing mode loop trigger
+        if (keepDrawingMode) {
+          setTimeout(() => {
+            const nextId = `overlay_${Date.now()}`;
+            setOverlayIds(prev => [...prev, nextId]);
+            chartRef.current?.createOverlay({
+              name: toolName,
+              id: nextId,
+              lock: isLocked,
+              visible: !hideDrawings,
+              onDrawEnd
+            });
+          }, 100);
+        } else {
+          setActiveDrawingTool(null);
+        }
+        return true;
+      };
+
+      chartRef.current.createOverlay({
+        name: toolName === 'fibonacciLine' ? 'fibonacciRetracement' : toolName,
+        id: newId,
+        lock: isLocked,
+        visible: !hideDrawings,
+        onDrawEnd
       });
     }
   };
@@ -387,11 +525,21 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // Place actual order
   const handleSubmitOrder = async () => {
     const finalQty = useLots ? qtyValue * lotSize : qtyValue;
-    const finalPrice = orderType === 'limit' ? parseFloat(limitPrice) : currentPrice;
     
-    if (orderType === 'limit' && (isNaN(finalPrice) || finalPrice <= 0)) {
-      showToast('Please enter a valid limit price', true);
-      return;
+    // Determine the base execution price
+    let finalPrice = currentPrice;
+    if (orderType === 'limit' || orderType === 'gtt') {
+      finalPrice = parseFloat(limitPrice);
+      if (isNaN(finalPrice) || finalPrice <= 0) {
+        showToast('Please enter a valid price', true);
+        return;
+      }
+    } else if (orderType === 'sl' || orderType === 'slm') {
+      finalPrice = parseFloat(triggerPrice);
+      if (isNaN(finalPrice) || finalPrice <= 0) {
+        showToast('Please enter a valid trigger price', true);
+        return;
+      }
     }
 
     const reqMargin = Math.ceil(finalPrice * finalQty * 0.12);
@@ -400,23 +548,44 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       return;
     }
 
+    // Determine target symbol and segment if trading option contracts
+    let orderSymbol = symbol;
+    let orderKiteInstrument = symbol;
+    let orderSegment = segment;
+
+    if (chainContract) {
+      const underlying = symbol.toUpperCase().replace('_INDEX', '').replace('NSE:', '').replace('INDEX', '').trim();
+      const expiry = chainContract.expiry.replace(' ', '').toUpperCase();
+      const parts = chainContract.name.split(' ');
+      const strike = parts[0];
+      const optionType = parts[1]; // CE or PE
+      
+      orderSymbol = `${underlying}${expiry}${strike}${optionType}`;
+      orderKiteInstrument = `NFO:${orderSymbol}`;
+      orderSegment = 'INDEX-OPT';
+    }
+
     showToast('Placing order...');
     const res = await placeOrder({
-      symbol: symbol,
-      kite_instrument: symbol,
-      segment: segment,
+      symbol: orderSymbol,
+      kite_instrument: orderKiteInstrument,
+      segment: orderSegment,
       side: orderSide,
       qty: finalQty,
       lots: useLots ? qtyValue : 0,
       order_type: orderType.toUpperCase() as any,
       product_type: orderCarry === 'carry' ? 'CARRY' : 'INTRADAY',
       client_price: finalPrice,
+      trigger_price: (orderType === 'sl' || orderType === 'slm') ? parseFloat(triggerPrice) : undefined,
+      stop_loss: orderType === 'gtt' ? parseFloat(gttSlPrice) : undefined,
+      target: orderType === 'gtt' ? parseFloat(gttTargetPrice) : undefined,
       is_exit: false
     });
 
     if (res.success) {
       showToast(`${orderSide} Order Placed Successfully!`);
       setIsOrderBlockVisible(false);
+      setChainContract(null); // Clear option contract context after trade
       refreshOrders();
       refreshPositions();
     } else {
@@ -457,6 +626,75 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setIsOrderBlockVisible(true);
   };
 
+  const handleQuickMarketOrder = async (side: 'BUY' | 'SELL') => {
+    const qty = 100;
+    const required = Math.ceil(currentPrice * qty * 0.12);
+    if (required > balance) {
+      showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
+      return;
+    }
+    
+    showToast(`Placing quick ${side} order...`);
+    const res = await placeOrder({
+      symbol: symbol,
+      kite_instrument: symbol,
+      segment: segment,
+      side: side,
+      qty: qty,
+      lots: 0,
+      order_type: 'MARKET',
+      product_type: 'INTRADAY',
+      client_price: currentPrice,
+      is_exit: false
+    });
+
+    if (res.success) {
+      showToast(`Quick ${side} Order Placed Successfully!`);
+      // Flash the button
+      const btn = document.getElementById(side === 'BUY' ? 'buyButton' : 'sellButton');
+      if (btn) {
+        btn.classList.remove('quick-flash');
+        void btn.offsetWidth; // force reflow
+        btn.classList.add('quick-flash');
+      }
+      refreshOrders();
+      refreshPositions();
+    } else {
+      showToast(res.error || 'Failed to place quick order', true);
+    }
+  };
+
+  const handleQuickAddPosition = async (pos: EnrichedPosition) => {
+    const addQty = pos.qty_open;
+    const required = Math.ceil(currentPrice * addQty * 0.12);
+    if (required > balance) {
+      showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
+      return;
+    }
+
+    showToast(`Adding ${addQty} to ${pos.side} position...`);
+    const res = await placeOrder({
+      symbol: symbol,
+      kite_instrument: symbol,
+      segment: segment,
+      side: pos.side,
+      qty: addQty,
+      lots: 0,
+      order_type: 'MARKET',
+      product_type: pos.product_type === 'CARRY' ? 'CARRY' : 'INTRADAY',
+      client_price: currentPrice,
+      is_exit: false
+    });
+
+    if (res.success) {
+      showToast(`Successfully added ${addQty} to position!`);
+      refreshOrders();
+      refreshPositions();
+    } else {
+      showToast(res.error || 'Failed to add to position', true);
+    }
+  };
+
   // Total Real-time P&L for this symbol positions
   const currentSymbolPositions = positions.filter(p => p.symbol.toUpperCase() === symbol.toUpperCase() && (p.status === 'open' || p.status === 'active'));
   const pnlTotal = currentSymbolPositions.reduce((acc, pos) => {
@@ -479,14 +717,48 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       if (!isIndex) {
         return <div className="empty-state">Option Chain not available for this segment.</div>;
       }
-      const s = currentPrice || 71.00;
+      const strikes = getChainStrikes();
+      const expiry = '23 JAN';
+      const atm = Math.round((currentPrice || 71.00) / 100) * 100;
       return (
-        <>
-          <div className="chain-row"><span>{symbol} 46,600 CE</span><span style={{color:'#888'}}>IV 22.1%</span><span>₹{(s+0.8).toFixed(1)}</span></div>
-          <div className="chain-row"><span>{symbol} 46,500 CE</span><span style={{color:'#888'}}>IV 21.6%</span><span>₹{(s+3.8).toFixed(1)}</span></div>
-          <div className="chain-row"><span>{symbol} 46,700 CE</span><span style={{color:'#888'}}>IV 23.3%</span><span>₹{Math.max(1.2, s-2.6).toFixed(1)}</span></div>
-          <div className="chain-row"><span>{symbol} 46,600 PE</span><span style={{color:'#888'}}>IV 24.7%</span><span>₹{Math.max(1.2, 7.5 - (s-70)*0.5).toFixed(1)}</span></div>
-        </>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div className="chain-table-header">
+            <span className="ch-ce">CALL</span>
+            <span className="ch-strike">Strike</span>
+            <span className="ch-pe">PUT</span>
+          </div>
+          {strikes.map(r => {
+            const isAtm = r.strike === atm;
+            return (
+              <div key={r.strike} className={`chain-row${isAtm ? ' chain-atm' : ''}`}>
+                <div
+                  className={`chain-cell-ce ${r.isITM_CE ? 'chain-itm-ce' : ''} ${chainContract?.name === `${r.strike} CE` ? 'selected' : ''}`}
+                  onClick={() => openChainOrder('BUY', `${r.strike} CE`, expiry, r.ceLtp, r.ceIV)}
+                >
+                  <div className="chain-top-row">
+                    <span className="chain-ltp chain-ce-ltp">₹{r.ceLtp}</span>
+                    <span className="chain-iv">{r.ceIV}%</span>
+                  </div>
+                  <span className="chain-oi">{r.ceOI}K OI</span>
+                </div>
+                <div className="chain-cell-strike">
+                  <span>{r.strike}</span>
+                  {isAtm && <span style={{ fontSize: '7px', color: '#1db954', fontWeight: 700, letterSpacing: '.3px' }}>ATM</span>}
+                </div>
+                <div
+                  className={`chain-cell-pe ${r.isITM_PE ? 'chain-itm-pe' : ''} ${chainContract?.name === `${r.strike} PE` ? 'selected' : ''}`}
+                  onClick={() => openChainOrder('BUY', `${r.strike} PE`, expiry, r.peLtp, r.peIV)}
+                >
+                  <div className="chain-top-row" style={{ justifyContent: 'flex-end' }}>
+                    <span className="chain-iv">{r.peIV}%</span>
+                    <span className="chain-ltp chain-pe-ltp">₹{r.peLtp}</span>
+                  </div>
+                  <span className="chain-oi">{r.peOI}K OI</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       );
     }
     
@@ -529,7 +801,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             <div style={{ color: c, fontWeight: 700 }}>{pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}</div>
           </div>
           <div className="position-actions">
-            <button className="position-action-btn add-position-btn" onClick={() => handleAddMorePosition(pos)}>+ Add</button>
+            <button className="position-action-btn add-position-btn" onClick={() => handleQuickAddPosition(pos)}>+ Add {pos.qty_open}</button>
             <button className="position-action-btn exit-position-btn" onClick={() => handleExitPosition(pos.id)}>Exit</button>
           </div>
         </div>
@@ -571,22 +843,103 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       
       {/* Main Area */}
       <div className="tc-main-area">
-        {/* Left Toolbar */}
-        <div className="tc-left-toolbar">
+        {/* Left Drawing & Utility Sidebar Toolbar */}
+        <div className="tc-left-toolbar" style={{ width: '42px', borderRight: '1px solid #E8ECF0', padding: '6px 0', gap: '8px' }}>
+          {/* Crosshair / Pointer */}
           <div className={`tc-tool-icon ${!activeDrawingTool ? 'active' : ''}`} onClick={() => setActiveDrawingTool(null)} title="Crosshair">
             <i className="fas fa-crosshairs"></i>
           </div>
-          <div className={`tc-tool-icon ${activeDrawingTool === 'rayLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('rayLine')} title="Trendline">
-            <i className="fas fa-location-arrow" style={{ transform: 'rotate(45deg)' }}></i>
+
+          {/* Trendline (Segment) */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'segment' ? 'active' : ''}`} onClick={() => handleDrawingTool('segment')} title="Trendline">
+            <i className="fas fa-slash" style={{ transform: 'rotate(-45deg)' }}></i>
           </div>
-          <div className={`tc-tool-icon ${activeDrawingTool === 'fibonacciLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('fibonacciLine')} title="Fibonacci">
-            <i className="fas fa-align-left"></i>
+
+          {/* Horizontal Line */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'horizontalStraightLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('horizontalStraightLine')} title="Horizontal Line">
+            <i className="fas fa-grip-lines"></i>
           </div>
+
+          {/* Parallel Channel */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'parallelChannel' ? 'active' : ''}`} onClick={() => handleDrawingTool('parallelChannel')} title="Parallel Channel">
+            <i className="fas fa-align-justify" style={{ transform: 'rotate(90deg)' }}></i>
+          </div>
+
+          {/* Fibonacci Retracement */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'fibonacciLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('fibonacciLine')} title="Fibonacci Retracement">
+            <i className="fas fa-chart-area"></i>
+          </div>
+
+          {/* Brush / Pencil (using segment with custom styling or template) */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'brush' ? 'active' : ''}`} onClick={() => handleDrawingTool('segment')} title="Brush / Free Draw">
+            <i className="fas fa-paint-brush"></i>
+          </div>
+
+          {/* Text Annotation */}
           <div className={`tc-tool-icon ${activeDrawingTool === 'simpleAnnotation' ? 'active' : ''}`} onClick={() => handleDrawingTool('simpleAnnotation')} title="Text Annotation">
-            <div style={{ fontWeight: 'bold', fontFamily: 'serif' }}>T</div>
+            <div style={{ fontWeight: 'bold', fontFamily: 'serif', fontSize: '14px', lineHeight: 1 }}>T</div>
           </div>
-          <div className={`tc-tool-icon ${activeDrawingTool === 'priceLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('priceLine')} title="Price Line">
-            <i className="fas fa-minus"></i>
+
+          {/* Icons / Smiley */}
+          <div className="tc-tool-icon" onClick={() => showToast("Icons library coming soon")} title="Smiley Icons">
+            <i className="far fa-smile"></i>
+          </div>
+
+          {/* Ruler / Measure Tool (Price Range) */}
+          <div className={`tc-tool-icon ${activeDrawingTool === 'priceRange' ? 'active' : ''}`} onClick={() => handleDrawingTool('priceRange')} title="Measure Price & Bars">
+            <i className="fas fa-ruler-combined"></i>
+          </div>
+
+          {/* Zoom In/Out (Chart API wrapper) */}
+          <div className="tc-tool-icon" onClick={() => { chartRef.current?.zoomAtCoordinate(0.1); showToast("Zoomed in"); }} title="Zoom In">
+            <i className="fas fa-search-plus"></i>
+          </div>
+
+          <div style={{ width: '80%', height: '1px', backgroundColor: '#E8ECF0', margin: '4px auto' }} />
+
+          {/* Magnet Snapping Mode */}
+          <div
+            className={`tc-tool-icon ${isMagnetMode ? 'active-magnet' : ''}`}
+            onClick={() => { setIsMagnetMode(!isMagnetMode); showToast(!isMagnetMode ? "Magnet snap enabled" : "Magnet snap disabled"); }}
+            title="Magnet Snapping Mode"
+            style={isMagnetMode ? { color: '#089981', backgroundColor: 'rgba(8, 153, 129, 0.1)' } : {}}
+          >
+            <i className="fas fa-magnet"></i>
+          </div>
+
+          {/* Lock all drawings */}
+          <div
+            className={`tc-tool-icon ${isLocked ? 'active-locked' : ''}`}
+            onClick={toggleLockDrawings}
+            title="Lock All Drawing Tools"
+            style={isLocked ? { color: '#e53935', backgroundColor: 'rgba(229, 57, 53, 0.1)' } : {}}
+          >
+            <i className={isLocked ? "fas fa-lock" : "fas fa-lock-open"}></i>
+          </div>
+
+          {/* Stay in Drawing Mode (Keep Drawing) */}
+          <div
+            className={`tc-tool-icon ${keepDrawingMode ? 'active-keep' : ''}`}
+            onClick={() => { setKeepDrawingMode(!keepDrawingMode); showToast(!keepDrawingMode ? "Keep drawing mode enabled" : "Keep drawing mode disabled"); }}
+            title="Stay in Drawing Mode"
+            style={keepDrawingMode ? { color: '#2962FF', backgroundColor: 'rgba(41, 98, 255, 0.1)' } : {}}
+          >
+            <i className="fas fa-pen-nib"></i>
+          </div>
+
+          {/* Hide/Show Drawings */}
+          <div
+            className={`tc-tool-icon ${hideDrawings ? 'active-hide' : ''}`}
+            onClick={toggleHideDrawings}
+            title="Hide All Drawings"
+            style={hideDrawings ? { color: '#e53935', backgroundColor: 'rgba(229, 57, 53, 0.1)' } : {}}
+          >
+            <i className={hideDrawings ? "fas fa-eye-slash" : "fas fa-eye"}></i>
+          </div>
+
+          {/* Trash / Delete Drawings */}
+          <div className="tc-tool-icon delete-all-drawings" onClick={clearAllDrawings} title="Remove All Drawings" style={{ color: '#e53935' }}>
+            <i className="fas fa-trash-alt"></i>
           </div>
         </div>
 
@@ -638,21 +991,37 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
             </span>
           </div>
-          <div className="pnl-toggle-btn" onClick={() => setIsPanelExpanded(true)}>
-            <i className="ti ti-chevron-up"></i>
+          <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)}>
+            <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
           </div>
         </div>
       )}
 
       {/* Bottom Section */}
-      <div className="bottom-section" id="bottomSection">
+      <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Buy/Sell Buttons — always visible, act as quick order when panel is expanded */}
-        {!isOrderBlockVisible && (
+        {!isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
           <div className="trade-buttons" id="tradeButtons">
-            <button className="trade-btn buy" onClick={() => { setIsPanelExpanded(false); setIsOrderBlockVisible(true); setOrderSide('BUY'); }}>
+            <button id="buyButton" className="trade-btn buy" onClick={() => {
+              if (isPanelExpanded && activeSegment === 'chain') {
+                handleQuickMarketOrder('BUY');
+              } else {
+                setIsPanelExpanded(false);
+                setIsOrderBlockVisible(true);
+                setOrderSide('BUY');
+              }
+            }}>
               <span className="btn-label">BUY</span>
             </button>
-            <button className="trade-btn sell" onClick={() => { setIsPanelExpanded(false); setIsOrderBlockVisible(true); setOrderSide('SELL'); }}>
+            <button id="sellButton" className="trade-btn sell" onClick={() => {
+              if (isPanelExpanded && activeSegment === 'chain') {
+                handleQuickMarketOrder('SELL');
+              } else {
+                setIsPanelExpanded(false);
+                setIsOrderBlockVisible(true);
+                setOrderSide('SELL');
+              }
+            }}>
               <span className="btn-label">SELL</span>
             </button>
           </div>
@@ -662,12 +1031,58 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
         {isOrderBlockVisible && (
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
-              <span className="order-block-title">{symbol}</span>
-              <div className="close-order-block" onClick={() => setIsOrderBlockVisible(false)}>
+              <span className="order-block-title">
+                {chainContract ? `${symbol} ${chainContract.name}` : symbol}
+              </span>
+              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); }}>
                 <i className="ti ti-x"></i>
               </div>
             </div>
             <div className="order-block-content">
+              {chainContract && (
+                <div id="chainBSToggle" style={{ display: 'flex', gap: '6px', padding: '0 0 8px' }}>
+                  <button
+                    onClick={() => {
+                      setOrderSide('BUY');
+                      const ask = chainContract.ask;
+                      setLimitPrice(ask.toFixed(2));
+                      setTriggerPrice(ask.toFixed(2));
+                    }}
+                    style={{
+                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
+                      background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
+                    }}
+                  >
+                    BUY
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOrderSide('SELL');
+                      const bid = chainContract.bid;
+                      setLimitPrice(bid.toFixed(2));
+                      setTriggerPrice(bid.toFixed(2));
+                    }}
+                    style={{
+                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
+                      background: orderSide === 'SELL' ? '#e53935' : '#F0F2F5', color: orderSide === 'SELL' ? '#fff' : '#8B92A8'
+                    }}
+                  >
+                    SELL
+                  </button>
+                </div>
+              )}
+
+              {chainContract && (
+                <div id="chainContractDetail" style={{ fontSize: '10px', color: '#8B92A8', fontWeight: '600', padding: '0 0 6px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <span style={{ background: orderSide === 'BUY' ? '#e8faf0' : '#fde8e8', color: orderSide === 'BUY' ? '#1db954' : '#e53935', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '10px' }}>
+                    {orderSide === 'BUY' ? 'Ask' : 'Bid'} ₹{orderSide === 'BUY' ? chainContract.ask : chainContract.bid}
+                  </span>
+                  <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 8px', borderRadius: '6px', fontSize: '10px' }}>
+                    {chainContract.expiry}
+                  </span>
+                </div>
+              )}
+
               <div className="top-row">
                 <div className="quantity-box">
                   <div className="qty-controls">
@@ -692,12 +1107,15 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               </div>
               
               <div className="bottom-row">
-                <div className="market-limit-box" id="orderTypeGroup">
+                <div className="market-limit-box" id="orderTypeGroup" style={{ width: 'auto', flexGrow: 1 }}>
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
                   <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>
+                  <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>
+                  <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
+                  <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>
                 </div>
-                {orderType === 'limit' && (
-                  <div className="limit-price-box visible" id="limitPriceBox">
+                {(orderType === 'limit' || orderType === 'gtt') && (
+                  <div className="limit-price-box visible" id="limitPriceBox" style={{ width: '120px' }}>
                     <span className="price-symbol">₹</span>
                     <input
                       type="number"
@@ -708,7 +1126,44 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                     />
                   </div>
                 )}
+                {(orderType === 'sl' || orderType === 'slm') && (
+                  <div className="limit-price-box visible" id="triggerPriceBox" style={{ width: '120px' }}>
+                    <span className="price-symbol" style={{ fontSize: '8px', color: '#8B92A8', fontWeight: 'bold' }}>TRIG ₹</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={triggerPrice}
+                      onChange={(e) => setTriggerPrice(e.target.value)}
+                      placeholder="trigger"
+                    />
+                  </div>
+                )}
               </div>
+
+              {orderType === 'gtt' && (
+                <div className="gtt-row">
+                  <div className="gtt-field sl-field">
+                    <span className="gtt-tag">SL ₹</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={gttSlPrice}
+                      onChange={(e) => setGttSlPrice(e.target.value)}
+                      placeholder="stop loss"
+                    />
+                  </div>
+                  <div className="gtt-field tgt-field">
+                    <span className="gtt-tag">Target ₹</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={gttTargetPrice}
+                      onChange={(e) => setGttTargetPrice(e.target.value)}
+                      placeholder="target"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="order-margin-simple">
                 <div className="margin-line">
