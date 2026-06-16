@@ -643,6 +643,28 @@ function WatchlistContent() {
     (window as any).__activeTab = activeTab;
   }, [activeTab]);
 
+  // Search priority: watchlist first → fallback to Scripts Library
+  useEffect(() => {
+    const area = document.getElementById('searchResultsArea');
+    if (!area) return;
+
+    if (!searchText.trim()) {
+      area.style.display = 'none';
+      return;
+    }
+
+    if (filteredItems.length > 0) {
+      // Watchlist has matches — keep library hidden
+      area.style.display = 'none';
+    } else {
+      // No watchlist matches — trigger library search via the inline script
+      const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
+      if (input) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }, [searchText, filteredItems.length]);
+
   useEffect(() => {
     async function fetchBalance() {
       try {
@@ -1307,10 +1329,37 @@ function WatchlistContent() {
           </div>
         </div>
         <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
-        <div className="search-wrapper">
-          <i className="fas fa-search search-icon"></i>
-          <input type="text" className="search-input" id="globalSearchInput" placeholder="Search instrument" autoComplete="off" value={searchText} onChange={(e) => setSearchText(e.target.value)} suppressHydrationWarning />
-          <i className="fas fa-times-circle clear-search" id="clearSearchBtn" onClick={() => setSearchText('')}></i>
+        <div className={`search-wrapper${searchText ? ' has-text' : ''}`}>
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.8"/>
+            <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            id="globalSearchInput"
+            placeholder="Search instruments…"
+            autoComplete="off"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            suppressHydrationWarning
+          />
+          {!searchText && (
+            <span className="search-shortcut">
+              <kbd>/</kbd>
+            </span>
+          )}
+          {searchText && (
+            <button
+              className="clear-search-btn"
+              onClick={() => setSearchText('')}
+              aria-label="Clear search"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2375,7 +2424,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       var searchDebounceTimer = null;
 
       function renderSearchResults(results) {
-        searchResultCount.textContent = results.length + ' RESULTS';
+        var searchResultsArea = document.getElementById('searchResultsArea');
+        var searchResultsList = document.getElementById('searchResultsList');
+        var searchResultCount = document.getElementById('searchResultCount');
+        if (!searchResultsArea || !searchResultsList) return;
         var html = '';
         results.slice(0, 150).forEach(function(item) {
           var kiteId = item.kiteSymbol || item.symbol || '';
@@ -2402,10 +2454,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
             '<button class="add-script-btn sri-add-btn" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
             '</div></div>';
         });
-        searchResultsList.innerHTML = html;
-        // Show as flex so the section stretches full height
+        if (searchResultCount) searchResultCount.textContent = results.length + ' RESULTS';
+        searchResultsList.innerHTML = html || '<div class="no-results">No results found in library</div>';
         searchResultsArea.style.display = 'flex';
-        // Keep watchlist section visible — React filterBySearch handles filtering
 
         // Fetch live prices for all results that have a kiteSymbol
         var kiteIds = results.slice(0, 150)
@@ -2443,12 +2494,15 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         searchInput.addEventListener('input', function() {
           var query = this.value.trim();
           if (query.length === 0) {
-            searchResultsArea.style.display = 'none';
-            clearSearchBtn.style.display = 'none';
+            var area = document.getElementById('searchResultsArea');
+            if (area) area.style.display = 'none';
+            var btn = document.getElementById('clearSearchBtn');
+            if (btn) btn.style.display = 'none';
             if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             return;
           }
-          clearSearchBtn.style.display = 'block';
+          var btn = document.getElementById('clearSearchBtn');
+          if (btn) btn.style.display = 'block';
 
           // Hardcoded results turant dikhao
           var activeTab = window.__activeTab || 'All';
@@ -2526,7 +2580,8 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', function() {
           searchInput.value = '';
-          searchResultsArea.style.display = 'none';
+          var area = document.getElementById('searchResultsArea');
+          if (area) area.style.display = 'none';
           this.style.display = 'none';
         });
       }

@@ -228,6 +228,29 @@ export async function GET(request: NextRequest) {
 
     let rows: any[] = data ?? [];
 
+    // Filter rows to ensure they actually match the search terms in a meaningful way.
+    // This avoids matching "25" to all 2025 options because of "25" in their internal Zerodha tradingsymbol (e.g. NIFTY2532822300PE).
+    const searchTerms = q.toLowerCase().split(/\s+/);
+    rows = rows.filter((r: any) => {
+      const dispName = buildDisplayName(
+        r.tradingsymbol,
+        r.underlying_symbol || r.name || r.tradingsymbol,
+        r.strike_price ?? null,
+        r.option_type ?? null,
+        null
+      ).toLowerCase();
+      const symbol = r.tradingsymbol.toLowerCase();
+      const name = (r.name || '').toLowerCase();
+
+      return searchTerms.every(term => {
+        // If the term is numeric and it's an option instrument with a strike price, it should match the strike price
+        if (/^\d+$/.test(term) && r.strike_price !== null) {
+          return String(r.strike_price).includes(term);
+        }
+        return dispName.includes(term) || name.includes(term) || symbol.includes(term);
+      });
+    });
+
     // Apply Filter Engine rules server-side before returning results
     const today = new Date().toISOString().split('T')[0];
 
