@@ -167,6 +167,32 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setTimeout(() => setToast({ visible: false, msg: '' }), 2000);
   };
 
+  const handleClearDrawings = () => {
+    try {
+      if (widgetRef.current && typeof widgetRef.current.chart === 'function') {
+        widgetRef.current.chart().removeAllShapes();
+        showToast('All drawings removed');
+      } else {
+        setTimeframe(prev => prev);
+        showToast('Drawings cleared');
+      }
+    } catch (e) {
+      // Clear localStorage TV keys if cross-origin limits us, then recreate widget
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('tradingview') || key.includes('tv-chart'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (err) {}
+      setTimeframe(prev => prev);
+      showToast('All drawings cleared');
+    }
+  };
+
   // Get user's actual funds balance
   useEffect(() => {
     fetch('/api/pay/balance')
@@ -750,6 +776,14 @@ function mapChartTypeToTvStyle(type: string): string {
               <rect x="1" y="3" width="13" height="10" rx="1.5"/>
               <circle cx="7.5" cy="8" r="2.5"/>
               <path d="M5 3l1-2h3l1 2" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Clear drawings (Dustbin) */}
+          <div className="tc-tb-icon" title="Clear drawings" onClick={handleClearDrawings}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M2 3h11M4 3v9a1.5 1.5 0 001.5 1.5h4A1.5 1.5 0 0011 12V3M5 3V1.5A1.5 1.5 0 016.5 0h2A1.5 1.5 0 0110 1.5V3" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M6 6v4M9 6v4" strokeLinecap="round"/>
             </svg>
           </div>
 
