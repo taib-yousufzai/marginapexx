@@ -2253,9 +2253,19 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         {
           name: 'MCX-OPT',
           icon: 'fa-chart-line',
-          instruments: [
-            { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: '', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 812, high: 828, low: 810, close: 820 },
-            { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: '', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: 'Jun 2026', open: 140, high: 152, low: 138, close: 145 }
+          subCategories: [
+            {
+              name: 'GOLD',
+              instruments: [
+                { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: 'MCX:GOLD26JUN72000CE', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: '2026-06-30', open: 812, high: 828, low: 810, close: 820 }
+              ]
+            },
+            {
+              name: 'CRUDEOIL',
+              instruments: [
+                { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: 'MCX:CRUDEOIL26JUN6000CE', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: '2026-06-30', open: 140, high: 152, low: 138, close: 145 }
+              ]
+            }
           ]
         },
         {
@@ -2280,16 +2290,35 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           icon: 'fa-gem',
           instruments: [
             { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
-            { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 }
+            { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+            { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', comexSymbol: 'CL=F', price: 6120, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JUNFUT', comexSymbol: 'HG=F', price: 780, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 }
           ]
         },
         {
           name: 'STOCK-OPT',
           icon: 'fa-layer-group',
-          instruments: [
-            { name: 'RELIANCE OPT', symbol: 'RELIANCE_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
-            { name: 'TCS OPT', symbol: 'TCS_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 },
-            { name: 'HDFCBANK OPT', symbol: 'HDFCBANK_OPT', kiteSymbol: '', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '', open: 0, high: 0, low: 0, close: 0 }
+          subCategories: [
+            {
+              name: 'RELIANCE',
+              instruments: [
+                { name: 'RELIANCE 2900 CE', symbol: 'RELIANCE26JUN2900CE', kiteSymbol: 'NFO:RELIANCE26JUN2900CE', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '2026-06-30', open: 0, high: 0, low: 0, close: 0 },
+                { name: 'RELIANCE 2800 PE', symbol: 'RELIANCE26JUN2800PE', kiteSymbol: 'NFO:RELIANCE26JUN2800PE', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '2026-06-30', open: 0, high: 0, low: 0, close: 0 }
+              ]
+            },
+            {
+              name: 'TCS',
+              instruments: [
+                { name: 'TCS 4000 CE', symbol: 'TCS26JUN4000CE', kiteSymbol: 'NFO:TCS26JUN4000CE', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '2026-06-30', open: 0, high: 0, low: 0, close: 0 }
+              ]
+            },
+            {
+              name: 'HDFCBANK',
+              instruments: [
+                { name: 'HDFCBANK 1700 CE', symbol: 'HDFCBANK26JUN1700CE', kiteSymbol: 'NFO:HDFCBANK26JUN1700CE', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '2026-06-30', open: 0, high: 0, low: 0, close: 0 },
+                { name: 'HDFCBANK 1600 PE', symbol: 'HDFCBANK26JUN1600PE', kiteSymbol: 'NFO:HDFCBANK26JUN1600PE', price: 0, change: '0%', segment: 'NSE - Stock Options', contractDate: '2026-06-30', open: 0, high: 0, low: 0, close: 0 }
+              ]
+            }
           ]
         },
         {

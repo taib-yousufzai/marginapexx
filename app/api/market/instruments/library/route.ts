@@ -265,13 +265,58 @@ export async function GET() {
     // 6. Comex
     const { data: comex } = await supabase.from('instruments').select('*').eq('segment', 'COMEX').order('name', { ascending: true });
     if (comex && comex.length > 0) {
+      const { data: mcxFuts } = await supabase
+        .from('instruments')
+        .select('tradingsymbol, name, exchange, expiry')
+        .eq('exchange', 'MCX')
+        .in('instrument_type', ['FUTCOM', 'FUT', 'MAPPED_FUT'])
+        .gte('expiry', today);
+
+      const mcxMap = new Map();
+      if (mcxFuts) {
+        mcxFuts.forEach(f => {
+          if (!mcxMap.has(f.name) || f.expiry < mcxMap.get(f.name).expiry) {
+            mcxMap.set(f.name, f);
+          }
+        });
+      }
+
+      const tickerMap: Record<string, string> = {
+        'GC=F': 'GOLD',
+        'SI=F': 'SILVER',
+        'CL=F': 'CRUDEOIL',
+        'HG=F': 'COPPER',
+      };
+
+      const symbolMap: Record<string, string> = {
+        'GC=F': 'GOLD_FUT',
+        'SI=F': 'SILVER_FUT',
+        'CL=F': 'CRUDEOIL_FUT',
+        'HG=F': 'COPPER_FUT',
+      };
+
       segments.push({
         name: 'COMEX',
         icon: 'fa-globe',
-        instruments: comex.map((i: any) => ({
-          name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: i.id,
-          price: 0, change: '0%', segment: 'COMEX', contractDate: '', open: 0, high: 0, low: 0, close: 0
-        }))
+        instruments: comex.map((i: any) => {
+          const mcxUnderlying = tickerMap[i.id];
+          const matchedMcx = mcxUnderlying ? mcxMap.get(mcxUnderlying) : null;
+          return {
+            name: i.tradingsymbol,
+            symbol: symbolMap[i.id] || i.tradingsymbol,
+            kiteSymbol: matchedMcx ? `MCX:${matchedMcx.tradingsymbol}` : '',
+            comexSymbol: i.id,
+            price: 0,
+            change: '0%',
+            segment: matchedMcx ? 'MCX - Futures' : 'COMEX',
+            contractDate: matchedMcx ? matchedMcx.expiry : '',
+            open: 0,
+            high: 0,
+            low: 0,
+            close: 0,
+            category: 'COI'
+          };
+        })
       });
     }
 
