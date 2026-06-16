@@ -35,6 +35,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
+  const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
+  const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +124,16 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [keepDrawingMode, setKeepDrawingMode] = useState<boolean>(false);
   const [hideDrawings, setHideDrawings] = useState<boolean>(false);
+  const [openFlyout, setOpenFlyout] = useState<string | null>(null);
+  // Maps each flyout group to its currently selected (last-used) tool
+  const [groupSelected, setGroupSelected] = useState<Record<string, string>>({
+    lines: 'segment',
+    fibonacci: 'fibonacciRetracement',
+    channels: 'parallelStraightLine',
+    shapes: 'circle',
+    annotation: 'simpleAnnotation',
+    measure: 'priceRange',
+  });
 
   const toggleLockDrawings = () => {
     const next = !isLocked;
@@ -812,134 +824,446 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   return (
     <div className="tc-wrapper">
       {/* Top Toolbar */}
-      <div className="tc-top-toolbar">
-        <button className="tc-icon-btn" onClick={() => {
-          const sheet = document.getElementById('chartSheet'); 
-          const overlay = document.getElementById('chartSheetOverlay'); 
-          if (sheet) sheet.classList.remove('open'); 
-          if (overlay) overlay.classList.remove('active'); 
+      <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
+
+        {/* ── Back button ── */}
+        <button className="tc-icon-btn" style={{ marginRight: '-6px' }} onClick={() => {
+          const sheet = document.getElementById('chartSheet');
+          const overlay = document.getElementById('chartSheetOverlay');
+          if (sheet) sheet.classList.remove('open');
+          if (overlay) overlay.classList.remove('active');
         }}>
-          <i className="fas fa-arrow-left"></i>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M10 3L5 8l5 5"/>
+          </svg>
         </button>
 
-        <div className="tc-symbol-search">
-          <i className="fas fa-search" style={{ opacity: 0.6 }}></i>
-          {symbol}
+        {/* ── Symbol ── */}
+        <div className="tc-symbol-btn">
+          <span className="tc-symbol-exchange">{displayExchange}</span>
+          <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z"/></svg>
         </div>
 
         <div className="tc-divider"></div>
 
-        {/* Timeframes */}
-        {(['1m', '5m', '15m', '60m', 'day'] as Timeframe[]).map(tf => (
-          <div
-            key={tf}
-            className={`tc-timeframe ${timeframe === tf ? 'active' : ''}`}
-            onClick={() => setTimeframe(tf)}
-          >
-            {tf}
+        {/* ── Interval flyout ── */}
+        {(() => {
+          const intervals: { label: string; tf: Timeframe }[] = [
+            { label: '1m',  tf: '1m'  },
+            { label: '5m',  tf: '5m'  },
+            { label: '15m', tf: '15m' },
+            { label: '1H',  tf: '60m' },
+            { label: 'D',   tf: 'day' },
+          ];
+          const current = intervals.find(i => i.tf === timeframe) || intervals[1];
+          return (
+            <div style={{ position: 'relative' }}>
+              <div
+                className={`tc-tb-btn ${openTopFlyout === 'interval' ? 'tc-tb-btn-open' : ''}`}
+                onMouseEnter={() => setOpenTopFlyout('interval')}
+                onClick={() => setOpenTopFlyout(openTopFlyout === 'interval' ? null : 'interval')}
+                title="Interval"
+              >
+                <span style={{ fontWeight: 700, fontSize: '13px' }}>{current.label}</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+              </div>
+              {openTopFlyout === 'interval' && (
+                <div className="tc-top-flyout" style={{ minWidth: '110px' }}>
+                  <div className="tc-flyout-title">Interval</div>
+                  {intervals.map(i => (
+                    <div
+                      key={i.tf}
+                      className={`tc-flyout-item ${timeframe === i.tf ? 'active' : ''}`}
+                      onClick={() => { setTimeframe(i.tf); setOpenTopFlyout(null); }}
+                    >
+                      <span>{i.label}</span>
+                      {timeframe === i.tf && <span className="tc-flyout-check">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Chart Type flyout ── */}
+        {(() => {
+          const types: { key: 'candle' | 'area' | 'bar' | 'baseline'; label: string; icon: React.ReactNode }[] = [
+            { key: 'candle',   label: 'Candles',   icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="4" width="3" height="6" fill="currentColor"/><line x1="4.5" y1="1" x2="4.5" y2="4"/><line x1="4.5" y1="10" x2="4.5" y2="13"/><rect x="8" y="3" width="3" height="5" fill="none"/><line x1="9.5" y1="1" x2="9.5" y2="3"/><line x1="9.5" y1="8" x2="9.5" y2="13"/></svg> },
+            { key: 'bar',      label: 'Bars',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" y1="2" x2="4" y2="12"/><line x1="1" y1="5" x2="4" y2="5"/><line x1="4" y1="9" x2="7" y2="9"/><line x1="10" y1="3" x2="10" y2="11"/><line x1="7" y1="6" x2="10" y2="6"/><line x1="10" y1="8" x2="13" y2="8"/></svg> },
+            { key: 'area',     label: 'Area',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 11 Q4 4 7 6 Q10 8 13 3" /><path d="M1 11 Q4 4 7 6 Q10 8 13 3 V11 Z" fill="currentColor" opacity="0.2" stroke="none"/></svg> },
+            { key: 'baseline', label: 'Baseline',  icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="7" x2="13" y2="7" strokeDasharray="2 1"/><path d="M1 7 Q4 3 7 5 Q10 7 13 4" /><path d="M1 7 Q4 11 7 9 Q10 7 13 10" /></svg> },
+          ];
+          const cur = types.find(t => t.key === chartType) || types[0];
+          return (
+            <div style={{ position: 'relative' }}>
+              <div
+                className={`tc-tb-btn ${openTopFlyout === 'charttype' ? 'tc-tb-btn-open' : ''}`}
+                onMouseEnter={() => setOpenTopFlyout('charttype')}
+                onClick={() => setOpenTopFlyout(openTopFlyout === 'charttype' ? null : 'charttype')}
+                title="Chart Type"
+              >
+                {cur.icon}
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+              </div>
+              {openTopFlyout === 'charttype' && (
+                <div className="tc-top-flyout" style={{ minWidth: '140px' }}>
+                  <div className="tc-flyout-title">Chart Type</div>
+                  {types.map(t => (
+                    <div
+                      key={t.key}
+                      className={`tc-flyout-item ${chartType === t.key ? 'active' : ''}`}
+                      onClick={() => {
+                        setChartType(t.key);
+                        setOpenTopFlyout(null);
+                        if (chartRef.current) {
+                          chartRef.current.setStyles({
+                            candle: { type: t.key === 'candle' ? 'candle_solid' : t.key === 'bar' ? 'ohlc' : t.key === 'area' ? 'area' : 'normal' } as any
+                          });
+                        }
+                      }}
+                    >
+                      <span className="tc-flyout-icon">{t.icon}</span>
+                      <span>{t.label}</span>
+                      {chartType === t.key && <span className="tc-flyout-check">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        <div className="tc-divider"></div>
+
+        {/* ── Indicators ── */}
+        <div
+          className="tc-tb-btn tc-tb-indicators"
+          title="Indicators"
+          onClick={() => showToast('Indicators panel coming soon')}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M1 10 L4 6 L7 8 L10 3 L13 5"/>
+            <line x1="1" y1="12" x2="13" y2="12" strokeDasharray="2 1" opacity="0.5"/>
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Indicators</span>
+        </div>
+
+        {/* ── Compare ── */}
+        <div
+          className="tc-tb-btn"
+          title="Compare Symbol"
+          onClick={() => showToast('Compare mode coming soon')}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M1 9 L5 5 L8 7 L13 2" />
+            <path d="M1 12 L5 9 L8 11 L13 6" opacity="0.5"/>
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Compare</span>
+        </div>
+
+        {/* ── Right side ── */}
+        <div className="tc-top-right">
+
+          {/* Snapshot */}
+          <div className="tc-tb-icon" title="Take Snapshot" onClick={() => showToast('Snapshot copied!')}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="1" y="3" width="13" height="10" rx="1.5"/>
+              <circle cx="7.5" cy="8" r="2.5"/>
+              <path d="M5 3l1-2h3l1 2" strokeLinejoin="round"/>
+            </svg>
           </div>
-        ))}
+
+          {/* Settings */}
+          <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="7.5" cy="7.5" r="2"/>
+              <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12"/>
+            </svg>
+          </div>
+
+          {/* Fullscreen */}
+          <div className="tc-tb-icon" title="Fullscreen" onClick={() => {
+            const el = document.getElementById('chartSheet');
+            if (el) el.requestFullscreen?.();
+          }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/>
+            </svg>
+          </div>
+        </div>
       </div>
       
       {/* Main Area */}
       <div className="tc-main-area">
-        {/* Left Drawing & Utility Sidebar Toolbar */}
-        <div className="tc-left-toolbar" style={{ width: '42px', borderRight: '1px solid #E8ECF0', padding: '6px 0', gap: '8px' }}>
-          {/* Crosshair / Pointer */}
-          <div className={`tc-tool-icon ${!activeDrawingTool ? 'active' : ''}`} onClick={() => setActiveDrawingTool(null)} title="Crosshair">
-            <i className="fas fa-crosshairs"></i>
+        {/* Left Drawing Toolbar — TradingView Style */}
+        <div
+          className="tc-left-toolbar"
+          style={{ width: '44px', borderRight: '1px solid #E8ECF0', padding: '6px 0', gap: '2px' }}
+          onMouseLeave={() => setOpenFlyout(null)}
+        >
+
+          {/* ── Cursor / Pointer ── */}
+          <div
+            className={`tc-tool-icon ${!activeDrawingTool ? 'active' : ''}`}
+            onClick={() => { setActiveDrawingTool(null); setOpenFlyout(null); }}
+            title="Cursor"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1l12 6-5.5 1.5L7 14z"/></svg>
           </div>
 
-          {/* Trendline (Segment) */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'segment' ? 'active' : ''}`} onClick={() => handleDrawingTool('segment')} title="Trendline">
-            <i className="fas fa-slash" style={{ transform: 'rotate(-45deg)' }}></i>
+          <div className="tc-toolbar-sep" />
+
+          {/* ── Lines Group ── */}
+          {(() => {
+            const lineTools = [
+              { name: 'segment',               label: 'Trend Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/></svg> },
+              { name: 'rayLine',               label: 'Ray',                 icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/><circle cx="14" cy="1" r="1.5" fill="currentColor"/></svg> },
+              { name: 'straightLine',          label: 'Extended Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="14" x2="15" y2="1"/></svg> },
+              { name: 'horizontalStraightLine',label: 'Horizontal Line',     icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/></svg> },
+              { name: 'horizontalRayLine',     label: 'Horizontal Ray',      icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/><circle cx="0" cy="7" r="1.5" fill="currentColor"/></svg> },
+              { name: 'horizontalSegment',     label: 'Horizontal Segment',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="7" x2="14" y2="7"/><circle cx="1" cy="7" r="1.5" fill="currentColor"/><circle cx="14" cy="7" r="1.5" fill="currentColor"/></svg> },
+              { name: 'verticalStraightLine',  label: 'Vertical Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="7" y1="0" x2="7" y2="15"/></svg> },
+              { name: 'priceLine',             label: 'Price Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="12" y2="7"/><rect x="12" y="4" width="3" height="6" rx="1" fill="currentColor" stroke="none"/></svg> },
+            ];
+            const sel = groupSelected.lines;
+            const selTool = lineTools.find(t => t.name === sel) || lineTools[0];
+            const isGroupActive = lineTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('lines')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'lines' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Lines</div>
+                    {lineTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, lines: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Fibonacci Group ── */}
+          {(() => {
+            const fibTools = [
+              { name: 'fibonacciRetracement', label: 'Fib Retracement',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="2" x2="15" y2="2"/><line x1="0" y1="6" x2="15" y2="6"/><line x1="0" y1="9" x2="15" y2="9"/><line x1="0" y1="13" x2="15" y2="13"/><line x1="1" y1="2" x2="14" y2="13" strokeDasharray="2 1"/></svg> },
+              { name: 'fibonacciExtension',  label: 'Fib Extension',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="3" x2="15" y2="3"/><line x1="0" y1="7" x2="15" y2="7"/><line x1="0" y1="11" x2="15" y2="11"/><line x1="1" y1="14" x2="14" y2="1" strokeDasharray="2 1"/></svg> },
+              { name: 'fibonacciSpeedResistanceFan', label: 'Fib Speed Resistance Fan', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="1"/><line x1="1" y1="14" x2="14" y2="5"/><line x1="1" y1="14" x2="14" y2="9"/></svg> },
+              { name: 'fibonacciCircle',      label: 'Fib Arc',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 13 Q7 2 13 13"/><line x1="2" y1="13" x2="13" y2="13"/></svg> },
+              { name: 'fibonacciSegment',     label: 'Fib Wedge',        icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="2"/><line x1="1" y1="14" x2="14" y2="7"/><line x1="1" y1="14" x2="14" y2="12"/></svg> },
+            ];
+            const sel = groupSelected.fibonacci;
+            const selTool = fibTools.find(t => t.name === sel) || fibTools[0];
+            const isGroupActive = fibTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('fibonacci')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'fibonacci' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Fibonacci</div>
+                    {fibTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, fibonacci: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Channels Group ── */}
+          {(() => {
+            const channelTools = [
+              { name: 'parallelStraightLine', label: 'Parallel Channel', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="12" x2="14" y2="4"/><line x1="1" y1="6" x2="14" y2="11" strokeDasharray="2 1"/></svg> },
+              { name: 'priceChannelLine',     label: 'Price Channel',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="12" x2="14" y2="12"/><line x1="1" y1="7" x2="14" y2="7" strokeDasharray="2 1"/></svg> },
+            ];
+            const sel = groupSelected.channels;
+            const selTool = channelTools.find(t => t.name === sel) || channelTools[0];
+            const isGroupActive = channelTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('channels')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'channels' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Channels</div>
+                    {channelTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, channels: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="tc-toolbar-sep" />
+
+          {/* ── Annotation Group ── */}
+          {(() => {
+            const annoTools = [
+              { name: 'simpleAnnotation', label: 'Text Note',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><text x="1" y="13" fontSize="13" fontFamily="Georgia,serif" fontWeight="bold">T</text></svg> },
+              { name: 'simpleTag',        label: 'Price Tag',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="9" height="7" rx="1.5"/><line x1="10" y1="7" x2="14" y2="7"/></svg> },
+            ];
+            const sel = groupSelected.annotation;
+            const selTool = annoTools.find(t => t.name === sel) || annoTools[0];
+            const isGroupActive = annoTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('annotation')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'annotation' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Annotations</div>
+                    {annoTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, annotation: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Measure Tool ── */}
+          <div
+            className={`tc-tool-icon ${activeDrawingTool === 'priceRange' ? 'active' : ''}`}
+            onClick={() => handleDrawingTool('priceRange')}
+            title="Measure (Price & Bars)"
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <line x1="1" y1="3" x2="1" y2="12"/>
+              <line x1="14" y1="3" x2="14" y2="12"/>
+              <line x1="1" y1="7.5" x2="14" y2="7.5"/>
+            </svg>
           </div>
 
-          {/* Horizontal Line */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'horizontalStraightLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('horizontalStraightLine')} title="Horizontal Line">
-            <i className="fas fa-grip-lines"></i>
+          {/* ── Brush / Freehand ── */}
+          <div
+            className={`tc-tool-icon ${activeDrawingTool === 'brush' ? 'active' : ''}`}
+            onClick={() => handleDrawingTool('brush')}
+            title="Brush (Freehand)"
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M10.5 1.5a2.1 2.1 0 0 1 3 3L5 13l-4 1 1-4z"/></svg>
           </div>
 
-          {/* Parallel Channel */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'parallelChannel' ? 'active' : ''}`} onClick={() => handleDrawingTool('parallelChannel')} title="Parallel Channel">
-            <i className="fas fa-align-justify" style={{ transform: 'rotate(90deg)' }}></i>
-          </div>
+          <div className="tc-toolbar-sep" />
 
-          {/* Fibonacci Retracement */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'fibonacciLine' ? 'active' : ''}`} onClick={() => handleDrawingTool('fibonacciLine')} title="Fibonacci Retracement">
-            <i className="fas fa-chart-area"></i>
-          </div>
-
-          {/* Brush / Pencil (using segment with custom styling or template) */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'brush' ? 'active' : ''}`} onClick={() => handleDrawingTool('segment')} title="Brush / Free Draw">
-            <i className="fas fa-paint-brush"></i>
-          </div>
-
-          {/* Text Annotation */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'simpleAnnotation' ? 'active' : ''}`} onClick={() => handleDrawingTool('simpleAnnotation')} title="Text Annotation">
-            <div style={{ fontWeight: 'bold', fontFamily: 'serif', fontSize: '14px', lineHeight: 1 }}>T</div>
-          </div>
-
-          {/* Icons / Smiley */}
-          <div className="tc-tool-icon" onClick={() => showToast("Icons library coming soon")} title="Smiley Icons">
-            <i className="far fa-smile"></i>
-          </div>
-
-          {/* Ruler / Measure Tool (Price Range) */}
-          <div className={`tc-tool-icon ${activeDrawingTool === 'priceRange' ? 'active' : ''}`} onClick={() => handleDrawingTool('priceRange')} title="Measure Price & Bars">
-            <i className="fas fa-ruler-combined"></i>
-          </div>
-
-          {/* Zoom In/Out (Chart API wrapper) */}
-          <div className="tc-tool-icon" onClick={() => { chartRef.current?.zoomAtCoordinate(0.1); showToast("Zoomed in"); }} title="Zoom In">
-            <i className="fas fa-search-plus"></i>
-          </div>
-
-          <div style={{ width: '80%', height: '1px', backgroundColor: '#E8ECF0', margin: '4px auto' }} />
-
-          {/* Magnet Snapping Mode */}
+          {/* ── Magnet ── */}
           <div
             className={`tc-tool-icon ${isMagnetMode ? 'active-magnet' : ''}`}
-            onClick={() => { setIsMagnetMode(!isMagnetMode); showToast(!isMagnetMode ? "Magnet snap enabled" : "Magnet snap disabled"); }}
-            title="Magnet Snapping Mode"
-            style={isMagnetMode ? { color: '#089981', backgroundColor: 'rgba(8, 153, 129, 0.1)' } : {}}
+            onClick={() => { setIsMagnetMode(!isMagnetMode); showToast(!isMagnetMode ? 'Magnet snap on' : 'Magnet snap off'); }}
+            title="Magnet Snap"
+            style={isMagnetMode ? { color: '#089981', backgroundColor: 'rgba(8,153,129,0.12)' } : {}}
           >
-            <i className="fas fa-magnet"></i>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M7.5 1a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 7.5 1zm0 2a4.5 4.5 0 0 1 4.5 4.5H10a2.5 2.5 0 0 0-5 0H3A4.5 4.5 0 0 1 7.5 3z"/></svg>
           </div>
 
-          {/* Lock all drawings */}
+          {/* ── Lock ── */}
           <div
             className={`tc-tool-icon ${isLocked ? 'active-locked' : ''}`}
             onClick={toggleLockDrawings}
-            title="Lock All Drawing Tools"
-            style={isLocked ? { color: '#e53935', backgroundColor: 'rgba(229, 57, 53, 0.1)' } : {}}
+            title="Lock Drawings"
+            style={isLocked ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
           >
-            <i className={isLocked ? "fas fa-lock" : "fas fa-lock-open"}></i>
+            {isLocked
+              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+            }
           </div>
 
-          {/* Stay in Drawing Mode (Keep Drawing) */}
+          {/* ── Stay in drawing mode ── */}
           <div
             className={`tc-tool-icon ${keepDrawingMode ? 'active-keep' : ''}`}
-            onClick={() => { setKeepDrawingMode(!keepDrawingMode); showToast(!keepDrawingMode ? "Keep drawing mode enabled" : "Keep drawing mode disabled"); }}
+            onClick={() => { setKeepDrawingMode(!keepDrawingMode); showToast(!keepDrawingMode ? 'Keep drawing on' : 'Keep drawing off'); }}
             title="Stay in Drawing Mode"
-            style={keepDrawingMode ? { color: '#2962FF', backgroundColor: 'rgba(41, 98, 255, 0.1)' } : {}}
+            style={keepDrawingMode ? { color: '#2962FF', backgroundColor: 'rgba(41,98,255,0.1)' } : {}}
           >
-            <i className="fas fa-pen-nib"></i>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M11 1a1 1 0 0 1 1.4 1.4L4.8 10H3v-1.8z"/><line x1="1" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.5"/></svg>
           </div>
 
-          {/* Hide/Show Drawings */}
+          {/* ── Hide/Show ── */}
           <div
             className={`tc-tool-icon ${hideDrawings ? 'active-hide' : ''}`}
             onClick={toggleHideDrawings}
-            title="Hide All Drawings"
-            style={hideDrawings ? { color: '#e53935', backgroundColor: 'rgba(229, 57, 53, 0.1)' } : {}}
+            title="Hide Drawings"
+            style={hideDrawings ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
           >
-            <i className={hideDrawings ? "fas fa-eye-slash" : "fas fa-eye"}></i>
+            {hideDrawings
+              ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="2" y1="2" x2="13" y2="13"/><path d="M5.5 5.5A3 3 0 0 0 9.5 9.5M3 4C1.7 5.3 1 6.5 1 7.5c0 2 3 5 6.5 5M12 11C13.3 9.7 14 8.5 14 7.5c0-2-3-5-6.5-5"/></svg>
+              : <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 7.5c0-2 3-5 6.5-5s6.5 3 6.5 5-3 5-6.5 5S1 9.5 1 7.5z"/><circle cx="7.5" cy="7.5" r="2"/></svg>
+            }
           </div>
 
-          {/* Trash / Delete Drawings */}
-          <div className="tc-tool-icon delete-all-drawings" onClick={clearAllDrawings} title="Remove All Drawings" style={{ color: '#e53935' }}>
-            <i className="fas fa-trash-alt"></i>
+          {/* ── Delete All ── */}
+          <div
+            className="tc-tool-icon"
+            onClick={clearAllDrawings}
+            title="Remove All Drawings"
+            style={{ color: '#e53935' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M5 1h4l1 1h3v1.5H1V2h3zM2.5 4h9l-.8 8H3.3z"/></svg>
           </div>
         </div>
 

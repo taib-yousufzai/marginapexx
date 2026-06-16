@@ -2090,25 +2090,6 @@ function WatchlistContent() {
 
       <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
       <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
-        <div className="sheet-handle"><div className="handle-bar"></div></div>
-        <div className="ts-header" style={{ paddingBottom: '10px' }}>
-          <button className="ts-back-btn" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}>
-            <i className="fas fa-chevron-down"></i>
-          </button>
-          <div className="ts-name-block">
-            <div className="ts-instr-name">{chartItem?.name || '---'}</div>
-            <span className="ts-segment-badge">{chartItem?.segment || '---'}</span>
-          </div>
-          <div className="ts-price-block">
-            <div className="ts-price-value" style={{ fontSize: '1rem' }}>
-              {(() => {
-                if (!chartItem) return '--';
-                const q = chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol];
-                return q ? `₹${q.lastPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--';
-              })()}
-            </div>
-          </div>
-        </div>
         <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
           {chartItem && (
             <TradingChart

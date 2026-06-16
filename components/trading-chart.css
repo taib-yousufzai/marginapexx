@@ -19,35 +19,159 @@
 .tc-top-toolbar {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 0 8px;
+  height: 46px;
   border-bottom: 1px solid #E0E3EB;
-  gap: 16px;
+  gap: 4px;
   flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none; /* Firefox */
+  overflow: visible;
+  position: relative;
+  z-index: 100;
 }
-.tc-top-toolbar::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
-}
-
 .dark .tc-top-toolbar {
   border-bottom-color: #2A2E39;
 }
 
+/* Symbol button */
+.tc-symbol-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+}
+.tc-symbol-btn:hover {
+  background: #F0F3FA;
+}
+.dark .tc-symbol-btn:hover {
+  background: #2A2E39;
+}
+.tc-symbol-exchange {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9598A1;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.tc-symbol-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #131722;
+}
+.dark .tc-symbol-name {
+  color: #D1D4DC;
+}
+
+/* Generic toolbar button (interval, chart type, indicators, compare) */
+.tc-tb-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  color: #131722;
+  font-size: 13px;
+  transition: background 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tc-tb-btn:hover,
+.tc-tb-btn-open {
+  background: #F0F3FA;
+}
+.dark .tc-tb-btn {
+  color: #D1D4DC;
+}
+.dark .tc-tb-btn:hover,
+.dark .tc-tb-btn-open {
+  background: #2A2E39;
+}
+
+/* Indicators button — slightly accented */
+.tc-tb-indicators:hover {
+  color: #2962FF;
+  background: rgba(41, 98, 255, 0.07);
+}
+.dark .tc-tb-indicators:hover {
+  color: #4C7EFF;
+  background: rgba(76, 126, 255, 0.1);
+}
+
+/* Right-side icon buttons */
+.tc-top-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.tc-tb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #131722;
+  opacity: 0.7;
+  transition: background 0.12s, opacity 0.12s;
+  flex-shrink: 0;
+}
+.tc-tb-icon:hover {
+  background: #F0F3FA;
+  opacity: 1;
+}
+.dark .tc-tb-icon {
+  color: #D1D4DC;
+}
+.dark .tc-tb-icon:hover {
+  background: #2A2E39;
+}
+
+/* Top bar flyout (drops down) */
+.tc-top-flyout {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 9999;
+  background: #ffffff;
+  border: 1px solid #E0E3EB;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px 0;
+  animation: flyoutIn 0.12s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+.dark .tc-top-flyout {
+  background: #1e222d;
+  border-color: #2A2E39;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Legacy classes kept for compat */
 .tc-icon-btn {
   background: transparent;
   border: none;
   color: #131722;
   font-size: 1.1rem;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 6px;
+  opacity: 0.75;
+  transition: background 0.12s, opacity 0.12s;
+  flex-shrink: 0;
 }
 .tc-icon-btn:hover {
   background-color: #F0F3FA;
+  opacity: 1;
 }
 .dark .tc-icon-btn {
   color: #D1D4DC;
@@ -56,62 +180,22 @@
   background-color: #2A2E39;
 }
 
-.tc-symbol-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-.tc-symbol-search:hover {
-  background-color: #F0F3FA;
-}
-.dark .tc-symbol-search:hover {
-  background-color: #2A2E39;
-}
-
-.tc-timeframe {
-  font-weight: 500;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  position: relative;
-}
-.tc-timeframe:hover {
-  background-color: #F0F3FA;
-}
-.dark .tc-timeframe:hover {
-  background-color: #2A2E39;
-}
-.tc-timeframe.active {
-  color: #2962FF;
-}
-
 .tc-divider {
   width: 1px;
-  height: 24px;
+  height: 22px;
   background-color: #E0E3EB;
+  flex-shrink: 0;
+  margin: 0 2px;
 }
 .dark .tc-divider {
   background-color: #2A2E39;
-}
-
-.tc-right-icons {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto; /* Push to the right */
 }
 
 /* --- Main Area (Left Toolbar + Chart) --- */
 .tc-main-area {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow: visible;
   height: calc(100% - 150px);
   min-height: 0;
 }
@@ -124,13 +208,10 @@
   border-right: 1px solid #E0E3EB;
   padding: 8px 0;
   align-items: center;
-  gap: 14px;
+  gap: 2px;
   flex-shrink: 0;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.tc-left-toolbar::-webkit-scrollbar {
-  display: none;
+  overflow: visible;
+  position: relative;
 }
 .dark .tc-left-toolbar {
   border-right-color: #2A2E39;
@@ -650,6 +731,143 @@
 }
 .black .pnl-toggle-btn, .black .close-order-block {
   background-color: #222222;
+}
+
+/* ==========================================================================
+   TradingView-style Grouped Left Toolbar — Flyout Menus
+   ========================================================================== */
+
+/* Toolbar separator */
+.tc-toolbar-sep {
+  width: 70%;
+  height: 1px;
+  background-color: #E0E3EB;
+  margin: 4px auto;
+  flex-shrink: 0;
+}
+.dark .tc-toolbar-sep {
+  background-color: #2A2E39;
+}
+
+/* Group button: icon + tiny arrow indicator */
+.tc-group-btn {
+  position: relative;
+  flex-direction: column;
+  gap: 0;
+  padding: 5px 4px 2px;
+}
+
+.tc-group-arrow {
+  font-size: 5px;
+  line-height: 1;
+  color: #9598A1;
+  margin-top: 1px;
+  display: block;
+  text-align: center;
+}
+.tc-group-btn:hover .tc-group-arrow,
+.tc-group-btn.active .tc-group-arrow {
+  color: #2962FF;
+}
+
+/* Flyout group container (positioned relative) */
+.tc-flyout-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Flyout popover panel */
+.tc-flyout {
+  position: absolute;
+  left: calc(100% + 4px);
+  top: 0;
+  z-index: 9999;
+  background: #ffffff;
+  border: 1px solid #E0E3EB;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 200px;
+  padding: 6px 0;
+  animation: flyoutIn 0.12s cubic-bezier(0.2, 0.9, 0.4, 1);
+}
+.dark .tc-flyout {
+  background: #1e222d;
+  border-color: #2A2E39;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes flyoutIn {
+  from { opacity: 0; transform: translateX(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Flyout section title */
+.tc-flyout-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #9598A1;
+  padding: 4px 12px 6px;
+  border-bottom: 1px solid #F0F3FA;
+}
+.dark .tc-flyout-title {
+  color: #787B86;
+  border-bottom-color: #2A2E39;
+}
+
+/* Flyout item row */
+.tc-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #131722;
+  transition: background 0.1s;
+  user-select: none;
+}
+.tc-flyout-item:hover {
+  background: #F0F3FA;
+}
+.tc-flyout-item.active {
+  color: #2962FF;
+  background: rgba(41, 98, 255, 0.06);
+}
+.dark .tc-flyout-item {
+  color: #D1D4DC;
+}
+.dark .tc-flyout-item:hover {
+  background: #2A2E39;
+}
+.dark .tc-flyout-item.active {
+  color: #4C7EFF;
+  background: rgba(76, 126, 255, 0.08);
+}
+
+/* Flyout item icon */
+.tc-flyout-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+.tc-flyout-item:hover .tc-flyout-icon,
+.tc-flyout-item.active .tc-flyout-icon {
+  opacity: 1;
+}
+
+/* Flyout checkmark */
+.tc-flyout-check {
+  margin-left: auto;
+  font-size: 12px;
+  color: #2962FF;
 }
 
 /* Quick-order flash animation */
