@@ -155,12 +155,14 @@ export default function HistoryPage() {
                 </div>
                 <div className="header-buttons">
                   <button
+                    suppressHydrationWarning
                     className={`header-btn ${currentTab === 'position' ? 'active' : ''}`}
                     onClick={() => setCurrentTab('position')}
                   >
                     Position History
                   </button>
                   <button
+                    suppressHydrationWarning
                     className={`header-btn ${currentTab === 'order' ? 'active' : ''}`}
                     onClick={() => setCurrentTab('order')}
                   >
