@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>FlowTrade • NIFTY Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { height:100%; background:#F5F7FB; font-family:'Inter',sans-serif; overflow:hidden; }
+
+    .app {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      padding: 10px 16px 9px;
+      border-bottom: 1px solid #E8ECF0;
+      flex-shrink: 0;
+    }
+    .header-top { display:flex; justify-content:space-between; align-items:center; }
+    .symbol { font-size:18px; font-weight:800; color:#0A2540; letter-spacing:-0.3px; }
+    .price-row { display:flex; align-items:baseline; gap:8px; margin-top:3px; }
+    .price { font-size:22px; font-weight:800; color:#e53935; letter-spacing:-0.5px; }
+    .change { font-size:11px; font-weight:600; color:#e53935; background:#fde8e8; padding:2px 9px; border-radius:20px; }
+    .live-badge { display:flex; align-items:center; gap:5px; background:#e8faf0; padding:5px 10px; border-radius:40px; }
+    .live-dot { width:6px; height:6px; background:#1db954; border-radius:50%; animation:pulse 1.4s infinite; }
+    .live { font-size:10px; font-weight:700; color:#1db954; letter-spacing:0.5px; }
+    @keyframes pulse { 0%,100%{opacity:.5;transform:scale(.85)} 50%{opacity:1;transform:scale(1.15)} }
+
+    /* CHART */
+    .chart-wrapper {
+      flex: 1;
+      min-height: 0;
+      margin: 6px 10px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid #E8ECF0;
+    }
+    #tradingview_chart { width:100%; height:100%; }
+
+    /* P&L */
+    .pnl-card {
+      margin: 0 12px 4px;
+      padding: 8px 14px;
+      background: #fff;
+      border: 1px solid #E8ECF0;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+    .pnl-card.hidden-for-order { display: none; }
+    .pnl-text { font-size: 14px; font-weight: 700; color: #0A2540; }
+    .pnl-amount { font-size: 16px; font-weight: 800; letter-spacing: -0.2px; }
+    .pnl-amount.positive { color: #1db954; }
+    .pnl-amount.negative { color: #e53935; }
+    .pnl-toggle-btn {
+      background: #F0F2F5;
+      width: 28px; height: 28px;
+      border-radius: 30px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .pnl-toggle-btn:active { transform: scale(0.92); background: #e0e4e8; }
+    .pnl-toggle-btn i { font-size: 14px; color: #5A6E8A; }
+
+    .bottom-section { transition: all 0.3s ease; overflow: visible; }
+    .bottom-section.collapsed { display: none; }
+
+    /* BUY / SELL BUTTONS */
+    .trade-buttons {
+      padding: 0 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      flex-shrink: 0;
+      margin-bottom: 8px;
+    }
+    .trade-buttons.hidden { display:none; }
+    .trade-btn {
+      height: 48px; border: none; border-radius: 14px;
+      font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 7px; letter-spacing: 0.8px;
+      transition: filter .15s, transform .12s;
+    }
+    .trade-btn:active { transform:scale(.97); filter:brightness(.93); }
+    .buy { background:#1db954; }
+    .sell { background:#e53935; }
+    .btn-label { font-size:14px; font-weight:700; letter-spacing:1px; line-height:1; }
+
+    /* Quick-order flash when panel is expanded */
+    .trade-btn.quick-flash { animation: quickFlash 0.35s ease; }
+    @keyframes quickFlash {
+      0%   { filter: brightness(1.5); transform: scale(1.05); }
+      100% { filter: brightness(1);   transform: scale(1); }
+    }
+
+    /* ORDER BLOCK */
+    .order-block { margin:6px 12px 4px 12px; background:#fff; border:1px solid #E8ECF0; border-radius:16px; overflow:hidden; flex-shrink:0; display:none; }
+    .order-block.visible { display:block; }
+    .order-block-header { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; background:#F8FAFE; border-bottom:1px solid #E8ECF0; }
+    .order-block-title { font-size:13px; font-weight:700; color:#0A2540; }
+    .close-order-block { background:#F0F2F5; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .close-order-block i { font-size:12px; color:#666; }
+    .order-block-content { padding:10px; }
+    .top-row { display:flex; gap:7px; margin-bottom:8px; align-items:center; }
+    .quantity-box { background:#F5F7FB; border-radius:40px; padding:4px 9px; display:flex; align-items:center; gap:8px; flex:.6; height:42px; }
+    .qty-controls { display:flex; align-items:center; gap:8px; margin-left:0; }
+    .qty-btn { width:30px; height:30px; border-radius:30px; background:#fff; border:1px solid #E8ECF0; font-size:18px; font-weight:800; cursor:pointer; color:#0A2540; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+    .qty-btn:active { transform:scale(.92); background:#f0f0f0; }
+    .qty-value { width:44px; text-align:center; font-size:15px; font-weight:800; color:#0A2540; background:transparent; border:none; font-family:'Inter',sans-serif; }
+    .qty-value:focus { outline:none; }
+    .unit-toggle { display:flex; gap:4px; background:#E8ECF0; border-radius:40px; padding:3px; margin-left:4px; min-width:72px; }
+    .unit-btn { padding:4px 10px; border-radius:32px; font-size:11px; font-weight:700; cursor:pointer; color:#8B92A8; transition:all .2s; white-space:nowrap; }
+    .unit-btn.active { background:#fff; color:#0A2540; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+    .carry-box { background:#F5F7FB; padding:3px; border-radius:40px; display:flex; flex:0.6; height:42px; min-width:105px; max-width:135px; }
+    .carry-option { flex:1; text-align:center; border-radius:36px; font-size:10px; font-weight:700; cursor:pointer; transition:all .2s; color:#8B92A8; display:flex; align-items:center; justify-content:center; white-space:nowrap; padding:0 4px; }
+    .carry-option.active { background:#fff; color:#0A2540; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    .bottom-row { display:flex; gap:8px; margin-bottom:9px; align-items:center; flex-wrap:nowrap; }
+    .market-limit-box { background:#F5F7FB; padding:3px; border-radius:40px; display:flex; width:130px; flex-shrink:0; height:42px; }
+    .market-option { flex:1; text-align:center; border-radius:36px; font-size:11px; font-weight:700; cursor:pointer; transition:all .2s; color:#8B92A8; display:flex; align-items:center; justify-content:center; }
+    .market-option.active { background:#fff; color:#0A2540; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+    .limit-price-box { background:#F5F7FB; border-radius:40px; padding:4px 12px; display:none; align-items:center; gap:6px; flex:1; min-width:0; height:42px; }
+    .limit-price-box.visible { display:flex; }
+    .limit-price-box .price-symbol { font-size:13px; font-weight:700; color:#8B92A8; flex-shrink:0; }
+    .limit-price-box input { flex:1; min-width:0; border:none; background:transparent; font-size:13px; font-weight:700; text-align:right; color:#0A2540; font-family:'Inter',sans-serif; width:100%; }
+    .limit-price-box input:focus { outline:none; }
+
+    /* MARGIN INFO */
+    .order-margin-simple { display:flex; justify-content:space-between; align-items:center; padding:8px 6px 4px 6px; gap:16px; font-size:11px; font-weight:500; }
+    .margin-line { display:flex; gap:8px; align-items:baseline; }
+    .margin-line-label { color:#8B92A8; font-weight:500; font-size:11px; }
+    .margin-line-value { color:#0A2540; font-weight:700; font-size:12px; }
+    .margin-line-value.negative { color:#e53935; }
+
+    .submit-btn { width:100%; padding:11px; border:none; border-radius:14px; font-size:14px; font-weight:700; color:#fff; cursor:pointer; transition:all .2s; margin-top:6px; }
+    .submit-btn:active { transform:scale(.97); }
+    .submit-buy { background:#1db954; }
+    .submit-sell { background:#e53935; }
+
+    /* SEGMENT ROW */
+    .segment-row { display:flex; align-items:center; justify-content:space-between; padding:2px 12px 6px; gap:8px; flex-shrink:0; margin-top:0; }
+    .segment-pills { display:flex; gap:6px; flex:1; }
+    .segment-pill { display:flex; align-items:center; gap:5px; padding:7px 12px; border-radius:40px; border:none; cursor:pointer; font-size:12px; font-weight:600; background:#F0F2F5; color:#8B92A8; font-family:'Inter',sans-serif; transition:all 0.2s ease; }
+    .segment-pill i { font-size:13px; transition:color 0.2s ease; }
+    .segment-pill.active { background:#0A2540; color:#FFFFFF; }
+    .segment-pill.active i { color:#FFFFFF; }
+
+    .toggle-panel-btn { background:#0A2540; width:28px; height:28px; border-radius:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:transform 0.15s, opacity 0.2s; margin:0; padding:0; }
+    .toggle-panel-btn:active { transform:scale(0.92); opacity:0.85; }
+    .toggle-panel-btn i { font-size:14px; color:#FFFFFF; }
+
+    /* INFO PANEL */
+    .info-panel { margin:0 12px 10px; background:#F8FAFE; border-radius:18px; border:1px solid #E8ECF0; flex-shrink:0; overflow:hidden; max-height:300px; opacity:1; transition:max-height .35s cubic-bezier(.2,.9,.4,1.1), opacity .25s ease, margin .3s ease, border-width .3s ease; }
+    .info-panel.collapsed { max-height:0 !important; opacity:0; margin-top:0; margin-bottom:0; border-width:0; }
+    .panel-header { font-size:13px; font-weight:700; color:#0A2540; padding:10px 14px 9px; background:#F8FAFE; display:flex; justify-content:space-between; align-items:center; }
+    .panel-content { display:flex; flex-direction:column; gap:6px; padding:0 8px 8px; overflow-y:auto; max-height:220px; }
+    .chain-row, .order-row { display:flex; justify-content:space-between; background:#fff; padding:9px 12px; border-radius:14px; font-size:11px; font-weight:500; border:1px solid #E8ECF0; align-items:center; }
+    .position-row { display:flex; flex-direction:column; gap:8px; background:#fff; padding:10px 12px; border-radius:14px; font-size:11px; font-weight:500; border:1px solid #E8ECF0; }
+    .position-info-row { display:flex; justify-content:space-between; align-items:center; }
+    .position-actions { display:flex; gap:8px; }
+    .position-action-btn { flex:1; padding:8px; border-radius:10px; border:none; font-size:11px; font-weight:700; letter-spacing:0.3px; cursor:pointer; text-align:center; transition:transform .12s, filter .12s; font-family:'Inter',sans-serif; }
+    .position-action-btn:active { transform:scale(.96); filter:brightness(.95); }
+    .add-position-btn { background:#e8faf0; color:#1db954; }
+    .exit-position-btn { background:#fde8e8; color:#e53935; }
+    .empty-state { text-align:center; color:#B0B8C8; padding:18px; font-size:12px; font-weight:500; }
+    .panel-content::-webkit-scrollbar { width:3px; }
+    .panel-content::-webkit-scrollbar-thumb { background:#ddd; border-radius:10px; }
+
+    /* EXPANDED PANEL MODE */
+    .app.panel-expanded .pnl-card,
+    .app.panel-expanded .order-block { display: none; }
+    /* Orders / Positions — hide trade buttons, full 33vh for panel */
+    .app.panel-expanded:not(.segment-chain) .trade-buttons { display: none; }
+    .app.panel-expanded:not(.segment-chain) .bottom-section { display:flex; flex-direction:column; height:33vh; height:33dvh; flex-shrink:0; min-height:0; }
+    /* Chain — keep trade buttons, budget extra height */
+    .app.panel-expanded.segment-chain .trade-buttons { flex-shrink:0; }
+    .app.panel-expanded.segment-chain .bottom-section { display:flex; flex-direction:column; height:44vh; height:44dvh; flex-shrink:0; min-height:0; }
+    .app.panel-expanded .info-panel { flex:1; min-height:0; max-height:none; display:flex; flex-direction:column; }
+    .app.panel-expanded .panel-header { flex-shrink:0; }
+    .app.panel-expanded .panel-content { flex:1; max-height:none; }
+
+    .toast-message { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) scale(.9); background:#1e293b; padding:8px 18px; border-radius:40px; color:#fff; font-weight:600; font-size:12px; z-index:1000; opacity:0; transition:opacity .2s,transform .2s; pointer-events:none; white-space:nowrap; }
+    .toast-show { opacity:1; transform:translateX(-50%) scale(1); }
+    .spacer { height:env(safe-area-inset-bottom,0); flex-shrink:0; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div class="symbol-section">
+        <div class="symbol">BANKNIFTY23</div>
+        <div class="price-row">
+          <span class="price" id="livePriceValue">₹71.00</span>
+          <span class="change" id="liveChangePercent">-46.64%</span>
+        </div>
+      </div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span class="live">LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-wrapper">
+    <div id="tradingview_chart"></div>
+  </div>
+
+  <!-- P&L -->
+  <div class="pnl-card" id="pnlCard">
+    <div>
+      <span class="pnl-text">P/L:</span>
+      <span class="pnl-amount" id="pnlAmount">+₹0</span>
+    </div>
+    <div class="pnl-toggle-btn" id="pnlToggleBtn">
+      <i class="ti ti-chevron-up" id="pnlToggleIcon"></i>
+    </div>
+  </div>
+
+  <!-- Bottom Section -->
+  <div class="bottom-section" id="bottomSection">
+    <!-- Buy/Sell Buttons — always visible (quick order when panel open) -->
+    <div class="trade-buttons" id="tradeButtons">
+      <button class="trade-btn buy" id="buyButton">
+        <span class="btn-label">BUY</span>
+      </button>
+      <button class="trade-btn sell" id="sellButton">
+        <span class="btn-label">SELL</span>
+      </button>
+    </div>
+
+    <!-- Order Block (only used when panel is collapsed) -->
+    <div class="order-block" id="orderBlock">
+      <div class="order-block-header">
+        <span class="order-block-title" id="orderBlockTitle">BANKNIFTY23</span>
+        <div class="close-order-block" id="closeOrderBlock"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="order-block-content">
+        <div class="top-row">
+          <div class="quantity-box">
+            <div class="qty-controls">
+              <button class="qty-btn" id="decrementQty">−</button>
+              <input type="number" class="qty-value" id="qtyValue" value="100" step="1">
+              <button class="qty-btn" id="incrementQty">+</button>
+            </div>
+            <div class="unit-toggle" id="unitSwitch">
+              <div class="unit-btn active" data-unit="qty">Qty</div>
+              <div class="unit-btn" data-unit="lot">Lot</div>
+            </div>
+          </div>
+          <div class="carry-box" id="carryGroup">
+            <div class="carry-option" data-carry="normal">Normal</div>
+            <div class="carry-option" data-carry="carry">Carry</div>
+          </div>
+        </div>
+        <div class="bottom-row">
+          <div class="market-limit-box" id="orderTypeGroup">
+            <div class="market-option" data-type="market">Mkt</div>
+            <div class="market-option" data-type="limit">Lmt</div>
+          </div>
+          <div class="limit-price-box" id="limitPriceBox">
+            <span class="price-symbol">₹</span>
+            <input type="number" id="limitPrice" step="0.05" value="71.00" placeholder="price">
+          </div>
+        </div>
+        <div class="order-margin-simple" id="orderMarginInfo">
+          <div class="margin-line">
+            <span class="margin-line-label">Free Margin:</span>
+            <span class="margin-line-value" id="freeMarginOrder">₹50,000</span>
+          </div>
+          <div class="margin-line">
+            <span class="margin-line-label">Required Margin:</span>
+            <span class="margin-line-value" id="requiredMarginOrder">₹0</span>
+          </div>
+        </div>
+        <button class="submit-btn submit-buy" id="submitOrderBtn">BUY 100 Qty</button>
+      </div>
+    </div>
+
+    <!-- Segment Row -->
+    <div class="segment-row">
+      <div class="segment-pills">
+        <button class="segment-pill" data-segment="chain"><i class="ti ti-stack-2"></i>Chain</button>
+        <button class="segment-pill active" data-segment="orders"><i class="ti ti-list-check"></i>Orders</button>
+        <button class="segment-pill" data-segment="positions"><i class="ti ti-briefcase"></i>Positions</button>
+      </div>
+      <div class="toggle-panel-btn" id="togglePanelBtn">
+        <i class="ti ti-chevron-down" id="toggleIcon"></i>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="info-panel collapsed" id="infoPanel">
+      <div class="panel-header" id="panelHeader">
+        Orders <i class="ti ti-list-check" style="color:#aaa;font-size:13px;" aria-hidden="true"></i>
+      </div>
+      <div class="panel-content" id="panelContent">
+        <div class="empty-state">No orders yet. Tap BUY or SELL.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+</div>
+
+<div id="toastMsg" class="toast-message"></div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let currentPrice = 71.00;
+  let positionsList = [], ordersList = [];
+  let nextOrderId = 1001, activeSegment = "orders";
+  let isPanelExpanded = false;
+  let isBottomSectionVisible = true;
+  let priceInterval = null;
+  let orderType = "market", orderAction = "BUY", orderCarry = "normal";
+  let useLots = false;
+  const LOT_SIZE = 25;
+  const SCRIPT_NAME = "BANKNIFTY23";
+
+  let freeMarginBalance = 50000;
+  const MARGIN_PERCENT = 0.12;
+
+  // ── DOM refs ───────────────────────────────────────────────
+  const livePriceSpan       = document.getElementById('livePriceValue');
+  const changePercentSpan   = document.getElementById('liveChangePercent');
+  const pnlAmountSpan       = document.getElementById('pnlAmount');
+  const pnlCard             = document.getElementById('pnlCard');
+  const pnlToggleBtn        = document.getElementById('pnlToggleBtn');
+  const pnlToggleIcon       = document.getElementById('pnlToggleIcon');
+  const bottomSection       = document.getElementById('bottomSection');
+  const tradeButtons        = document.getElementById('tradeButtons');
+  const orderBlock          = document.getElementById('orderBlock');
+  const orderBlockTitle     = document.getElementById('orderBlockTitle');
+  const qtyValueInput       = document.getElementById('qtyValue');
+  const limitPriceBox       = document.getElementById('limitPriceBox');
+  const limitPriceInput     = document.getElementById('limitPrice');
+  const submitOrderBtn      = document.getElementById('submitOrderBtn');
+  const infoPanel           = document.getElementById('infoPanel');
+  const panelHeader         = document.getElementById('panelHeader');
+  const panelContent        = document.getElementById('panelContent');
+  const toggleIcon          = document.getElementById('toggleIcon');
+  const freeMarginOrderSpan = document.getElementById('freeMarginOrder');
+  const requiredMarginOrderSpan = document.getElementById('requiredMarginOrder');
+  const appEl = document.querySelector('.app');
+
+  function getDisplayQtyText() {
+    const v = parseInt(qtyValueInput.value) || 100;
+    return useLots ? `${v} Lot` : `${v} Qty`;
+  }
+  function getActualQty() {
+    const v = parseInt(qtyValueInput.value) || 100;
+    return useLots ? v * LOT_SIZE : v;
+  }
+  function getExecutionPrice() {
+    return orderType === 'limit'
+      ? (parseFloat(limitPriceInput.value) || currentPrice)
+      : currentPrice;
+  }
+  function calcMargin(price, qty) {
+    return Math.ceil((price !== undefined ? price : getExecutionPrice()) *
+                     (qty   !== undefined ? qty   : getActualQty()) * MARGIN_PERCENT);
+  }
+
+  function updateMarginDisplay() {
+    const req = calcMargin();
+    requiredMarginOrderSpan.innerText = `₹${req.toLocaleString('en-IN')}`;
+    freeMarginOrderSpan.innerText     = `₹${freeMarginBalance.toLocaleString('en-IN')}`;
+    requiredMarginOrderSpan.classList.toggle('negative', req > freeMarginBalance);
+  }
+  function updateSubmitBtn() {
+    submitOrderBtn.innerText = `${orderAction} ${getDisplayQtyText()}`;
+    updateMarginDisplay();
+  }
+  function updateAllQuantityDisplays() { updateSubmitBtn(); }
+
+  function toggleBottomSection() {
+    isBottomSectionVisible = !isBottomSectionVisible;
+    bottomSection.classList.toggle('collapsed', !isBottomSectionVisible);
+    pnlToggleIcon.className = isBottomSectionVisible ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+  }
+
+  function updatePnL() {
+    let total = 0;
+    positionsList.forEach(p => {
+      total += p.type === 'BUY'
+        ? (currentPrice - p.entryPrice) * p.qty
+        : (p.entryPrice - currentPrice) * p.qty;
+    });
+    pnlAmountSpan.innerText   = `${total >= 0 ? '+' : '-'}₹${Math.abs(total).toFixed(0)}`;
+    pnlAmountSpan.className   = `pnl-amount ${total >= 0 ? 'positive' : 'negative'}`;
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toastMsg');
+    el.textContent = msg;
+    el.classList.add('toast-show');
+    setTimeout(() => el.classList.remove('toast-show'), 1800);
+  }
+
+  // ── Position logic (shared) ────────────────────────────────
+  function applyPosition(action, execPrice, qty) {
+    if (action === 'BUY') {
+      const si = positionsList.findIndex(p => p.type === 'SELL');
+      if (si !== -1) {
+        const s = positionsList[si];
+        if (s.qty >= qty) { s.qty -= qty; if (!s.qty) positionsList.splice(si, 1); }
+        else { const r = qty - s.qty; positionsList.splice(si, 1); positionsList.push({ type:'BUY', entryPrice:execPrice, qty:r }); }
+      } else {
+        positionsList.push({ type:'BUY', entryPrice:execPrice, qty });
+      }
+    } else {
+      const bi = positionsList.findIndex(p => p.type === 'BUY');
+      if (bi !== -1) {
+        const b = positionsList[bi];
+        if (b.qty >= qty) { b.qty -= qty; if (!b.qty) positionsList.splice(bi, 1); }
+        else { const r = qty - b.qty; positionsList.splice(bi, 1); positionsList.push({ type:'SELL', entryPrice:execPrice, qty:r }); }
+      } else {
+        positionsList.push({ type:'SELL', entryPrice:execPrice, qty });
+      }
+    }
+    positionsList = positionsList.filter(p => p.qty > 0);
+  }
+
+  // ── Quick market order — used when panel is EXPANDED ───────
+  // BUY/SELL buttons fire this directly so they never disappear.
+  function quickMarketOrder(action) {
+    const execPrice = currentPrice;
+    const qty       = 100;
+    const required  = calcMargin(execPrice, qty);
+
+    if (required > freeMarginBalance) {
+      showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`);
+      return;
+    }
+    freeMarginBalance -= required;
+
+    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    ordersList.unshift({ id: nextOrderId++, type: action, price: execPrice, qty, time, orderType: 'market', carry: 'normal' });
+    if (ordersList.length > 20) ordersList.pop();
+
+    applyPosition(action, execPrice, qty);
+    updatePnL();
+    updateMarginDisplay();
+    renderCurrentPanel();
+
+    // Visual feedback — flash the button
+    const btn = action === 'BUY'
+      ? document.getElementById('buyButton')
+      : document.getElementById('sellButton');
+    btn.classList.remove('quick-flash');
+    void btn.offsetWidth; // force reflow
+    btn.classList.add('quick-flash');
+    btn.addEventListener('animationend', () => btn.classList.remove('quick-flash'), { once: true });
+
+    showToast(`${action} ${qty} @ ₹${execPrice.toFixed(2)} ✓`);
+  }
+
+  // ── Full order panel — used when panel is COLLAPSED ────────
+  function showOrderPanel(action) {
+    // If panel is expanded (Orders/Positions), collapse it first to return to page 1
+    if (isPanelExpanded) {
+      isPanelExpanded = false;
+      infoPanel.classList.add('collapsed');
+      toggleIcon.className = 'ti ti-chevron-down';
+      appEl.classList.remove('panel-expanded');
+    }
+    orderAction = action;
+    orderBlockTitle.innerText = SCRIPT_NAME;
+
+    orderType = "market";
+    document.querySelectorAll('#orderTypeGroup .market-option').forEach(o =>
+      o.classList.toggle('active', o.dataset.type === 'market'));
+    limitPriceBox.classList.remove('visible');
+
+    orderCarry = "normal";
+    document.querySelectorAll('#carryGroup .carry-option').forEach(o =>
+      o.classList.toggle('active', o.dataset.carry === 'normal'));
+
+    useLots = false;
+    document.querySelectorAll('#unitSwitch .unit-btn').forEach(o =>
+      o.classList.toggle('active', o.dataset.unit === 'qty'));
+
+    qtyValueInput.value    = '100';
+    limitPriceInput.value  = currentPrice.toFixed(2);
+
+    updateAllQuantityDisplays();
+    submitOrderBtn.className = `submit-btn ${action === 'BUY' ? 'submit-buy' : 'submit-sell'}`;
+
+    pnlCard.classList.add('hidden-for-order');
+    tradeButtons.classList.add('hidden');
+    orderBlock.classList.add('visible');
+  }
+
+  function hideOrderPanel() {
+    orderBlock.classList.remove('visible');
+    tradeButtons.classList.remove('hidden');
+    pnlCard.classList.remove('hidden-for-order');
+  }
+
+  function executeTrade() {
+    const execPrice = getExecutionPrice();
+    const qty       = getActualQty();
+    const required  = calcMargin(execPrice, qty);
+
+    if (required > freeMarginBalance) {
+      showToast(`Insufficient margin! Required: ₹${required}, Available: ₹${freeMarginBalance}`);
+      return;
+    }
+    freeMarginBalance -= required;
+
+    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    ordersList.unshift({ id: nextOrderId++, type: orderAction, price: execPrice, qty, time, orderType, carry: orderCarry });
+    if (ordersList.length > 20) ordersList.pop();
+
+    applyPosition(orderAction, execPrice, qty);
+    updatePnL();
+    updateMarginDisplay();
+    renderCurrentPanel();
+    showToast(`${orderAction} ${qty} @ ₹${execPrice.toFixed(2)} | Margin: ₹${required}`);
+    hideOrderPanel();
+  }
+
+  // ── Panel rendering ────────────────────────────────────────
+  function setSegmentHeader(id) {
+    const icons  = { chain:'ti-chart-candle', orders:'ti-list-check', positions:'ti-briefcase' };
+    const labels = { chain:'Option Chain',    orders:'Orders',         positions:'Positions'   };
+    panelHeader.innerHTML = `${labels[id]} <i class="ti ${icons[id]}" style="color:#aaa;font-size:13px;" aria-hidden="true"></i>`;
+  }
+
+  function renderOptionChain() {
+    setSegmentHeader('chain');
+    const s = currentPrice;
+    panelContent.innerHTML = `
+      <div class="chain-row"><span>46,600 CE</span><span style="color:#888">IV 22.1%</span><span>₹${(s+0.8).toFixed(1)}</span></div>
+      <div class="chain-row"><span>46,500 CE</span><span style="color:#888">IV 21.6%</span><span>₹${(s+38).toFixed(1)}</span></div>
+      <div class="chain-row"><span>46,700 CE</span><span style="color:#888">IV 23.3%</span><span>₹${Math.max(12,s-26).toFixed(1)}</span></div>
+      <div class="chain-row"><span>46,600 PE</span><span style="color:#888">IV 24.7%</span><span>₹${(74.5-(s-70)*0.55).toFixed(1)}</span></div>`;
+  }
+
+  function renderOrders() {
+    setSegmentHeader('orders');
+    if (!ordersList.length) {
+      panelContent.innerHTML = `<div class="empty-state">No orders yet. Tap BUY or SELL.</div>`;
+      return;
+    }
+    panelContent.innerHTML = ordersList.slice(0, 10).map(o => `
+      <div class="order-row">
+        <span style="color:${o.type==='BUY'?'#1db954':'#e53935'};font-weight:800;font-size:10px;letter-spacing:.5px;">${o.type}</span>
+        <span>${o.qty}</span>
+        <span style="font-weight:600;">₹${o.price.toFixed(2)}</span>
+        <span style="font-size:10px;background:#f3f3f3;padding:2px 7px;border-radius:20px;color:#888;">${o.time}</span>
+      </div>`).join('');
+  }
+
+  function renderPositions() {
+    setSegmentHeader('positions');
+    if (!positionsList.length) {
+      panelContent.innerHTML = `<div class="empty-state">No active positions.</div>`;
+      return;
+    }
+    panelContent.innerHTML = positionsList.map((pos, i) => {
+      const pnl = pos.type === 'BUY'
+        ? (currentPrice - pos.entryPrice) * pos.qty
+        : (pos.entryPrice - currentPrice) * pos.qty;
+      const c = pnl >= 0 ? '#1db954' : '#e53935';
+      return `<div class="position-row">
+        <div class="position-info-row">
+          <div>
+            <span style="font-weight:800;color:${pos.type==='BUY'?'#1db954':'#e53935'};font-size:10px;">${pos.type}</span>
+            <span style="color:#555"> ${pos.qty}</span>
+          </div>
+          <div style="color:#888;font-size:11px;">Entry ₹${pos.entryPrice.toFixed(2)}</div>
+          <div style="color:${c};font-weight:700;">${pnl>=0?'+':'-'}₹${Math.abs(pnl).toFixed(0)}</div>
+        </div>
+        <div class="position-actions">
+          <button class="position-action-btn add-position-btn" onclick="addToPosition(${i})">+ Add ${pos.qty}</button>
+          <button class="position-action-btn exit-position-btn" onclick="exitPosition(${i})">Exit</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function addToPosition(index) {
+    const pos = positionsList[index];
+    if (!pos) return;
+    const addQty  = pos.qty;
+    const execPrice = currentPrice;
+    const extra   = calcMargin(execPrice, addQty);
+    if (extra > freeMarginBalance) { showToast(`Insufficient margin to add! Need ₹${extra.toLocaleString('en-IN')}`); return; }
+    freeMarginBalance -= extra;
+    const totalQty = pos.qty + addQty;
+    pos.entryPrice = ((pos.entryPrice * pos.qty) + (execPrice * addQty)) / totalQty;
+    pos.qty = totalQty;
+    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    ordersList.unshift({ id: nextOrderId++, type: pos.type, price: execPrice, qty: addQty, time, orderType: 'market', carry: pos.carry || 'normal' });
+    if (ordersList.length > 20) ordersList.pop();
+    updatePnL(); updateMarginDisplay(); renderCurrentPanel();
+    showToast(`Added ${addQty} to ${pos.type} position @ ₹${execPrice.toFixed(2)}`);
+  }
+
+  function exitPosition(index) {
+    const pos = positionsList[index];
+    if (!pos) return;
+    const execPrice = currentPrice;
+    const qty = pos.qty;
+    const pnl = pos.type === 'BUY'
+      ? (execPrice - pos.entryPrice) * qty
+      : (pos.entryPrice - execPrice) * qty;
+    freeMarginBalance += calcMargin(pos.entryPrice, qty);
+    const exitType = pos.type === 'BUY' ? 'SELL' : 'BUY';
+    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    ordersList.unshift({ id: nextOrderId++, type: exitType, price: execPrice, qty, time, orderType: 'market', carry: pos.carry || 'normal' });
+    if (ordersList.length > 20) ordersList.pop();
+    positionsList.splice(index, 1);
+    updatePnL(); updateMarginDisplay(); renderCurrentPanel();
+    showToast(`Exited ${pos.type} ${qty} @ ₹${execPrice.toFixed(2)} | P/L ${pnl>=0?'+':'-'}₹${Math.abs(pnl).toFixed(0)}`);
+  }
+
+  function renderCurrentPanel() {
+    if      (activeSegment === 'chain')     renderOptionChain();
+    else if (activeSegment === 'orders')    renderOrders();
+    else                                    renderPositions();
+  }
+
+  function togglePanel() {
+    isPanelExpanded = !isPanelExpanded;
+    infoPanel.classList.toggle('collapsed', !isPanelExpanded);
+    toggleIcon.className = isPanelExpanded ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
+    appEl.classList.toggle('panel-expanded', isPanelExpanded);
+    appEl.classList.toggle('segment-chain', activeSegment === 'chain');
+    if (isPanelExpanded) {
+      // Close the order block if open — trade buttons remain visible
+      if (orderBlock.classList.contains('visible')) hideOrderPanel();
+      renderCurrentPanel();
+    }
+  }
+
+  function setActiveSegment(id) {
+    activeSegment = id;
+    document.querySelectorAll('.segment-pill').forEach(b =>
+      b.classList.toggle('active', b.dataset.segment === id));
+    appEl.classList.toggle('segment-chain', id === 'chain');
+    renderCurrentPanel();
+  }
+
+  function simulatePriceTick() {
+    currentPrice = parseFloat(
+      Math.max(48, Math.min(125, currentPrice * (1 + (Math.random() - 0.5) * 0.025))).toFixed(2)
+    );
+    livePriceSpan.innerText = `₹${currentPrice.toFixed(2)}`;
+    const pct = ((currentPrice - 71) / 71 * 100).toFixed(2);
+    const up  = currentPrice >= 71;
+    changePercentSpan.innerText = `${up ? '+' : ''}${pct}%`;
+    changePercentSpan.style.cssText = `color:${up?'#e53935':'#1db954'};background:${up?'#fde8e8':'#e8faf0'};padding:2px 9px;border-radius:20px;`;
+    livePriceSpan.style.color = up ? '#e53935' : '#1db954';
+    limitPriceInput.value = currentPrice.toFixed(2);
+    updatePnL();
+    if (orderBlock.classList.contains('visible')) updateMarginDisplay();
+    if (activeSegment === 'chain')                              renderOptionChain();
+    else if (activeSegment === 'positions' && isPanelExpanded) renderPositions();
+  }
+
+  // ── Controls ───────────────────────────────────────────────
+  document.getElementById('incrementQty').addEventListener('click', () => {
+    let v = parseInt(qtyValueInput.value) || 100;
+    v = Math.min(useLots ? 20 : 500, v + 1);
+    qtyValueInput.value = v; updateAllQuantityDisplays();
+  });
+  document.getElementById('decrementQty').addEventListener('click', () => {
+    let v = parseInt(qtyValueInput.value) || 100;
+    v = Math.max(useLots ? 1 : LOT_SIZE, v - 1);
+    qtyValueInput.value = v; updateAllQuantityDisplays();
+  });
+  qtyValueInput.addEventListener('change', () => {
+    let v = parseInt(qtyValueInput.value) || 100;
+    v = useLots ? Math.min(20, Math.max(1, v)) : Math.min(500, Math.max(LOT_SIZE, v));
+    qtyValueInput.value = v; updateAllQuantityDisplays();
+  });
+
+  document.querySelectorAll('#unitSwitch .unit-btn').forEach(o => o.addEventListener('click', () => {
+    document.querySelectorAll('#unitSwitch .unit-btn').forEach(x => x.classList.remove('active'));
+    o.classList.add('active');
+    useLots = o.dataset.unit === 'lot';
+    let v = parseInt(qtyValueInput.value) || 100;
+    qtyValueInput.value = useLots ? Math.max(1, Math.floor(v / LOT_SIZE)) : v * LOT_SIZE;
+    updateAllQuantityDisplays();
+  }));
+
+  document.querySelectorAll('#orderTypeGroup .market-option').forEach(o => o.addEventListener('click', () => {
+    document.querySelectorAll('#orderTypeGroup .market-option').forEach(x => x.classList.remove('active'));
+    o.classList.add('active');
+    orderType = o.dataset.type;
+    limitPriceBox.classList.toggle('visible', orderType === 'limit');
+    updateMarginDisplay();
+  }));
+
+  document.querySelectorAll('#carryGroup .carry-option').forEach(o => o.addEventListener('click', () => {
+    document.querySelectorAll('#carryGroup .carry-option').forEach(x => x.classList.remove('active'));
+    o.classList.add('active');
+    orderCarry = o.dataset.carry;
+  }));
+
+  // Chain expanded → quick order; Orders/Positions expanded → buttons hidden by CSS; Collapsed → full panel
+  document.getElementById('buyButton').addEventListener('click', () => {
+    (isPanelExpanded && activeSegment === 'chain') ? quickMarketOrder('BUY') : showOrderPanel('BUY');
+  });
+  document.getElementById('sellButton').addEventListener('click', () => {
+    (isPanelExpanded && activeSegment === 'chain') ? quickMarketOrder('SELL') : showOrderPanel('SELL');
+  });
+
+  document.getElementById('closeOrderBlock').addEventListener('click', hideOrderPanel);
+  document.getElementById('submitOrderBtn').addEventListener('click',  executeTrade);
+  document.querySelectorAll('.segment-pill').forEach(b =>
+    b.addEventListener('click', () => setActiveSegment(b.dataset.segment)));
+  document.getElementById('togglePanelBtn').addEventListener('click', togglePanel);
+  pnlToggleBtn.addEventListener('click', toggleBottomSection);
+
+  window.addEventListener('load', () => {
+    if (typeof TradingView !== 'undefined') {
+      new TradingView.widget({
+        autosize: true, symbol: "NSE:NIFTY", interval: "5",
+        timezone: "Asia/Kolkata", theme: "light", style: "1",
+        locale: "en", hide_top_toolbar: false,
+        container_id: "tradingview_chart"
+      });
+    }
+    orderBlockTitle.innerText = SCRIPT_NAME;
+
+    positionsList = [
+      { type: 'BUY',  entryPrice: 68.50, qty: 75, carry: 'normal' },
+      { type: 'SELL', entryPrice: 73.20, qty: 50, carry: 'normal' }
+    ];
+    positionsList.forEach(p => { freeMarginBalance -= calcMargin(p.entryPrice, p.qty); });
+
+    updatePnL();
+    setActiveSegment('orders');
+    updateAllQuantityDisplays();
+    priceInterval = setInterval(simulatePriceTick, 1400);
+  });
+
+  window.addEventListener('beforeunload', () => { if (priceInterval) clearInterval(priceInterval); });
+</script>
+</body>
+</html>

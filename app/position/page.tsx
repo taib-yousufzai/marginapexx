@@ -10,7 +10,11 @@ import { useOrderEntry } from '@/hooks/useOrderEntry';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
+import dynamic from 'next/dynamic';
 import './page.css';
+
+const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
+
 
 const formatHoldTime = (sec: number) => {
   const m = Math.floor(sec / 60);
@@ -60,6 +64,22 @@ export default function PositionPage() {
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [chartItem, setChartItem] = useState<any | null>(null);
+
+  const openChart = (pos: EnrichedPosition) => {
+    setChartItem({
+      name: pos.symbol,
+      symbol: pos.symbol,
+      kiteSymbol: pos.symbol,
+      price: pos.current_ltp,
+      segment: pos.settlement === 'USDT' || pos.symbol.endsWith('USDT') ? 'CRYPTO' : 'NSE - Equity',
+    });
+    const chartSheet = document.getElementById('chartSheet');
+    const chartOverlay = document.getElementById('chartSheetOverlay');
+    if (chartSheet) chartSheet.classList.add('open');
+    if (chartOverlay) chartOverlay.classList.add('active');
+  };
+
 
   // Exit All Modal
   const [isExitAllModalOpen, setIsExitAllModalOpen] = useState(false);
@@ -520,7 +540,7 @@ export default function PositionPage() {
                                   background: 'var(--card-bg, #ffffff)', color: 'var(--text-primary, #1F2937)',
                                   cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s'
                                 }}
-                                onClick={() => showToast("Opening Trading Chart for " + group.symbol)}
+                                onClick={() => openChart(group.representativePos)}
                               >
                                 <svg viewBox="0 0 24 24" style={{ width: '1.25rem', height: '1.25rem', display: 'inline-block', verticalAlign: 'middle' }}>
                                   <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
@@ -677,7 +697,7 @@ export default function PositionPage() {
                                   flexShrink: 0,
                                   transition: 'all 0.15s'
                                 }}
-                                onClick={() => showToast("Opening Trading Chart for " + pos.symbol)}
+                                onClick={() => openChart(pos)}
                               >
                                 <svg 
                                   viewBox="0 0 24 24" 
@@ -763,7 +783,7 @@ export default function PositionPage() {
                             flexShrink: 0,
                             transition: 'all 0.15s'
                           }}
-                          onClick={() => showToast("Opening Trading Chart for " + selectedPos.symbol)}
+                          onClick={() => openChart(selectedPos)}
                         >
                           <svg 
                             viewBox="0 0 24 24" 
@@ -1061,6 +1081,34 @@ export default function PositionPage() {
         exitMode={tradeSheetExitMode}
         productType={tradeSheetProductType}
       />
+
+      {/* Chart Sheet */}
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '85dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+        <div className="sheet-handle"><div className="handle-bar"></div></div>
+        <div className="ts-header" style={{ paddingBottom: '10px' }}>
+          <button className="ts-back-btn" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}>
+            <i className="fas fa-chevron-down"></i>
+          </button>
+          <div className="ts-name-block">
+            <div className="ts-instr-name">{chartItem?.name || '---'}</div>
+            <span className="ts-segment-badge">{chartItem?.segment || '---'}</span>
+          </div>
+          <div className="ts-price-block">
+            <div className="ts-price-value" style={{ fontSize: '1rem' }}>
+              {chartItem ? `₹${chartItem.price?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '--'}` : '--'}
+            </div>
+          </div>
+        </div>
+        <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {chartItem && (
+            <TradingChart
+              symbol={chartItem.kiteSymbol || chartItem.symbol}
+              segment={chartItem.segment}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
