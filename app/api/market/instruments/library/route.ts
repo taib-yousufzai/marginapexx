@@ -21,12 +21,22 @@ const supabase = createClient(
 
 export async function GET() {
   try {
+    const redis = getRedisClient();
+    const cacheKey = 'market:library:segments';
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return NextResponse.json(JSON.parse(cached));
+      }
+    } catch (e) {
+      console.error('[library] Redis get cache error:', e);
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const segments: any[] = [];
 
     // Load strike config once for the entire request
     const strikeConfig = await loadStrikeConfig(supabase);
-    const redis = getRedisClient();
 
     // 1. Index-FUT
     const { data: indexFuts } = await supabase
@@ -347,6 +357,12 @@ export async function GET() {
     }));
 
     if (forexInstruments.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', instruments: forexInstruments });
+
+    try {
+      await redis.set(cacheKey, JSON.stringify({ segments }), 'EX', 900); // 15 mins cache
+    } catch (e) {
+      console.error('[library] Redis set cache error:', e);
+    }
 
     return NextResponse.json({ segments });
   } catch (error: any) {

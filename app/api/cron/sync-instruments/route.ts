@@ -226,6 +226,14 @@ export async function GET(request: Request) {
     // Revalidate the library endpoint so cache is updated instantly
     revalidatePath('/api/market/instruments/library');
 
+    try {
+      const { getRedisClient } = await import('@/lib/redis');
+      const redis = getRedisClient();
+      await redis.del('market:library:segments');
+    } catch (e) {
+      console.error('[Sync Instruments] Redis delete cache error:', e);
+    }
+
     return NextResponse.json({
       success: true,
       count: finalInstruments.length,
