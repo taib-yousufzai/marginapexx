@@ -36,13 +36,56 @@ function mapToTradingViewSymbol(symbol: string): string {
   // Clean prefixes if they already exist
   let cleanSymbol = upperSymbol.replace('NSE:', '').replace('BSE:', '').replace('MCX:', '').replace('CDS:', '');
   
+  // 1. Map option contracts to their underlying stock/index
+  if (cleanSymbol.endsWith('CE') || cleanSymbol.endsWith('PE')) {
+    const match = cleanSymbol.match(/^([A-Z&]+)/i);
+    if (match) {
+      cleanSymbol = match[1].toUpperCase();
+    }
+  }
+
+  // Clean common suffixes
+  cleanSymbol = cleanSymbol.replace('_FUT', '').replace('_EQ', '');
+
+  // 2. COMEX / NYMEX mapping
+  const comexMap: Record<string, string> = {
+    'GC=F': 'COMEX:GC1!',
+    'SI=F': 'COMEX:SI1!',
+    'CL=F': 'NYMEX:CL1!',
+    'HG=F': 'COMEX:HG1!',
+    'GOLD': 'TVC:GOLD',
+    'SILVER': 'TVC:SILVER',
+    'CRUDEOIL': 'TVC:USOIL',
+    'COPPER': 'TVC:COPPER',
+  };
+  if (comexMap[cleanSymbol]) {
+    return comexMap[cleanSymbol];
+  }
+
+  // 3. Forex mapping
   if (upperSymbol.startsWith('CDS:') || cleanSymbol.includes('USDINR')) {
     return 'FX_IDC:USDINR';
   }
+  if (cleanSymbol.includes('EURINR')) {
+    return 'FX_IDC:EURINR';
+  }
+  if (cleanSymbol.includes('GBPINR')) {
+    return 'FX_IDC:GBPINR';
+  }
+  if (cleanSymbol.includes('JPYINR')) {
+    return 'FX_IDC:JPYINR';
+  }
+
+  // 4. MCX mapping
   if (upperSymbol.startsWith('MCX:')) {
     const commodity = cleanSymbol.replace(/\d{2}[A-Z]{3}FUT$/, '');
+    if (comexMap[commodity]) {
+      return comexMap[commodity];
+    }
     return `MCX:${commodity}`;
   }
+
+  // 5. Index mapping
   if (cleanSymbol === 'NIFTY_INDEX' || cleanSymbol === 'NIFTY') {
     return 'NSE:NIFTY';
   }
@@ -62,7 +105,7 @@ function mapToTradingViewSymbol(symbol: string): string {
     return 'BSE:BANKEX';
   }
   
-  // Binance Crypto
+  // 6. Binance Crypto
   if (upperSymbol.endsWith('USDT') && !upperSymbol.includes(':')) {
     return `BINANCE:${cleanSymbol}`;
   }
