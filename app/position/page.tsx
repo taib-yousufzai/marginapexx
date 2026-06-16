@@ -1084,7 +1084,7 @@ export default function PositionPage() {
 
       {/* Chart Sheet */}
       <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
-      <div id="chartSheet" className="trade-sheet" style={{ height: '85dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         <div className="ts-header" style={{ paddingBottom: '10px' }}>
           <button className="ts-back-btn" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}>
