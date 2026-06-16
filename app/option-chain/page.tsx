@@ -160,27 +160,35 @@ function OptionChainContent() {
   // Compute lot size: DB settings take priority over hardcoded fallbacks
   const lotSize = (() => {
     const n = symbol.toUpperCase();
-    const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
+    const dbMatch = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
     if (dbMatch) return Number(dbMatch.lot_size);
     if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
     if (n.includes('FINNIFTY')) return 40;
     if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
     if (n.includes('SENSEX')) return 10;
     if (n.includes('NIFTY')) return 25;
+    if (n.includes('GOLDM')) return 10;
+    if (n.includes('GOLD')) return 100;
+    if (n.includes('SILVERM')) return 5;
+    if (n.includes('SILVER')) return 30;
+    if (n.includes('CRUDEOIL')) return 100;
+    if (n.includes('NATURALGAS')) return 1250;
     return 1;
   })();
 
   const stepQty = (dir: number) => {
-    const step = orderUnit === 'lot' ? 1 : lotSize;
-    const currentVal = parseInt(qtyInput) || lotSize;
-    const newVal = Math.max(step, currentVal + (dir * step));
+    const step = orderUnit === 'lot' ? 0.1 : lotSize;
+    const currentVal = parseFloat(qtyInput) || lotSize;
+    const newVal = Math.max(step, parseFloat((currentVal + dir * step).toFixed(2)));
     setOrderQty(newVal);
     setQtyInput(String(newVal));
   };
 
   const handleQtyChange = (val: string) => {
+    if (val !== '' && !/^\d*\.?\d*$/.test(val)) return;
     setQtyInput(val);
-    const parsed = parseInt(val) || 0;
+    const parsed = parseFloat(val) || 0;
     if (parsed > 0) {
       setOrderQty(parsed);
     }
@@ -1084,10 +1092,17 @@ function OptionChainContent() {
                       <input
                         className="ts-qty-val"
                         type="number"
+                        step="any"
                         value={qtyInput}
                         onChange={e => handleQtyChange(e.target.value)}
                         onBlur={() => {
-                          if (!qtyInput || parseInt(qtyInput) < 1) setQtyInput(String(orderQty));
+                          const n = parseFloat(qtyInput);
+                          if (!qtyInput || isNaN(n) || n <= 0) {
+                            setQtyInput(String(orderQty));
+                          } else {
+                            setQtyInput(String(n));
+                            setOrderQty(n);
+                          }
                         }}
                         suppressHydrationWarning
                       />

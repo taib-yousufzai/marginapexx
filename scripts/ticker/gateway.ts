@@ -103,7 +103,7 @@ export class WebSocketGateway extends EventEmitter {
             // Fetch latest quotes from Redis Hash cache
             const redis = getRedisClient();
             try {
-              await Promise.all(payload.symbols.map(async (sym) => {
+              await Promise.all(payload.symbols.map(async (sym: string) => {
                 const cached = await redis.hget('market:quotes', sym);
                 if (cached) {
                   initialQuotes[sym] = JSON.parse(cached) as TickData;

@@ -165,13 +165,13 @@ export async function GET(request: Request) {
         if (!atmPrice && options.length > 0) {
           console.warn(`[option-chain] Redis ATM price unavailable for ${symbol}, falling back to median strike`);
           const middleIndex = Math.floor(options.length / 2);
-          atmPrice = (options as Instrument[])[middleIndex]?.strike_price || 0;
+          atmPrice = (options as any[])[middleIndex]?.strike_price || 0;
         }
         if (atmPrice) {
           if (isMcx) {
-            options = applyMcxStrikeRangeFilter(options as Instrument[], atmPrice) as any[];
+            options = applyMcxStrikeRangeFilter(options as any[], atmPrice) as any[];
           } else {
-            options = applyStrikeRangeFilter(options as Instrument[], atmPrice, range) as any[];
+            options = applyStrikeRangeFilter(options as any[], atmPrice, range) as any[];
           }
         }
       } catch (e) {

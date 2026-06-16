@@ -59,6 +59,7 @@ export interface MyOrder {
   order_type: OrderType;
   product_type: ProductType;
   info: string | null;
+  client_price?: number;
   trigger_price?: number;
   stop_loss?: number;
   target?: number;

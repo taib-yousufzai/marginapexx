@@ -103,7 +103,7 @@ export function positionItemToPosition(item: PositionItem): Position {
     entryTime: item.entry_time,
     exitTime: item.exit_time ?? undefined,
     settlement: item.settlement ?? undefined,
-    status: item.status,
+    status: item.qty_open > 0 ? 'open' : 'closed',
   };
 }
 export function downloadCSV(data: Record<string, unknown>[], filename: string) {

@@ -32,7 +32,9 @@ describe('POST /api/orders', () => {
     process.env.KITE_API_KEY = 'kite-key';
   });
 
-  function makeRequest(body: any): Request {
+
+
+  function makeRequest(body: any): any {
     return new Request('http://localhost/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer token' },

@@ -466,7 +466,7 @@ export default function DiagnosticsPage() {
             </div>
           </div>
         ) : null}
-        <Footer />
+        <Footer activeTab="profile" />
       </main>
     </div>
   );

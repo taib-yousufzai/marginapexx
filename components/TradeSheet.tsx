@@ -31,7 +31,8 @@ interface TradeSheetProps {
 function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: number }[]): number {
   const n = name.toUpperCase();
   if (scriptSettings && scriptSettings.length > 0) {
-    const match = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
+    const match = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
     if (match) return Number(match.lot_size);
   }
   if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
@@ -39,6 +40,12 @@ function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: n
   if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
   if (n.includes('SENSEX')) return 10;
   if (n.includes('NIFTY')) return 25;
+  if (n.includes('GOLDM')) return 10;
+  if (n.includes('GOLD')) return 100;
+  if (n.includes('SILVERM')) return 5;
+  if (n.includes('SILVER')) return 30;
+  if (n.includes('CRUDEOIL')) return 100;
+  if (n.includes('NATURALGAS')) return 1250;
   return 1;
 }
 
@@ -465,7 +472,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
 
     // Resolve reference entry price and position side (Long vs Short)
-    const refEntry = (exitMode && existingPos) ? Number(existingPos.entry_price) : resolvedClientPrice;
+    const refEntry = (exitMode && existingPos) ? Number(existingPos.avg_price) : resolvedClientPrice;
     const isLong = (exitMode && existingPos) ? (existingPos.side === 'BUY') : (placeSide === 'BUY');
 
     if (exitMode) {

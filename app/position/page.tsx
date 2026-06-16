@@ -238,7 +238,7 @@ export default function PositionPage() {
           key,
           symbol: pos.symbol,
           side: pos.side,
-          product_type: pos.product_type,
+          product_type: pos.product_type || 'INTRADAY',
           settlement: pos.settlement || '',
           qty_open: pos.qty_open,
           avg_price: pos.avg_price || pos.entry_price,
@@ -466,7 +466,7 @@ export default function PositionPage() {
                                 )}
                               </div>
                               <div className="pos-card-details">
-                                <span>Avg: <strong>{fmtPrice(group.avg_price, group.settlement)}</strong></span>
+                                 <span>Avg: <strong>{fmtPrice(group.avg_price * group.qty_open, group.settlement)}</strong></span>
                                 <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
                               {group.product_type && (
@@ -840,7 +840,7 @@ export default function PositionPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginBottom: '8px' }}>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Avg Price</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice(selectedPos.avg_price || selectedPos.entry_price, selectedPos.settlement)}</div>
+                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * selectedPos.qty_total, selectedPos.settlement)}</div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Quantity</div>
@@ -963,7 +963,7 @@ export default function PositionPage() {
                       <div className="ps-meta-row">
                         <div>
                           <div className="ps-meta-label">Avg Price</div>
-                          <div className="ps-meta-val">{fmtPrice(selectedPos.avg_price || selectedPos.entry_price, selectedPos.settlement)}</div>
+                           <div className="ps-meta-val">{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * (selectedPos.qty_open || selectedPos.qty_total), selectedPos.settlement)}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div className="ps-meta-label">Quantity</div>

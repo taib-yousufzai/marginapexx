@@ -38,6 +38,9 @@ declare global {
     __renderWatchlist: () => void;
     __addToWatchlistCallback: (item: WatchlistItem) => void;
     __removeFromWatchlistCallback: (symbol: string) => void;
+    __selectionModeActive?: boolean;
+    __watchlistEventsAttached?: boolean;
+    __isBasketModeActive?: boolean;
   }
 }
 
@@ -470,6 +473,29 @@ function WatchlistContent() {
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [userId, setUserId] = useState<string>('');
 
+  const getWatchlistLotSize = (name: string, symbol: string): number => {
+    const n = name.toUpperCase();
+    const s = symbol.toUpperCase();
+    const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
+    const dbMatch = sortedSettings.find(item => 
+      n.includes(item.symbol.toUpperCase()) || 
+      s.includes(item.symbol.toUpperCase())
+    );
+    if (dbMatch) return Number(dbMatch.lot_size);
+    if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
+    if (n.includes('FINNIFTY')) return 40;
+    if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
+    if (n.includes('SENSEX')) return 10;
+    if (n.includes('NIFTY')) return 25;
+    if (n.includes('GOLDM')) return 10;
+    if (n.includes('GOLD')) return 100;
+    if (n.includes('SILVERM')) return 5;
+    if (n.includes('SILVER')) return 30;
+    if (n.includes('CRUDEOIL')) return 100;
+    if (n.includes('NATURALGAS')) return 1250;
+    return 1;
+  };
+
   useEffect(() => {
     async function fetchAllowedSegments() {
       try {
@@ -546,15 +572,15 @@ function WatchlistContent() {
 
   const handleQtyChange = (val: string) => {
     setQtyInput(val);
-    const n = parseInt(val);
+    const n = parseFloat(val);
     if (!isNaN(n) && n > 0) setOrderQty(n);
   };
 
   const [chartItem, setChartItem] = useState<WatchlistItem | null>(null);
 
   const stepQtyWl = (delta: number) => {
-    const step = orderUnit === 'qty' ? lotSize : 1;
-    const next = Math.max(step, orderQty + delta * step);
+    const step = orderUnit === 'qty' ? lotSize : 0.1;
+    const next = Math.max(step, parseFloat((orderQty + delta * step).toFixed(2)));
     setOrderQty(next);
     setQtyInput(String(next));
   };
@@ -566,6 +592,7 @@ function WatchlistContent() {
   const [slTpOpen, setSlTpOpen] = useState<boolean>(false);
   const [slPrice, setSlPrice] = useState<string>('');
   const [tpPrice, setTpPrice] = useState<string>('');
+  const [slTpMode, setSlTpMode] = useState<'price' | 'points'>('price');
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
@@ -647,11 +674,17 @@ function WatchlistContent() {
     if (saved === 'dark' || saved === 'black') document.body.classList.add(saved);
   }, []);
 
+  // Keep a ref to activePositions so the side-change effect reads the latest
+  // without re-triggering on every positions data update
+  const activePositionsRef = useRef(activePositions);
+  useEffect(() => { activePositionsRef.current = activePositions; }, [activePositions]);
+
   // Sync maximum position quantity when side changes to SELL
   useEffect(() => {
-    if (selectedItem && activePositions) {
+    const positions = activePositionsRef.current;
+    if (selectedItem && positions) {
       if (tradeSide === 'SELL') {
-        const existingPos = activePositions.find(
+        const existingPos = positions.find(
           p => p.symbol === selectedItem.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY'
         );
         if (existingPos) {
@@ -659,20 +692,12 @@ function WatchlistContent() {
           setQtyInput(String(existingPos.qty_open));
         }
       } else if (tradeSide === 'BUY') {
-        const name = selectedItem.name.toUpperCase();
-        let computedLot = 1;
-        if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
-        else if (name.includes('BANKNIFTY')) computedLot = 15;
-        else if (name.includes('FINNIFTY')) computedLot = 40;
-        else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
-        else if (name.includes('SENSEX')) computedLot = 10;
-        else if (name.includes('BANKEX')) computedLot = 15;
-        
+        const computedLot = getWatchlistLotSize(selectedItem.name, selectedItem.symbol);
         setOrderQty(computedLot);
         setQtyInput(String(computedLot));
       }
     }
-  }, [tradeSide, selectedItem?.symbol, activePositions]);
+  }, [tradeSide, selectedItem?.symbol]);
 
   // Handle deep linking from other screens (e.g. Home)
   const deepLinkSymbol = searchParams.get('symbol');
@@ -913,14 +938,7 @@ function WatchlistContent() {
       if (item) {
         // Directly set state - avoid stale closure
         setSelectedItem(item);
-        const name = (item.name || item.symbol).toUpperCase();
-        let computedLot = 1;
-        if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
-        else if (name.includes('BANKNIFTY')) computedLot = 15;
-        else if (name.includes('FINNIFTY')) computedLot = 40;
-        else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
-        else if (name.includes('SENSEX')) computedLot = 10;
-        else if (name.includes('BANKEX')) computedLot = 15;
+        const computedLot = getWatchlistLotSize(item.name || item.symbol, item.symbol);
         setOrderQty(computedLot);
         setQtyInput(String(computedLot));
         setOrderUnit('qty');
@@ -938,14 +956,7 @@ function WatchlistContent() {
     (window as any).__reactOpenTradeSheetWithItem = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BUY') => {
       setSelectedItem(item);
       setTradeSide(side);
-      const name = (item.name || item.symbol).toUpperCase();
-      let computedLot = 1;
-      if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
-      else if (name.includes('BANKNIFTY')) computedLot = 15;
-      else if (name.includes('FINNIFTY')) computedLot = 40;
-      else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
-      else if (name.includes('SENSEX')) computedLot = 10;
-      else if (name.includes('BANKEX')) computedLot = 15;
+      const computedLot = getWatchlistLotSize(item.name || item.symbol, item.symbol);
       setOrderQty(computedLot);
       setQtyInput(String(computedLot));
       setOrderUnit('qty');
@@ -1010,15 +1021,7 @@ function WatchlistContent() {
     setTradeSide(side);
     setSelectedItem(item);
     // Reset defaults or set based on item type
-    const name = item.name.toUpperCase();
-    let computedLot = 1;
-    if (name.includes('NIFTY') && !name.includes('BANK') && !name.includes('FIN') && !name.includes('MID')) computedLot = 25;
-    else if (name.includes('BANKNIFTY')) computedLot = 15;
-    else if (name.includes('FINNIFTY')) computedLot = 40;
-    else if (name.includes('MIDCP') || name.includes('MIDCAP')) computedLot = 75;
-    else if (name.includes('SENSEX')) computedLot = 10;
-    else if (name.includes('BANKEX')) computedLot = 15;
-    
+    const computedLot = getWatchlistLotSize(item.name, item.symbol);
     setOrderQty(computedLot);
     setQtyInput(String(computedLot));
     setOrderUnit('qty');
@@ -1058,22 +1061,7 @@ function WatchlistContent() {
 
   let lotSize = 1;
   if (selectedItem) {
-    const n = selectedItem.name.toUpperCase();
-    // First, try to match against DB-configured script settings
-    const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
-    if (dbMatch) {
-      lotSize = Number(dbMatch.lot_size);
-    } else if (n.includes('BANKNIFTY') || n.includes('BANKEX')) {
-      lotSize = 15;
-    } else if (n.includes('FINNIFTY')) {
-      lotSize = 40;
-    } else if (n.includes('MIDCP') || n.includes('MIDCAP')) {
-      lotSize = 75;
-    } else if (n.includes('SENSEX')) {
-      lotSize = 10;
-    } else if (n.includes('NIFTY')) {
-      lotSize = 25;
-    }
+    lotSize = getWatchlistLotSize(selectedItem.name, selectedItem.symbol);
   }
 
   const handlePlaceOrder = async (side: OrderSide) => {
@@ -1093,14 +1081,31 @@ function WatchlistContent() {
       livePrice = marketQuotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
     }
 
+    // ── Convert points → absolute prices if needed ────────────────────────
+    let resolvedTrigger = parseFloat(triggerPrice) || undefined;
+    let resolvedSl = parseFloat(slPrice) || undefined;
+    let resolvedTp = parseFloat(tpPrice) || undefined;
+
+    if (slTpMode === 'points') {
+      if (resolvedTrigger !== undefined) {
+        // SLM/SL: BUY trigger below LTP, SELL trigger above LTP
+        resolvedTrigger = side === 'BUY' ? livePrice - resolvedTrigger : livePrice + resolvedTrigger;
+      }
+      if (resolvedSl !== undefined) {
+        resolvedSl = side === 'BUY' ? livePrice - resolvedSl : livePrice + resolvedSl;
+      }
+      if (resolvedTp !== undefined) {
+        resolvedTp = side === 'BUY' ? livePrice + resolvedTp : livePrice - resolvedTp;
+      }
+    }
+
     if (orderType === 'SL' || orderType === 'SLM') {
-      const trigPrice = parseFloat(triggerPrice);
-      if (!isNaN(trigPrice)) {
-        if (side === 'BUY' && trigPrice >= livePrice) {
+      if (resolvedTrigger !== undefined) {
+        if (side === 'BUY' && resolvedTrigger >= livePrice) {
           showToast('Stop loss price must be below the current market price.', true);
           return;
         }
-        if (side === 'SELL' && trigPrice <= livePrice) {
+        if (side === 'SELL' && resolvedTrigger <= livePrice) {
           showToast('Stop loss price must be above the current market price.', true);
           return;
         }
@@ -1108,9 +1113,7 @@ function WatchlistContent() {
     }
 
     if (orderType === 'GTT') {
-      const sl = parseFloat(slPrice);
       const limit = parseFloat(limitPrice);
-      const target = parseFloat(tpPrice);
 
       if (side === 'BUY') {
         if (!isNaN(limit) && limit >= livePrice) {
@@ -1118,11 +1121,11 @@ function WatchlistContent() {
           return;
         }
         const referencePrice = !isNaN(limit) ? limit : livePrice;
-        if (!isNaN(sl) && sl >= referencePrice) {
+        if (resolvedSl !== undefined && resolvedSl >= referencePrice) {
           showToast(`Stop loss price must be below the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
           return;
         }
-        if (!isNaN(target) && target <= livePrice) {
+        if (resolvedTp !== undefined && resolvedTp <= livePrice) {
           showToast('Target price must be above the current market price.', true);
           return;
         }
@@ -1132,11 +1135,11 @@ function WatchlistContent() {
           return;
         }
         const referencePrice = !isNaN(limit) ? limit : livePrice;
-        if (!isNaN(sl) && sl <= referencePrice) {
+        if (resolvedSl !== undefined && resolvedSl <= referencePrice) {
           showToast(`Stop loss price must be above the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
           return;
         }
-        if (!isNaN(target) && target >= livePrice) {
+        if (resolvedTp !== undefined && resolvedTp >= livePrice) {
           showToast('Target price must be below the current market price.', true);
           return;
         }
@@ -1153,9 +1156,9 @@ function WatchlistContent() {
       qty: orderUnit === 'lot' ? orderQty * lotSize : orderQty,
       lots: orderUnit === 'lot' ? orderQty : 0,
       client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) : livePrice,
-      trigger_price: parseFloat(triggerPrice) || undefined,
-      stop_loss: parseFloat(slPrice) || undefined,
-      target: parseFloat(tpPrice) || undefined,
+      trigger_price: resolvedTrigger,
+      stop_loss: resolvedSl,
+      target: resolvedTp,
       is_exit: isExitOrder
     });
 
@@ -1503,10 +1506,11 @@ function WatchlistContent() {
                   className="ts-qty-val"
                   id="tradeQtyDisplay"
                   type="number"
+                  step="any"
                   value={qtyInput}
                   onChange={e => handleQtyChange(e.target.value)}
                   onBlur={() => {
-                    if (!qtyInput || parseInt(qtyInput) < 1) setQtyInput(String(orderQty));
+                    if (!qtyInput || parseFloat(qtyInput) <= 0 || isNaN(parseFloat(qtyInput))) setQtyInput(String(orderQty));
                   }}
                   suppressHydrationWarning
                 />
@@ -1542,39 +1546,66 @@ function WatchlistContent() {
               />
             </div>
             <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
-              <div className="ts-section-label">Stop Loss Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input type="number" id="tradeTriggerInput" placeholder="0.00" className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} suppressHydrationWarning />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div className="ts-section-label" style={{ marginBottom: 0 }}>Stop Loss {slTpMode === 'points' ? 'Points' : 'Price'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
+                <div className="ts-toggle-switch" style={{ minWidth: 'auto' }}>
+                  <button className={`ts-toggle-opt ${slTpMode === 'price' ? 'active' : ''}`} onClick={() => setSlTpMode('price')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>₹ PRICE</button>
+                  <button className={`ts-toggle-opt ${slTpMode === 'points' ? 'active' : ''}`} onClick={() => setSlTpMode('points')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>POINTS</button>
+                </div>
+              </div>
+              <input type="number" id="tradeTriggerInput" placeholder={slTpMode === 'points' ? 'e.g. 50' : '0.00'} className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} suppressHydrationWarning />
+              {slTpMode === 'points' && triggerPrice && !isNaN(parseFloat(triggerPrice)) && currentLtp > 0 && (
+                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '6px', fontWeight: 600 }}>
+                  ≈ ₹{(tradeSide === 'SELL' ? currentLtp + parseFloat(triggerPrice) : currentLtp - parseFloat(triggerPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
+              )}
             </div>
 
             {/* SL / TP / Limit inputs for GTT order */}
             {orderType === 'GTT' && (
               <div className="ts-section-card">
-                <div className="ts-section-label">SL / Limit / Target</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div className="ts-section-label" style={{ marginBottom: 0 }}>SL / Limit / Target</div>
+                  <div className="ts-toggle-switch" style={{ minWidth: 'auto' }}>
+                    <button className={`ts-toggle-opt ${slTpMode === 'price' ? 'active' : ''}`} onClick={() => setSlTpMode('price')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>₹ PRICE</button>
+                    <button className={`ts-toggle-opt ${slTpMode === 'points' ? 'active' : ''}`} onClick={() => setSlTpMode('points')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>POINTS</button>
+                  </div>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
                     <div style={{ flex: 1 }}>
-                      <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
                       <input
                         type="number"
-                        placeholder="0.00"
+                        placeholder={slTpMode === 'points' ? 'e.g. 50' : '0.00'}
                         className="price-input"
                         value={slPrice}
                         onChange={e => setSlPrice(e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
                         suppressHydrationWarning
                       />
+                      {slTpMode === 'points' && slPrice && !isNaN(parseFloat(slPrice)) && currentLtp > 0 && (
+                        <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px', fontWeight: 600 }}>
+                          ≈ ₹{(tradeSide === 'SELL' ? currentLtp + parseFloat(slPrice) : currentLtp - parseFloat(slPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                      )}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
+                      <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
                       <input
                         type="number"
-                        placeholder="0.00"
+                        placeholder={slTpMode === 'points' ? 'e.g. 100' : '0.00'}
                         className="price-input"
                         value={tpPrice}
                         onChange={e => setTpPrice(e.target.value)}
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
                         suppressHydrationWarning
                       />
+                      {slTpMode === 'points' && tpPrice && !isNaN(parseFloat(tpPrice)) && currentLtp > 0 && (
+                        <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px', fontWeight: 600 }}>
+                          ≈ ₹{(tradeSide === 'SELL' ? currentLtp - parseFloat(tpPrice) : currentLtp + parseFloat(tpPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -1762,10 +1793,10 @@ function WatchlistContent() {
                   <div style={{ marginBottom: '8px' }}>
                     <div style={{ fontSize: '0.62rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>PRICE SUMMARY</div>
                     <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 10px', display: 'flex', justifyContent: 'space-between' }}>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.open) || (isComex && currentComexQuote?.ohlc?.open) || currentKiteQuote?.ohlc?.open || selectedItem.open)}</div></div>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.high) || (isComex && currentComexQuote?.ohlc?.high) || currentKiteQuote?.ohlc?.high || selectedItem.high)}</div></div>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.low) || (isComex && currentComexQuote?.ohlc?.low) || currentKiteQuote?.ohlc?.low || selectedItem.low)}</div></div>
-                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)' }}>{fmt((isCrypto && currentBinanceQuote?.ohlc?.close) || (isComex && currentComexQuote?.ohlc?.close) || currentKiteQuote?.ohlc?.close || selectedItem.close)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>OPEN</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.open) || (isComex && currentComexQuote?.open) || currentKiteQuote?.open || selectedItem.open)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>HIGH</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#059669' }}>{fmt((isCrypto && currentBinanceQuote?.high) || (isComex && currentComexQuote?.high) || currentKiteQuote?.high || selectedItem.high)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>LOW</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#DC2626' }}>{fmt((isCrypto && currentBinanceQuote?.low) || (isComex && currentComexQuote?.low) || currentKiteQuote?.low || selectedItem.low)}</div></div>
+                      <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.52rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '3px' }}>CLOSE</div><div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)' }}>{fmt((isCrypto && currentBinanceQuote?.close) || (isComex && currentComexQuote?.close) || currentKiteQuote?.close || selectedItem.close)}</div></div>
                     </div>
                   </div>
                 <div style={{ background: 'var(--card-alt-bg)', border: '1px solid var(--border-card)', borderRadius: '14px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>

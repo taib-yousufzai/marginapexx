@@ -207,7 +207,8 @@ function mapSegmentToDbSegment(s: string): string {
 function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: number }[]): number {
   const n = symbol.toUpperCase();
   if (dbSettings && Array.isArray(dbSettings)) {
-    const match = dbSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
+    const sortedSettings = [...dbSettings].sort((a, b) => b.symbol.length - a.symbol.length);
+    const match = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
     if (match) return Number(match.lot_size);
   }
   if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
@@ -215,6 +216,12 @@ function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: num
   if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
   if (n.includes('SENSEX')) return 10;
   if (n.includes('NIFTY')) return 25;
+  if (n.includes('GOLDM')) return 10;
+  if (n.includes('GOLD')) return 100;
+  if (n.includes('SILVERM')) return 5;
+  if (n.includes('SILVER')) return 30;
+  if (n.includes('CRUDEOIL')) return 100;
+  if (n.includes('NATURALGAS')) return 1250;
   return 1;
 }
 

@@ -248,7 +248,7 @@ export default function Page() {
     document.getElementById('qtyLotSwitch').addEventListener('change', (e) => { currentIsLotMode = e.target.checked; updateQuantityModeDisplay(); });
     document.getElementById('orderQtyMinus').addEventListener('click', () => updateQuantity(currentQuantity - 1));
     document.getElementById('orderQtyPlus').addEventListener('click', () => updateQuantity(currentQuantity + 1));
-    document.getElementById('orderQtyInput').addEventListener('change', (e) => updateQuantity(parseInt(e.target.value) || 1));
+    document.getElementById('orderQtyInput').addEventListener('change', (e) => updateQuantity(parseFloat(e.target.value) || 1));
     
     document.querySelectorAll('[data-order-type]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -420,7 +420,7 @@ export default function Page() {
             <div class="lot-info-item"><span class="lot-info-label">Total Qty</span><span class="lot-info-value" id="totalQtyValue">50</span></div>
         </div>
         
-        <div class="qty-section"><div class="qty-label" id="qtyLabel">QUANTITY</div><div class="qty-control"><button class="qty-btn" id="orderQtyMinus"><i class="fas fa-minus"></i></button><input type="number" class="qty-input" id="orderQtyInput" value="1" step="1"><button class="qty-btn" id="orderQtyPlus"><i class="fas fa-plus"></i></button></div><div class="lot-size-info" id="lotSizeInfo">Lot Size: 50 | 1 Lot = 50 Units</div></div>
+        <div class="qty-section"><div class="qty-label" id="qtyLabel">QUANTITY</div><div class="qty-control"><button class="qty-btn" id="orderQtyMinus"><i class="fas fa-minus"></i></button><input type="number" class="qty-input" id="orderQtyInput" value="1" step="any"><button class="qty-btn" id="orderQtyPlus"><i class="fas fa-plus"></i></button></div><div class="lot-size-info" id="lotSizeInfo">Lot Size: 50 | 1 Lot = 50 Units</div></div>
         
         <div class="type-section"><div class="section-label"><i class="fas fa-shopping-cart"></i> ORDER TYPE</div><div class="type-buttons">
             <button class="type-btn active" data-order-type="market">MARKET</button>

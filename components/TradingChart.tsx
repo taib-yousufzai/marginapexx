@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { init, dispose, Chart, KLineData } from 'klinecharts';
+import { init, dispose, Chart, KLineData, LineType, TooltipShowRule } from 'klinecharts';
 import './trading-chart.css';
 
 interface TradingChartProps {
@@ -64,8 +64,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     const chart = init(chartContainerRef.current, {
       styles: {
         grid: {
-          horizontal: { color: gridColor, style: 'dashed' },
-          vertical: { color: gridColor, style: 'dashed' }
+          horizontal: { color: gridColor, style: LineType.Dashed },
+          vertical: { color: gridColor, style: LineType.Dashed }
         },
         candle: {
           bar: {
@@ -88,7 +88,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               upColor: '#089981',
               downColor: '#F23645',
               noChangeColor: '#888888',
-              line: { show: true, style: 'dashed', size: 1 },
+              line: { show: true, style: LineType.Dashed, size: 1 },
               text: {
                 show: true,
                 size: 12,
@@ -101,7 +101,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             }
           },
           tooltip: {
-            showRule: 'none' // We use our own legend overlay
+            showRule: TooltipShowRule.None // We use our own legend overlay
           }
         },
         xAxis: {
@@ -113,8 +113,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           axisLine: { color: gridColor }
         },
         crosshair: {
-          horizontal: { line: { color: '#9598A1', style: 'dashed' } },
-          vertical: { line: { color: '#9598A1', style: 'dashed' } }
+          horizontal: { line: { color: '#9598A1', style: LineType.Dashed } },
+          vertical: { line: { color: '#9598A1', style: LineType.Dashed } }
         }
       }
     });

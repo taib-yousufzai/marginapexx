@@ -535,8 +535,7 @@ export default function OrderPage() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify(clearData)
                     }).then(() => {
-                      fetchOrders();
-                      setCancelConfirmId(null);
+                      refresh();
                     });
                   }
                   showToast('Order modified successfully');

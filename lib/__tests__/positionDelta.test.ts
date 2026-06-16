@@ -4,7 +4,7 @@ import { computeDelta, isFullSnapshotNeeded } from '../positionDelta';
 import type { PositionState } from '../positionValidator';
 
 describe('positionDelta', () => {
-  const arbSide = fc.constantFrom<'BUY' | 'SELL', null>('BUY', 'SELL', null);
+  const arbSide = fc.constantFrom<'BUY' | 'SELL' | null>('BUY', 'SELL', null);
   const arbQty = fc.integer({ min: 0, max: 1000 });
   const arbState = fc.record<PositionState>({
     strike_price: fc.constant(26500),
