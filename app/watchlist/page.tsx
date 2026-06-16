@@ -629,7 +629,7 @@ function WatchlistContent() {
   };
 
   const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText).filter(item => {
-    if (allowedSegments === null) return false; // still loading — show nothing
+    if (allowedSegments === null) return true; // still loading — show all initially
     if (allowedSegments.length === 0) return true; // no restriction
     const dbSeg = mapSegmentToDbSegment(item.segment);
     return allowedSegments.includes(dbSeg);
@@ -2035,7 +2035,7 @@ function WatchlistContent() {
               return ai - bi;
             });
             const visibleSegments = sortedSegments.filter(seg => {
-              if (allowedSegments === null) return false; // still loading
+              if (allowedSegments === null) return true; // still loading — show all initially
               if (allowedSegments.length === 0) return true;
               const dbKey = DRAWER_SEG_TO_DB_KEY[seg.name] ?? seg.name.toUpperCase();
               return allowedSegments.includes(dbKey);
