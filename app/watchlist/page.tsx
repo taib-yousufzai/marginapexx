@@ -1315,7 +1315,7 @@ function WatchlistContent() {
         <div className="main-content">
         <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
           <div className="section-subtitle">
-            <i className="fas fa-search"></i> SEARCH RESULTS <span id="searchResultCount"></span>
+            <i className="fas fa-plus-circle"></i> ADD FROM LIBRARY <span id="searchResultCount"></span>
           </div>
           <div id="searchResultsList"></div>
         </div>
@@ -2393,9 +2393,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         searchResultsList.innerHTML = html;
         // Show as flex so the section stretches full height
         searchResultsArea.style.display = 'flex';
-        // Hide watchlist so search fills full screen
-        var watchlistSection = document.querySelector('.watchlist-section');
-        if (watchlistSection) watchlistSection.style.display = 'none';
+        // Keep watchlist section visible — React filterBySearch handles filtering
 
         // Fetch live prices for all results that have a kiteSymbol
         var kiteIds = results.slice(0, 150)
@@ -2435,9 +2433,6 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           if (query.length === 0) {
             searchResultsArea.style.display = 'none';
             clearSearchBtn.style.display = 'none';
-            // Restore watchlist section
-            var watchlistSection = document.querySelector('.watchlist-section');
-            if (watchlistSection) watchlistSection.style.display = '';
             if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
             return;
           }
@@ -2521,9 +2516,6 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           searchInput.value = '';
           searchResultsArea.style.display = 'none';
           this.style.display = 'none';
-          // Restore watchlist section
-          var watchlistSection = document.querySelector('.watchlist-section');
-          if (watchlistSection) watchlistSection.style.display = '';
         });
       }
 
