@@ -85,24 +85,24 @@ function mapToTradingViewSymbol(symbol: string): string {
     return `MCX:${commodity}`;
   }
 
-  // 5. Index mapping
+  // 5. Index mapping (uses continuous futures "1!" to support intraday/minutes timeframes)
   if (cleanSymbol === 'NIFTY_INDEX' || cleanSymbol === 'NIFTY') {
-    return 'NSE:NIFTY';
+    return 'NSE:NIFTY1!';
   }
   if (cleanSymbol === 'BANKNIFTY_INDEX' || cleanSymbol === 'BANKNIFTY') {
-    return 'NSE:BANKNIFTY';
+    return 'NSE:BANKNIFTY1!';
   }
   if (cleanSymbol === 'FINNIFTY_INDEX' || cleanSymbol === 'FINNIFTY') {
-    return 'NSE:CNXFINANCE';
+    return 'NSE:CNXFINANCE1!';
   }
   if (cleanSymbol === 'MIDCP_INDEX' || cleanSymbol === 'MIDCPNIFTY') {
-    return 'NSE:MIDCPNIFTY';
+    return 'NSE:MIDCPNIFTY1!';
   }
   if (cleanSymbol === 'SENSEX_INDEX' || cleanSymbol === 'SENSEX') {
-    return 'BSE:SENSEX';
+    return 'BSE:SENSEX1!';
   }
   if (cleanSymbol === 'BANKEX_INDEX' || cleanSymbol === 'BANKEX') {
-    return 'BSE:BANKEX';
+    return 'BSE:BANKEX1!';
   }
   
   // 6. Binance Crypto
