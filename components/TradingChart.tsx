@@ -193,7 +193,28 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     document.head.appendChild(script);
   }, []);
 
-  // Initialize TradingView Widget
+function mapTimeframeToTvInterval(tf: Timeframe): string {
+  switch (tf) {
+    case '1m': return '1';
+    case '5m': return '5';
+    case '15m': return '15';
+    case '60m': return '60';
+    case 'day': return 'D';
+    default: return '5';
+  }
+}
+
+function mapChartTypeToTvStyle(type: string): string {
+  switch (type) {
+    case 'bar': return '0'; // Bars
+    case 'candle': return '1'; // Candles
+    case 'area': return '3'; // Area
+    case 'baseline': return '10'; // Baseline
+    default: return '1';
+  }
+}
+
+// Initialize TradingView Widget
   useEffect(() => {
     if (!tvLoaded || !chartContainerRef.current) return;
 
@@ -207,14 +228,15 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       widgetRef.current = new (window as any).TradingView.widget({
         autosize: true,
         symbol: tvSymbol,
-        interval: '5',
+        interval: mapTimeframeToTvInterval(timeframe),
         timezone: 'Asia/Kolkata',
         theme: isDarkMode ? 'dark' : 'light',
-        style: '1', // Candles
+        style: mapChartTypeToTvStyle(chartType),
         locale: 'en',
         toolbar_bg: isDarkMode ? '#131722' : '#ffffff',
         enable_publishing: false,
         hide_side_toolbar: false, // SHOWS left drawing toolbar
+        hide_top_toolbar: true,  // Hides TV's top bar so we can use our custom one
         hide_legend: false,
         save_image: false,
         container_id: containerId,
@@ -231,7 +253,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     } catch (e) {
       console.error('TradingView widget creation error:', e);
     }
-  }, [tvLoaded, symbol]);
+  }, [tvLoaded, symbol, timeframe, chartType]);
 
   // Fetch Initial Price for Order placement values
   useEffect(() => {
@@ -585,29 +607,174 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   return (
     <div className="tc-wrapper">
-      {/* Top Toolbar (Minimal Header for Back button & Symbol Display) */}
-      <div className="tc-top-toolbar" style={{ height: '40px', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px' }}>
+      {/* Top Toolbar */}
+      <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
+
         {/* ── Back button ── */}
-        <button className="tc-icon-btn" onClick={() => {
+        <button className="tc-icon-btn" style={{ marginRight: '-6px' }} onClick={() => {
           const sheet = document.getElementById('chartSheet');
           const overlay = document.getElementById('chartSheetOverlay');
           if (sheet) sheet.classList.remove('open');
           if (overlay) overlay.classList.remove('active');
         }}>
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M10 3L5 8l5 5"/>
           </svg>
         </button>
 
         {/* ── Symbol ── */}
-        <div className="tc-symbol-btn" style={{ pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '5px' }}>
+        <div className="tc-symbol-btn" style={{ pointerEvents: 'none' }}>
           <span className="tc-symbol-exchange">{displayExchange}</span>
-          <span className="tc-symbol-name" style={{ fontSize: '13px', fontWeight: 700 }}>{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+          <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+        </div>
+
+        <div className="tc-divider"></div>
+
+        {/* ── Interval flyout ── */}
+        {(() => {
+          const intervals: { label: string; tf: Timeframe }[] = [
+            { label: '1m',  tf: '1m'  },
+            { label: '5m',  tf: '5m'  },
+            { label: '15m', tf: '15m' },
+            { label: '1H',  tf: '60m' },
+            { label: 'D',   tf: 'day' },
+          ];
+          const current = intervals.find(i => i.tf === timeframe) || intervals[1];
+          return (
+            <div style={{ position: 'relative' }}>
+              <div
+                className={`tc-tb-btn ${openTopFlyout === 'interval' ? 'tc-tb-btn-open' : ''}`}
+                onMouseEnter={() => setOpenTopFlyout('interval')}
+                onClick={() => setOpenTopFlyout(openTopFlyout === 'interval' ? null : 'interval')}
+                title="Interval"
+              >
+                <span style={{ fontWeight: 700, fontSize: '13px' }}>{current.label}</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+              </div>
+              {openTopFlyout === 'interval' && (
+                <div className="tc-top-flyout" style={{ minWidth: '110px' }}>
+                  <div className="tc-flyout-title">Interval</div>
+                  {intervals.map(i => (
+                    <div
+                      key={i.tf}
+                      className={`tc-flyout-item ${timeframe === i.tf ? 'active' : ''}`}
+                      onClick={() => { setTimeframe(i.tf); setOpenTopFlyout(null); }}
+                    >
+                      <span>{i.label}</span>
+                      {timeframe === i.tf && <span className="tc-flyout-check">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Chart Type flyout ── */}
+        {(() => {
+          const types: { key: 'candle' | 'area' | 'bar' | 'baseline'; label: string; icon: React.ReactNode }[] = [
+            { key: 'candle',   label: 'Candles',   icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="4" width="3" height="6" fill="currentColor"/><line x1="4.5" y1="1" x2="4.5" y2="4"/><line x1="4.5" y1="10" x2="4.5" y2="13"/><rect x="8" y="3" width="3" height="5" fill="none"/><line x1="9.5" y1="1" x2="9.5" y2="3"/><line x1="9.5" y1="8" x2="9.5" y2="13"/></svg> },
+            { key: 'bar',      label: 'Bars',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" y1="2" x2="4" y2="12"/><line x1="1" y1="5" x2="4" y2="5"/><line x1="4" y1="9" x2="7" y2="9"/><line x1="10" y1="3" x2="10" y2="11"/><line x1="7" y1="6" x2="10" y2="6"/><line x1="10" y1="8" x2="13" y2="8"/></svg> },
+            { key: 'area',     label: 'Area',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 11 Q4 4 7 6 Q10 8 13 3" /><path d="M1 11 Q4 4 7 6 Q10 8 13 3 V11 Z" fill="currentColor" opacity="0.2" stroke="none"/></svg> },
+            { key: 'baseline', label: 'Baseline',  icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="7" x2="13" y2="7" strokeDasharray="2 1"/><path d="M1 7 Q4 3 7 5 Q10 7 13 4" /><path d="M1 7 Q4 11 7 9 Q10 7 13 10" /></svg> },
+          ];
+          const cur = types.find(t => t.key === chartType) || types[0];
+          return (
+            <div style={{ position: 'relative' }}>
+              <div
+                className={`tc-tb-btn ${openTopFlyout === 'charttype' ? 'tc-tb-btn-open' : ''}`}
+                onMouseEnter={() => setOpenTopFlyout('charttype')}
+                onClick={() => setOpenTopFlyout(openTopFlyout === 'charttype' ? null : 'charttype')}
+                title="Chart Type"
+              >
+                {cur.icon}
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+              </div>
+              {openTopFlyout === 'charttype' && (
+                <div className="tc-top-flyout" style={{ minWidth: '140px' }}>
+                  <div className="tc-flyout-title">Chart Type</div>
+                  {types.map(t => (
+                    <div
+                      key={t.key}
+                      className={`tc-flyout-item ${chartType === t.key ? 'active' : ''}`}
+                      onClick={() => {
+                        setChartType(t.key);
+                        setOpenTopFlyout(null);
+                      }}
+                    >
+                      <span className="tc-flyout-icon">{t.icon}</span>
+                      <span>{t.label}</span>
+                      {chartType === t.key && <span className="tc-flyout-check">✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        <div className="tc-divider"></div>
+
+        {/* ── Indicators ── */}
+        <div
+          className="tc-tb-btn tc-tb-indicators"
+          title="Indicators"
+          onClick={() => showToast('Indicators panel coming soon')}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M1 10 L4 6 L7 8 L10 3 L13 5"/>
+            <line x1="1" y1="12" x2="13" y2="12" strokeDasharray="2 1" opacity="0.5"/>
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Indicators</span>
+        </div>
+
+        {/* ── Compare ── */}
+        <div
+          className="tc-tb-btn"
+          title="Compare Symbol"
+          onClick={() => showToast('Compare mode coming soon')}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M1 9 L5 5 L8 7 L13 2" />
+            <path d="M1 12 L5 9 L8 11 L13 6" opacity="0.5"/>
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Compare</span>
+        </div>
+
+        {/* ── Right side ── */}
+        <div className="tc-top-right">
+
+          {/* Snapshot */}
+          <div className="tc-tb-icon" title="Take Snapshot" onClick={() => showToast('Snapshot copied!')}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="1" y="3" width="13" height="10" rx="1.5"/>
+              <circle cx="7.5" cy="8" r="2.5"/>
+              <path d="M5 3l1-2h3l1 2" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Settings */}
+          <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="7.5" cy="7.5" r="2"/>
+              <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12"/>
+            </svg>
+          </div>
+
+          {/* Fullscreen */}
+          <div className="tc-tb-icon" title="Fullscreen" onClick={() => {
+            const el = document.getElementById('chartSheet');
+            if (el) el.requestFullscreen?.();
+          }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/>
+            </svg>
+          </div>
         </div>
       </div>
       
       {/* Main Area */}
-      <div className="tc-main-area" style={{ height: 'calc(100% - 40px)' }}>
+      <div className="tc-main-area">
         {/* Chart Container */}
         <div className="tc-chart-container" style={{ width: '100%', height: '100%', position: 'relative' }}>
           <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
