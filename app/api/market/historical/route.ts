@@ -87,12 +87,24 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol');
     const interval = searchParams.get('interval') || 'day';
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
+    const toVal = searchParams.get('to') || new Date().toISOString().slice(0, 10);
+    let fromVal = searchParams.get('from');
+    if (!fromVal) {
+      const fromDate = new Date();
+      if (interval.includes('minute') || interval.includes('min') || interval === '60m' || interval === '30m' || interval === '15m' || interval === '5m' || interval === '1m') {
+        fromDate.setDate(fromDate.getDate() - 7); // 7 days ago for intraday
+      } else {
+        fromDate.setFullYear(fromDate.getFullYear() - 1); // 1 year ago for daily/weekly
+      }
+      fromVal = fromDate.toISOString().slice(0, 10);
+    }
 
-    if (!symbol || !from || !to) {
+    if (!symbol) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
+
+    const from = fromVal;
+    const to = toVal;
 
     // Run session fetch and symbol resolution in PARALLEL (they're independent)
     const [session, instrumentToken] = await Promise.all([

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { init, dispose, Chart, KLineData, LineType, TooltipShowRule } from 'klinecharts';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
@@ -30,6 +31,7 @@ function getLotSize(name: string): number {
   return 1;
 }
 
+<<<<<<< HEAD
 function mapToTradingViewSymbol(symbol: string): string {
   const upperSymbol = symbol.toUpperCase().trim();
   
@@ -118,18 +120,24 @@ function mapToTradingViewSymbol(symbol: string): string {
   return upperSymbol;
 }
 
+=======
+>>>>>>> 5b74146d894b72c69c74987ceaf9252b7f5b4103
 export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
-  const [tvLoaded, setTvLoaded] = useState(false);
+  const chartRef = useRef<Chart | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // For the legend overlay
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
   const [priceChangePct, setPriceChangePct] = useState<number>(0);
+
+  // Active Drawing Tool state
+  const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
 
   const isCrypto = segment.toUpperCase() === 'CRYPTO' || symbol.endsWith('USDT');
 
@@ -201,6 +209,48 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setIsOrderBlockVisible(true);
   };
 
+  // ── Advanced Drawing States & Toggles ──
+  const [overlayIds, setOverlayIds] = useState<string[]>([]);
+  const [isMagnetMode, setIsMagnetMode] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [keepDrawingMode, setKeepDrawingMode] = useState<boolean>(false);
+  const [hideDrawings, setHideDrawings] = useState<boolean>(false);
+  const [openFlyout, setOpenFlyout] = useState<string | null>(null);
+  // Maps each flyout group to its currently selected (last-used) tool
+  const [groupSelected, setGroupSelected] = useState<Record<string, string>>({
+    lines: 'segment',
+    fibonacci: 'fibonacciRetracement',
+    channels: 'parallelStraightLine',
+    shapes: 'circle',
+    annotation: 'simpleAnnotation',
+    measure: 'priceRange',
+  });
+
+  const toggleLockDrawings = () => {
+    const next = !isLocked;
+    setIsLocked(next);
+    overlayIds.forEach(id => {
+      chartRef.current?.overrideOverlay({ id, lock: next });
+    });
+    showToast(next ? "Drawings locked" : "Drawings unlocked");
+  };
+
+  const toggleHideDrawings = () => {
+    const next = !hideDrawings;
+    setHideDrawings(next);
+    overlayIds.forEach(id => {
+      chartRef.current?.overrideOverlay({ id, visible: !next });
+    });
+    showToast(next ? "Drawings hidden" : "Drawings visible");
+  };
+
+  const clearAllDrawings = () => {
+    chartRef.current?.removeOverlay();
+    setOverlayIds([]);
+    setActiveDrawingTool(null);
+    showToast("All drawings cleared");
+  };
+
   // Get lot size of instrument
   const lotSize = useMemo(() => getLotSize(symbol), [symbol]);
 
@@ -210,29 +260,26 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setTimeout(() => setToast({ visible: false, msg: '' }), 2000);
   };
 
-  const handleClearDrawings = () => {
-    try {
-      if (widgetRef.current && typeof widgetRef.current.chart === 'function') {
-        widgetRef.current.chart().removeAllShapes();
-        showToast('All drawings removed');
-      } else {
-        setTimeframe(prev => prev);
-        showToast('Drawings cleared');
+  // Convert timeframe to Binance or Kite interval string
+  const getIntervalString = () => {
+    if (isCrypto) {
+      switch (timeframe) {
+        case '1m': return '1m';
+        case '5m': return '5m';
+        case '15m': return '15m';
+        case '60m': return '1h';
+        case 'day': return '1d';
+        default: return '5m';
       }
-    } catch (e) {
-      // Clear localStorage TV keys if cross-origin limits us, then recreate widget
-      try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('tradingview') || key.includes('tv-chart'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-      } catch (err) {}
-      setTimeframe(prev => prev);
-      showToast('All drawings cleared');
+    } else {
+      switch (timeframe) {
+        case '1m': return 'minute';
+        case '5m': return '5minute';
+        case '15m': return '15minute';
+        case '60m': return '60minute';
+        case 'day': return 'day';
+        default: return '5minute';
+      }
     }
   };
 
@@ -248,127 +295,318 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       .catch(() => {});
   }, []);
 
-  // Dynamically load TradingView Widget Library script
+  // Initialize/Dispose Klinecharts
   useEffect(() => {
-    if ((window as any).TradingView) {
-      setTvLoaded(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/tv.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.onload = () => setTvLoaded(true);
-    document.head.appendChild(script);
-  }, []);
+    if (!chartContainerRef.current) return;
 
-function mapTimeframeToTvInterval(tf: Timeframe): string {
-  switch (tf) {
-    case '1m': return '1';
-    case '5m': return '5';
-    case '15m': return '15';
-    case '60m': return '60';
-    case 'day': return 'D';
-    default: return '5';
-  }
-}
-
-function mapChartTypeToTvStyle(type: string): string {
-  switch (type) {
-    case 'bar': return '0'; // Bars
-    case 'candle': return '1'; // Candles
-    case 'area': return '3'; // Area
-    case 'baseline': return '10'; // Baseline
-    default: return '1';
-  }
-}
-
-// Initialize TradingView Widget
-  useEffect(() => {
-    if (!tvLoaded || !chartContainerRef.current) return;
-
-    const tvSymbol = mapToTradingViewSymbol(symbol);
     const isDarkMode = document.body.classList.contains('dark') || document.body.classList.contains('black');
-    const containerId = 'tv-chart-container';
+    const backgroundColor = isDarkMode ? '#131722' : '#ffffff';
+    const textColor = isDarkMode ? '#787B86' : '#131722';
+    const gridColor = isDarkMode ? '#363c4e' : '#e0e3eb';
 
-    chartContainerRef.current.innerHTML = `<div id="${containerId}" style="width: 100%; height: 100%;"></div>`;
-
-    try {
-      widgetRef.current = new (window as any).TradingView.widget({
-        autosize: true,
-        symbol: tvSymbol,
-        interval: mapTimeframeToTvInterval(timeframe),
-        timezone: 'Asia/Kolkata',
-        theme: isDarkMode ? 'dark' : 'light',
-        style: mapChartTypeToTvStyle(chartType),
-        locale: 'en',
-        toolbar_bg: isDarkMode ? '#131722' : '#ffffff',
-        enable_publishing: false,
-        hide_side_toolbar: false, // SHOWS left drawing toolbar
-        hide_top_toolbar: true,  // Hides TV's top bar so we can use our custom one
-        hide_legend: false,
-        save_image: false,
-        container_id: containerId,
-        studies: [],
-        disabled_features: [
-          'header_symbol_search',
-          'header_compare',
-        ],
-        enabled_features: [
-          'study_templates',
-          'use_localstorage_for_settings_saved',
-        ],
-      });
-    } catch (e) {
-      console.error('TradingView widget creation error:', e);
-    }
-  }, [tvLoaded, symbol, timeframe, chartType]);
-
-  // Fetch Initial Price for Order placement values
-  useEffect(() => {
-    let isMounted = true;
-    const fetchInitialPrice = async () => {
-      try {
-        if (isCrypto) {
-          const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
-          const json = await res.json();
-          if (json.price && isMounted) {
-            const val = parseFloat(json.price);
-            setCurrentPrice(val);
-            setLimitPrice(val.toFixed(2));
+    // Create klinecharts Instance
+    const chart = init(chartContainerRef.current, {
+      styles: {
+        grid: {
+          horizontal: { color: gridColor, style: LineType.Dashed },
+          vertical: { color: gridColor, style: LineType.Dashed }
+        },
+        candle: {
+          bar: {
+            upColor: '#089981',
+            downColor: '#F23645',
+            noChangeColor: '#888888',
+            upBorderColor: '#089981',
+            downBorderColor: '#F23645',
+            noChangeBorderColor: '#888888',
+            upWickColor: '#089981',
+            downWickColor: '#F23645',
+            noChangeWickColor: '#888888'
+          },
+          priceMark: {
+            show: true,
+            high: { show: false },
+            low: { show: false },
+            last: {
+              show: true,
+              upColor: '#089981',
+              downColor: '#F23645',
+              noChangeColor: '#888888',
+              line: { show: true, style: LineType.Dashed, size: 1 },
+              text: {
+                show: true,
+                size: 12,
+                paddingLeft: 4,
+                paddingTop: 4,
+                paddingRight: 4,
+                paddingBottom: 4,
+                color: '#FFFFFF'
+              }
+            }
+          },
+          tooltip: {
+            showRule: TooltipShowRule.None // We use our own legend overlay
           }
-        } else {
-          const res = await fetch(`/api/market/historical?symbol=${encodeURIComponent(symbol)}&interval=5minute&limit=1`);
-          const json = await res.json();
-          if (json.candles && json.candles.length > 0 && isMounted) {
-            const lastCandle = json.candles[json.candles.length - 1];
-            const val = lastCandle[4];
-            setCurrentPrice(val);
-            setLimitPrice(val.toFixed(2));
-          }
+        },
+        xAxis: {
+          tickText: { color: textColor },
+          axisLine: { color: gridColor }
+        },
+        yAxis: {
+          tickText: { color: textColor },
+          axisLine: { color: gridColor }
+        },
+        crosshair: {
+          horizontal: { line: { color: '#9598A1', style: LineType.Dashed } },
+          vertical: { line: { color: '#9598A1', style: LineType.Dashed } }
         }
-      } catch (err) {
-        console.warn('Failed to fetch initial price:', err);
+      }
+    });
+
+    if (chart) {
+      chartRef.current = chart;
+    }
+
+    const resizeObserver = new ResizeObserver(entries => {
+      if (entries.length === 0 || entries[0].target !== chartContainerRef.current) return;
+      chart?.resize();
+    });
+    resizeObserver.observe(chartContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      if (chartContainerRef.current) {
+        dispose(chartContainerRef.current);
       }
     };
-    fetchInitialPrice();
-    return () => { isMounted = false; };
-  }, [symbol, isCrypto]);
+  }, []);
 
-  // Update price values with live quote prop updates
+  // Fetch Historical Data
   useEffect(() => {
-    if (!liveQuote) return;
-    const lastPrice = liveQuote.lastPrice || liveQuote.last_price || liveQuote.price;
-    if (!lastPrice) return;
+    let isMounted = true;
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        let data: KLineData[] = [];
 
-    setCurrentPrice(lastPrice);
-    if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
-    setPriceChange(liveQuote.change || 0);
-    setPriceChangePct(liveQuote.changePercent || 0);
-  }, [liveQuote]);
+        if (isCrypto) {
+          const interval = getIntervalString();
+          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`);
+          const json = await res.json();
+          if (!Array.isArray(json)) throw new Error(json.msg || 'Failed to fetch');
+          data = json.map((k: any) => ({
+            timestamp: parseInt(k[0]),
+            open: parseFloat(k[1]),
+            high: parseFloat(k[2]),
+            low: parseFloat(k[3]),
+            close: parseFloat(k[4]),
+            volume: parseFloat(k[5]),
+          }));
+        } else {
+          const toDate = new Date();
+          let fromDate = new Date();
+          
+          if (timeframe === 'day') {
+            fromDate.setFullYear(fromDate.getFullYear() - 1);
+          } else if (timeframe === '60m') {
+            fromDate.setDate(fromDate.getDate() - 30);
+          } else if (timeframe === '15m') {
+            fromDate.setDate(fromDate.getDate() - 10);
+          } else {
+            fromDate.setDate(fromDate.getDate() - 4);
+          }
+
+          const from = fromDate.toISOString().split('T')[0];
+          const to = toDate.toISOString().split('T')[0];
+          const interval = getIntervalString();
+
+          const res = await fetch(`/api/market/historical?symbol=${encodeURIComponent(symbol)}&interval=${interval}&from=${from}&to=${to}`);
+          const json = await res.json();
+          
+          if (res.ok && json.candles) {
+            data = json.candles.map((c: any) => {
+              const dt = new Date(c[0]);
+              return {
+                timestamp: dt.getTime(),
+                open: c[1],
+                high: c[2],
+                low: c[3],
+                close: c[4],
+                volume: c[5] || 0,
+              };
+            });
+          } else {
+            throw new Error(json.error || 'Failed to load historical data');
+          }
+        }
+
+        if (isMounted && chartRef.current) {
+          const uniqueData = Array.from(new Map(data.map(item => [item.timestamp, item])).values());
+          uniqueData.sort((a, b) => a.timestamp - b.timestamp);
+          
+          chartRef.current.applyNewData(uniqueData);
+          setLoading(false);
+
+          if (uniqueData.length > 0) {
+            const last = uniqueData[uniqueData.length - 1];
+            setCurrentPrice(last.close);
+            setLimitPrice(last.close.toFixed(2));
+            if (uniqueData.length > 1) {
+              const prev = uniqueData[uniqueData.length - 2];
+              const change = last.close - prev.close;
+              setPriceChange(change);
+              setPriceChangePct((change / prev.close) * 100);
+            }
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => { isMounted = false; };
+  }, [symbol, timeframe, isCrypto]);
+
+  // Update with live quote
+  useEffect(() => {
+    if (!liveQuote || !chartRef.current || loading) return;
+    
+    const currentTime = Date.now();
+    let intervalMs = 60000;
+    if (timeframe === '1m') intervalMs = 60000;
+    if (timeframe === '5m') intervalMs = 300000;
+    if (timeframe === '15m') intervalMs = 900000;
+    if (timeframe === '60m') intervalMs = 3600000;
+    if (timeframe === 'day') intervalMs = 86400000;
+
+    const alignedTime = Math.floor(currentTime / intervalMs) * intervalMs;
+
+    try {
+      const dataList = chartRef.current.getDataList();
+      const lastCandle = dataList.length > 0 ? dataList[dataList.length - 1] : null;
+
+      const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
+      if (!lastPrice) return;
+
+      setCurrentPrice(lastPrice);
+      if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
+      setPriceChange(liveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
+      setPriceChangePct(liveQuote.changePercent || 0);
+
+      if (lastCandle && lastCandle.timestamp === alignedTime) {
+        chartRef.current.updateData({
+          timestamp: alignedTime,
+          open: lastCandle.open,
+          high: Math.max(lastCandle.high, lastPrice),
+          low: Math.min(lastCandle.low, lastPrice),
+          close: lastPrice,
+          volume: lastCandle.volume
+        });
+      } else {
+        chartRef.current.updateData({
+          timestamp: alignedTime,
+          open: lastCandle ? lastCandle.close : lastPrice,
+          high: lastPrice,
+          low: lastPrice,
+          close: lastPrice,
+          volume: 0
+        });
+      }
+    } catch (e) {}
+  }, [liveQuote, timeframe, loading]);
 
   const displayExchange = isCrypto ? 'BINANCE' : (symbol.includes('SENSEX') || symbol.includes('BANKEX')) ? 'BSE' : 'NSE';
   const isUp = priceChange >= 0;
+
+  // Drawing Tools Click handler
+  const handleDrawingTool = (toolName: string) => {
+    if (!chartRef.current) return;
+    
+    if (activeDrawingTool === toolName) {
+      setActiveDrawingTool(null);
+    } else {
+      setActiveDrawingTool(toolName);
+      
+      const newId = `overlay_${Date.now()}`;
+      setOverlayIds(prev => [...prev, newId]);
+
+      const onDrawEnd = (event: any) => {
+        // 1. Magnet mode snapping to nearest candle OHL/C price
+        if (isMagnetMode && event.overlay && event.overlay.points && chartRef.current) {
+          const dataList = chartRef.current.getDataList();
+          const snappedPoints = event.overlay.points.map((p: any) => {
+            if (p.timestamp && dataList.length > 0) {
+              let nearestCandle = dataList[0];
+              let minDiff = Math.abs(dataList[0].timestamp - p.timestamp);
+              for (let k = 1; k < dataList.length; k++) {
+                const diff = Math.abs(dataList[k].timestamp - p.timestamp);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  nearestCandle = dataList[k];
+                }
+              }
+              const prices = [nearestCandle.open, nearestCandle.high, nearestCandle.low, nearestCandle.close];
+              let snappedPrice = prices[0];
+              let minPriceDiff = Math.abs(prices[0] - p.value);
+              for (let j = 1; j < prices.length; j++) {
+                const pDiff = Math.abs(prices[j] - p.value);
+                if (pDiff < minPriceDiff) {
+                  minPriceDiff = pDiff;
+                  snappedPrice = prices[j];
+                }
+              }
+              return { ...p, timestamp: nearestCandle.timestamp, value: snappedPrice };
+            }
+            return p;
+          });
+          chartRef.current.overrideOverlay({ id: event.overlay.id, name: toolName, points: snappedPoints });
+        }
+
+        // 2. Simple Annotation text prompt
+        if (toolName === 'simpleAnnotation') {
+          const text = window.prompt('Enter your text annotation:');
+          if (text) {
+            chartRef.current?.overrideOverlay({ id: event.overlay.id, name: toolName, extendData: text });
+          } else {
+            chartRef.current?.removeOverlay({ id: event.overlay.id });
+          }
+        }
+
+        // 3. Keep drawing mode loop trigger
+        if (keepDrawingMode) {
+          setTimeout(() => {
+            const nextId = `overlay_${Date.now()}`;
+            setOverlayIds(prev => [...prev, nextId]);
+            chartRef.current?.createOverlay({
+              name: toolName,
+              id: nextId,
+              lock: isLocked,
+              visible: !hideDrawings,
+              onDrawEnd
+            });
+          }, 100);
+        } else {
+          setActiveDrawingTool(null);
+        }
+        return true;
+      };
+
+      chartRef.current.createOverlay({
+        name: toolName === 'fibonacciLine' ? 'fibonacciRetracement' : toolName,
+        id: newId,
+        lock: isLocked,
+        visible: !hideDrawings,
+        onDrawEnd
+      });
+    }
+  };
 
   // Stepper for quantity
   const handleQtyStep = (delta: number) => {
@@ -692,9 +930,10 @@ function mapChartTypeToTvStyle(type: string): string {
         </button>
 
         {/* ── Symbol ── */}
-        <div className="tc-symbol-btn" style={{ pointerEvents: 'none' }}>
+        <div className="tc-symbol-btn">
           <span className="tc-symbol-exchange">{displayExchange}</span>
           <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z"/></svg>
         </div>
 
         <div className="tc-divider"></div>
@@ -769,6 +1008,11 @@ function mapChartTypeToTvStyle(type: string): string {
                       onClick={() => {
                         setChartType(t.key);
                         setOpenTopFlyout(null);
+                        if (chartRef.current) {
+                          chartRef.current.setStyles({
+                            candle: { type: t.key === 'candle' ? 'candle_solid' : t.key === 'bar' ? 'ohlc' : t.key === 'area' ? 'area' : 'normal' } as any
+                          });
+                        }
                       }}
                     >
                       <span className="tc-flyout-icon">{t.icon}</span>
@@ -822,14 +1066,6 @@ function mapChartTypeToTvStyle(type: string): string {
             </svg>
           </div>
 
-          {/* Clear drawings (Dustbin) */}
-          <div className="tc-tb-icon" title="Clear drawings" onClick={handleClearDrawings}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M2 3h11M4 3v9a1.5 1.5 0 001.5 1.5h4A1.5 1.5 0 0011 12V3M5 3V1.5A1.5 1.5 0 016.5 0h2A1.5 1.5 0 0110 1.5V3" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6v4M9 6v4" strokeLinecap="round"/>
-            </svg>
-          </div>
-
           {/* Settings */}
           <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -852,8 +1088,311 @@ function mapChartTypeToTvStyle(type: string): string {
       
       {/* Main Area */}
       <div className="tc-main-area">
+        {/* Left Drawing Toolbar — TradingView Style */}
+        <div
+          className="tc-left-toolbar"
+          style={{ width: '44px', borderRight: '1px solid #E8ECF0', padding: '6px 0', gap: '2px' }}
+          onMouseLeave={() => setOpenFlyout(null)}
+        >
+
+          {/* ── Cursor / Pointer ── */}
+          <div
+            className={`tc-tool-icon ${!activeDrawingTool ? 'active' : ''}`}
+            onClick={() => { setActiveDrawingTool(null); setOpenFlyout(null); }}
+            title="Cursor"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1l12 6-5.5 1.5L7 14z"/></svg>
+          </div>
+
+          <div className="tc-toolbar-sep" />
+
+          {/* ── Lines Group ── */}
+          {(() => {
+            const lineTools = [
+              { name: 'segment',               label: 'Trend Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/></svg> },
+              { name: 'rayLine',               label: 'Ray',                 icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/><circle cx="14" cy="1" r="1.5" fill="currentColor"/></svg> },
+              { name: 'straightLine',          label: 'Extended Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="14" x2="15" y2="1"/></svg> },
+              { name: 'horizontalStraightLine',label: 'Horizontal Line',     icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/></svg> },
+              { name: 'horizontalRayLine',     label: 'Horizontal Ray',      icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/><circle cx="0" cy="7" r="1.5" fill="currentColor"/></svg> },
+              { name: 'horizontalSegment',     label: 'Horizontal Segment',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="7" x2="14" y2="7"/><circle cx="1" cy="7" r="1.5" fill="currentColor"/><circle cx="14" cy="7" r="1.5" fill="currentColor"/></svg> },
+              { name: 'verticalStraightLine',  label: 'Vertical Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="7" y1="0" x2="7" y2="15"/></svg> },
+              { name: 'priceLine',             label: 'Price Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="12" y2="7"/><rect x="12" y="4" width="3" height="6" rx="1" fill="currentColor" stroke="none"/></svg> },
+            ];
+            const sel = groupSelected.lines;
+            const selTool = lineTools.find(t => t.name === sel) || lineTools[0];
+            const isGroupActive = lineTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('lines')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'lines' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Lines</div>
+                    {lineTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, lines: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Fibonacci Group ── */}
+          {(() => {
+            const fibTools = [
+              { name: 'fibonacciRetracement', label: 'Fib Retracement',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="2" x2="15" y2="2"/><line x1="0" y1="6" x2="15" y2="6"/><line x1="0" y1="9" x2="15" y2="9"/><line x1="0" y1="13" x2="15" y2="13"/><line x1="1" y1="2" x2="14" y2="13" strokeDasharray="2 1"/></svg> },
+              { name: 'fibonacciExtension',  label: 'Fib Extension',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="3" x2="15" y2="3"/><line x1="0" y1="7" x2="15" y2="7"/><line x1="0" y1="11" x2="15" y2="11"/><line x1="1" y1="14" x2="14" y2="1" strokeDasharray="2 1"/></svg> },
+              { name: 'fibonacciSpeedResistanceFan', label: 'Fib Speed Resistance Fan', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="1"/><line x1="1" y1="14" x2="14" y2="5"/><line x1="1" y1="14" x2="14" y2="9"/></svg> },
+              { name: 'fibonacciCircle',      label: 'Fib Arc',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 13 Q7 2 13 13"/><line x1="2" y1="13" x2="13" y2="13"/></svg> },
+              { name: 'fibonacciSegment',     label: 'Fib Wedge',        icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="2"/><line x1="1" y1="14" x2="14" y2="7"/><line x1="1" y1="14" x2="14" y2="12"/></svg> },
+            ];
+            const sel = groupSelected.fibonacci;
+            const selTool = fibTools.find(t => t.name === sel) || fibTools[0];
+            const isGroupActive = fibTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('fibonacci')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'fibonacci' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Fibonacci</div>
+                    {fibTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, fibonacci: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Channels Group ── */}
+          {(() => {
+            const channelTools = [
+              { name: 'parallelStraightLine', label: 'Parallel Channel', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="12" x2="14" y2="4"/><line x1="1" y1="6" x2="14" y2="11" strokeDasharray="2 1"/></svg> },
+              { name: 'priceChannelLine',     label: 'Price Channel',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="12" x2="14" y2="12"/><line x1="1" y1="7" x2="14" y2="7" strokeDasharray="2 1"/></svg> },
+            ];
+            const sel = groupSelected.channels;
+            const selTool = channelTools.find(t => t.name === sel) || channelTools[0];
+            const isGroupActive = channelTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('channels')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'channels' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Channels</div>
+                    {channelTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, channels: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className="tc-toolbar-sep" />
+
+          {/* ── Annotation Group ── */}
+          {(() => {
+            const annoTools = [
+              { name: 'simpleAnnotation', label: 'Text Note',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><text x="1" y="13" fontSize="13" fontFamily="Georgia,serif" fontWeight="bold">T</text></svg> },
+              { name: 'simpleTag',        label: 'Price Tag',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="9" height="7" rx="1.5"/><line x1="10" y1="7" x2="14" y2="7"/></svg> },
+            ];
+            const sel = groupSelected.annotation;
+            const selTool = annoTools.find(t => t.name === sel) || annoTools[0];
+            const isGroupActive = annoTools.some(t => activeDrawingTool === t.name);
+            return (
+              <div className="tc-flyout-group" style={{ position: 'relative' }}>
+                <div
+                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
+                  title={selTool.label}
+                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
+                  onMouseEnter={() => setOpenFlyout('annotation')}
+                >
+                  {selTool.icon}
+                  <span className="tc-group-arrow">▸</span>
+                </div>
+                {openFlyout === 'annotation' && (
+                  <div className="tc-flyout">
+                    <div className="tc-flyout-title">Annotations</div>
+                    {annoTools.map(t => (
+                      <div
+                        key={t.name}
+                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
+                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, annotation: t.name })); setOpenFlyout(null); }}
+                      >
+                        <span className="tc-flyout-icon">{t.icon}</span>
+                        <span>{t.label}</span>
+                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── Measure Tool ── */}
+          <div
+            className={`tc-tool-icon ${activeDrawingTool === 'priceRange' ? 'active' : ''}`}
+            onClick={() => handleDrawingTool('priceRange')}
+            title="Measure (Price & Bars)"
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <line x1="1" y1="3" x2="1" y2="12"/>
+              <line x1="14" y1="3" x2="14" y2="12"/>
+              <line x1="1" y1="7.5" x2="14" y2="7.5"/>
+            </svg>
+          </div>
+
+          {/* ── Brush / Freehand ── */}
+          <div
+            className={`tc-tool-icon ${activeDrawingTool === 'brush' ? 'active' : ''}`}
+            onClick={() => handleDrawingTool('brush')}
+            title="Brush (Freehand)"
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M10.5 1.5a2.1 2.1 0 0 1 3 3L5 13l-4 1 1-4z"/></svg>
+          </div>
+
+          <div className="tc-toolbar-sep" />
+
+          {/* ── Magnet ── */}
+          <div
+            className={`tc-tool-icon ${isMagnetMode ? 'active-magnet' : ''}`}
+            onClick={() => { setIsMagnetMode(!isMagnetMode); showToast(!isMagnetMode ? 'Magnet snap on' : 'Magnet snap off'); }}
+            title="Magnet Snap"
+            style={isMagnetMode ? { color: '#089981', backgroundColor: 'rgba(8,153,129,0.12)' } : {}}
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M7.5 1a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 7.5 1zm0 2a4.5 4.5 0 0 1 4.5 4.5H10a2.5 2.5 0 0 0-5 0H3A4.5 4.5 0 0 1 7.5 3z"/></svg>
+          </div>
+
+          {/* ── Lock ── */}
+          <div
+            className={`tc-tool-icon ${isLocked ? 'active-locked' : ''}`}
+            onClick={toggleLockDrawings}
+            title="Lock Drawings"
+            style={isLocked ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
+          >
+            {isLocked
+              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+            }
+          </div>
+
+          {/* ── Stay in drawing mode ── */}
+          <div
+            className={`tc-tool-icon ${keepDrawingMode ? 'active-keep' : ''}`}
+            onClick={() => { setKeepDrawingMode(!keepDrawingMode); showToast(!keepDrawingMode ? 'Keep drawing on' : 'Keep drawing off'); }}
+            title="Stay in Drawing Mode"
+            style={keepDrawingMode ? { color: '#2962FF', backgroundColor: 'rgba(41,98,255,0.1)' } : {}}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M11 1a1 1 0 0 1 1.4 1.4L4.8 10H3v-1.8z"/><line x1="1" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.5"/></svg>
+          </div>
+
+          {/* ── Hide/Show ── */}
+          <div
+            className={`tc-tool-icon ${hideDrawings ? 'active-hide' : ''}`}
+            onClick={toggleHideDrawings}
+            title="Hide Drawings"
+            style={hideDrawings ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
+          >
+            {hideDrawings
+              ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="2" y1="2" x2="13" y2="13"/><path d="M5.5 5.5A3 3 0 0 0 9.5 9.5M3 4C1.7 5.3 1 6.5 1 7.5c0 2 3 5 6.5 5M12 11C13.3 9.7 14 8.5 14 7.5c0-2-3-5-6.5-5"/></svg>
+              : <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 7.5c0-2 3-5 6.5-5s6.5 3 6.5 5-3 5-6.5 5S1 9.5 1 7.5z"/><circle cx="7.5" cy="7.5" r="2"/></svg>
+            }
+          </div>
+
+          {/* ── Delete All ── */}
+          <div
+            className="tc-tool-icon"
+            onClick={clearAllDrawings}
+            title="Remove All Drawings"
+            style={{ color: '#e53935' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M5 1h4l1 1h3v1.5H1V2h3zM2.5 4h9l-.8 8H3.3z"/></svg>
+          </div>
+        </div>
+
         {/* Chart Container */}
-        <div className="tc-chart-container" style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className="tc-chart-container">
+          {/* Legend Overlay */}
+          <div className="tc-legend-overlay">
+            <div className="tc-legend-top">
+              <span className="tc-legend-title">{symbol}</span>
+              <span style={{ color: '#9CA3AF' }}>•</span>
+              <span className="tc-legend-tf">{timeframe.replace('m', '').replace('day', 'D')}</span>
+              <span style={{ color: '#9CA3AF' }}>•</span>
+              <span className="tc-legend-exchange">{displayExchange}</span>
+              <span className="tc-legend-status"></span>
+            </div>
+            {currentPrice > 0 && (
+              <div className="tc-legend-bottom">
+                <span className={`tc-legend-price ${isUp ? 'up' : 'down'}`}>
+                  ₹{currentPrice.toFixed(2)}
+                </span>
+                <span className={`tc-legend-price ${isUp ? 'up' : 'down'}`} style={{ fontSize: '0.8rem', marginLeft: '2px' }}>
+                  {isUp ? '+' : ''}{priceChange.toFixed(2)} ({isUp ? '+' : ''}{priceChangePct.toFixed(2)}%)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {loading && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', zIndex: 10 }}>
+              <i className="fas fa-circle-notch fa-spin" style={{ color: '#2962FF', fontSize: '1.5rem' }}></i>
+            </div>
+          )}
+          {error && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
+              <i className="fas fa-exclamation-triangle" style={{ color: '#F23645', fontSize: '2rem', marginBottom: '10px' }}></i>
+              <div style={{ color: '#F23645', fontSize: '0.8rem', fontWeight: 600 }}>{error}</div>
+            </div>
+          )}
           <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
         </div>
       </div>
