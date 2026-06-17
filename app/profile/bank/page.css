@@ -1001,3 +1001,157 @@ body.black .bd-inline-save-btn.dirty {
   background: #2C8E5A;
   color: #fff;
 }
+
+
+
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+/* ── Black theme ───────────────────────────────────────────────────────── */
+
+body.blue {
+  --bd-bg: #0B141E;
+  --bd-surface: #131C27;
+  --bd-border: #131C27;
+  --bd-divider: #131C27;
+  --bd-text: #F5F5F5;
+  --bd-muted: #555;
+}
+
+
+body.blue .bd-card {
+  box-shadow: none;
+}
+
+
+body.blue .bd-card:hover {
+  border-color: #333;
+}
+
+
+body.blue .bd-card--expanded {
+  border-color: #2C8E5A;
+}
+
+
+body.blue .primary-card {
+  background: linear-gradient(135deg, #0a1a10 0%, #131C27 100%);
+  border-color: #1c4a2e;
+}
+
+
+body.blue .bd-bank-icon {
+  background: #131C27;
+  color: #444;
+}
+
+
+body.blue .bd-card--expanded .bd-bank-icon,
+body.blue .primary-card .bd-bank-icon {
+  background: rgba(44, 142, 90, 0.12);
+  color: #4ADE80;
+}
+
+
+body.blue .bd-icon-btn {
+  background: #131C27;
+  border-color: #1C2A3A;
+  color: #555;
+}
+
+
+body.blue .bd-icon-btn.delete { color: #f87171; }
+
+
+body.blue .bd-detail-item {
+  border-bottom-color: #131C27;
+}
+
+
+body.blue .bd-set-primary-btn {
+  background: #131C27;
+  color: #888;
+  border-color: #1C2A3A;
+}
+
+
+body.blue .bd-add-btn { background: #F5F5F5; color: #0B141E; }
+
+body.blue .bd-empty-state { border-color: #131C27; }
+
+
+body.blue .bd-card--editing {
+  border-color: #2C8E5A !important;
+  box-shadow: 0 0 0 3px rgba(44, 142, 90, 0.1) !important;
+}
+
+
+body.blue .bd-inline-input {
+  background: #131C27;
+  border-color: #1C2A3A;
+  color: #F5F5F5;
+}
+
+
+body.blue .bd-inline-input:focus {
+  background: #131C27;
+  border-color: #2C8E5A;
+}
+
+
+body.blue .bd-inline-field-row {
+  border-bottom-color: #131C27;
+}
+
+
+body.blue .bd-icon-btn.save-inline {
+  background: rgba(44, 142, 90, 0.15);
+  border-color: rgba(44, 142, 90, 0.4);
+  color: #4ADE80;
+}
+
+
+body.blue .bd-icon-btn.cancel-inline {
+  background: rgba(198, 46, 46, 0.1);
+  border-color: rgba(198, 46, 46, 0.25);
+  color: #f87171;
+}
+
+
+body.blue .bd-outline-btn {
+  background: #131C27;
+  border-color: #1C2A3A;
+  color: #CCC;
+}
+
+
+body.blue .bd-inline-action-row {
+  border-top-color: #131C27;
+}
+
+
+body.blue .bd-inline-cancel-btn {
+  background: #131C27;
+  border-color: #1C2A3A;
+  color: #555;
+}
+
+
+body.blue .bd-inline-cancel-btn:hover {
+  background: rgba(198, 46, 46, 0.1);
+  color: #f87171;
+}
+
+
+body.blue .bd-inline-save-btn {
+  background: #131C27;
+  color: #444;
+}
+
+
+body.blue .bd-inline-save-btn.dirty {
+  background: #2C8E5A;
+  color: #fff;
+}

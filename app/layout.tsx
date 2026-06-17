@@ -46,6 +46,7 @@ export default function RootLayout({
               var t = localStorage.getItem('marginApexTheme');
               if(t === 'dark') document.body.classList.add('dark');
               if(t === 'black') document.body.classList.add('black');
+              if(t === 'blue') document.body.classList.add('blue');
             } catch(e){}
             if('scrollRestoration' in history) history.scrollRestoration = 'manual';
           })();

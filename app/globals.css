@@ -968,3 +968,136 @@ body.dark .ew-arrow--today {
     display: none !important;
   }
 }
+
+
+
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+/* SUPER BLACK THEME */
+body.blue {
+  --bg-body: #0B141E;
+  --container-bg: #0B141E;
+  --card-bg: #0B141E;
+  --card-alt-bg: #131C27;
+  --border-light: #1C2A3A;
+  --border-card: #1C2A3A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-muted: #666666;
+  --icon-bg: #131C27;
+  --wallet-bg: #131C27;
+  --wallet-text: #FFFFFF;
+  --chip-bg: #0B141E;
+  --chip-active-bg: #008800;
+  --chip-active-text: #FFFFFF;
+  --arrow-bg: #131C27;
+  --product-bg: #0B141E;
+  --product-border: #1C2A3A;
+  --badge-bg: #008800;
+  --badge-text: #FFFFFF;
+  --shadow-sm: 0 4px 12px rgba(255, 255, 255, 0.02);
+  --shadow-md: 0 6px 12px -6px rgba(255, 255, 255, 0.05);
+  --active-cat-bg: #008800;
+  --active-cat-text: #FFFFFF;
+  --positive-bg: #0A2A1A;
+  --positive-text: #4ADE80;
+  --negative-bg: #2B1A1A;
+  --negative-text: #F87171;
+  --algo-bg: linear-gradient(135deg, #004400, #002200);
+  --ai-bg: linear-gradient(135deg, #004400, #002200);
+  --nav-bg: #0B141E;
+  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  --nav-border: #131C27;
+  --expiry-bg: linear-gradient(135deg, #A01010, #700000);
+  --footer-bg: #0B141E;
+  --footer-active: #00AA00;
+  --drawer-bg: #0B141E;
+  --drawer-handle: #00AA00;
+  --gold-silver-gradient: linear-gradient(135deg, #888888, #AA8822, #D4AF37, #AA8822, #777777);
+  --expiry-drawer-bg: #0B141E;
+}
+
+
+body.blue .nav-app-name {
+  background: linear-gradient(135deg, #FFFFFF 0%, #CCCCCC 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+body.blue .nav-app-name span {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: #00CC00;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+body.blue .ew-sheet {
+  background: #0B141E;
+}
+
+body.blue .ew-handle {
+  background: #1C2A3A;
+}
+
+body.blue .ew-header {
+  border-bottom-color: #131C27;
+}
+
+body.blue .ew-cal-icon {
+  background: #131C27;
+  color: #888;
+}
+
+body.blue .ew-title {
+  color: #ffffff;
+}
+
+body.blue .ew-close {
+  background: #131C27;
+  color: #888;
+}
+
+body.blue .ew-item {
+  background: #131C27;
+  border-color: #131C27;
+}
+
+body.blue .ew-item--today {
+  background: #1a0a0a;
+  border-color: #3a1010;
+}
+
+body.blue .ew-code {
+  background: #131C27;
+  color: #888;
+}
+
+body.blue .ew-name {
+  color: #e0e0e0;
+}
+
+body.blue .ew-date-pill {
+  background: #131C27;
+  color: #888;
+}
+
+body.blue .ew-lot {
+  color: #555;
+}
+
+body.blue .ew-arrow {
+  background: #131C27;
+  color: #888;
+}
+
+body.blue .ew-arrow--today {
+  background: #A01010;
+  color: #ffffff;
+}

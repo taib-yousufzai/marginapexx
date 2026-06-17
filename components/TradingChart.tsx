@@ -32,6 +32,7 @@ function getLotSize(name: string): number {
   return 1;
 }
 
+
 export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');

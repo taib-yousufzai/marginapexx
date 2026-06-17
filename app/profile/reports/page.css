@@ -397,3 +397,49 @@ body.black .rp-header {
 html:has(body.black) {
     background: #000000;
 }
+
+
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .rp-chip-btn.active {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #0B141E;
+}
+
+
+body.blue .rp-root {
+    background: #0B141E;
+}
+
+
+body.blue .rp-chip-btn.active {
+    background: #FFFFFF;
+    border-color: #FFFFFF;
+    color: #0B141E;
+}
+
+
+body.blue .rp-root {
+    background: #0B141E;
+}
+
+
+body.blue .rp-header {
+    background: #0B141E;
+    border-bottom-color: #0B141E;
+}
+
+
+html:has(body.blue) {
+    background: #0B141E;
+}

@@ -161,3 +161,47 @@ body.black .pd-input { background: #000000; border-color: #3A3A3A; color: #F5F5F
 body.black .pd-input:focus { border-color: #2C8E5A; background: #000000; }
 
 body.black .pd-segment-tag { background: #000000; color: #93C5FD; }
+
+
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .pd-root { background: #0B141E; }
+
+
+body.blue { background: #0B141E; }
+
+
+html:has(body.blue) { background: #0B141E; }
+
+
+body.blue .pd-header { background: #0B141E; border-bottom-color: #131C27; }
+
+
+body.blue .pd-content { background: #0B141E; }
+
+
+body.blue .pd-back-btn { background: #0B141E; border-color: #3A3A3A; color: #F5F5F5; }
+
+
+body.blue .pd-edit-btn { background: #F5F5F5; color: #0B141E; border-color: #F5F5F5; }
+
+
+body.blue .pd-card { background: #0B141E; border-color: #3A3A3A; box-shadow: none; }
+
+
+body.blue .pd-input { background: #0B141E; border-color: #3A3A3A; color: #F5F5F5; }
+
+
+body.blue .pd-input:focus { border-color: #2C8E5A; background: #0B141E; }
+
+
+body.blue .pd-segment-tag { background: #0B141E; color: #93C5FD; }

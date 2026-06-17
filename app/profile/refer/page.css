@@ -266,3 +266,66 @@ body.dark .deposit-amt,
 body.black .deposit-amt {
   color: #9ca3af;
 }
+
+
+
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+body.dark .refer-header,
+body.blue .refer-header {
+  background: #1f2937;
+  border-bottom: 1px solid #374151;
+}
+
+
+body.blue .refer-header {
+  background: #0B141E;
+}
+
+
+body.dark .back-btn,
+body.blue .back-btn {
+  color: #d1d5db;
+}
+
+
+body.blue .refer-link-section {
+  background: #131C27;
+  border: 1px solid #333;
+}
+
+
+body.dark .refer-link-section p,
+body.blue .refer-link-section p {
+  color: #9ca3af;
+}
+
+
+body.blue .link-box input {
+  background: #0B141E;
+  border-color: #333;
+  color: #d1d5db;
+}
+
+
+body.blue .no-earnings {
+  background: #131C27;
+  color: #9ca3af;
+  border: 1px solid #333;
+}
+
+
+body.blue .earning-item {
+  background: #131C27;
+  border: 1px solid #333;
+}
+
+
+body.dark .deposit-amt,
+body.blue .deposit-amt {
+  color: #9ca3af;
+}

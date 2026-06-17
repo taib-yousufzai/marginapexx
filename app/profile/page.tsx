@@ -10,7 +10,7 @@ import './page.css';
 
 export default function ProfilePage() {
     useAuth();
-    const [themeName, setThemeName] = useState<'light' | 'dark' | 'black'>('light');
+    const [themeName, setThemeName] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
     const [session, setSession] = useState<Session | null>(null);
     const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('profile:balance'));
     const [unreadCount, setUnreadCount] = useState<number>(() => pageCache.get<number>('profile:unread') || 0);
@@ -76,10 +76,10 @@ export default function ProfilePage() {
     }, []);
 
     useEffect(() => {
-        const saved = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | 'black' | null;
-        const currentTheme = saved === 'black' ? 'black' : saved === 'dark' ? 'dark' : 'light';
+        const saved = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | 'black' | 'blue' | null;
+        const currentTheme = saved === 'blue' ? 'blue' : saved === 'black' ? 'black' : saved === 'dark' ? 'dark' : 'light';
         setThemeName(currentTheme);
-        document.body.classList.remove('dark', 'black');
+        document.body.classList.remove('dark', 'black', 'blue');
         if (currentTheme !== 'light') document.body.classList.add(currentTheme);
     }, []);
 
@@ -133,9 +133,9 @@ export default function ProfilePage() {
         ? '₹' + balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
         : '—';
 
-    const setTheme = useCallback((newTheme: 'light' | 'dark' | 'black') => {
+    const setTheme = useCallback((newTheme: 'light' | 'dark' | 'black' | 'blue') => {
         setThemeName(newTheme);
-        document.body.classList.remove('dark', 'black');
+        document.body.classList.remove('dark', 'black', 'blue');
         if (newTheme !== 'light') {
             document.body.classList.add(newTheme);
         }
@@ -234,7 +234,7 @@ export default function ProfilePage() {
                                 <div className="us-icon"><i className={`fas ${themeName !== 'light' ? 'fa-moon' : 'fa-sun'}`}></i></div>
                                 <div className="us-text">Appearance</div>
                                 <div className="theme-current">
-                                    {themeName === 'black' ? 'Black' : themeName === 'dark' ? 'Dark' : 'Light'}
+                                    {themeName === 'blue' ? 'Blue' : themeName === 'black' ? 'Black' : themeName === 'dark' ? 'Dark' : 'Light'}
                                     <i className={`fas fa-chevron-down`} style={{ marginLeft: '4px', fontSize: '0.6rem', transition: '0.2s', transform: themeDropdownOpen ? 'rotate(180deg)' : 'none' }}></i>
                                 </div>
                                 
@@ -254,6 +254,11 @@ export default function ProfilePage() {
                                             <i className="fas fa-circle" style={{width:'18px'}}></i>
                                             <span>Black</span>
                                             {themeName === 'black' && <i className="fas fa-check theme-check"></i>}
+                                        </button>
+                                        <button className={`theme-option ${themeName === 'blue' ? 'active' : ''}`} onClick={() => setTheme('blue')}>
+                                            <i className="fas fa-tint" style={{width:'18px'}}></i>
+                                            <span>Blue</span>
+                                            {themeName === 'blue' && <i className="fas fa-check theme-check"></i>}
                                         </button>
                                     </div>
                                 )}

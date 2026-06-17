@@ -28,7 +28,7 @@ interface SegmentSetting {
 export default function UnifiedSettingsPage() {
   useAuth();
   const router = useRouter();
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [segments, setSegments] = useState<SegmentSetting[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -50,12 +50,11 @@ export default function UnifiedSettingsPage() {
   };
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
+    const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | 'black' | 'blue' | null;
     if (savedTheme) {
       setTheme(savedTheme);
-      document.body.classList.remove('dark', 'black');
-    if (savedTheme === 'dark') document.body.classList.add('dark');
-    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
+      document.body.classList.remove('dark', 'black', 'blue');
+      if (savedTheme !== 'light') document.body.classList.add(savedTheme);
     }
   }, []);
 

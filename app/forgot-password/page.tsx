@@ -19,8 +19,8 @@ function ForgotPasswordForm() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('marginApexTheme');
-      document.body.classList.remove('dark', 'black');
-      if (saved === 'dark' || saved === 'black') {
+      document.body.classList.remove('dark', 'black', 'blue');
+      if (saved === 'dark' || saved === 'black' || saved === 'blue') {
         document.body.classList.add(saved);
       }
     } catch {
