@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { init, dispose, Chart, KLineData, LineType, TooltipShowRule } from 'klinecharts';
+import ChartContainer from '@/components/chart/ChartContainer';
+import { Candle } from '@/components/chart/types';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
@@ -32,13 +33,32 @@ function getLotSize(name: string): number {
 }
 
 export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<Chart | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [historicalCandles, setHistoricalCandles] = useState<Candle[]>([]);
+
+  // Indicators toggle state
+  const [activeIndicators, setActiveIndicators] = useState({
+    sma: false,
+    ema: false,
+    rsi: false,
+    macd: false
+  });
+
+  // Indicators values settings state
+  const [settings, setSettings] = useState({
+    smaPeriod: 20,
+    emaPeriod: 20,
+    rsiPeriod: 14,
+    macdFast: 12,
+    macdSlow: 26,
+    macdSignal: 9
+  });
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // For the legend overlay
   const [currentPrice, setCurrentPrice] = useState<number>(0);
@@ -136,28 +156,19 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   });
 
   const toggleLockDrawings = () => {
-    const next = !isLocked;
-    setIsLocked(next);
-    overlayIds.forEach(id => {
-      chartRef.current?.overrideOverlay({ id, lock: next });
-    });
-    showToast(next ? "Drawings locked" : "Drawings unlocked");
+    setIsLocked(!isLocked);
+    showToast("Drawing tools are coming soon in the modernized engine");
   };
 
   const toggleHideDrawings = () => {
-    const next = !hideDrawings;
-    setHideDrawings(next);
-    overlayIds.forEach(id => {
-      chartRef.current?.overrideOverlay({ id, visible: !next });
-    });
-    showToast(next ? "Drawings hidden" : "Drawings visible");
+    setHideDrawings(!hideDrawings);
+    showToast("Drawing tools are coming soon in the modernized engine");
   };
 
   const clearAllDrawings = () => {
-    chartRef.current?.removeOverlay();
     setOverlayIds([]);
     setActiveDrawingTool(null);
-    showToast("All drawings cleared");
+    showToast("Drawing tools are coming soon in the modernized engine");
   };
 
   // Get lot size of instrument
@@ -204,91 +215,6 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       .catch(() => {});
   }, []);
 
-  // Initialize/Dispose Klinecharts
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
-
-    const isDarkMode = document.body.classList.contains('dark') || document.body.classList.contains('black');
-    const backgroundColor = isDarkMode ? '#131722' : '#ffffff';
-    const textColor = isDarkMode ? '#787B86' : '#131722';
-    const gridColor = isDarkMode ? '#363c4e' : '#e0e3eb';
-
-    // Create klinecharts Instance
-    const chart = init(chartContainerRef.current, {
-      styles: {
-        grid: {
-          horizontal: { color: gridColor, style: LineType.Dashed },
-          vertical: { color: gridColor, style: LineType.Dashed }
-        },
-        candle: {
-          bar: {
-            upColor: '#089981',
-            downColor: '#F23645',
-            noChangeColor: '#888888',
-            upBorderColor: '#089981',
-            downBorderColor: '#F23645',
-            noChangeBorderColor: '#888888',
-            upWickColor: '#089981',
-            downWickColor: '#F23645',
-            noChangeWickColor: '#888888'
-          },
-          priceMark: {
-            show: true,
-            high: { show: false },
-            low: { show: false },
-            last: {
-              show: true,
-              upColor: '#089981',
-              downColor: '#F23645',
-              noChangeColor: '#888888',
-              line: { show: true, style: LineType.Dashed, size: 1 },
-              text: {
-                show: true,
-                size: 12,
-                paddingLeft: 4,
-                paddingTop: 4,
-                paddingRight: 4,
-                paddingBottom: 4,
-                color: '#FFFFFF'
-              }
-            }
-          },
-          tooltip: {
-            showRule: TooltipShowRule.None // We use our own legend overlay
-          }
-        },
-        xAxis: {
-          tickText: { color: textColor },
-          axisLine: { color: gridColor }
-        },
-        yAxis: {
-          tickText: { color: textColor },
-          axisLine: { color: gridColor }
-        },
-        crosshair: {
-          horizontal: { line: { color: '#9598A1', style: LineType.Dashed } },
-          vertical: { line: { color: '#9598A1', style: LineType.Dashed } }
-        }
-      }
-    });
-
-    if (chart) {
-      chartRef.current = chart;
-    }
-
-    const resizeObserver = new ResizeObserver(entries => {
-      if (entries.length === 0 || entries[0].target !== chartContainerRef.current) return;
-      chart?.resize();
-    });
-    resizeObserver.observe(chartContainerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-      if (chartContainerRef.current) {
-        dispose(chartContainerRef.current);
-      }
-    };
-  }, []);
 
   // Fetch Historical Data
   useEffect(() => {
@@ -298,7 +224,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setError(null);
       
       try {
-        let data: KLineData[] = [];
+        let data: Candle[] = [];
 
         if (isCrypto) {
           const interval = getIntervalString();
@@ -351,11 +277,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           }
         }
 
-        if (isMounted && chartRef.current) {
+        if (isMounted) {
           const uniqueData = Array.from(new Map(data.map(item => [item.timestamp, item])).values());
           uniqueData.sort((a, b) => a.timestamp - b.timestamp);
           
-          chartRef.current.applyNewData(uniqueData);
+          setHistoricalCandles(uniqueData);
           setLoading(false);
 
           if (uniqueData.length > 0) {
@@ -385,136 +311,26 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   // Update with live quote
   useEffect(() => {
-    if (!liveQuote || !chartRef.current || loading) return;
+    if (!liveQuote || loading) return;
     
-    const currentTime = Date.now();
-    let intervalMs = 60000;
-    if (timeframe === '1m') intervalMs = 60000;
-    if (timeframe === '5m') intervalMs = 300000;
-    if (timeframe === '15m') intervalMs = 900000;
-    if (timeframe === '60m') intervalMs = 3600000;
-    if (timeframe === 'day') intervalMs = 86400000;
+    const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
+    if (!lastPrice) return;
 
-    const alignedTime = Math.floor(currentTime / intervalMs) * intervalMs;
-
-    try {
-      const dataList = chartRef.current.getDataList();
-      const lastCandle = dataList.length > 0 ? dataList[dataList.length - 1] : null;
-
-      const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
-      if (!lastPrice) return;
-
-      setCurrentPrice(lastPrice);
-      if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
-      setPriceChange(liveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
-      setPriceChangePct(liveQuote.changePercent || 0);
-
-      if (lastCandle && lastCandle.timestamp === alignedTime) {
-        chartRef.current.updateData({
-          timestamp: alignedTime,
-          open: lastCandle.open,
-          high: Math.max(lastCandle.high, lastPrice),
-          low: Math.min(lastCandle.low, lastPrice),
-          close: lastPrice,
-          volume: lastCandle.volume
-        });
-      } else {
-        chartRef.current.updateData({
-          timestamp: alignedTime,
-          open: lastCandle ? lastCandle.close : lastPrice,
-          high: lastPrice,
-          low: lastPrice,
-          close: lastPrice,
-          volume: 0
-        });
-      }
-    } catch (e) {}
-  }, [liveQuote, timeframe, loading]);
+    setCurrentPrice(lastPrice);
+    if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
+    
+    const lastCandle = historicalCandles.length > 0 ? historicalCandles[historicalCandles.length - 1] : null;
+    setPriceChange(liveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
+    setPriceChangePct(liveQuote.changePercent || 0);
+  }, [liveQuote, loading, historicalCandles]);
 
   const displayExchange = isCrypto ? 'BINANCE' : (symbol.includes('SENSEX') || symbol.includes('BANKEX')) ? 'BSE' : 'NSE';
   const isUp = priceChange >= 0;
 
   // Drawing Tools Click handler
   const handleDrawingTool = (toolName: string) => {
-    if (!chartRef.current) return;
-    
-    if (activeDrawingTool === toolName) {
-      setActiveDrawingTool(null);
-    } else {
-      setActiveDrawingTool(toolName);
-      
-      const newId = `overlay_${Date.now()}`;
-      setOverlayIds(prev => [...prev, newId]);
-
-      const onDrawEnd = (event: any) => {
-        // 1. Magnet mode snapping to nearest candle OHL/C price
-        if (isMagnetMode && event.overlay && event.overlay.points && chartRef.current) {
-          const dataList = chartRef.current.getDataList();
-          const snappedPoints = event.overlay.points.map((p: any) => {
-            if (p.timestamp && dataList.length > 0) {
-              let nearestCandle = dataList[0];
-              let minDiff = Math.abs(dataList[0].timestamp - p.timestamp);
-              for (let k = 1; k < dataList.length; k++) {
-                const diff = Math.abs(dataList[k].timestamp - p.timestamp);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  nearestCandle = dataList[k];
-                }
-              }
-              const prices = [nearestCandle.open, nearestCandle.high, nearestCandle.low, nearestCandle.close];
-              let snappedPrice = prices[0];
-              let minPriceDiff = Math.abs(prices[0] - p.value);
-              for (let j = 1; j < prices.length; j++) {
-                const pDiff = Math.abs(prices[j] - p.value);
-                if (pDiff < minPriceDiff) {
-                  minPriceDiff = pDiff;
-                  snappedPrice = prices[j];
-                }
-              }
-              return { ...p, timestamp: nearestCandle.timestamp, value: snappedPrice };
-            }
-            return p;
-          });
-          chartRef.current.overrideOverlay({ id: event.overlay.id, name: toolName, points: snappedPoints });
-        }
-
-        // 2. Simple Annotation text prompt
-        if (toolName === 'simpleAnnotation') {
-          const text = window.prompt('Enter your text annotation:');
-          if (text) {
-            chartRef.current?.overrideOverlay({ id: event.overlay.id, name: toolName, extendData: text });
-          } else {
-            chartRef.current?.removeOverlay({ id: event.overlay.id });
-          }
-        }
-
-        // 3. Keep drawing mode loop trigger
-        if (keepDrawingMode) {
-          setTimeout(() => {
-            const nextId = `overlay_${Date.now()}`;
-            setOverlayIds(prev => [...prev, nextId]);
-            chartRef.current?.createOverlay({
-              name: toolName,
-              id: nextId,
-              lock: isLocked,
-              visible: !hideDrawings,
-              onDrawEnd
-            });
-          }, 100);
-        } else {
-          setActiveDrawingTool(null);
-        }
-        return true;
-      };
-
-      chartRef.current.createOverlay({
-        name: toolName === 'fibonacciLine' ? 'fibonacciRetracement' : toolName,
-        id: newId,
-        lock: isLocked,
-        visible: !hideDrawings,
-        onDrawEnd
-      });
-    }
+    setActiveDrawingTool(activeDrawingTool === toolName ? null : toolName);
+    showToast("Drawing tools are coming soon in the modernized engine");
   };
 
   // Stepper for quantity
@@ -917,11 +733,6 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       onClick={() => {
                         setChartType(t.key);
                         setOpenTopFlyout(null);
-                        if (chartRef.current) {
-                          chartRef.current.setStyles({
-                            candle: { type: t.key === 'candle' ? 'candle_solid' : t.key === 'bar' ? 'ohlc' : t.key === 'area' ? 'area' : 'normal' } as any
-                          });
-                        }
                       }}
                     >
                       <span className="tc-flyout-icon">{t.icon}</span>
@@ -941,7 +752,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
         <div
           className="tc-tb-btn tc-tb-indicators"
           title="Indicators"
-          onClick={() => showToast('Indicators panel coming soon')}
+          onClick={() => setShowSettingsModal(true)}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
             <path d="M1 10 L4 6 L7 8 L10 3 L13 5"/>
@@ -1291,18 +1102,22 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             )}
           </div>
 
-          {loading && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', zIndex: 10 }}>
-              <i className="fas fa-circle-notch fa-spin" style={{ color: '#2962FF', fontSize: '1.5rem' }}></i>
-            </div>
-          )}
-          {error && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
-              <i className="fas fa-exclamation-triangle" style={{ color: '#F23645', fontSize: '2rem', marginBottom: '10px' }}></i>
-              <div style={{ color: '#F23645', fontSize: '0.8rem', fontWeight: 600 }}>{error}</div>
-            </div>
-          )}
-          <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+          <ChartContainer
+            symbol={symbol}
+            segment={segment}
+            timeframe={timeframe}
+            chartType={chartType}
+            candles={historicalCandles}
+            liveQuote={liveQuote}
+            loading={loading}
+            error={error}
+            activeIndicators={activeIndicators}
+            setActiveIndicators={setActiveIndicators}
+            settings={settings}
+            setSettings={setSettings}
+            showSettingsModal={showSettingsModal}
+            setShowSettingsModal={setShowSettingsModal}
+          />
         </div>
       </div>
 
