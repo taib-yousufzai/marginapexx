@@ -28,7 +28,7 @@ async function resolveInstrumentToken(symbol: string): Promise<number | null> {
   const baseName = hasUnderscore ? symbol.split('_')[0] : symbol;
 
   // Build all queries to run in parallel
-  const queries: Promise<number | null>[] = [];
+  const queries: PromiseLike<number | null>[] = [];
 
   // Strategy 1: Exact id match
   queries.push(

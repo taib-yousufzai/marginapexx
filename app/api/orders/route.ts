@@ -385,7 +385,22 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // 1. Authenticate
-  const user = await getUserFromRequest(request);
+  let user = await getUserFromRequest(request);
+  if (!user) {
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader?.startsWith('Webhook ')) {
+      const token = authHeader.slice(8).trim();
+      const admin = getAdminClient();
+      const { data } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('webhook_token', token)
+        .maybeSingle();
+      if (data) {
+        user = { id: data.id } as any;
+      }
+    }
+  }
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

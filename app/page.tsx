@@ -371,6 +371,18 @@ export default function Page() {
                     </div>
                   </div>
 
+                  {/* Trading Terminal Card */}
+                  <div className="margin-settings-row terminal-card-highlight" onClick={() => router.push('/dashboard')} style={{ background: 'linear-gradient(135deg, rgba(0, 100, 0, 0.08), rgba(0, 50, 0, 0.15))', border: '1px solid rgba(0, 100, 0, 0.25)', marginBottom: '16px' }}>
+                    <div className="margin-settings-left">
+                      <div className="margin-settings-icon" style={{ background: 'linear-gradient(135deg, #006400, #008000)', color: '#FFFFFF' }}><i className="fas fa-tv"></i></div>
+                      <div className="margin-settings-text">
+                        <h4 style={{ color: 'var(--text-primary)' }}>Trading Terminal</h4>
+                        <p style={{ color: 'var(--text-secondary)' }}>Real-time advanced charting, indicators, scanner &amp; trade logs</p>
+                      </div>
+                    </div>
+                    <div className="margin-settings-arrow" style={{ background: '#006400', color: '#FFFFFF' }}><i className="fas fa-arrow-right"></i></div>
+                  </div>
+
                   {/* Margin Settings */}
                   <div className="margin-settings-row" onClick={() => router.push('/margin-settings')}>
                     <div className="margin-settings-left">
