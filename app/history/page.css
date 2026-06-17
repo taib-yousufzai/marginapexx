@@ -646,6 +646,9 @@ body.black .history-footer .footer-value:not(.net-profit):not(.net-loss) {
 }
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 
@@ -732,7 +735,7 @@ body.blue .history-root .script-name {
 
 body.blue .history-root .order-type-badge.buy {
     background: rgba(44, 142, 90, 0.18) !important;
-    color: #38bdf8 !important;
+    color: #4ADE80 !important;
 }
 
 

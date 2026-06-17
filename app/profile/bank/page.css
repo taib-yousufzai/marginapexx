@@ -1004,6 +1004,9 @@ body.black .bd-inline-save-btn.dirty {
 
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 /* ── Black theme ───────────────────────────────────────────────────────── */
@@ -1048,7 +1051,7 @@ body.blue .bd-bank-icon {
 body.blue .bd-card--expanded .bd-bank-icon,
 body.blue .primary-card .bd-bank-icon {
   background: rgba(44, 142, 90, 0.12);
-  color: #38bdf8;
+  color: #4ADE80;
 }
 
 
@@ -1106,7 +1109,7 @@ body.blue .bd-inline-field-row {
 body.blue .bd-icon-btn.save-inline {
   background: rgba(44, 142, 90, 0.15);
   border-color: rgba(44, 142, 90, 0.4);
-  color: #38bdf8;
+  color: #4ADE80;
 }
 
 

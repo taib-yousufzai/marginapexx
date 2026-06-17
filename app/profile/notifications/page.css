@@ -267,6 +267,9 @@ html:has(body.black) { background: #000000; }
 body.black .notif-item:active { background: var(--card-alt-bg, #000000); }
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 

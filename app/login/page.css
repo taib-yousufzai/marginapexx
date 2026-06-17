@@ -449,6 +449,9 @@
 
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 /* ===== LOGIN PAGE ===== */
 /* Uses the same CSS variables defined in app/page.css (:root / :is(body.dark, body.blue, body.blue)) */
@@ -477,7 +480,7 @@
 
 
 :is(body.dark, body.blue, body.blue) .login-brand-apex {
-  color: #2481FF;
+  color: #00AA00;
 }
 
 
@@ -511,8 +514,8 @@
 
 
 :is(body.dark, body.blue, body.blue) .login-demo-btn:hover:not(:disabled) {
-  border-color: #2481FF;
-  color: #2481FF;
+  border-color: #00AA00;
+  color: #00AA00;
   background: rgba(0, 170, 0, 0.06);
 }
 
@@ -529,7 +532,7 @@
 
 
 :is(body.dark, body.blue, body.blue) .login-create-btn:hover {
-  border-color: #2481FF;
-  color: #2481FF;
+  border-color: #00AA00;
+  color: #00AA00;
   background: rgba(0, 170, 0, 0.06);
 }

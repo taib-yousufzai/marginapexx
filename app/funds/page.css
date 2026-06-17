@@ -1522,6 +1522,9 @@
 }
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 
@@ -1536,17 +1539,17 @@
 
 
 :is(body.dark, body.blue, body.blue) .breakdown-total {
-  color: #38bdf8;
+  color: #4ADE80;
 }
 
 
 :is(body.dark, body.blue, body.blue) .margin-footer {
-  color: #38bdf8;
+  color: #4ADE80;
 }
 
 
 :is(body.dark, body.blue, body.blue) .selected-account-info i {
-  color: #38bdf8;
+  color: #4ADE80;
 }
 
 

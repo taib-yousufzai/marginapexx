@@ -728,6 +728,9 @@ body.black .ord-sheet-handle-bar {
 }
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 
@@ -775,7 +778,7 @@ body.blue .ord-label          { color: #555; }
 
 body.blue .ord-val            { color: #D0D0D0; }
 
-body.blue .ord-badge.long     { background: rgba(5, 46, 22, 0.8); color: #38bdf8; }
+body.blue .ord-badge.long     { background: rgba(5, 46, 22, 0.8); color: #4ADE80; }
 
 body.blue .ord-badge.short    { background: rgba(59, 26, 26, 0.8); color: #F87171; }
 
@@ -799,11 +802,11 @@ body.blue .ord-empty          { background: #131C27; border-color: #131C27; colo
 
 body.blue .sell-price         { color: #F87171; }
 
-body.blue .buy-price          { color: #38bdf8; }
+body.blue .buy-price          { color: #4ADE80; }
 
 body.blue .status-open        { color: #F87171; }
 
-body.blue .status-filled      { color: #38bdf8; }
+body.blue .status-filled      { color: #4ADE80; }
 
 body.blue .status-rejected    { color: #FBBF24; }
 

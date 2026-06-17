@@ -1428,6 +1428,9 @@ body.black .notif-item {
 }
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 
@@ -1462,7 +1465,7 @@ body.blue {
   --active-cat-bg: #006400;
   --active-cat-text: #FFFFFF;
   --positive-bg: #1A3A2A;
-  --positive-text: #38bdf8;
+  --positive-text: #4ADE80;
   --negative-bg: #3B2A2A;
   --negative-text: #F87171;
   --algo-bg: linear-gradient(135deg, #006400, #004d00);

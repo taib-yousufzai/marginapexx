@@ -539,6 +539,9 @@ body.black .th-modal-close { background: #111; border-color: #1a1a1a; }
 
 
 
+
+
+
 /* ===== BLUE MODE OVERRIDES ===== */
 
 
@@ -563,7 +566,7 @@ body.blue .th-filter-chip:hover { background: #131C27; }
 
 body.blue .th-filter-chip.active { background: #F5F5F5; color: #0B141E; border-color: #F5F5F5; }
 
-body.blue .th-filter-chip.deposit.active { background: rgba(22,163,74,0.1); color: #38bdf8; border-color: #38bdf8; }
+body.blue .th-filter-chip.deposit.active { background: rgba(22,163,74,0.1); color: #4ADE80; border-color: #4ADE80; }
 
 body.blue .th-filter-chip.pending.active { background: rgba(217,119,6,0.1); color: #FBBF24; border-color: #FBBF24; }
 
