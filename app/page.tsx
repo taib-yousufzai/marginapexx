@@ -166,7 +166,7 @@ export default function Page() {
   }, []);
 
   const [activeCategory, setActiveCategory] = useState<'equity' | 'commodity'>('equity');
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
 
   // Build expiry index list, overriding hardcoded lot sizes with DB values
@@ -289,23 +289,21 @@ export default function Page() {
   const marketRow2 = buildRow(KITE_INSTRUMENTS_ROW2);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | null;
+    const savedTheme = localStorage.getItem('marginApexTheme') as 'light' | 'dark' | 'black' | 'blue' | null;
     if (savedTheme) {
       setTimeout(() => {
         setTheme(savedTheme);
-        document.body.classList.remove('dark', 'black');
-    if (savedTheme === 'dark') document.body.classList.add('dark');
-    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
+        document.body.classList.remove('dark', 'black', 'blue');
+        if (savedTheme !== 'light') document.body.classList.add(savedTheme);
       }, 0);
     }
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    document.body.classList.remove('dark', 'black');
-    if (newTheme === 'dark') document.body.classList.add('dark');
-    else { const t = localStorage.getItem('marginApexTheme'); if (t === 'black') document.body.classList.add('black'); }
+    document.body.classList.remove('dark', 'black', 'blue');
+    if (newTheme !== 'light') document.body.classList.add(newTheme);
     localStorage.setItem('marginApexTheme', newTheme);
   };
 

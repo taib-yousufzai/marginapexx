@@ -31,8 +31,8 @@ export default function BankDetailsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');
-    document.body.classList.remove('dark', 'black');
-    if (saved === 'dark' || saved === 'black') document.body.classList.add(saved);
+    document.body.classList.remove('dark', 'black', 'blue');
+    if (saved === 'dark' || saved === 'black' || saved === 'blue') document.body.classList.add(saved);
   }, []);
 
   const [session, setSession] = useState<Session | null>(null);

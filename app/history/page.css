@@ -644,3 +644,151 @@ body.black .history-footer .footer-label {
 body.black .history-footer .footer-value:not(.net-profit):not(.net-loss) {
     color: #F0F0F0 !important;
 }
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .history-root {
+    background: #0B141E !important;
+}
+
+
+body.blue .history-root .app-header {
+    background: #0B141E !important;
+    border-bottom-color: #131C27 !important;
+}
+
+
+body.blue .history-root .logo-text {
+    color: #F5F5F5 !important;
+}
+
+
+body.blue .history-root .header-btn {
+    background: #131C27 !important;
+    border-color: #2A2A2A !important;
+    color: #B0B0B0 !important;
+}
+
+
+body.blue .history-root .header-btn.active {
+    background: #C62E2E !important;
+    border-color: #C62E2E !important;
+    color: #fff !important;
+}
+
+
+body.blue .history-root .date-filter-row {
+    background: #0B141E !important;
+    border-color: #131C27 !important;
+}
+
+
+body.blue .history-root .filter-group {
+    background: #131C27 !important;
+    border-color: #2A2A2A !important;
+}
+
+
+body.blue .history-root .filter-group i {
+    color: #555 !important;
+}
+
+
+body.blue .history-root .date-input-compact {
+    color: #F5F5F5 !important;
+    color-scheme: dark !important;
+}
+
+
+body.blue .history-root .filter-btn.clear {
+    background: #131C27 !important;
+    color: #B0B0B0 !important;
+}
+
+
+body.blue .history-root .main-content {
+    background: #0B141E !important;
+}
+
+
+body.blue .history-root .history-card {
+    background: #131C27 !important;
+    border-color: #1C2A3A !important;
+    box-shadow: none !important;
+}
+
+
+body.blue .history-root .script-name {
+    color: #F0F0F0 !important;
+}
+
+
+body.blue .history-root .order-type-badge.buy {
+    background: rgba(44, 142, 90, 0.18) !important;
+    color: #38bdf8 !important;
+}
+
+
+body.blue .history-root .order-type-badge.sell {
+    background: rgba(198, 46, 46, 0.18) !important;
+    color: #f87171 !important;
+}
+
+
+body.blue .history-root .order-type-badge.pending {
+    background: rgba(230, 126, 34, 0.18) !important;
+    color: #fbbf24 !important;
+}
+
+
+body.blue .history-root .order-type-badge.completed {
+    background: rgba(33, 150, 243, 0.18) !important;
+    color: #60a5fa !important;
+}
+
+
+body.blue .history-root .price-value {
+    color: #D0D0D0 !important;
+}
+
+
+body.blue .history-root .history-card-details {
+    color: #666 !important;
+    border-top-color: #131C27 !important;
+}
+
+
+body.blue .history-root .empty-history {
+    background: #131C27 !important;
+    border-color: #1C2A3A !important;
+    color: #444 !important;
+}
+
+
+body.blue .history-footer {
+    background: #0B141E !important;
+    border-top-color: #131C27 !important;
+    box-shadow: none !important;
+}
+
+
+body.blue .history-footer .footer-row {
+    border-bottom-color: #131C27 !important;
+}
+
+
+body.blue .history-footer .footer-label {
+    color: #888 !important;
+}
+
+
+body.blue .history-footer .footer-value:not(.net-profit):not(.net-loss) {
+    color: #F0F0F0 !important;
+}

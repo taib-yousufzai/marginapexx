@@ -402,6 +402,7 @@
   font-weight: 700;
   white-space: nowrap;
   letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
 }
 
 .pos-pnl-val.green {
@@ -417,6 +418,7 @@
   font-weight: 600;
   white-space: nowrap;
   letter-spacing: -0.8px;
+  font-variant-numeric: tabular-nums;
 }
 
 .pos-pnl-total.green {
@@ -626,6 +628,7 @@ body.dark .pos-product-badge.carry {
 .pos-card-pnl {
   font-size: 16px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .pos-card-pnl.green {
@@ -2439,3 +2442,233 @@ body.black .ts-instr-name, body.black .ts-price-value {
   pointer-events: auto !important;
 }
 
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+body.dark .pos-status-badge.open,
+body.blue .pos-status-badge.open,
+body.dark .pos-status-badge.OPEN,
+body.blue .pos-status-badge.OPEN {
+  color: #FFFFFF !important;
+}
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .pos-detail-margin-row { border-top-color: #131C27; }
+
+body.blue .pos-detail-margin-label { color: #555; }
+
+body.blue .pos-detail-margin-val { color: #D0D0D0; }
+
+
+body.blue .pos-root { background: #0B141E; }
+
+body.blue .pos-shell { background: #0B141E; box-shadow: none; }
+
+body.blue .pos-header { background: #0B141E; border-bottom-color: #131C27; }
+
+body.blue .pos-brand { color: #F5F5F5; }
+
+body.blue .pos-brand-sub { color: #555; }
+
+
+body.blue .pos-wallet-btn {
+  background: rgba(17, 17, 17, 0.8);
+  border-color: #1C2A3A;
+}
+
+body.blue .pos-wallet-btn i { color: #888; }
+
+body.blue .pos-wallet-btn span { color: #F0F0F0; }
+
+
+body.blue .pos-modal-card { background: #131C27; border: 1px solid #131C27; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+
+body.blue .pos-modal-title { color: #F5F5F5; }
+
+body.blue .pos-modal-desc { color: #888; }
+
+body.blue .pos-modal-btn.cancel { background: #131C27; color: #CCC; }
+
+body.blue .pos-modal-btn.cancel:hover { background: #1C2A3A; }
+
+
+body.blue .pos-main-tabs { background: #131C27; }
+
+body.blue .pos-main-tab { color: #555; }
+
+body.blue .pos-main-tab.active { background: #131C27; color: #F5F5F5; box-shadow: none; }
+
+
+body.blue .pos-content { background: #0B141E; }
+
+body.blue .pos-content::-webkit-scrollbar-thumb { background: #131C27; }
+
+
+body.blue .pos-sticky-subheader { background: #0B141E; border-bottom-color: #131C27; }
+
+
+body.blue .pos-pnl-card { background: #131C27; border-color: #131C27; }
+
+body.blue .pos-pnl-card-title { color: #888; border-bottom-color: #131C27; }
+
+body.blue .pos-pnl-label { color: #555; }
+
+
+body.blue .pos-sub-tabs { background: #131C27; }
+
+body.blue .pos-sub-tab { color: #555; }
+
+body.blue .pos-sub-tab.active { background: #131C27; color: #C62E2E; }
+
+
+body.blue .pos-card { background: #131C27; border-color: #131C27; }
+
+body.blue .pos-card:hover { border-color: #1C2A3A; }
+
+body.blue .pos-card--expanded { border-color: #2a2a2a; }
+
+body.blue .pos-card-actions { border-top-color: #131C27; }
+
+body.blue .pos-card-symbol { color: #F0F0F0; }
+
+body.blue .pos-card-details { color: #555; }
+
+body.blue .pos-card-details strong { color: #C0C0C0; }
+
+body.blue .pos-card-ltp { color: #555; }
+
+body.blue .pos-card-ltp strong { color: #C0C0C0; }
+
+
+body.blue .pca-add { background: rgba(5,46,22,0.6); color: #38bdf8; border-color: #2C8E5A; }
+
+body.blue .pca-exit { background: rgba(46,26,26,0.6); color: #F87171; border-color: #C62E2E; }
+
+
+body.blue .pos-badge { background: #131C27; color: #CCC; }
+
+body.blue .pos-badge.long { background: rgba(5,46,22,0.7); color: #38bdf8; }
+
+body.blue .pos-badge.short { background: rgba(59,26,26,0.7); color: #F87171; }
+
+
+body.blue .pos-product-badge { background: rgba(44,142,90,0.15); color: #38bdf8; }
+
+body.blue .pos-product-badge.carry { background: rgba(255,255,255,0.08); color: #CCC; }
+
+
+body.blue .pos-detail-card { background: #131C27; border-color: #131C27; }
+
+body.blue .pos-detail-symbol { color: #F0F0F0; }
+
+body.blue .pos-detail-meta { color: #555; }
+
+body.blue .pos-detail-meta strong { color: #C0C0C0; }
+
+body.blue .pos-detail-side { color: #555; }
+
+body.blue .pos-detail-pnl { color: inherit; }
+
+
+body.blue .pos-section-label { color: #888; border-bottom-color: #131C27; }
+
+
+body.blue .pos-status-badge.active { background: rgba(5,46,22,0.5); color: #38bdf8; }
+
+body.blue .pos-status-badge.closed { background: #131C27; color: #555; }
+
+
+body.blue .pos-empty { background: #131C27; color: #444; }
+
+
+body.blue .pos-sheet { background: #0B141E; }
+
+body.blue .pos-sheet-handle-bar { background: #131C27; }
+
+
+body.blue .pos-sheet-content [style*="background: #F8FAFF"],
+body.blue .pos-sheet-content [style*="background: rgb(248, 250, 255)"] { background: #131C27 !important; }
+
+body.blue .pos-sheet-content [style*="background: #FFFFFF"],
+body.blue .pos-sheet-content [style*="background: rgb(255, 255, 255)"] { background: #131C27 !important; }
+
+body.blue .pos-sheet-content [style*="color: #1A1E2B"],
+body.blue .pos-sheet-content [style*="color: rgb(26, 30, 43)"] { color: #F5F5F5 !important; }
+
+body.blue .pos-sheet-content [style*="background: #F0F2F8"],
+body.blue .pos-sheet-content [style*="height: 1px"] { background: #131C27 !important; }
+
+body.blue .pos-sheet-content [style*="background: #E2E8F0"] { background: #1C2A3A !important; }
+
+body.blue .pos-sheet-content div[style*="#F8FAFF"] { background: #131C27 !important; border-color: #131C27 !important; }
+
+body.blue .pos-sheet-content div[style*="#FFFFFF"] { background: #131C27 !important; }
+
+body.blue .pos-sheet-content div[style*="color: #000000"] { color: #F5F5F5 !important; }
+
+
+body.blue .ps-symbol { color: #F0F0F0; }
+
+body.blue .ps-segment { color: #555; }
+
+body.blue .ps-pnl-label { color: #666; }
+
+body.blue .ps-flat-grid { border-color: #131C27; }
+
+body.blue .ps-flat-item:nth-child(odd) { border-right-color: #131C27; }
+
+body.blue .ps-flat-label { color: #555; }
+
+body.blue .ps-flat-val { color: #F0F0F0; }
+
+body.blue .ps-ohlc-row { border-bottom-color: #131C27; color: #555; }
+
+body.blue .ps-btn-add { background: #0B141E; }
+
+body.blue .ps-btn-partial { background: #0B141E; }
+
+
+body.blue .confirm-card { background: #131C27; box-shadow: 0 24px 60px rgba(0,0,0,0.7); }
+
+body.blue .confirm-title { color: #F5F5F5; }
+
+body.blue .confirm-message { color: #888; }
+
+body.blue .confirm-btn-cancel { background: #131C27; color: #CCC; }
+
+body.blue .confirm-btn-cancel:hover { background: #1C2A3A; }
+
+
+body.blue .pos-lock-banner { background: #1a1200; border-color: #3a2800; color: #fcd34d; }
+
+
+body.blue .convert-type-btn.intraday { color: #38bdf8; background: rgba(44,142,90,0.15); }
+
+body.blue .convert-type-btn.carry { color: #CCC; background: rgba(255,255,255,0.08); }
+
+
+body.blue .trade-sheet {
+  background: #0B141E;
+}
+
+body.blue .ts-header {
+  background: #0B141E;
+  border-bottom-color: #131C27;
+}
+
+body.blue .ts-back-btn {
+  background: #131C27;
+  color: #D1D4DC;
+}
+
+body.blue .ts-instr-name, body.blue .ts-price-value {
+  color: #F5F5F5;
+}

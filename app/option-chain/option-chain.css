@@ -1361,3 +1361,74 @@ body.black .ts-pill {
 body.black .trade-sheet {
     background: var(--container-bg, #000000);
 }
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .oc-tab.active { background: #FFFFFF; color: #0B141E; border-color: #FFFFFF; }
+
+
+body.blue .expiry-capsule-bar {
+  background: #0B141E;
+  border-color: #0B141E;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+
+body.blue .expiry-divider { background: #131C27; }
+
+
+body.blue .expiry-dates-inner-capsule { background: #0B141E; border-color: #3a3a3a; }
+
+
+body.blue .oc-capsule-header { background: #0B141E; border-color: #0B141E; box-shadow: 0 2px 16px rgba(0,0,0,0.4); }
+
+
+body.blue .oc-mode-toggle { background: #0B141E; border-color: #3a3a3a; }
+
+
+body.blue .premium-back-btn { background: #0B141E; border-color: #3a3a3a; color: #e0e0e0; }
+
+
+body.blue .ts-header,
+body.blue .ts-bidask-row,
+body.blue .ts-section-card,
+body.blue .ts-info-cards-wrap,
+body.blue .ts-info-card,
+body.blue .ts-qty-container,
+body.blue .ts-margin-card,
+body.blue .ts-sticky-footer {
+    background: #0B141E;
+    border-color: #3A3A3A;
+}
+
+
+body.blue .ts-toggle-switch {
+    background: #0B141E;
+}
+
+
+body.blue .ts-qty-stepper {
+    background: #0B141E;
+    border-color: #3A3A3A;
+}
+
+
+body.blue .ts-pill {
+    background: #0B141E;
+    border-color: #3A3A3A;
+    color: #9CA3AF;
+}
+
+
+body.blue .trade-sheet {
+    background: var(--container-bg, #0B141E);
+}

@@ -98,3 +98,32 @@ body.black .sec-card { background: #000000; border-color: #3A3A3A; box-shadow: n
 body.black .sec-input { background: #000000; border-color: #3A3A3A; color: #F5F5F5; }
 
 body.black .sec-input:focus { border-color: #2C8E5A; background: #000000; }
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue { background: #0B141E; }
+
+
+body.blue .sec-root { background: #0B141E; }
+
+
+body.blue .sec-header { background: #0B141E; border-bottom-color: #131C27; }
+
+
+body.blue .sec-back-btn { background: #0B141E; border-color: #3A3A3A; color: #F5F5F5; }
+
+
+body.blue .sec-card { background: #0B141E; border-color: #3A3A3A; box-shadow: none; }
+
+
+body.blue .sec-input { background: #0B141E; border-color: #3A3A3A; color: #F5F5F5; }
+
+
+body.blue .sec-input:focus { border-color: #2C8E5A; background: #0B141E; }

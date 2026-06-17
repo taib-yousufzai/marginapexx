@@ -536,3 +536,41 @@ body.dark .th-status-badge.cancelled-by-user .status-dot { background: #475569; 
 body.black .th-modal, body.black .th-modal-header { background: #000; border-color: #111; }
 body.black .th-form-group input { background: #111; border-color: #1a1a1a; color: #F5F5F5; }
 body.black .th-modal-close { background: #111; border-color: #1a1a1a; }
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+/* Black Theme */
+body.blue .th-root, body.blue .th-content, body.blue .th-header, body.blue .th-empty, body.blue .th-list-container {
+    background: #0B141E; border-color: #131C27;
+}
+
+body.blue .th-item { border-bottom-color: #131C27; }
+
+body.blue .th-item:active { background: #131C27; }
+
+body.blue .th-icon.withdrawal { background: #131C27; color: #94A3B8; }
+
+body.blue .th-back-btn { background: #131C27; border-color: #1C2A3A; }
+
+
+/* Black theme chips */
+body.blue .th-filter-chip { background: #131C27; border-color: #131C27; color: #555; }
+
+body.blue .th-filter-chip:hover { background: #131C27; }
+
+body.blue .th-filter-chip.active { background: #F5F5F5; color: #0B141E; border-color: #F5F5F5; }
+
+body.blue .th-filter-chip.deposit.active { background: rgba(22,163,74,0.1); color: #38bdf8; border-color: #38bdf8; }
+
+body.blue .th-filter-chip.pending.active { background: rgba(217,119,6,0.1); color: #FBBF24; border-color: #FBBF24; }
+
+
+/* Black theme */
+body.blue .th-modal, body.blue .th-modal-header { background: #0B141E; border-color: #131C27; }
+
+body.blue .th-form-group input { background: #131C27; border-color: #131C27; color: #F5F5F5; }
+
+body.blue .th-modal-close { background: #131C27; border-color: #131C27; }

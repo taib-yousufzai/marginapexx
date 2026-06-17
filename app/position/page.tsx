@@ -835,7 +835,7 @@ export default function PositionPage() {
                         {/* Left Side: Realised P&L Info */}
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Realised P&amp;L</div>
-                          <div style={{ fontSize: '2rem', fontWeight: 800, color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626', lineHeight: 1 }}>
+                          <div style={{ fontSize: '2rem', fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: selectedPos.pnl >= 0 ? '#059669' : '#DC2626', lineHeight: 1 }}>
                             {fmtUSD(selectedPos.pnl, selectedPos.settlement)}
                           </div>
                           <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary, #6B7280)', marginTop: '4px' }}>

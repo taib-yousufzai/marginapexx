@@ -1426,3 +1426,60 @@ body.black {
 body.black .notif-item {
   border-bottom-color: var(--border-light, #111);
 }
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue {
+  --bg-body: #0B141E;
+  --container-bg: #0B141E;
+  --card-bg: #0B141E;
+  --card-alt-bg: #0B141E;
+  --border-light: #131C27;
+  --border-card: #3A3A3A;
+  --text-primary: #F5F5F5;
+  --text-secondary: #B0B0B0;
+  --text-muted: #888888;
+  --icon-bg: #0B141E;
+  --wallet-bg: #0B141E;
+  --wallet-text: #F5F5F5;
+  --chip-bg: #0B141E;
+  --chip-active-bg: #006400;
+  --chip-active-text: #FFFFFF;
+  --arrow-bg: #0B141E;
+  --product-bg: #0B141E;
+  --product-border: #131C27;
+  --badge-bg: #006400;
+  --badge-text: #FFFFFF;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.4);
+  --active-cat-bg: #006400;
+  --active-cat-text: #FFFFFF;
+  --positive-bg: #1A3A2A;
+  --positive-text: #38bdf8;
+  --negative-bg: #3B2A2A;
+  --negative-text: #F87171;
+  --algo-bg: linear-gradient(135deg, #006400, #004d00);
+  --ai-bg: linear-gradient(135deg, #006400, #004d00);
+  --nav-bg: #0B141E;
+  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --nav-border: #131C27;
+  --expiry-bg: linear-gradient(135deg, #C62828, #9A1F1F);
+  --footer-bg: #0B141E;
+  --footer-active: #008000;
+  --drawer-bg: #0B141E;
+  --drawer-handle: #008000;
+  --gold-silver-gradient: linear-gradient(135deg, #B0B0B0, #D4AF37, #FFD700, #D4AF37, #A0A0A0);
+  --expiry-drawer-bg: #0B141E;
+}
+
+
+body.blue .notif-item {
+  border-bottom-color: var(--border-light, #131C27);
+}

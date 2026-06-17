@@ -726,3 +726,98 @@ body.black .ord-sheet {
 body.black .ord-sheet-handle-bar {
   background: #1a1a1a;
 }
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .ord-root           { background: #0B141E; }
+
+body.blue .ord-shell          { background: #0B141E; box-shadow: none; }
+
+body.blue .ord-header         { background: #0B141E; border-bottom-color: #131C27; }
+
+body.blue .ord-brand          { color: #F5F5F5; }
+
+body.blue .ord-brand-sub      { color: #555; }
+
+body.blue .ord-search-box     { background: #131C27; border-color: transparent; }
+
+body.blue .ord-search-box:focus-within { background: #131C27; border-color: rgba(198,46,46,0.4); }
+
+body.blue .ord-search-input   { color: #F5F5F5; }
+
+body.blue .ord-search-input::placeholder { color: #444; }
+
+body.blue .ord-tabs           { background: #131C27; }
+
+body.blue .ord-tab            { color: #555; }
+
+body.blue .ord-tab.active     { background: #131C27; color: #FFFFFF; box-shadow: none; }
+
+body.blue .ord-tab-badge      { background: rgba(255,255,255,0.06); color: #555; }
+
+body.blue .ord-tab.active .ord-tab-badge { background: rgba(255,255,255,0.12); color: #FFFFFF; }
+
+body.blue .ord-card           { background: #131C27; border-color: #131C27; box-shadow: none; }
+
+body.blue .ord-card:hover     { border-color: #1C2A3A; }
+
+body.blue .ord-symbol         { color: #F0F0F0; }
+
+body.blue .ord-label          { color: #555; }
+
+body.blue .ord-val            { color: #D0D0D0; }
+
+body.blue .ord-badge.long     { background: rgba(5, 46, 22, 0.8); color: #38bdf8; }
+
+body.blue .ord-badge.short    { background: rgba(59, 26, 26, 0.8); color: #F87171; }
+
+body.blue .ord-type-pill      { background: #131C27; color: #666; }
+
+body.blue .ord-date-val       { color: #555; }
+
+body.blue .ord-row-status     { border-top-color: #131C27; }
+
+body.blue .ord-cancel-btn     { border-color: #131C27; color: #666; }
+
+body.blue .ord-cancel-btn:hover { background: rgba(59,26,26,0.6); border-color: #7A2A2A; color: #F87171; }
+
+body.blue .ord-modify-btn     { border-color: #131C27; color: #666; }
+
+body.blue .ord-modify-btn:hover { background: #131C27; border-color: #1C2A3A; color: #D0D0D0; }
+
+body.blue .ord-rejection      { background: #1a1400; border-left-color: #F59E0B; }
+
+body.blue .ord-empty          { background: #131C27; border-color: #131C27; color: #444; }
+
+body.blue .sell-price         { color: #F87171; }
+
+body.blue .buy-price          { color: #38bdf8; }
+
+body.blue .status-open        { color: #F87171; }
+
+body.blue .status-filled      { color: #38bdf8; }
+
+body.blue .status-rejected    { color: #FBBF24; }
+
+
+body.blue .ord-list::-webkit-scrollbar-track { background: transparent; }
+
+body.blue .ord-list::-webkit-scrollbar-thumb { background: #131C27; }
+
+
+body.blue .ord-sheet {
+  background: #0B141E;
+  border-top: 1px solid #131C27;
+}
+
+body.blue .ord-sheet-handle-bar {
+  background: #131C27;
+}

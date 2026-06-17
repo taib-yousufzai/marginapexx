@@ -99,7 +99,7 @@
   transition: box-shadow 0.25s ease;
 }
 .mobile-app .search-wrapper:focus-within::after {
-  box-shadow: 0 0 0 3px rgba(198, 46, 46, 0.12);
+  box-shadow: none;
 }
 
 .search-icon {
@@ -113,9 +113,7 @@
   flex-shrink: 0;
   z-index: 1;
 }
-.search-wrapper:focus-within .search-icon {
-  color: #C62E2E;
-}
+
 
 .search-input {
   width: 100%;
@@ -137,10 +135,10 @@
   font-weight: 400;
 }
 .search-input:focus {
-  outline: none;
-  border-color: #C62E2E;
-  background: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(198, 46, 46, 0.08);
+    outline: none;
+    border-color: #B0BAD0;
+    background: #FFFFFF;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 /* Keyboard shortcut badge */
@@ -221,8 +219,8 @@
 .dark .search-input:focus,
 .black .search-input:focus {
   background: #131722;
-  border-color: #C62E2E;
-  box-shadow: 0 4px 16px rgba(198, 46, 46, 0.12);
+  border-color: #3A3A3A;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 .dark .search-input::placeholder,
 .black .search-input::placeholder {
@@ -246,7 +244,7 @@
 }
 .dark .mobile-app .search-wrapper:focus-within::after,
 .black .mobile-app .search-wrapper:focus-within::after {
-  box-shadow: 0 0 0 3px rgba(198, 46, 46, 0.15);
+  box-shadow: none;
 }
 
 .watchlist-layout {
@@ -3491,5 +3489,415 @@ body.black #basketClearBtn {
 }
 
 .black .instr-row__date {
+    color: #888;
+}
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+
+
+/* Dark mode */
+.dark .search-input,
+.blue .search-input {
+  background: #1e222d;
+  border-color: #2A2E39;
+  color: #D1D4DC;
+}
+
+.dark .search-input:focus,
+.blue .search-input:focus {
+  background: #131722;
+  border-color: #3A3A3A;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dark .search-input::placeholder,
+.blue .search-input::placeholder {
+  color: #4E5472;
+}
+
+.dark .search-shortcut kbd,
+.blue .search-shortcut kbd {
+  background: #2A2E39;
+  border-color: #363c4e;
+  color: #6B7280;
+}
+
+.dark .clear-search-btn,
+.blue .clear-search-btn {
+  background: #2A2E39;
+  color: #787B86;
+}
+
+.dark .clear-search-btn:hover,
+.blue .clear-search-btn:hover {
+  background: rgba(198,46,46,0.2);
+  color: #C62E2E;
+}
+
+.dark .mobile-app .search-wrapper:focus-within::after,
+.blue .mobile-app .search-wrapper:focus-within::after {
+  box-shadow: none;
+}
+
+
+/* ========================================= */
+/* AMOLED SUPER BLACK OVERRIDES */
+/* ========================================= */
+
+body.blue .mobile-app {
+    background: #0B141E;
+}
+
+
+body.blue .mobile-app .app-header {
+    background: #0B141E;
+    border-bottom-color: #0B141E;
+}
+
+
+body.blue .mobile-app .folder-btn {
+    background: #0B141E;
+    border-color: #3a3a3a;
+}
+
+
+body.blue .search-input {
+    background: #0B141E;
+    border-color: #3a3a3a;
+    color: #f5f5f5;
+}
+
+
+body.blue .search-input:focus {
+    background: #0B141E;
+}
+
+
+body.blue .mobile-app .main-content {
+    background: #0B141E;
+}
+
+
+body.blue .search-results-section {
+    background: #0B141E;
+    border-color: #0B141E;
+}
+
+
+body.blue .search-result-item {
+    background: #0B141E;
+    border-color: #0B141E;
+}
+
+
+body.blue .search-result-name,
+body.blue .sri-name {
+    color: #ffffff !important;
+}
+
+
+body.blue .search-result-price,
+body.blue .sri-price {
+    color: #ffffff !important;
+}
+
+
+body.blue .sri-symbol {
+    color: #ffffff !important;
+}
+
+
+body.blue .instrument-card {
+    background: #0B141E;
+    border-color: #0B141E;
+}
+
+
+body.blue .empty-watchlist {
+    background: #0B141E;
+    border-color: #0B141E;
+    color: #888;
+}
+
+
+body.blue .watchlist-count {
+    background: #0B141E;
+}
+
+
+body.blue .action-hint {
+    background: #0B141E;
+    color: #888;
+}
+
+
+body.blue .multi-select-bar {
+    background: #0B141E;
+    border-color: #3a3a3a;
+}
+
+
+body.blue .multi-select-row.top-row {
+    background: #0B141E;
+    border-bottom-color: #0B141E;
+}
+
+
+body.blue .multi-select-row.bottom-row {
+    background: #0B141E;
+}
+
+
+body.blue .select-all-btn,
+body.blue .unselect-all-btn,
+body.blue .exit-selection-btn {
+    background: var(--icon-bg, #0B141E);
+    color: var(--text-secondary, #B0B0B0);
+}
+
+
+body.blue .folder-drawer {
+    background: var(--container-bg, #0B141E);
+    border-left-color: var(--border-light, #131C27);
+}
+
+
+body.blue .close-drawer {
+    background: var(--icon-bg, #0B141E);
+    color: var(--text-secondary, #B0B0B0);
+}
+
+
+body.blue .segment-count {
+    background: #0B141E;
+    color: #A0A0A0;
+    border: 1px solid #3A3A3A;
+}
+
+
+body.blue .trade-sheet {
+    background: var(--container-bg, #0B141E);
+}
+
+
+body.blue .sheet-bidask {
+    background: var(--card-alt-bg, #0B141E);
+}
+
+
+body.blue .ohlc-grid {
+    background: var(--card-alt-bg, #0B141E);
+}
+
+
+body.blue .price-input {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+    color: var(--text-primary, #F5F5F5);
+}
+
+
+body.blue .qty-control {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+}
+
+
+body.blue .qty-btn {
+    background: var(--card-bg, #0B141E);
+    color: var(--text-primary, #F5F5F5);
+}
+
+
+body.blue .trade-chips {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+}
+
+
+body.blue .margin-summary {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+}
+
+
+body.blue .sheet-actions.sticky {
+    background: var(--container-bg, #0B141E);
+    border-top-color: var(--border-card, #3A3A3A);
+}
+
+
+body.blue .modern-input-box .price-input {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+    color: var(--text-primary, #F5F5F5);
+}
+
+
+body.blue .modern-qty {
+    background: var(--card-alt-bg, #0B141E);
+    border-color: var(--border-card, #3A3A3A);
+}
+
+
+body.blue .trade-sheet {
+    background: #0B141E;
+}
+
+
+body.blue .ts-header,
+body.blue .ts-bidask-row,
+body.blue .ts-section-card,
+body.blue .ts-info-cards-wrap,
+body.blue .ts-info-card,
+body.blue .ts-qty-container,
+body.blue .ts-margin-card,
+body.blue .ts-margin-summary,
+body.blue .ts-sticky-footer,
+body.blue .sheet-bidask,
+body.blue .sheet-header,
+body.blue .ohlc-grid,
+body.blue .advanced-trade-sections {
+    background: #0B141E;
+    border-color: #3A3A3A;
+}
+
+
+body.blue .ts-toggle-switch {
+    background: #0B141E;
+}
+
+
+body.blue .ts-qty-stepper {
+    background: #0B141E;
+    border-color: #3A3A3A;
+}
+
+
+body.blue .ts-pill {
+    background: #0B141E;
+    border-color: #3A3A3A;
+    color: #9CA3AF;
+}
+
+
+body.blue #detailSegment {
+    background: #0B141E !important;
+    color: #D1D5DB !important;
+}
+
+
+body.blue #detailChange {
+    background: #0B141E !important;
+}
+
+
+body.blue #detailBidAskCard {
+    background: #0B141E !important;
+}
+
+
+body.blue #detailOhlcCard {
+    background: #0B141E !important;
+}
+
+
+body.blue #detailContractCard {
+    background: #0B141E !important;
+}
+
+
+body.blue #basketSheet,
+body.blue #basketSheet .drawer-inner-scroll,
+body.blue #basketSheet>div {
+    background: #0B141E !important;
+    color: #F5F5F5 !important;
+}
+
+
+body.blue .basket-leg-card {
+    background: #0B141E !important;
+    border-color: #131C27 !important;
+}
+
+
+body.blue .bs-toggle-group {
+    background: #0B141E !important;
+}
+
+
+body.blue #basketSheet [style*="background: #F8FAFF"],
+body.blue #basketSheet [style*="background: #FFFFFF"],
+body.blue #basketSheet [style*="background: white"] {
+    background: #0B141E !important;
+}
+
+
+body.blue #basketSheet [style*="color: #000000"],
+body.blue #basketSheet [style*="color: #374151"] {
+    color: #F5F5F5 !important;
+}
+
+
+body.blue #basketSheet [style*="border-bottom"],
+body.blue #basketSheet [style*="border-top"] {
+    border-color: #131C27 !important;
+}
+
+
+body.blue #basketSheet {
+    background: #0B141E !important;
+}
+
+
+body.blue #basketSheet>div {
+    background: #0B141E !important;
+}
+
+
+body.blue .basket-margin-summary {
+    background: #0B141E !important;
+    border-color: #3A3A3A !important;
+}
+
+
+body.blue #basketClearBtn {
+    background: #0B141E !important;
+    color: #888 !important;
+}
+
+
+/* ── AMOLED BLACK: .dark -> .blue overrides ── */
+.blue .exchange-badge {
+    color: #E57373;
+    background: #0B141E;
+}
+
+
+.blue .instr-row {
+    background: #0B141E;
+    border-color: #131C27;
+}
+
+
+.blue .wc-content {
+    background: #0B141E;
+}
+
+
+/* AMOLED BLACK: stock names white */
+.blue .instr-row__name {
+    color: #FFFFFF;
+}
+
+
+.blue .instr-row__ltp {
+    color: #FFFFFF;
+}
+
+
+.blue .instr-row__date {
     color: #888;
 }

@@ -1,5 +1,5 @@
 /* ===== LOGIN PAGE ===== */
-/* Uses the same CSS variables defined in app/page.css (:root / :is(body.dark, body.black)) */
+/* Uses the same CSS variables defined in app/page.css (:root / :is(body.dark, body.black, body.blue)) */
 
 .login-page {
   min-height: 100dvh;
@@ -40,14 +40,14 @@
   color: #006400;
 }
 
-:is(body.dark, body.black) .login-brand-margin {
+:is(body.dark, body.black, body.blue) .login-brand-margin {
   background: linear-gradient(135deg, #FFFFFF 0%, #E0E0E0 100%);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
 }
 
-:is(body.dark, body.black) .login-brand-apex {
+:is(body.dark, body.black, body.blue) .login-brand-apex {
   color: #00AA00;
 }
 
@@ -113,7 +113,7 @@
   box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
 }
 
-:is(body.dark, body.black) .login-input-wrapper:focus-within {
+:is(body.dark, body.black, body.blue) .login-input-wrapper:focus-within {
   border-color: var(--text-primary, #F5F5F5);
   box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
 }
@@ -203,7 +203,7 @@
   gap: 8px;
 }
 
-:is(body.dark, body.black) .login-form-error {
+:is(body.dark, body.black, body.blue) .login-form-error {
   background: #2A1515;
   border-color: #7F1D1D;
   color: #F87171;
@@ -242,11 +242,11 @@
   cursor: not-allowed;
 }
 
-:is(body.dark, body.black) .login-submit-btn {
+:is(body.dark, body.black, body.blue) .login-submit-btn {
   background: #006400;
 }
 
-:is(body.dark, body.black) .login-submit-btn:hover:not(:disabled) {
+:is(body.dark, body.black, body.blue) .login-submit-btn:hover:not(:disabled) {
   background: #008000;
 }
 
@@ -339,12 +339,12 @@
   cursor: not-allowed;
 }
 
-:is(body.dark, body.black) .login-demo-btn {
+:is(body.dark, body.black, body.blue) .login-demo-btn {
   border-color: #374151;
   color: #9CA3AF;
 }
 
-:is(body.dark, body.black) .login-demo-btn:hover:not(:disabled) {
+:is(body.dark, body.black, body.blue) .login-demo-btn:hover:not(:disabled) {
   border-color: #00AA00;
   color: #00AA00;
   background: rgba(0, 170, 0, 0.06);
@@ -401,7 +401,7 @@
   text-decoration: underline;
 }
 
-:is(body.dark, body.black) .login-signup-link a {
+:is(body.dark, body.black, body.blue) .login-signup-link a {
   color: var(--text-primary, #F5F5F5);
 }
 
@@ -436,13 +436,100 @@
   transform: scale(0.98);
 }
 
-:is(body.dark, body.black) .login-create-btn {
+:is(body.dark, body.black, body.blue) .login-create-btn {
   color: var(--text-primary, #F5F5F5);
   border-color: #374151;
 }
 
-:is(body.dark, body.black) .login-create-btn:hover {
+:is(body.dark, body.black, body.blue) .login-create-btn:hover {
   border-color: #00AA00;
   color: #00AA00;
+  background: rgba(0, 170, 0, 0.06);
+}
+
+
+
+/* ===== BLUE MODE OVERRIDES ===== */
+/* ===== LOGIN PAGE ===== */
+/* Uses the same CSS variables defined in app/page.css (:root / :is(body.dark, body.blue, body.blue)) */
+
+.login-page {
+  min-height: 100dvh;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  background: var(--bg-body, #F0F2F5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  box-sizing: border-box;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-brand-margin {
+  background: linear-gradient(135deg, #FFFFFF 0%, #E0E0E0 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-brand-apex {
+  color: #2481FF;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-input-wrapper:focus-within {
+  border-color: var(--text-primary, #F5F5F5);
+  box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-form-error {
+  background: #2A1515;
+  border-color: #7F1D1D;
+  color: #F87171;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-submit-btn {
+  background: #006400;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-submit-btn:hover:not(:disabled) {
+  background: #008000;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-demo-btn {
+  border-color: #374151;
+  color: #9CA3AF;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-demo-btn:hover:not(:disabled) {
+  border-color: #2481FF;
+  color: #2481FF;
+  background: rgba(0, 170, 0, 0.06);
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-signup-link a {
+  color: var(--text-primary, #F5F5F5);
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-create-btn {
+  color: var(--text-primary, #F5F5F5);
+  border-color: #374151;
+}
+
+
+:is(body.dark, body.blue, body.blue) .login-create-btn:hover {
+  border-color: #2481FF;
+  color: #2481FF;
   background: rgba(0, 170, 0, 0.06);
 }
