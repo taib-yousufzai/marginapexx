@@ -619,8 +619,7 @@ export default function PositionPage() {
                             {/* Left Side: Symbol and Metadata */}
                             <div className="pos-detail-left-col">
                               <div className="pos-detail-symbol">
-                                <span className="pos-symbol-text">{pos.symbol}</span>{' '}
-                                <span className="pos-detail-side">{pos.side}</span>
+                                <span className="pos-symbol-text">{pos.symbol}</span>
                               </div>
                               <div className="pos-detail-meta">
                                 <div className="pos-detail-meta-row">
@@ -657,6 +656,7 @@ export default function PositionPage() {
                                   {fmtUSD(pos.total_pnl, pos.settlement)}
                                 </div>
                                 <div className="pos-detail-pct">{pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%</div>
+                                <span className="pos-detail-side">{pos.side}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {pos.product_type && (
