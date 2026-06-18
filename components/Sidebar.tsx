@@ -7,7 +7,6 @@ import './Sidebar.css';
 
 const navItems = [
   { key: 'home', label: 'Dashboard', icon: 'fas fa-th-large', path: '/' },
-  { key: 'terminal', label: 'Terminal', icon: 'fas fa-tv', path: '/dashboard' },
   { key: 'watchlist', label: 'Watchlist', icon: 'fas fa-list', path: '/watchlist' },
   { key: 'order', label: 'Orders', icon: 'fas fa-file-invoice-dollar', path: '/order' },
   { key: 'position', label: 'Positions', icon: 'fas fa-chart-line', path: '/position' },

@@ -6,6 +6,7 @@ import { Candle } from '@/components/chart/types';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
+import { supabase } from '@/lib/supabaseClient';
 import './trading-chart.css';
 
 interface TradingChartProps {
@@ -79,7 +80,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // --- Dashboard States ---
   const [isOrderBlockVisible, setIsOrderBlockVisible] = useState<boolean>(false);
   const [orderSide, setOrderSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [qtyValue, setQtyValue] = useState<number>(100);
+  const [qtyValue, setQtyValue] = useState<number>(() => getLotSize(symbol));
   const [useLots, setUseLots] = useState<boolean>(false);
   const [orderCarry, setOrderCarry] = useState<'normal' | 'carry'>('normal');
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'slm' | 'gtt' | 'sl'>('market');
@@ -135,7 +136,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setOrderType('market');
     setOrderCarry('normal');
     setUseLots(false);
-    setQtyValue(100);
+    setQtyValue(lotSize);
     setIsOrderBlockVisible(true);
   };
 
@@ -204,17 +205,35 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
   };
 
+  const fetchBalance = async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
+
+      const res = await fetch('/api/pay/balance', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (typeof data.balance === 'number') {
+        setBalance(data.balance);
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance:', err);
+    }
+  };
+
   // Get user's actual funds balance
   useEffect(() => {
-    fetch('/api/pay/balance')
-      .then(res => res.json())
-      .then(data => {
-        if (typeof data.balance === 'number') {
-          setBalance(data.balance);
-        }
-      })
-      .catch(() => {});
+    fetchBalance();
   }, []);
+
+  // Ensure default quantity is always the lowest allowed number when symbol or unit changes
+  useEffect(() => {
+    setQtyValue(useLots ? 1 : lotSize);
+  }, [symbol, lotSize, useLots]);
 
 
   // Fetch Historical Data
@@ -417,6 +436,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setChainContract(null); // Clear option contract context after trade
       refreshOrders();
       refreshPositions();
+      fetchBalance();
     } else {
       showToast(res.error || 'Failed to place order', true);
     }
@@ -429,6 +449,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     if (res.success) {
       showToast('Order cancelled');
       refreshOrders();
+      fetchBalance();
     } else {
       showToast(res.error || 'Cancel failed', true);
     }
@@ -441,6 +462,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     if (res.success) {
       showToast('Position closed');
       refreshPositions();
+      fetchBalance();
     } else {
       showToast(res.error || 'Exit failed', true);
     }
@@ -488,6 +510,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       }
       refreshOrders();
       refreshPositions();
+      fetchBalance();
     } else {
       showToast(res.error || 'Failed to place quick order', true);
     }
@@ -519,6 +542,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       showToast(`Successfully added ${addQty} to position!`);
       refreshOrders();
       refreshPositions();
+      fetchBalance();
     } else {
       showToast(res.error || 'Failed to add to position', true);
     }
@@ -809,275 +833,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       
       {/* Main Area */}
       <div className="tc-main-area">
-        {/* Left Drawing Toolbar — TradingView Style */}
-        <div
-          className="tc-left-toolbar"
-          style={{ width: '44px', borderRight: '1px solid #E8ECF0', padding: '6px 0', gap: '2px' }}
-          onMouseLeave={() => setOpenFlyout(null)}
-        >
 
-          {/* ── Cursor / Pointer ── */}
-          <div
-            className={`tc-tool-icon ${!activeDrawingTool ? 'active' : ''}`}
-            onClick={() => { setActiveDrawingTool(null); setOpenFlyout(null); }}
-            title="Cursor"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1l12 6-5.5 1.5L7 14z"/></svg>
-          </div>
-
-          <div className="tc-toolbar-sep" />
-
-          {/* ── Lines Group ── */}
-          {(() => {
-            const lineTools = [
-              { name: 'segment',               label: 'Trend Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/></svg> },
-              { name: 'rayLine',               label: 'Ray',                 icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="14" x2="14" y2="1"/><circle cx="14" cy="1" r="1.5" fill="currentColor"/></svg> },
-              { name: 'straightLine',          label: 'Extended Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="14" x2="15" y2="1"/></svg> },
-              { name: 'horizontalStraightLine',label: 'Horizontal Line',     icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/></svg> },
-              { name: 'horizontalRayLine',     label: 'Horizontal Ray',      icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="15" y2="7"/><circle cx="0" cy="7" r="1.5" fill="currentColor"/></svg> },
-              { name: 'horizontalSegment',     label: 'Horizontal Segment',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="1" y1="7" x2="14" y2="7"/><circle cx="1" cy="7" r="1.5" fill="currentColor"/><circle cx="14" cy="7" r="1.5" fill="currentColor"/></svg> },
-              { name: 'verticalStraightLine',  label: 'Vertical Line',       icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="7" y1="0" x2="7" y2="15"/></svg> },
-              { name: 'priceLine',             label: 'Price Line',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8"><line x1="0" y1="7" x2="12" y2="7"/><rect x="12" y="4" width="3" height="6" rx="1" fill="currentColor" stroke="none"/></svg> },
-            ];
-            const sel = groupSelected.lines;
-            const selTool = lineTools.find(t => t.name === sel) || lineTools[0];
-            const isGroupActive = lineTools.some(t => activeDrawingTool === t.name);
-            return (
-              <div className="tc-flyout-group" style={{ position: 'relative' }}>
-                <div
-                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
-                  title={selTool.label}
-                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
-                  onMouseEnter={() => setOpenFlyout('lines')}
-                >
-                  {selTool.icon}
-                  <span className="tc-group-arrow">▸</span>
-                </div>
-                {openFlyout === 'lines' && (
-                  <div className="tc-flyout">
-                    <div className="tc-flyout-title">Lines</div>
-                    {lineTools.map(t => (
-                      <div
-                        key={t.name}
-                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
-                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, lines: t.name })); setOpenFlyout(null); }}
-                      >
-                        <span className="tc-flyout-icon">{t.icon}</span>
-                        <span>{t.label}</span>
-                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Fibonacci Group ── */}
-          {(() => {
-            const fibTools = [
-              { name: 'fibonacciRetracement', label: 'Fib Retracement',  icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="2" x2="15" y2="2"/><line x1="0" y1="6" x2="15" y2="6"/><line x1="0" y1="9" x2="15" y2="9"/><line x1="0" y1="13" x2="15" y2="13"/><line x1="1" y1="2" x2="14" y2="13" strokeDasharray="2 1"/></svg> },
-              { name: 'fibonacciExtension',  label: 'Fib Extension',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="0" y1="3" x2="15" y2="3"/><line x1="0" y1="7" x2="15" y2="7"/><line x1="0" y1="11" x2="15" y2="11"/><line x1="1" y1="14" x2="14" y2="1" strokeDasharray="2 1"/></svg> },
-              { name: 'fibonacciSpeedResistanceFan', label: 'Fib Speed Resistance Fan', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="1"/><line x1="1" y1="14" x2="14" y2="5"/><line x1="1" y1="14" x2="14" y2="9"/></svg> },
-              { name: 'fibonacciCircle',      label: 'Fib Arc',          icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 13 Q7 2 13 13"/><line x1="2" y1="13" x2="13" y2="13"/></svg> },
-              { name: 'fibonacciSegment',     label: 'Fib Wedge',        icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="14" x2="14" y2="2"/><line x1="1" y1="14" x2="14" y2="7"/><line x1="1" y1="14" x2="14" y2="12"/></svg> },
-            ];
-            const sel = groupSelected.fibonacci;
-            const selTool = fibTools.find(t => t.name === sel) || fibTools[0];
-            const isGroupActive = fibTools.some(t => activeDrawingTool === t.name);
-            return (
-              <div className="tc-flyout-group" style={{ position: 'relative' }}>
-                <div
-                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
-                  title={selTool.label}
-                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
-                  onMouseEnter={() => setOpenFlyout('fibonacci')}
-                >
-                  {selTool.icon}
-                  <span className="tc-group-arrow">▸</span>
-                </div>
-                {openFlyout === 'fibonacci' && (
-                  <div className="tc-flyout">
-                    <div className="tc-flyout-title">Fibonacci</div>
-                    {fibTools.map(t => (
-                      <div
-                        key={t.name}
-                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
-                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, fibonacci: t.name })); setOpenFlyout(null); }}
-                      >
-                        <span className="tc-flyout-icon">{t.icon}</span>
-                        <span>{t.label}</span>
-                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Channels Group ── */}
-          {(() => {
-            const channelTools = [
-              { name: 'parallelStraightLine', label: 'Parallel Channel', icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="12" x2="14" y2="4"/><line x1="1" y1="6" x2="14" y2="11" strokeDasharray="2 1"/></svg> },
-              { name: 'priceChannelLine',     label: 'Price Channel',    icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6"><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="12" x2="14" y2="12"/><line x1="1" y1="7" x2="14" y2="7" strokeDasharray="2 1"/></svg> },
-            ];
-            const sel = groupSelected.channels;
-            const selTool = channelTools.find(t => t.name === sel) || channelTools[0];
-            const isGroupActive = channelTools.some(t => activeDrawingTool === t.name);
-            return (
-              <div className="tc-flyout-group" style={{ position: 'relative' }}>
-                <div
-                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
-                  title={selTool.label}
-                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
-                  onMouseEnter={() => setOpenFlyout('channels')}
-                >
-                  {selTool.icon}
-                  <span className="tc-group-arrow">▸</span>
-                </div>
-                {openFlyout === 'channels' && (
-                  <div className="tc-flyout">
-                    <div className="tc-flyout-title">Channels</div>
-                    {channelTools.map(t => (
-                      <div
-                        key={t.name}
-                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
-                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, channels: t.name })); setOpenFlyout(null); }}
-                      >
-                        <span className="tc-flyout-icon">{t.icon}</span>
-                        <span>{t.label}</span>
-                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          <div className="tc-toolbar-sep" />
-
-          {/* ── Annotation Group ── */}
-          {(() => {
-            const annoTools = [
-              { name: 'simpleAnnotation', label: 'Text Note',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><text x="1" y="13" fontSize="13" fontFamily="Georgia,serif" fontWeight="bold">T</text></svg> },
-              { name: 'simpleTag',        label: 'Price Tag',   icon: <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="9" height="7" rx="1.5"/><line x1="10" y1="7" x2="14" y2="7"/></svg> },
-            ];
-            const sel = groupSelected.annotation;
-            const selTool = annoTools.find(t => t.name === sel) || annoTools[0];
-            const isGroupActive = annoTools.some(t => activeDrawingTool === t.name);
-            return (
-              <div className="tc-flyout-group" style={{ position: 'relative' }}>
-                <div
-                  className={`tc-tool-icon tc-group-btn ${isGroupActive ? 'active' : ''}`}
-                  title={selTool.label}
-                  onClick={() => { handleDrawingTool(sel); setOpenFlyout(null); }}
-                  onMouseEnter={() => setOpenFlyout('annotation')}
-                >
-                  {selTool.icon}
-                  <span className="tc-group-arrow">▸</span>
-                </div>
-                {openFlyout === 'annotation' && (
-                  <div className="tc-flyout">
-                    <div className="tc-flyout-title">Annotations</div>
-                    {annoTools.map(t => (
-                      <div
-                        key={t.name}
-                        className={`tc-flyout-item ${activeDrawingTool === t.name ? 'active' : ''}`}
-                        onClick={() => { handleDrawingTool(t.name); setGroupSelected(g => ({ ...g, annotation: t.name })); setOpenFlyout(null); }}
-                      >
-                        <span className="tc-flyout-icon">{t.icon}</span>
-                        <span>{t.label}</span>
-                        {activeDrawingTool === t.name && <span className="tc-flyout-check">✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Measure Tool ── */}
-          <div
-            className={`tc-tool-icon ${activeDrawingTool === 'priceRange' ? 'active' : ''}`}
-            onClick={() => handleDrawingTool('priceRange')}
-            title="Measure (Price & Bars)"
-          >
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <line x1="1" y1="3" x2="1" y2="12"/>
-              <line x1="14" y1="3" x2="14" y2="12"/>
-              <line x1="1" y1="7.5" x2="14" y2="7.5"/>
-            </svg>
-          </div>
-
-          {/* ── Brush / Freehand ── */}
-          <div
-            className={`tc-tool-icon ${activeDrawingTool === 'brush' ? 'active' : ''}`}
-            onClick={() => handleDrawingTool('brush')}
-            title="Brush (Freehand)"
-          >
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M10.5 1.5a2.1 2.1 0 0 1 3 3L5 13l-4 1 1-4z"/></svg>
-          </div>
-
-          <div className="tc-toolbar-sep" />
-
-          {/* ── Magnet ── */}
-          <div
-            className={`tc-tool-icon ${isMagnetMode ? 'active-magnet' : ''}`}
-            onClick={() => { setIsMagnetMode(!isMagnetMode); showToast(!isMagnetMode ? 'Magnet snap on' : 'Magnet snap off'); }}
-            title="Magnet Snap"
-            style={isMagnetMode ? { color: '#089981', backgroundColor: 'rgba(8,153,129,0.12)' } : {}}
-          >
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor"><path d="M7.5 1a6.5 6.5 0 1 0 0 13A6.5 6.5 0 0 0 7.5 1zm0 2a4.5 4.5 0 0 1 4.5 4.5H10a2.5 2.5 0 0 0-5 0H3A4.5 4.5 0 0 1 7.5 3z"/></svg>
-          </div>
-
-          {/* ── Lock ── */}
-          <div
-            className={`tc-tool-icon ${isLocked ? 'active-locked' : ''}`}
-            onClick={toggleLockDrawings}
-            title="Lock Drawings"
-            style={isLocked ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
-          >
-            {isLocked
-              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
-              : <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="2" y="6" width="10" height="7" rx="1.5"/><path d="M4 6V4a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
-            }
-          </div>
-
-          {/* ── Stay in drawing mode ── */}
-          <div
-            className={`tc-tool-icon ${keepDrawingMode ? 'active-keep' : ''}`}
-            onClick={() => { setKeepDrawingMode(!keepDrawingMode); showToast(!keepDrawingMode ? 'Keep drawing on' : 'Keep drawing off'); }}
-            title="Stay in Drawing Mode"
-            style={keepDrawingMode ? { color: '#2962FF', backgroundColor: 'rgba(41,98,255,0.1)' } : {}}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M11 1a1 1 0 0 1 1.4 1.4L4.8 10H3v-1.8z"/><line x1="1" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="1.5"/></svg>
-          </div>
-
-          {/* ── Hide/Show ── */}
-          <div
-            className={`tc-tool-icon ${hideDrawings ? 'active-hide' : ''}`}
-            onClick={toggleHideDrawings}
-            title="Hide Drawings"
-            style={hideDrawings ? { color: '#e53935', backgroundColor: 'rgba(229,57,53,0.1)' } : {}}
-          >
-            {hideDrawings
-              ? <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="2" y1="2" x2="13" y2="13"/><path d="M5.5 5.5A3 3 0 0 0 9.5 9.5M3 4C1.7 5.3 1 6.5 1 7.5c0 2 3 5 6.5 5M12 11C13.3 9.7 14 8.5 14 7.5c0-2-3-5-6.5-5"/></svg>
-              : <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 7.5c0-2 3-5 6.5-5s6.5 3 6.5 5-3 5-6.5 5S1 9.5 1 7.5z"/><circle cx="7.5" cy="7.5" r="2"/></svg>
-            }
-          </div>
-
-          {/* ── Delete All ── */}
-          <div
-            className="tc-tool-icon"
-            onClick={clearAllDrawings}
-            title="Remove All Drawings"
-            style={{ color: '#e53935' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M5 1h4l1 1h3v1.5H1V2h3zM2.5 4h9l-.8 8H3.3z"/></svg>
-          </div>
-        </div>
 
         {/* Chart Container */}
         <div className="tc-chart-container">
@@ -1101,6 +857,34 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 </span>
               </div>
             )}
+          </div>
+
+          <div className="tc-chart-trade-widget">
+            <button
+              className="chart-trade-btn buy-btn"
+              onClick={() => {
+                setIsPanelExpanded(false);
+                setIsOrderBlockVisible(true);
+                setIsBottomSectionVisible(true);
+                setOrderSide('BUY');
+              }}
+            >
+              BUY
+            </button>
+            <div className="chart-trade-price">
+              {currentPrice > 0 ? currentPrice.toFixed(2) : '—'}
+            </div>
+            <button
+              className="chart-trade-btn sell-btn"
+              onClick={() => {
+                setIsPanelExpanded(false);
+                setIsOrderBlockVisible(true);
+                setIsBottomSectionVisible(true);
+                setOrderSide('SELL');
+              }}
+            >
+              SELL
+            </button>
           </div>
 
           <ChartContainer

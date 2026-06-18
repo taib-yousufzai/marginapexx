@@ -879,3 +879,86 @@
   100% { filter: brightness(1);   transform: scale(1); }
 }
 
+/* Floating Buy/Sell Widget */
+.tc-chart-trade-widget {
+  position: absolute;
+  top: 55px;
+  left: 10px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #e0e3eb;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark .tc-chart-trade-widget {
+  background: rgba(7, 24, 36, 0.75);
+  border-color: #213743;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.black .tc-chart-trade-widget {
+  background: rgba(0, 0, 0, 0.75);
+  border-color: #222222;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.chart-trade-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-trade-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-0.5px);
+}
+
+.chart-trade-btn:active {
+  transform: translateY(0.5px);
+}
+
+.buy-btn {
+  background-color: #01a96b; /* Stockdost Green */
+}
+
+.sell-btn {
+  background-color: #ef4444; /* Stockdost Red */
+}
+
+.chart-trade-price {
+  font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #071824;
+  padding: 0 8px;
+  min-width: 70px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .chart-trade-price {
+  color: #b1bad3;
+}
+
+.black .chart-trade-price {
+  color: #ffffff;
+}
+
+
