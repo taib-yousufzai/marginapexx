@@ -10,7 +10,6 @@ import { getSession, getRole } from '@/lib/auth';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import TickFlash from '@/components/TickFlash';
 import './page.css';
-import './admin-layout.css';
 
 // --- Kite instrument keys for the market overview ---
 const KITE_INSTRUMENTS_ROW1 = [
@@ -339,11 +338,11 @@ export default function Page() {
   });
 
   return (
-    <div className="desktop-layout">
+    <div className="desktop-layout home-isolated-layout">
       <Sidebar />
       
-      <main className="main-viewport">
-        <div className="app-container">
+      <main className="main-viewport home-isolated-viewport">
+        <div className="app-container home-isolated-container">
           {/* Mobile Navigation Bar */}
           <div className="nav-bar-full mobile-only">
             <div className="nav-icon-btn" onClick={() => setIsNotifDrawerOpen(true)}><i className="fas fa-bell"></i></div>
@@ -355,7 +354,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div ref={containerRef} className="main-scroll-wrapper">
+          <div ref={containerRef} className="main-scroll-wrapper home-isolated-scroll">
             <div className="main-content">
               <div className="screen">
                 <div className="content-padded">

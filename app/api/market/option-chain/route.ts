@@ -45,6 +45,8 @@ export async function GET(request: Request) {
       return NextResponse.json(optionChainCache[cacheKey].data);
     }
 
+    let usedFallback = false;
+
     // 1. Parallelize Auth check
     const authPromise = (async () => {
       const authHeader = request.headers.get('Authorization');
@@ -162,8 +164,19 @@ export async function GET(request: Request) {
           const q = JSON.parse(cached);
           atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
         }
+        
+        if (!atmPrice) {
+          const altKey = kiteId.split(':')[1] || symbol;
+          const altCached = await redis.hget('market:quotes', altKey);
+          if (altCached) {
+            const q = JSON.parse(altCached);
+            atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+          }
+        }
+
         if (!atmPrice && options.length > 0) {
           console.warn(`[option-chain] Redis ATM price unavailable for ${symbol}, falling back to median strike`);
+          usedFallback = true;
           const middleIndex = Math.floor(options.length / 2);
           atmPrice = (options as any[])[middleIndex]?.strike_price || 0;
         }
@@ -212,10 +225,12 @@ export async function GET(request: Request) {
       strikes: sortedStrikes
     };
 
-    // Store in cache
-    optionChainCache[cacheKey] = { data: responseData, timestamp: now };
-    // Also cache under the specific expiry key to prevent next lookup
-    optionChainCache[`${symbol}_${selectedExpiry}`] = { data: responseData, timestamp: now };
+    // Store in cache only if we got a real spot price
+    if (!usedFallback) {
+      optionChainCache[cacheKey] = { data: responseData, timestamp: now };
+      // Also cache under the specific expiry key to prevent next lookup
+      optionChainCache[`${symbol}_${selectedExpiry}`] = { data: responseData, timestamp: now };
+    }
 
     return NextResponse.json(responseData);
   } catch (error: any) {

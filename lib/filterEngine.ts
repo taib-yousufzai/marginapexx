@@ -53,8 +53,8 @@ export type SegmentKey = string;
 // ---------------------------------------------------------------------------
 
 const DEFAULT_STRIKE_CONFIG: StrikeConfig = {
-  indexOptionsRange: 5,
-  mcxOptionsRange: 7,
+  indexOptionsRange: 11,
+  mcxOptionsRange: 11,
 };
 
 const CRYPTO_WHITELIST = new Set(['BTC', 'ETH', 'DOGE']);

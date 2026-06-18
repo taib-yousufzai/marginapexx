@@ -112,8 +112,7 @@ function OptionChainContent() {
   const [triggerPrice, setTriggerPrice] = useState('');
   const [slPrice, setSlPrice] = useState('');
   const [tpPrice, setTpPrice] = useState('');
-  const [showWatchlistSelector, setShowWatchlistSelector] = useState(false);
-  const [pendingWatchlistItem, setPendingWatchlistItem] = useState<any>(null);
+
   const [userId, setUserId] = useState<string>('');
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
@@ -209,7 +208,7 @@ function OptionChainContent() {
     const low = quote ? quote.low : 0;
     const close = quote ? quote.close : 0;
 
-    setPendingWatchlistItem({
+    const success = addToWatchlist({
       name: `${symbol} ${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
       symbol: selectedContract.symbol,
       kiteSymbol: kiteId || selectedContract.symbol,
@@ -221,22 +220,13 @@ function OptionChainContent() {
       high,
       low,
       close,
-    });
-    setShowWatchlistSelector(true);
-  };
-
-  const confirmAddToWatchlist = (category: string) => {
-    if (!pendingWatchlistItem) return;
-
-    const success = addToWatchlist({ ...pendingWatchlistItem, category }, userId);
-
-    setShowWatchlistSelector(false);
-    setPendingWatchlistItem(null);
+      category: 'WATCHLIST'
+    }, userId);
 
     if (success) {
-      showToast('Added to ' + (category === 'WATCHLIST' ? 'Watchlist' : category), false);
+      showToast('Added to Watchlist', false);
     } else {
-      showToast('Already added to this watchlist', true);
+      showToast('Already added to Watchlist', true);
     }
   };
 
@@ -375,13 +365,13 @@ function OptionChainContent() {
       setOrderUnit('qty');
       setSheetView('DETAILS');
       setSheetSide(side);
-      setShowWatchlistSelector(false);
+      setSheetSide(side);
     }
   };
 
   const closeTradeSheet = () => {
     setSelectedContract(null);
-    setShowWatchlistSelector(false);
+    setSelectedContract(null);
   };
 
   const handlePlaceOrder = async (side: OrderSide) => {
@@ -818,75 +808,29 @@ function OptionChainContent() {
                   {/* ADD TO WATCHLIST */}
                   <div style={{ marginBottom: '8px' }}>
                     <div style={{ fontSize: '0.52rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '6px' }}>ADD TO WATCHLIST</div>
-                    {!showWatchlistSelector ? (
-                      <button
-                        onClick={handleAddToWatchlistClick}
-                        style={{
-                          width: '100%',
-                          padding: '10.5px',
-                          background: '#15803D',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '50px',
-                          fontWeight: '700',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          boxShadow: '0 2px 8px rgba(21,128,61,0.25)',
-                          fontFamily: 'Inter, sans-serif',
-                          transition: 'background 0.15s ease'
-                        }}
-                      >
-                        <i className="fas fa-plus"></i> Add to Watchlist
-                      </button>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {['WATCHLIST', 'WATCHLIST-1', 'WATCHLIST-2', 'WATCHLIST-3'].map(wl => (
-                          <button
-                            key={wl}
-                            onClick={() => confirmAddToWatchlist(wl)}
-                            style={{
-                              padding: '12px 14px',
-                              background: 'var(--card-alt-bg)',
-                              border: '1px solid var(--border-card)',
-                              borderRadius: '12px',
-                              textAlign: 'left',
-                              fontSize: '0.85rem',
-                              fontWeight: 700,
-                              color: 'var(--text-primary)',
-                              cursor: 'pointer',
-                              fontFamily: 'inherit',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              transition: 'background 0.15s ease'
-                            }}
-                          >
-                            <i className="fas fa-list" style={{ color: '#15803D', fontSize: '0.8rem' }}></i>
-                            {wl === 'WATCHLIST' ? 'Default Watchlist' : wl}
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => setShowWatchlistSelector(false)}
-                          style={{
-                            padding: '8px',
-                            background: 'transparent',
-                            border: 'none',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            textAlign: 'center'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={handleAddToWatchlistClick}
+                      style={{
+                        width: '100%',
+                        padding: '10.5px',
+                        background: '#15803D',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '50px',
+                        fontWeight: '700',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 2px 8px rgba(21,128,61,0.25)',
+                        fontFamily: 'Inter, sans-serif',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <i className="fas fa-plus"></i> Add to Watchlist
+                    </button>
                   </div>
 
                   {/* Open Trading Chart Button */}

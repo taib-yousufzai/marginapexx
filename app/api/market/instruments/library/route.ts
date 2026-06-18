@@ -34,6 +34,7 @@ export async function GET() {
 
     const today = new Date().toISOString().split('T')[0];
     const segments: any[] = [];
+    let usedFallback = false;
 
     // Load strike config once for the entire request
     const strikeConfig = await loadStrikeConfig(supabase);
@@ -105,8 +106,17 @@ export async function GET() {
             const q = JSON.parse(cached);
             atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
           }
+          if (!atmPrice) {
+            const altKey = kiteId.split(':')[1] || idx;
+            const altCached = await redis.hget('market:quotes', altKey);
+            if (altCached) {
+              const q = JSON.parse(altCached);
+              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            }
+          }
           if (!atmPrice && opts.length > 0) {
             console.warn(`[library] Redis ATM price unavailable for ${idx}, falling back to median strike`);
+            usedFallback = true;
             const middleIndex = Math.floor(opts.length / 2);
             atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
           }
@@ -164,9 +174,18 @@ export async function GET() {
                 const q = JSON.parse(cached);
                 atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
               }
+              if (!atmPrice) {
+                const altKey = nearestFut.tradingsymbol;
+                const altCached = await redis.hget('market:quotes', altKey);
+                if (altCached) {
+                  const q = JSON.parse(altCached);
+                  atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+                }
+              }
             }
             if (!atmPrice && opts.length > 0) {
               console.warn(`[library] No ATM price for MCX ${cmd}, falling back to median strike`);
+              usedFallback = true;
               const middleIndex = Math.floor(opts.length / 2);
               atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
             }
@@ -218,8 +237,17 @@ export async function GET() {
               const q = JSON.parse(cached);
               atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
             }
+            if (!atmPrice) {
+              const altKey = stk;
+              const altCached = await redis.hget('market:quotes', altKey);
+              if (altCached) {
+                const q = JSON.parse(altCached);
+                atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+              }
+            }
             if (!atmPrice && opts.length > 0) {
               console.warn(`[library] No ATM price for Stock ${stk}, falling back to median strike`);
+              usedFallback = true;
               const middleIndex = Math.floor(opts.length / 2);
               atmPrice = (opts as Instrument[])[middleIndex]?.strike_price || 0;
             }
@@ -359,7 +387,9 @@ export async function GET() {
     if (forexInstruments.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', instruments: forexInstruments });
 
     try {
-      await redis.set(cacheKey, JSON.stringify({ segments }), 'EX', 900); // 15 mins cache
+      if (!usedFallback) {
+        await redis.set(cacheKey, JSON.stringify({ segments }), 'EX', 900); // 15 mins cache
+      }
     } catch (e) {
       console.error('[library] Redis set cache error:', e);
     }

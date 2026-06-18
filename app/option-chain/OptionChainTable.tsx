@@ -31,6 +31,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   const atmRef = React.useRef<HTMLDivElement>(null);
   const tableHeaderRef = React.useRef<HTMLDivElement>(null);
   const [subheadFloating, setSubheadFloating] = React.useState(false);
+  const scrolledForStrikesRef = React.useRef<StrikeData[] | null>(null);
 
   const atmStrike = React.useMemo(() => {
     if (spotPrice <= 0 || strikes.length === 0) return null;
@@ -39,7 +40,14 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
     );
   }, [strikes, spotPrice]);
 
-
+  React.useEffect(() => {
+    if (atmRef.current && scrolledForStrikesRef.current !== strikes) {
+      setTimeout(() => {
+        atmRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }, 100);
+      scrolledForStrikesRef.current = strikes;
+    }
+  }, [strikes, atmStrike]);
 
   // Detect when CALLS/STRIKE/PUTS header scrolls out of view
   React.useEffect(() => {

@@ -1492,3 +1492,31 @@ body.blue {
 body.blue .notif-item {
   border-bottom-color: var(--border-light, #131C27);
 }
+
+/* ========================================= */
+/* HOME PAGE CSS LEAKAGE ISOLATION */
+/* ========================================= */
+.home-isolated-layout {
+  overflow: visible !important;
+}
+
+.home-isolated-viewport {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.home-isolated-container {
+  height: 100dvh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.home-isolated-scroll {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+}
