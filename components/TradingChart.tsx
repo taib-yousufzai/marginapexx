@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import ChartContainer from '@/components/chart/ChartContainer';
 import { Candle } from '@/components/chart/types';
 import { useMyOrders } from '@/hooks/useMyOrders';
+import type { MyOrder } from '@/lib/types/order';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
@@ -95,12 +96,20 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
 
+  // ── CHARTINH Integration States ──
+  const [activeOrderTab, setActiveOrderTab] = useState<'open' | 'executed'>('open');
+  const [isExitFlow, setIsExitFlow] = useState<boolean>(false);
+  const [exitPositionId, setExitPositionId] = useState<string | null>(null);
+  const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
+  const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
+  const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
+
   // ── Strike data generator ──
   const getChainStrikes = () => {
     const s = currentPrice || 71.00;
     const atm = Math.round(s / 100) * 100; // nearest 100
     const strikes = [];
-    for (let i = -4; i <= 4; i++) strikes.push(atm + i * 100);
+    for (let i = -5; i <= 5; i++) strikes.push(atm + i * 100);
     return strikes.map(strike => {
       const dist = s - strike;
       const ceIntrinsic = Math.max(0, dist);
@@ -137,6 +146,9 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setOrderCarry('normal');
     setUseLots(false);
     setQtyValue(lotSize);
+    setIsExitFlow(false);
+    setExitPositionId(null);
+    setPostOrderSegment('chain');
     setIsOrderBlockVisible(true);
   };
 
@@ -413,7 +425,17 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       orderSegment = 'INDEX-OPT';
     }
 
-    showToast('Placing order...');
+    if (modifyOrderId) {
+      showToast('Modifying order...');
+      const cancelRes = await cancelOrder(modifyOrderId);
+      if (!cancelRes.success) {
+        showToast(cancelRes.error || 'Failed to modify order (cancel failed)', true);
+        return;
+      }
+    } else {
+      showToast('Placing order...');
+    }
+
     const res = await placeOrder({
       symbol: orderSymbol,
       kite_instrument: orderKiteInstrument,
@@ -427,16 +449,32 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       trigger_price: (orderType === 'sl' || orderType === 'slm') ? parseFloat(triggerPrice) : undefined,
       stop_loss: orderType === 'gtt' ? parseFloat(gttSlPrice) : undefined,
       target: orderType === 'gtt' ? parseFloat(gttTargetPrice) : undefined,
-      is_exit: false
+      is_exit: isExitFlow
     });
 
     if (res.success) {
-      showToast(`${orderSide} Order Placed Successfully!`);
+      if (modifyOrderId) {
+        showToast('Order Modified Successfully!');
+        setModifyOrderId(null);
+      } else {
+        showToast(`${orderSide} Order Placed Successfully!`);
+      }
       setIsOrderBlockVisible(false);
-      setChainContract(null); // Clear option contract context after trade
+      setChainContract(null);
+      setIsExitFlow(false);
+      setExitPositionId(null);
+      setOrderBlockTitle(symbol);
       refreshOrders();
       refreshPositions();
       fetchBalance();
+
+      // Post-order navigation: return to originating segment
+      const returnTo = postOrderSegment;
+      setPostOrderSegment(null);
+      if (returnTo && returnTo !== 'main') {
+        setActiveSegment(returnTo as 'chain' | 'orders' | 'positions');
+        setIsPanelExpanded(true);
+      }
     } else {
       showToast(res.error || 'Failed to place order', true);
     }
@@ -450,13 +488,52 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       showToast('Order cancelled');
       refreshOrders();
       fetchBalance();
+      if (modifyOrderId === id) {
+        setModifyOrderId(null);
+        setIsOrderBlockVisible(false);
+        setOrderBlockTitle(symbol);
+      }
     } else {
       showToast(res.error || 'Cancel failed', true);
     }
   };
 
-  // Exit actual position
-  const handleExitPosition = async (id: string) => {
+  const handleModifyOrder = (o: MyOrder) => {
+    setIsPanelExpanded(false);
+    setModifyOrderId(o.id);
+    setOrderSide(o.side);
+    setQtyValue(o.qty);
+    setUseLots(false);
+    setOrderCarry(o.product_type === 'CARRY' ? 'carry' : 'normal');
+    setOrderType(o.order_type.toLowerCase() as any);
+    setLimitPrice(o.client_price ? o.client_price.toString() : '');
+    setTriggerPrice(o.trigger_price ? o.trigger_price.toString() : '');
+    setGttSlPrice(o.stop_loss ? o.stop_loss.toString() : '');
+    setGttTargetPrice(o.target ? o.target.toString() : '');
+    setOrderBlockTitle(`Modify · ${o.symbol}`);
+    setPostOrderSegment('orders');
+    setIsOrderBlockVisible(true);
+  };
+
+  // Exit position via order panel (allows choosing Market/SL)
+  const handleExitPosition = (pos: EnrichedPosition) => {
+    setIsPanelExpanded(false);
+    setIsExitFlow(true);
+    setExitPositionId(pos.id);
+    setOrderSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
+    setQtyValue(pos.qty_open);
+    setUseLots(false);
+    setOrderCarry(pos.product_type === 'CARRY' ? 'carry' : 'normal');
+    setOrderType('market');
+    setLimitPrice(currentPrice.toFixed(2));
+    setTriggerPrice(currentPrice.toFixed(2));
+    setOrderBlockTitle(`Exit · ${symbol}`);
+    setPostOrderSegment('positions');
+    setIsOrderBlockVisible(true);
+  };
+
+  // Direct quick-exit (instant market close)
+  const handleQuickExit = async (id: string) => {
     showToast('Exiting position...');
     const res = await closePosition(id);
     if (res.success) {
@@ -470,10 +547,16 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   // Add more to current position
   const handleAddMorePosition = (pos: EnrichedPosition) => {
+    setIsPanelExpanded(false);
+    setIsExitFlow(false);
+    setExitPositionId(null);
     setOrderSide(pos.side);
     setQtyValue(pos.qty_open);
     setUseLots(false);
     setOrderCarry(pos.product_type === 'CARRY' ? 'carry' : 'normal');
+    setOrderType('market');
+    setOrderBlockTitle(`Add More · ${symbol}`);
+    setPostOrderSegment('positions');
     setIsOrderBlockVisible(true);
   };
 
@@ -617,23 +700,59 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     
     if (activeSegment === 'orders') {
       const symbolOrders = orders.filter(o => o.symbol.toUpperCase() === symbol.toUpperCase());
-      if (symbolOrders.length === 0) {
-        return <div className="empty-state">No orders yet for {symbol}.</div>;
-      }
-      return symbolOrders.map(o => (
-        <div key={o.id} className="order-row">
-          <span style={{ color: o.side === 'BUY' ? '#1db954' : '#e53935', fontWeight: 800, fontSize: '10px' }}>{o.side}</span>
-          <span>{o.qty} Qty</span>
-          <span style={{ fontWeight: 600 }}>₹{(o.client_price ?? 0).toFixed(2)}</span>
-          <span style={{ fontSize: '10px', background: '#f3f3f3', padding: '2px 7px', borderRadius: '20px', color: '#888' }}>{o.status}</span>
-          {o.status === 'PENDING' && (
-            <button className="cancel-order-btn" onClick={() => handleCancelOrder(o.id)}>Cancel</button>
+      const openOrders = symbolOrders.filter(o => o.status === 'PENDING');
+      const executedOrders = symbolOrders.filter(o => o.status !== 'PENDING');
+      const displayOrders = activeOrderTab === 'open' ? openOrders : executedOrders;
+
+      return (
+        <>
+          {/* Sub-tabs */}
+          <div className="order-sub-tabs">
+            <div className={`order-sub-tab ${activeOrderTab === 'open' ? 'active' : ''}`} onClick={() => setActiveOrderTab('open')}>
+              Open ({openOrders.length})
+            </div>
+            <div className={`order-sub-tab ${activeOrderTab === 'executed' ? 'active' : ''}`} onClick={() => setActiveOrderTab('executed')}>
+              Executed ({executedOrders.length})
+            </div>
+          </div>
+          {displayOrders.length === 0 ? (
+            <div className="empty-state">No {activeOrderTab} orders for {symbol}.</div>
+          ) : (
+            displayOrders.map(o => {
+              const isBuy = o.side === 'BUY';
+              const orderTypeLabel = (o.order_type || 'MARKET').toUpperCase();
+              const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+              return (
+                <div key={o.id} className="order-row-rich">
+                  <div className="order-info-top">
+                    <div className="order-info-left">
+                      <span className="order-symbol-name">{o.symbol}</span>
+                      <div className="order-badges">
+                        <span className={`order-side-badge ${isBuy ? 'buy' : 'sell'}`}>{o.side}</span>
+                        <span className="order-qty-text">{o.qty} qty</span>
+                        <span className="order-type-badge">{orderTypeLabel}</span>
+                      </div>
+                    </div>
+                    <div className="order-info-right">
+                      <span className="order-price-text">₹{(o.client_price ?? 0).toFixed(2)}</span>
+                      <span className="order-time-text">{timeStr}</span>
+                    </div>
+                  </div>
+                  {o.status === 'PENDING' && (
+                    <div className="order-actions-row" style={{ display: 'flex', gap: '6px' }}>
+                      <button className="order-action-btn modify-order-btn" onClick={() => handleModifyOrder(o)}>Modify</button>
+                      <button className="order-action-btn delete-order-btn" onClick={() => handleCancelOrder(o.id)}>Delete</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
-        </div>
-      ));
+        </>
+      );
     }
     
-    // Positions
+    // Positions — Rich Layout
     if (currentSymbolPositions.length === 0) {
       return <div className="empty-state">No active positions for {symbol}.</div>;
     }
@@ -642,20 +761,25 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       const pnl = pos.side === 'BUY'
         ? (currentPrice - entryPrice) * pos.qty_open
         : (entryPrice - currentPrice) * pos.qty_open;
-      const c = pnl >= 0 ? '#1db954' : '#e53935';
+      const pnlColor = pnl >= 0 ? '#1db954' : '#e53935';
       return (
-        <div key={pos.id} className="position-row">
-          <div className="position-info-row">
-            <div>
-              <span style={{ fontWeight: 800, color: pos.side === 'BUY' ? '#1db954' : '#e53935', fontSize: '10px' }}>{pos.side}</span>
-              <span style={{ color: '#555' }}> {pos.qty_open} Qty</span>
+        <div key={pos.id} className="position-row-rich">
+          <div className="position-info-top">
+            <div className="position-left">
+              <span className="position-symbol-name">{pos.symbol}</span>
+              <div className="position-badges">
+                <span className={`order-side-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
+                <span className="order-qty-text">{pos.qty_open} qty</span>
+              </div>
             </div>
-            <div style={{ color: '#888', fontSize: '11px' }}>Entry ₹{entryPrice.toFixed(2)}</div>
-            <div style={{ color: c, fontWeight: 700 }}>{pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}</div>
+            <div className="position-entry-text">Entry ₹{entryPrice.toFixed(2)}</div>
+            <div className="position-pnl-text" style={{ color: pnlColor }}>
+              {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}
+            </div>
           </div>
           <div className="position-actions">
-            <button className="position-action-btn add-position-btn" onClick={() => handleQuickAddPosition(pos)}>+ Add {pos.qty_open}</button>
-            <button className="position-action-btn exit-position-btn" onClick={() => handleExitPosition(pos.id)}>Exit</button>
+            <button className="position-action-btn add-position-btn" onClick={() => handleAddMorePosition(pos)}>+ Add More</button>
+            <button className="position-action-btn exit-position-btn" onClick={() => handleExitPosition(pos)}>Exit</button>
           </div>
         </div>
       );
@@ -663,7 +787,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   };
 
   return (
-    <div className="tc-wrapper">
+    <div className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}>
       {/* Top Toolbar */}
       <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
 
@@ -931,6 +1055,10 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 handleQuickMarketOrder('BUY');
               } else {
                 setIsPanelExpanded(false);
+                setIsExitFlow(false);
+                setExitPositionId(null);
+                setOrderBlockTitle(symbol);
+                setPostOrderSegment('main');
                 setIsOrderBlockVisible(true);
                 setOrderSide('BUY');
               }
@@ -942,6 +1070,10 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 handleQuickMarketOrder('SELL');
               } else {
                 setIsPanelExpanded(false);
+                setIsExitFlow(false);
+                setExitPositionId(null);
+                setOrderBlockTitle(symbol);
+                setPostOrderSegment('main');
                 setIsOrderBlockVisible(true);
                 setOrderSide('SELL');
               }
@@ -956,9 +1088,9 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
               <span className="order-block-title">
-                {chainContract ? `${symbol} ${chainContract.name}` : symbol}
+                {chainContract ? `${symbol} ${chainContract.name}` : orderBlockTitle}
               </span>
-              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); }}>
+              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); setIsExitFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); }}>
                 <i className="ti ti-x"></i>
               </div>
             </div>
@@ -1033,10 +1165,10 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               <div className="bottom-row">
                 <div className="market-limit-box" id="orderTypeGroup" style={{ width: 'auto', flexGrow: 1 }}>
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
-                  <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>
-                  <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>
-                  <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
-                  <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>
+                  {!isExitFlow && <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>}
+                  {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
+                  {!isExitFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
+                  <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')} style={{ display: isExitFlow ? '' : 'none' }}>SL</div>
                 </div>
                 {(orderType === 'limit' || orderType === 'gtt') && (
                   <div className="limit-price-box visible" id="limitPriceBox" style={{ width: '120px' }}>
@@ -1106,7 +1238,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 className={`submit-btn ${orderSide === 'BUY' ? 'submit-buy' : 'submit-sell'}`}
                 onClick={handleSubmitOrder}
               >
-                {orderSide} {useLots ? `${qtyValue} Lot` : `${qtyValue} Qty`}
+                {modifyOrderId ? 'Update Order' : `${orderSide} ${useLots ? `${qtyValue} Lot` : `${qtyValue} Qty`}`}
               </button>
             </div>
           </div>
@@ -1148,7 +1280,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             {activeSegment === 'chain' ? 'Option Chain' : activeSegment === 'orders' ? 'Orders' : 'Positions'}
             <i className={`ti ${activeSegment === 'chain' ? 'ti-chart-candle' : activeSegment === 'orders' ? 'ti-list-check' : 'ti-briefcase'}`} style={{ color: '#aaa', fontSize: '13px' }}></i>
           </div>
-          <div className="panel-content">
+          <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
             {renderPanelContent()}
           </div>
         </div>
