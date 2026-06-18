@@ -19,6 +19,7 @@ export class ChartController {
   private symbol: string;
   private segment: string;
   private isDarkMode: boolean;
+  private currentThemeKey: 'light' | 'dark' | 'black' = 'dark';
   private chartType: 'candle' | 'area' | 'bar' | 'baseline' = 'candle';
   
   // Cache of the current candles in memory to track open vs closed candle timestamps
@@ -29,31 +30,36 @@ export class ChartController {
     this.segment = config.segment;
     this.isDarkMode = config.isDarkMode;
 
-    const gridColor = this.isDarkMode ? '#2A2E39' : '#e0e3eb';
-    const textColor = this.isDarkMode ? '#787B86' : '#131722';
-    const backgroundColor = this.isDarkMode ? '#131722' : '#ffffff';
+    const isBlack = typeof document !== 'undefined' && document.body.classList.contains('black');
+    this.currentThemeKey = isBlack ? 'black' : (this.isDarkMode ? 'dark' : 'light');
+
+    const colors = this.getThemeColors();
 
     this.chart = createChart(config.container, {
       width: config.container.clientWidth,
       height: config.container.clientHeight,
       layout: {
-        background: { color: backgroundColor },
-        textColor: textColor,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+        background: { color: colors.backgroundColor },
+        textColor: colors.textColor,
+        fontSize: 11,
+        fontFamily: 'Inter, sans-serif',
       },
       grid: {
-        vertLines: { color: gridColor, style: 2 }, // Dashed
-        horzLines: { color: gridColor, style: 2 }, // Dashed
+        vertLines: { color: colors.gridColor, style: 2 }, // Dashed
+        horzLines: { color: colors.gridColor, style: 2 }, // Dashed
       },
       crosshair: {
         mode: 1, // Magnet mode on crosshair
-        vertLine: { color: '#9598A1', style: 3 }, // Dotted
-        horzLine: { color: '#9598A1', style: 3 }, // Dotted
+        vertLine: { color: colors.crosshairColor, style: 3 }, // Dotted
+        horzLine: { color: colors.crosshairColor, style: 3 }, // Dotted
       },
       timeScale: {
-        borderColor: gridColor,
+        borderColor: colors.borderColor,
         timeVisible: true,
         secondsVisible: false,
+      },
+      rightPriceScale: {
+        borderColor: colors.borderColor,
       },
       localization: {
         priceFormatter: (p: number) => {
@@ -71,6 +77,43 @@ export class ChartController {
     this.createMainSeries();
   }
 
+  private getThemeColors() {
+    const isBlack = typeof document !== 'undefined' && document.body.classList.contains('black');
+    const isDark = typeof document !== 'undefined' && (document.body.classList.contains('dark') || isBlack);
+    
+    if (isBlack) {
+      return {
+        backgroundColor: '#000000',
+        textColor: '#7a9aad',
+        gridColor: 'rgba(255, 255, 255, 0.03)',
+        crosshairColor: '#222222',
+        borderColor: 'rgba(255, 255, 255, 0.06)',
+        upColor: '#01a96b',
+        downColor: '#ef4444'
+      };
+    } else if (isDark) {
+      return {
+        backgroundColor: '#071824',
+        textColor: '#7a9aad',
+        gridColor: 'rgba(255, 255, 255, 0.04)',
+        crosshairColor: '#2a4a5e',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        upColor: '#01a96b',
+        downColor: '#ef4444'
+      };
+    } else {
+      return {
+        backgroundColor: '#ffffff',
+        textColor: '#131722',
+        gridColor: '#e0e3eb',
+        crosshairColor: '#9598A1',
+        borderColor: '#e0e3eb',
+        upColor: '#01a96b',
+        downColor: '#ef4444'
+      };
+    }
+  }
+
   private createMainSeries() {
     if (this.mainSeries) {
       try {
@@ -78,8 +121,9 @@ export class ChartController {
       } catch (e) {}
     }
 
-    const upColor = '#089981';
-    const downColor = '#F23645';
+    const colors = this.getThemeColors();
+    const upColor = colors.upColor;
+    const downColor = colors.downColor;
 
     const priceFormat = {
       type: 'price' as const,
@@ -89,21 +133,21 @@ export class ChartController {
 
     if (this.chartType === 'area') {
       this.mainSeries = this.chart.addSeries(AreaSeries, {
-        topColor: 'rgba(8, 153, 129, 0.4)',
-        bottomColor: 'rgba(8, 153, 129, 0.0)',
-        lineColor: '#089981',
+        topColor: 'rgba(1, 169, 107, 0.4)',
+        bottomColor: 'rgba(1, 169, 107, 0.0)',
+        lineColor: '#01a96b',
         lineWidth: 2,
         priceFormat,
       }, 0);
     } else if (this.chartType === 'baseline') {
       this.mainSeries = this.chart.addSeries(BaselineSeries, {
         baseValue: { type: 'price', price: 0 },
-        topFillColor1: 'rgba(8, 153, 129, 0.28)',
-        topFillColor2: 'rgba(8, 153, 129, 0.05)',
-        topLineColor: '#089981',
-        bottomFillColor1: 'rgba(242, 54, 69, 0.05)',
-        bottomFillColor2: 'rgba(242, 54, 69, 0.28)',
-        bottomLineColor: '#F23645',
+        topFillColor1: 'rgba(1, 169, 107, 0.28)',
+        topFillColor2: 'rgba(1, 169, 107, 0.05)',
+        topLineColor: '#01a96b',
+        bottomFillColor1: 'rgba(239, 68, 68, 0.05)',
+        bottomFillColor2: 'rgba(239, 68, 68, 0.28)',
+        bottomLineColor: '#ef4444',
         lineWidth: 2,
         priceFormat,
       }, 0);
@@ -240,24 +284,33 @@ export class ChartController {
   }
 
   setTheme(isDarkMode: boolean) {
-    if (this.isDarkMode === isDarkMode) return;
+    const isBlack = typeof document !== 'undefined' && document.body.classList.contains('black');
+    const themeName = isBlack ? 'black' : (isDarkMode ? 'dark' : 'light');
+
+    if (this.currentThemeKey === themeName) return;
+    this.currentThemeKey = themeName;
     this.isDarkMode = isDarkMode;
 
-    const gridColor = this.isDarkMode ? '#2A2E39' : '#e0e3eb';
-    const textColor = this.isDarkMode ? '#787B86' : '#131722';
-    const backgroundColor = this.isDarkMode ? '#131722' : '#ffffff';
+    const colors = this.getThemeColors();
 
     this.chart.applyOptions({
       layout: {
-        background: { color: backgroundColor },
-        textColor: textColor,
+        background: { color: colors.backgroundColor },
+        textColor: colors.textColor,
       },
       grid: {
-        vertLines: { color: gridColor },
-        horzLines: { color: gridColor },
+        vertLines: { color: colors.gridColor },
+        horzLines: { color: colors.gridColor },
+      },
+      crosshair: {
+        vertLine: { color: colors.crosshairColor },
+        horzLine: { color: colors.crosshairColor },
       },
       timeScale: {
-        borderColor: gridColor,
+        borderColor: colors.borderColor,
+      },
+      rightPriceScale: {
+        borderColor: colors.borderColor,
       }
     });
 
