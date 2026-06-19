@@ -416,7 +416,7 @@ export default function PositionPage() {
                   <div className="pos-pnl-card-title">
                     {currentMain === 'cumulative' && currentSub === 'closed' ? "Today's P&L" : "Live P&L Summary"}
                   </div>
-                  <div className="pos-pnl-card-body">
+                  <div className={`pos-pnl-card-body${currentMain === 'cumulative' && currentSub === 'closed' ? ' three-cols' : ''}`}>
                     {currentMain === 'cumulative' && currentSub === 'closed' && (
                       <div className="pos-pnl-col left">
                         <div className="pos-pnl-label">Realized</div>

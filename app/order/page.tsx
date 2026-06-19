@@ -9,6 +9,9 @@ import Footer from '@/components/Footer';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
+import dynamic from 'next/dynamic';
+
+const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 
 export default function OrderPage() {
   useAuth();
@@ -23,6 +26,20 @@ export default function OrderPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [chartItem, setChartItem] = useState<any>(null);
+
+  const openChart = (order: any) => {
+    setChartItem({
+      symbol: order.symbol,
+      kiteSymbol: order.kite_instrument || order.symbol,
+      segment: order.segment
+    });
+    setIsSheetOpen(false);
+    const chartSheet = document.getElementById('chartSheet');
+    const chartOverlay = document.getElementById('chartSheetOverlay');
+    if (chartSheet) chartSheet.classList.add('open');
+    if (chartOverlay) chartOverlay.classList.add('active');
+  };
 
   const { orders, loading: ordersLoading, error, cancelOrder, refresh } = useMyOrders();
   const { connected: kiteConnected } = useKitePositions();
@@ -362,7 +379,7 @@ export default function OrderPage() {
                         flexShrink: 0,
                         transition: 'all 0.15s'
                       }}
-                      onClick={() => showToast("Opening Trading Chart for " + selectedOrder.symbol)}
+                      onClick={() => openChart(selectedOrder)}
                     >
                       <svg 
                         viewBox="0 0 24 24" 
@@ -546,6 +563,18 @@ export default function OrderPage() {
           </div>
         </div>
       </main>
+
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {chartItem && (
+            <TradingChart
+              symbol={chartItem.kiteSymbol || chartItem.symbol}
+              segment={chartItem.segment}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

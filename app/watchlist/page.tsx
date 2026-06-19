@@ -643,7 +643,7 @@ function WatchlistContent() {
     (window as any).__activeTab = activeTab;
   }, [activeTab]);
 
-  // Search priority: watchlist first → fallback to Scripts Library
+  // Search results overlay: show search results library whenever search input has text
   useEffect(() => {
     const area = document.getElementById('searchResultsArea');
     if (!area) return;
@@ -653,17 +653,12 @@ function WatchlistContent() {
       return;
     }
 
-    if (filteredItems.length > 0) {
-      // Watchlist has matches — keep library hidden
-      area.style.display = 'none';
-    } else {
-      // No watchlist matches — trigger library search via the inline script
-      const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
-      if (input) {
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
+    area.style.display = 'flex';
+    const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
+    if (input) {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
     }
-  }, [searchText, filteredItems.length]);
+  }, [searchText]);
 
   useEffect(() => {
     async function fetchBalance() {
@@ -1364,13 +1359,14 @@ function WatchlistContent() {
       </div>
 
       <div className="watchlist-layout">
-        <div className="main-content">
         <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
           <div className="section-subtitle">
             <i className="fas fa-plus-circle"></i> ADD FROM LIBRARY <span id="searchResultCount"></span>
           </div>
           <div id="searchResultsList"></div>
         </div>
+
+        <div className="main-content">
 
         <div className="watchlist-section">
           <div className="watchlist-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '4px', marginTop: '-4px', marginBottom: '8px' }}>
@@ -2451,6 +2447,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       }
 
       var searchDebounceTimer = null;
+      var lastProcessedQuery = '';
 
       function renderSearchResults(results) {
         var searchResultsArea = document.getElementById('searchResultsArea');
@@ -2458,7 +2455,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         var searchResultCount = document.getElementById('searchResultCount');
         if (!searchResultsArea || !searchResultsList) return;
         var html = '';
-        results.slice(0, 150).forEach(function(item) {
+        results.slice(0, 40).forEach(function(item) {
           var kiteId = item.kiteSymbol || item.symbol || '';
           
           var mainName = item.name;
@@ -2476,7 +2473,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           var bottomHtml = dateStr ? escapeHtml(dateStr) + '<span style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">' + escapeHtml(badgeStr) + '</span>' : escapeHtml(badgeStr);
 
             var defaultPrice = item.price ? item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---';
-            html += '<div class="search-result-item" style="padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between;">' +
+            html += '<div class="search-result-item" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">' +
             '<div class="sri-left"><div class="sri-name" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 4px;">' + escapeHtml(mainName) + '</div><div class="sri-symbol" style="color: #94a3b8; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center;">' + bottomHtml + '</div></div>' +
             '<div class="sri-right" style="display: flex; align-items: center; gap: 12px;">' +
             '<div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; min-width: 60px; text-align: right;">' + escapeHtml(defaultPrice) + '</div>' +
@@ -2488,7 +2485,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         searchResultsArea.style.display = 'flex';
 
         // Fetch live prices for all results that have a kiteSymbol
-        var kiteIds = results.slice(0, 150)
+        var kiteIds = results.slice(0, 40)
           .map(function(r) { return r.kiteSymbol || ''; })
           .filter(function(id) { return id.includes(':'); });
         if (kiteIds.length === 0) return;
@@ -2520,8 +2517,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       }
 
       if (searchInput) {
-        searchInput.addEventListener('input', function() {
-          var query = this.value.trim();
+        searchInput.oninput = function() {
+          var query = searchInput.value.trim();
+          if (query === lastProcessedQuery) return;
+          lastProcessedQuery = query;
           if (query.length === 0) {
             var area = document.getElementById('searchResultsArea');
             if (area) area.style.display = 'none';
@@ -2603,40 +2602,41 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               })
               .catch(function() { /* error pe local results hi rehne do */ });
           }, 300);
-        });
+        };
       }
 
       if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', function() {
+        clearSearchBtn.onclick = function() {
           searchInput.value = '';
+          lastProcessedQuery = '';
           var area = document.getElementById('searchResultsArea');
           if (area) area.style.display = 'none';
-          this.style.display = 'none';
-        });
+          clearSearchBtn.style.display = 'none';
+        };
       }
 
       var openFolderBtn = document.getElementById('openFolderMobileBtn');
       if (openFolderBtn) {
-        openFolderBtn.addEventListener('click', function() {
+        openFolderBtn.onclick = function() {
           folderDrawer.classList.add('open');
           overlay.classList.add('active');
           renderFolderTree();
-        });
+        };
       }
 
       var closeFolderBtn = document.getElementById('closeFolderDrawerBtn');
       if (closeFolderBtn) {
-        closeFolderBtn.addEventListener('click', function() {
+        closeFolderBtn.onclick = function() {
           folderDrawer.classList.remove('open');
           overlay.classList.remove('active');
-        });
+        };
       }
 
       if (overlay) {
-        overlay.addEventListener('click', function() {
+        overlay.onclick = function() {
           folderDrawer.classList.remove('open');
-          this.classList.remove('active');
-        });
+          overlay.classList.remove('active');
+        };
       }
 
       window.__reactDeleteSelected = function() {
