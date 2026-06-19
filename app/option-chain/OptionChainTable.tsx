@@ -41,15 +41,36 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   }, [strikes, spotPrice]);
 
   React.useEffect(() => {
-    // Only auto-scroll to ATM once when strikes first load.
-    // Never re-scroll on quote/spotPrice updates to avoid the page jumping.
-    if (atmRef.current && !hasScrolledRef.current && strikes.length > 0) {
-      hasScrolledRef.current = true;
-      setTimeout(() => {
-        atmRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }, 100);
-    }
-  }, [strikes]);
+    // Wait until both strikes are loaded AND spotPrice is valid so atmRef is actually attached.
+    // Once we've scrolled, never scroll again (avoids jumping on price ticks).
+    if (hasScrolledRef.current) return;
+    if (!atmRef.current || strikes.length === 0 || spotPrice <= 0 || !atmStrike) return;
+
+    hasScrolledRef.current = true;
+
+    const doScroll = () => {
+      const el = atmRef.current;
+      if (!el) return;
+
+      // Walk up to find the nearest scrollable ancestor
+      let scrollParent: HTMLElement | null = el.parentElement;
+      while (scrollParent) {
+        const { overflowY } = window.getComputedStyle(scrollParent);
+        if (overflowY === 'auto' || overflowY === 'scroll' || scrollParent.tagName === 'BODY') break;
+        scrollParent = scrollParent.parentElement;
+      }
+
+      const container = scrollParent ?? document.documentElement;
+      const containerRect = container.getBoundingClientRect?.() ?? { top: 0 };
+      const elRect = el.getBoundingClientRect();
+      const offset = elRect.top - containerRect.top + container.scrollTop - container.clientHeight / 2 + el.offsetHeight / 2;
+      container.scrollTo({ top: offset, behavior: 'smooth' });
+    };
+
+    // Small delay to let layout settle after data renders
+    const t = setTimeout(doScroll, 150);
+    return () => clearTimeout(t);
+  }, [strikes, spotPrice, atmStrike]);
 
   // Detect when CALLS/STRIKE/PUTS header scrolls out of view
   React.useEffect(() => {
