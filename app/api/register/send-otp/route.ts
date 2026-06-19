@@ -10,8 +10,8 @@
  */
 import { NextRequest } from 'next/server';
 import { createHash, randomInt } from 'crypto';
-import nodemailer from 'nodemailer';
 import { getAdminClient } from '@/lib/adminClient';
+import { sendEmail, sendSms } from '@/lib/twilio';
 
 const OTP_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -20,19 +20,7 @@ function hashOtp(otp: string): string {
   return createHash('sha256').update(otp).digest('hex');
 }
 
-function createTransporter() {
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_APP_PASSWORD;
-
-  if (!user || !pass) {
-    throw new Error('Missing env vars: GMAIL_USER and/or GMAIL_APP_PASSWORD');
-  }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
-}
+// Transporter logic moved to central communication service in lib/twilio.ts
 
 export async function POST(req: NextRequest) {
   try {
@@ -99,30 +87,33 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Failed to store OTP' }, { status: 500 });
     }
 
-    // ── Send OTP email via Gmail SMTP ─────────────────────────────────────────
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: `"MarginApex" <${process.env.GMAIL_USER}>`,
-      to: emailLower,
-      subject: 'Your MarginApex verification code',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-          <h2 style="color:#1a1a2e;margin-bottom:8px">MarginApex</h2>
-          <p style="color:#444;margin-bottom:24px">
-            Hi ${fullName.trim()},<br/>Use the code below to verify your email.
-            It expires in <strong>${OTP_TTL_MINUTES} minutes</strong>.
-          </p>
-          <div style="background:#f4f4f4;border-radius:12px;padding:24px;text-align:center;
-                      letter-spacing:8px;font-size:2.5rem;font-weight:700;color:#0f172a">
-            ${otp}
-          </div>
-          <p style="color:#888;font-size:0.85rem;margin-top:24px">
-            If you didn't request this, you can safely ignore this email.
-          </p>
+    // ── Send OTP email via SendGrid (with Gmail SMTP fallback) ────────────────
+    const emailSubject = 'Your MarginApex verification code';
+    const emailHtml = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+        <h2 style="color:#1a1a2e;margin-bottom:8px">MarginApex</h2>
+        <p style="color:#444;margin-bottom:24px">
+          Hi ${fullName.trim()},<br/>Use the code below to verify your email.
+          It expires in <strong>${OTP_TTL_MINUTES} minutes</strong>.
+        </p>
+        <div style="background:#f4f4f4;border-radius:12px;padding:24px;text-align:center;
+                    letter-spacing:8px;font-size:2.5rem;font-weight:700;color:#0f172a">
+          ${otp}
         </div>
-      `,
-      text: `Your MarginApex verification code is: ${otp}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
-    });
+        <p style="color:#888;font-size:0.85rem;margin-top:24px">
+          If you didn't request this, you can safely ignore this email.
+        </p>
+      </div>
+    `;
+    const emailText = `Your MarginApex verification code is: ${otp}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`;
+
+    await sendEmail(emailLower, emailSubject, emailHtml, emailText);
+
+    // ── Send OTP SMS via Twilio if phone number is provided ──────────────────
+    if (phone && phone.trim()) {
+      const smsBody = `Your MarginApex verification code is: ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
+      await sendSms(phone, smsBody);
+    }
 
     console.info('[send-otp] OTP sent to', emailLower);
     return Response.json({ success: true });

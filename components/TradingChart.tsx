@@ -608,7 +608,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setIsAddMoreFlow(true);
     setExitPositionId(null);
     setAddMoreSymbol(pos.symbol);
-    setAddMoreSegment(pos.settlement || pos.segment || segment);
+    setAddMoreSegment(pos.settlement || segment);
     setAddMoreLtp(pos.current_ltp || pos.avg_price || pos.entry_price);
     setOrderSide(pos.side);
     setQtyValue(pos.qty_open);
