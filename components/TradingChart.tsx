@@ -34,6 +34,20 @@ function getLotSize(name: string): number {
   return 1;
 }
 
+function mapSegmentToDbSegment(s: string): string {
+  if (!s) return 'NSE-EQ';
+  const u = s.toUpperCase();
+  if (u.includes('NFO') || u.includes('OPTIDX')) return 'INDEX-OPT';
+  if (u.includes('OPTSTK')) return 'STOCK-OPT';
+  if (u.includes('FUTIDX')) return 'INDEX-FUT';
+  if (u.includes('FUTSTK')) return 'STOCK-FUT';
+  if (u.includes('MCX') && u.includes('OPT')) return 'MCX-OPT';
+  if (u.includes('MCX')) return 'MCX-FUT';
+  if (u.includes('COMEX')) return 'COMEX';
+  if (u.includes('CRYPTO')) return 'CRYPTO';
+  if (u.includes('NSE') || u.includes('EQ')) return 'NSE-EQ';
+  return 'NSE-EQ';
+}
 
 export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
@@ -95,6 +109,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [isBottomSectionVisible, setIsBottomSectionVisible] = useState<boolean>(true);
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   // ── CHARTINH Integration States ──
   const [activeOrderTab, setActiveOrderTab] = useState<'open' | 'executed'>('open');
@@ -234,8 +249,19 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       if (typeof data.balance === 'number') {
         setBalance(data.balance);
       }
+
+      // Fetch segment settings for dynamic leverage calculation
+      const profileRes = await supabase.from('profiles').select('trading_mode').single();
+      const mode = profileRes.data?.trading_mode || 'normal';
+      const settingsRes = await fetch(`/api/user/segments?mode=${mode}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        setSegmentSettings(settingsData || []);
+      }
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      console.error('Failed to fetch balance or segment settings:', err);
     }
   };
 
@@ -404,7 +430,16 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       }
     }
 
-    const reqMargin = Math.ceil(finalPrice * finalQty * 0.12);
+    const dbSeg = mapSegmentToDbSegment(segment);
+    const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+    const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+    const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
+
+    const intradayLeverage = segSetting?.intraday_leverage ?? 1;
+    const holdingLeverage  = segSetting?.holding_leverage ?? 1;
+    const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
+
+    const reqMargin = Math.ceil((finalPrice * finalQty) / leverage);
     if (reqMargin > balance) {
       showToast('Insufficient margin', true);
       return;
@@ -651,7 +686,17 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // Calculated Required Margin for current order block state
   const orderQty = useLots ? qtyValue * lotSize : qtyValue;
   const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || currentPrice) : currentPrice;
-  const reqMargin = Math.ceil(executionPrice * orderQty * 0.12);
+  
+  const dbSeg = mapSegmentToDbSegment(segment);
+  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+  const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
+
+  const intradayLeverage = segSetting?.intraday_leverage ?? 1;
+  const holdingLeverage  = segSetting?.holding_leverage ?? 1;
+  const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
+
+  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage);
 
   // Render collapsible panel tabs content
   const renderPanelContent = () => {
@@ -708,24 +753,19 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     if (activeSegment === 'orders') {
       const symbolOrders = orders.filter(o => o.symbol.toUpperCase() === symbol.toUpperCase());
       const openOrders = symbolOrders.filter(o => o.status === 'PENDING');
-      const executedOrders = symbolOrders.filter(o => o.status !== 'PENDING');
-      const displayOrders = activeOrderTab === 'open' ? openOrders : executedOrders;
 
       return (
         <>
           {/* Sub-tabs */}
           <div className="order-sub-tabs">
-            <div className={`order-sub-tab ${activeOrderTab === 'open' ? 'active' : ''}`} onClick={() => setActiveOrderTab('open')}>
+            <div className="order-sub-tab active">
               Open ({openOrders.length})
             </div>
-            <div className={`order-sub-tab ${activeOrderTab === 'executed' ? 'active' : ''}`} onClick={() => setActiveOrderTab('executed')}>
-              Executed ({executedOrders.length})
-            </div>
           </div>
-          {displayOrders.length === 0 ? (
-            <div className="empty-state">No {activeOrderTab} orders for {symbol}.</div>
+          {openOrders.length === 0 ? (
+            <div className="empty-state">No open orders for {symbol}.</div>
           ) : (
-            displayOrders.map(o => {
+            openOrders.map(o => {
               const isBuy = o.side === 'BUY';
               const orderTypeLabel = (o.order_type || 'MARKET').toUpperCase();
               const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';

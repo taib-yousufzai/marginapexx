@@ -89,7 +89,7 @@ export class ChartController {
         crosshairColor: '#222222',
         borderColor: 'rgba(255, 255, 255, 0.06)',
         upColor: '#01a96b',
-        downColor: '#01a96b'
+        downColor: '#ef4444'
       };
     } else if (isDark) {
       return {
@@ -99,7 +99,7 @@ export class ChartController {
         crosshairColor: '#2a4a5e',
         borderColor: 'rgba(255, 255, 255, 0.08)',
         upColor: '#01a96b',
-        downColor: '#01a96b'
+        downColor: '#ef4444'
       };
     } else {
       return {
@@ -109,7 +109,7 @@ export class ChartController {
         crosshairColor: '#9598A1',
         borderColor: '#e0e3eb',
         upColor: '#01a96b',
-        downColor: '#01a96b'
+        downColor: '#ef4444'
       };
     }
   }
@@ -158,7 +158,6 @@ export class ChartController {
         downColor,
         borderVisible: true,
         wickVisible: true,
-        borderColor: upColor,
         borderUpColor: upColor,
         borderDownColor: downColor,
         wickUpColor: upColor,
