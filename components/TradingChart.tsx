@@ -116,6 +116,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [isExitFlow, setIsExitFlow] = useState<boolean>(false);
   const [isAddMoreFlow, setIsAddMoreFlow] = useState<boolean>(false);
   const [exitPositionId, setExitPositionId] = useState<string | null>(null);
+  const [addMoreSymbol, setAddMoreSymbol] = useState<string | null>(null);
+  const [addMoreSegment, setAddMoreSegment] = useState<string | null>(null);
   const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
   const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
@@ -445,10 +447,10 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       return;
     }
 
-    // Determine target symbol and segment if trading option contracts
-    let orderSymbol = symbol;
-    let orderKiteInstrument = symbol;
-    let orderSegment = segment;
+    // Determine target symbol and segment — use position's symbol when in add-more flow
+    let orderSymbol = (isAddMoreFlow && addMoreSymbol) ? addMoreSymbol : symbol;
+    let orderKiteInstrument = orderSymbol;
+    let orderSegment = (isAddMoreFlow && addMoreSegment) ? addMoreSegment : segment;
 
     if (chainContract) {
       const underlying = symbol.toUpperCase().replace('_INDEX', '').replace('NSE:', '').replace('INDEX', '').trim();
@@ -500,6 +502,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setChainContract(null);
       setIsExitFlow(false);
       setIsAddMoreFlow(false);
+      setAddMoreSymbol(null);
+      setAddMoreSegment(null);
       setExitPositionId(null);
       setOrderBlockTitle(symbol);
       refreshOrders();
@@ -586,18 +590,20 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
   };
 
-  // Add more to current position
+  // Add more to a position (may be a different symbol from the current chart)
   const handleAddMorePosition = (pos: EnrichedPosition) => {
     setIsPanelExpanded(false);
     setIsExitFlow(false);
     setIsAddMoreFlow(true);
     setExitPositionId(null);
+    setAddMoreSymbol(pos.symbol);
+    setAddMoreSegment(pos.settlement || pos.segment || segment);
     setOrderSide(pos.side);
     setQtyValue(pos.qty_open);
     setUseLots(false);
     setOrderCarry(pos.product_type === 'CARRY' ? 'carry' : 'normal');
     setOrderType('market');
-    setOrderBlockTitle(`Add More · ${symbol}`);
+    setOrderBlockTitle(`Add More · ${pos.symbol}`);
     setPostOrderSegment('positions');
     setIsOrderBlockVisible(true);
   };
