@@ -397,8 +397,13 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   };
 
   // Stepper for quantity
+  // In Lot mode: step by 0.5. In Qty mode: step by lotSize (whole units)
   const handleQtyStep = (delta: number) => {
-    setQtyValue(prev => Math.max(useLots ? 1 : lotSize, prev + delta * (useLots ? 1 : lotSize)));
+    if (useLots) {
+      setQtyValue(prev => Math.max(0.5, parseFloat((prev + delta * 0.5).toFixed(1))));
+    } else {
+      setQtyValue(prev => Math.max(lotSize, prev + delta * lotSize));
+    }
   };
 
   // Toggle Lots vs Qty
@@ -406,16 +411,18 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setUseLots(lotsActive);
     setQtyValue(prev => {
       if (lotsActive) {
-        return Math.max(1, Math.floor(prev / lotSize));
+        // Convert qty -> lots, allow decimal (e.g. 12.5 qty / 25 lotSize = 0.5 lots)
+        return Math.max(0.5, parseFloat((prev / lotSize).toFixed(1)));
       } else {
-        return prev * lotSize;
+        // Convert lots -> qty (always whole number)
+        return Math.round(prev * lotSize);
       }
     });
   };
 
   // Place actual order
   const handleSubmitOrder = async () => {
-    const finalQty = useLots ? qtyValue * lotSize : qtyValue;
+    const finalQty = useLots ? Math.round(qtyValue * lotSize) : Math.round(qtyValue);
     
     // Determine the base execution price
     // For add-more flow on a different instrument, use that position's LTP not the chart price
@@ -1157,7 +1164,17 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       type="number"
                       className="qty-value"
                       value={qtyValue}
-                      onChange={(e) => setQtyValue(Math.max(1, parseInt(e.target.value) || 1))}
+                      step={useLots ? 0.5 : lotSize}
+                      min={useLots ? 0.5 : lotSize}
+                      onChange={(e) => {
+                        if (useLots) {
+                          const val = parseFloat(e.target.value);
+                          setQtyValue(isNaN(val) || val <= 0 ? 0.5 : val);
+                        } else {
+                          const val = parseInt(e.target.value);
+                          setQtyValue(isNaN(val) || val <= 0 ? lotSize : val);
+                        }
+                      }}
                     />
                     <button className="qty-btn" onClick={() => handleQtyStep(1)}>+</button>
                   </div>
@@ -1286,10 +1303,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
         {/* Info Panel */}
         <div className={`info-panel ${!isPanelExpanded ? 'collapsed' : ''}`} id="infoPanel">
-          <div className="panel-header">
-            {activeSegment === 'chain' ? 'Option Chain' : activeSegment === 'orders' ? 'Orders' : 'Positions'}
-            <i className={`ti ${activeSegment === 'chain' ? 'ti-chart-candle' : activeSegment === 'orders' ? 'ti-list-check' : 'ti-briefcase'}`} style={{ color: '#aaa', fontSize: '13px' }}></i>
-          </div>
+
           <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
             {renderPanelContent()}
           </div>
