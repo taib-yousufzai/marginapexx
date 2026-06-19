@@ -113,8 +113,29 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       if (!res.ok) throw new Error('Failed to fetch positions');
       const data = await res.json();
-      globalPositionsCache = data.positions || [];
-      setRawPositions(globalPositionsCache);
+      const newPositions: MyPosition[] = data.positions || [];
+
+      // Only update state if something actually changed — avoids unnecessary
+      // re-renders (and the visible layout shift) when data is identical
+      const didChange =
+        newPositions.length !== globalPositionsCache.length ||
+        newPositions.some((p, i) => {
+          const cached = globalPositionsCache[i];
+          return (
+            !cached ||
+            p.id !== cached.id ||
+            p.qty_open !== cached.qty_open ||
+            p.avg_price !== cached.avg_price ||
+            p.status !== cached.status ||
+            p.product_type !== cached.product_type ||
+            p.ltp !== cached.ltp
+          );
+        });
+
+      if (didChange) {
+        globalPositionsCache = newPositions;
+        setRawPositions(newPositions);
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : "Unknown error");

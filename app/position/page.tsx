@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getSession } from '@/lib/auth';
@@ -227,8 +227,8 @@ export default function PositionPage() {
     }
   };
 
-  const openPositions = positions.filter(p => p.status === 'open' || p.status === 'active');
-  const closedPositions = positions.filter(p => p.status === 'closed');
+  const openPositions = useMemo(() => positions.filter(p => p.status === 'open' || p.status === 'active'), [positions]);
+  const closedPositions = useMemo(() => positions.filter(p => p.status === 'closed'), [positions]);
   const hasOpenPositions = openPositions.length > 0;
 
   // ── Cumulative grouping: merge same symbol+side+product_type into one row ──
@@ -248,7 +248,7 @@ export default function PositionPage() {
     representativePos: EnrichedPosition; // first position for actions
   }
 
-  const groupedOpenPositions: GroupedPosition[] = (() => {
+  const groupedOpenPositions: GroupedPosition[] = useMemo(() => {
     const map = new Map<string, GroupedPosition>();
     for (const pos of openPositions) {
       const key = `${pos.symbol}|${pos.side}|${pos.product_type}`;
@@ -286,7 +286,7 @@ export default function PositionPage() {
       }
     }
     return Array.from(map.values());
-  })();
+  }, [openPositions]);
 
   const handleExitAllConfirm = async () => {
     if (!hasOpenPositions) return;
@@ -327,9 +327,9 @@ export default function PositionPage() {
     refresh();
   };
 
-  const totalPnl = positions.reduce((acc, p) => acc + (p.total_pnl || 0), 0);
-  const realized = positions.filter(p => p.status === 'closed').reduce((acc, p) => acc + (p.pnl || 0), 0);
-  const unrealized = positions.filter(p => p.status === 'open' || p.status === 'active').reduce((acc, p) => acc + (p.total_pnl || 0), 0);
+  const totalPnl = useMemo(() => positions.reduce((acc, p) => acc + (p.total_pnl || 0), 0), [positions]);
+  const realized = useMemo(() => closedPositions.reduce((acc, p) => acc + (p.pnl || 0), 0), [closedPositions]);
+  const unrealized = useMemo(() => openPositions.reduce((acc, p) => acc + (p.total_pnl || 0), 0), [openPositions]);
 
   const fmtUSD = (val: number, settlement?: string) => {
     const sign = val >= 0 ? '+' : '-';

@@ -31,7 +31,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   const atmRef = React.useRef<HTMLDivElement>(null);
   const tableHeaderRef = React.useRef<HTMLDivElement>(null);
   const [subheadFloating, setSubheadFloating] = React.useState(false);
-  const scrolledForStrikesRef = React.useRef<StrikeData[] | null>(null);
+  const hasScrolledRef = React.useRef(false);
 
   const atmStrike = React.useMemo(() => {
     if (spotPrice <= 0 || strikes.length === 0) return null;
@@ -41,13 +41,15 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   }, [strikes, spotPrice]);
 
   React.useEffect(() => {
-    if (atmRef.current && scrolledForStrikesRef.current !== strikes) {
+    // Only auto-scroll to ATM once when strikes first load.
+    // Never re-scroll on quote/spotPrice updates to avoid the page jumping.
+    if (atmRef.current && !hasScrolledRef.current && strikes.length > 0) {
+      hasScrolledRef.current = true;
       setTimeout(() => {
         atmRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }, 100);
-      scrolledForStrikesRef.current = strikes;
     }
-  }, [strikes, atmStrike]);
+  }, [strikes]);
 
   // Detect when CALLS/STRIKE/PUTS header scrolls out of view
   React.useEffect(() => {
@@ -81,25 +83,25 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
       {/* Single outer container */}
       <div className="oct-table">
 
-        {/* ── Header row (scrolls away) ── */}
+        {/* â”€â”€ Header row (scrolls away) â”€â”€ */}
         <div className="oct-head" ref={tableHeaderRef}>
           <div className="oct-head-calls">{priceMode === 'LTP' ? 'CALL LTP' : 'CALLS'}</div>
           <div className="oct-head-strike">STRIKE</div>
           <div className="oct-head-puts">{priceMode === 'LTP' ? 'PUT LTP' : 'PUTS'}</div>
         </div>
 
-        {/* ── Sub-header: sticky ── */}
+        {/* â”€â”€ Sub-header: sticky â”€â”€ */}
         <div className={`oct-subhead${subheadFloating ? ' floating' : ''}`}>
           <div className="oct-sub-calls">
             {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>LTP</span>}
           </div>
-          <div className="oct-sub-strike">₹</div>
+          <div className="oct-sub-strike">&#8377;</div>
           <div className="oct-sub-puts">
             {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>LTP</span>}
           </div>
         </div>
 
-        {/* ── Data rows ── */}
+        {/* â”€â”€ Data rows â”€â”€ */}
         <div className="oct-body">
           {strikes.map((s) => {
             const ceQuote = getQuote(s.ce?.id, s.ce?.token);
@@ -114,8 +116,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const peBid = peLtpVal ? (peLtpVal - 0.05).toFixed(1) : '---';
             const peAsk = peLtpVal ? (peLtpVal + 0.05).toFixed(1) : '---';
 
-            const ceLtp = ceLtpVal ? `₹${ceLtpVal.toFixed(1)}` : '---';
-            const peLtp = peLtpVal ? `₹${peLtpVal.toFixed(1)}` : '---';
+            const ceLtp = ceLtpVal ? `â‚¹${ceLtpVal.toFixed(1)}` : '---';
+            const peLtp = peLtpVal ? `â‚¹${peLtpVal.toFixed(1)}` : '---';
 
             return (
               <div
@@ -171,7 +173,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 0 0 80px 0;
         }
 
-        /* ── Single outer container ── */
+        /* â”€â”€ Single outer container â”€â”€ */
         .oct-table {
           width: 100%;
           background: #fff;
@@ -188,7 +190,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           box-shadow: 0 2px 16px rgba(0,0,0,0.4);
         }
 
-        /* ── Header ── */
+        /* â”€â”€ Header â”€â”€ */
         .oct-head {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -230,7 +232,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #ffffff;
         }
 
-        /* ── Sticky sub-header ── */
+        /* â”€â”€ Sticky sub-header â”€â”€ */
         .oct-subhead {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -244,7 +246,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           transition: border-radius 0.15s ease, box-shadow 0.15s ease;
         }
 
-        /* When header scrolled away — round top corners */
+        /* When header scrolled away â€” round top corners */
         .oct-subhead.floating {
           border-radius: 20px 20px 0 0;
           box-shadow: 0 4px 16px rgba(0,0,0,0.1);
@@ -307,13 +309,13 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #a3a3a3;
         }
 
-        /* ── Body ── */
+        /* â”€â”€ Body â”€â”€ */
         .oct-body {
           display: flex;
           flex-direction: column;
         }
 
-        /* ── Row ── */
+        /* â”€â”€ Row â”€â”€ */
         .oct-row {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -332,7 +334,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           border-bottom-color: #1f1f1f;
         }
 
-        /* ── Cells ── */
+        /* â”€â”€ Cells â”€â”€ */
         .oct-cell-calls {
           background: #f4fbf4;
           display: flex;
@@ -379,7 +381,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           background: #1e1414;
         }
 
-        /* ── Values ── */
+        /* â”€â”€ Values â”€â”€ */
         .oct-val {
           font-size: 0.82rem;
           font-weight: 600;
@@ -401,7 +403,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #f87171;
         }
 
-        /* ── Strike value ── */
+        /* â”€â”€ Strike value â”€â”€ */
         .oct-strike-val {
           font-size: 0.85rem;
           font-weight: 700;
