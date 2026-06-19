@@ -788,7 +788,16 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       </div>
                     </div>
                     <div className="order-info-right">
-                      <span className="order-price-text">₹{(o.client_price ?? 0).toFixed(2)}</span>
+                      <span className="order-price-text">₹{(() => {
+                        const type = (o.order_type || '').toUpperCase();
+                        if (type === 'GTT') {
+                          if (o.stop_loss && o.target) return `SL ${o.stop_loss.toFixed(2)} / TP ${o.target.toFixed(2)}`;
+                          if (o.stop_loss) return `SL ₹${o.stop_loss.toFixed(2)}`;
+                          if (o.target) return `TP ₹${o.target.toFixed(2)}`;
+                        }
+                        if (type === 'SL' || type === 'SLM') return (o.trigger_price ?? o.client_price ?? 0).toFixed(2);
+                        return (o.client_price ?? o.fill_price ?? o.ltp_at_entry ?? 0).toFixed(2);
+                      })()}</span>
                       <span className="order-time-text">{timeStr}</span>
                     </div>
                   </div>
