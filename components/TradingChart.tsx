@@ -118,6 +118,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [exitPositionId, setExitPositionId] = useState<string | null>(null);
   const [addMoreSymbol, setAddMoreSymbol] = useState<string | null>(null);
   const [addMoreSegment, setAddMoreSegment] = useState<string | null>(null);
+  const [addMoreLtp, setAddMoreLtp] = useState<number | null>(null);
   const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
   const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
@@ -417,7 +418,9 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     const finalQty = useLots ? qtyValue * lotSize : qtyValue;
     
     // Determine the base execution price
-    let finalPrice = currentPrice;
+    // For add-more flow on a different instrument, use that position's LTP not the chart price
+    const basePrice = (isAddMoreFlow && addMoreLtp) ? addMoreLtp : currentPrice;
+    let finalPrice = basePrice;
     if (orderType === 'limit' || orderType === 'gtt') {
       finalPrice = parseFloat(limitPrice);
       if (isNaN(finalPrice) || finalPrice <= 0) {
@@ -504,6 +507,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setIsAddMoreFlow(false);
       setAddMoreSymbol(null);
       setAddMoreSegment(null);
+      setAddMoreLtp(null);
       setExitPositionId(null);
       setOrderBlockTitle(symbol);
       refreshOrders();
@@ -598,6 +602,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setExitPositionId(null);
     setAddMoreSymbol(pos.symbol);
     setAddMoreSegment(pos.settlement || pos.segment || segment);
+    setAddMoreLtp(pos.current_ltp || pos.avg_price || pos.entry_price);
     setOrderSide(pos.side);
     setQtyValue(pos.qty_open);
     setUseLots(false);
