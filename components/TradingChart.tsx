@@ -675,13 +675,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   // All open/active positions (not filtered by symbol)
   const currentSymbolPositions = positions.filter(p => (p.status === 'open' || p.status === 'active'));
-  const pnlTotal = currentSymbolPositions.reduce((acc, pos) => {
-    const entryPrice = pos.avg_price || pos.entry_price;
-    const pnl = pos.side === 'BUY'
-      ? (currentPrice - entryPrice) * pos.qty_open
-      : (entryPrice - currentPrice) * pos.qty_open;
-    return acc + pnl;
-  }, 0);
+  // Sum pre-computed unrealised P&L (uses correct per-symbol LTP from useMyPositions)
+  const pnlTotal = currentSymbolPositions.reduce((acc, pos) => acc + (pos.unrealised_pnl ?? 0), 0);
 
   // Calculated Required Margin for current order block state
   const orderQty = useLots ? qtyValue * lotSize : qtyValue;
@@ -805,9 +800,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
     return currentSymbolPositions.map((pos) => {
       const entryPrice = pos.avg_price || pos.entry_price;
-      const pnl = pos.side === 'BUY'
-        ? (currentPrice - entryPrice) * pos.qty_open
-        : (entryPrice - currentPrice) * pos.qty_open;
+      const pnl = pos.unrealised_pnl ?? 0;
+      const ltp = pos.current_ltp ?? 0;
       const pnlColor = pnl >= 0 ? '#1db954' : '#e53935';
       return (
         <div key={pos.id} className="position-row-rich">
@@ -819,7 +813,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 <span className="order-qty-text">{pos.qty_open} qty</span>
               </div>
             </div>
-            <div className="position-entry-text">Entry ₹{entryPrice.toFixed(2)}</div>
+            <div className="position-entry-text">Avg ₹{entryPrice.toFixed(2)} → LTP ₹{ltp.toFixed(2)}</div>
             <div className="position-pnl-text" style={{ color: pnlColor }}>
               {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}
             </div>
@@ -958,30 +952,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           <span style={{ fontSize: '12px', fontWeight: 600 }}>Indicators</span>
         </div>
 
-        {/* ── Compare ── */}
-        <div
-          className="tc-tb-btn"
-          title="Compare Symbol"
-          onClick={() => showToast('Compare mode coming soon')}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <path d="M1 9 L5 5 L8 7 L13 2" />
-            <path d="M1 12 L5 9 L8 11 L13 6" opacity="0.5"/>
-          </svg>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>Compare</span>
-        </div>
+        {/* ── Compare ── HIDDEN */}
+        {/* ── Snapshot ── HIDDEN */}
 
         {/* ── Right side ── */}
         <div className="tc-top-right">
-
-          {/* Snapshot */}
-          <div className="tc-tb-icon" title="Take Snapshot" onClick={() => showToast('Snapshot copied!')}>
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="1" y="3" width="13" height="10" rx="1.5"/>
-              <circle cx="7.5" cy="8" r="2.5"/>
-              <path d="M5 3l1-2h3l1 2" strokeLinejoin="round"/>
-            </svg>
-          </div>
 
           {/* Settings */}
           <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')} style={{ display: 'none' }}>
@@ -1031,33 +1006,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             )}
           </div>
 
-          <div className="tc-chart-trade-widget">
-            <button
-              className="chart-trade-btn buy-btn"
-              onClick={() => {
-                setIsPanelExpanded(false);
-                setIsOrderBlockVisible(true);
-                setIsBottomSectionVisible(true);
-                setOrderSide('BUY');
-              }}
-            >
-              BUY
-            </button>
-            <div className="chart-trade-price">
-              {currentPrice > 0 ? currentPrice.toFixed(2) : '—'}
-            </div>
-            <button
-              className="chart-trade-btn sell-btn"
-              onClick={() => {
-                setIsPanelExpanded(false);
-                setIsOrderBlockVisible(true);
-                setIsBottomSectionVisible(true);
-                setOrderSide('SELL');
-              }}
-            >
-              SELL
-            </button>
-          </div>
+          {/* BUY/price/SELL widget — HIDDEN */}
 
           <ChartContainer
             symbol={symbol}
@@ -1307,7 +1256,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               if (activeSegment === 'orders' && isPanelExpanded) { setIsPanelExpanded(false); }
               else { setActiveSegment('orders'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
             }}>
-              <i className="ti ti-list-check"></i>Orders
+              <i className="ti ti-list-check"></i>Open Orders
             </button>
             <button className={`segment-pill ${activeSegment === 'positions' ? 'active' : ''}`} onClick={() => {
               if (activeSegment === 'positions' && isPanelExpanded) { setIsPanelExpanded(false); }
