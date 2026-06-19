@@ -485,7 +485,7 @@
   font-size: 13px; font-weight: 700; color: #0A2540; padding: 10px 14px 9px;
   background: #F8FAFE; display: flex; justify-content: space-between; align-items: center;
 }
-.panel-content { display: flex; flex-direction: column; gap: 6px; padding: 0 8px 8px; overflow-y: auto; max-height: 200px; }
+.panel-content { display: flex; flex-direction: column; gap: 6px; padding: 8px; overflow-y: auto; max-height: 200px; }
 
 /* Rows */
 /* Option Chain Styles */
