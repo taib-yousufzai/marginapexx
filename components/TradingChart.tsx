@@ -673,8 +673,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
   };
 
-  // Total Real-time P&L for this symbol positions
-  const currentSymbolPositions = positions.filter(p => p.symbol.toUpperCase() === symbol.toUpperCase() && (p.status === 'open' || p.status === 'active'));
+  // All open/active positions (not filtered by symbol)
+  const currentSymbolPositions = positions.filter(p => (p.status === 'open' || p.status === 'active'));
   const pnlTotal = currentSymbolPositions.reduce((acc, pos) => {
     const entryPrice = pos.avg_price || pos.entry_price;
     const pnl = pos.side === 'BUY'
@@ -801,7 +801,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     
     // Positions — Rich Layout
     if (currentSymbolPositions.length === 0) {
-      return <div className="empty-state">No active positions for {symbol}.</div>;
+      return <div className="empty-state">No active positions.</div>;
     }
     return currentSymbolPositions.map((pos) => {
       const entryPrice = pos.avg_price || pos.entry_price;
