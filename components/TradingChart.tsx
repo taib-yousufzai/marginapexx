@@ -769,12 +769,6 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
       return (
         <>
-          {/* Sub-tabs */}
-          <div className="order-sub-tabs">
-            <div className="order-sub-tab active">
-              Open ({openOrders.length})
-            </div>
-          </div>
           {openOrders.length === 0 ? (
             <div className="empty-state">No open orders.</div>
           ) : (
