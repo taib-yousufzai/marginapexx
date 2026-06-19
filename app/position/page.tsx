@@ -486,7 +486,7 @@ export default function PositionPage() {
                                 )}
                               </div>
                               <div className="pos-card-details">
-                                 <span>Avg: <strong>{fmtPrice(group.avg_price * group.qty_open, group.settlement)}</strong></span>
+                                <span>Avg: <strong>{fmtPrice(group.avg_price, group.settlement)}</strong></span>
                                 <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
                               {group.product_type && (
