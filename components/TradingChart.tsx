@@ -764,8 +764,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
     
     if (activeSegment === 'orders') {
-      const symbolOrders = orders.filter(o => o.symbol.toUpperCase() === symbol.toUpperCase());
-      const openOrders = symbolOrders.filter(o => o.status === 'PENDING');
+      // Show ALL pending orders across all symbols
+      const openOrders = orders.filter(o => o.status === 'PENDING');
 
       return (
         <>
@@ -776,7 +776,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             </div>
           </div>
           {openOrders.length === 0 ? (
-            <div className="empty-state">No open orders for {symbol}.</div>
+            <div className="empty-state">No open orders.</div>
           ) : (
             openOrders.map(o => {
               const isBuy = o.side === 'BUY';
