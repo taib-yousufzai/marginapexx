@@ -2675,3 +2675,22 @@ body.blue .ts-back-btn {
 body.blue .ts-instr-name, body.blue .ts-price-value {
   color: #F5F5F5;
 }
+
+/* ── 3-column layout fixes to prevent size changes and horizontal jittering ── */
+.pos-pnl-card-body.three-cols .pos-pnl-col.left {
+  flex: 0 0 30% !important;
+  width: 30% !important;
+  max-width: 30% !important;
+}
+
+.pos-pnl-card-body.three-cols .pos-pnl-col.center {
+  flex: 0 0 40% !important;
+  width: 40% !important;
+  max-width: 40% !important;
+}
+
+.pos-pnl-card-body.three-cols .pos-pnl-col.right {
+  flex: 0 0 30% !important;
+  width: 30% !important;
+  max-width: 30% !important;
+}

@@ -372,7 +372,7 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
 
 .oc-app-container .main-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden !important;
   display: flex;
   flex-direction: column;
   scrollbar-width: none;
@@ -1434,4 +1434,57 @@ body.blue .ts-pill {
 
 body.blue .trade-sheet {
     background: var(--container-bg, #0B141E);
+}
+
+/* Make chart cover the entire page on all screens */
+#chartSheet.trade-sheet {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    transform: translateY(100%) !important;
+    transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05) !important;
+}
+
+#chartSheet.trade-sheet.open {
+    transform: translateY(0) !important;
+}
+
+@media (min-width: 1024px) {
+    #chartSheet,
+    .mobile-app #chartSheet {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        transform: translateY(100%) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    #chartSheet.open,
+    .mobile-app #chartSheet.open {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    #chartSheetOverlay,
+    .mobile-app #chartSheetOverlay {
+        backdrop-filter: blur(4px) !important;
+    }
 }

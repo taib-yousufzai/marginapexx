@@ -737,14 +737,14 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   onClick={() => openChainOrder('BUY', `${r.strike} CE`, expiry, r.ceLtp, r.ceIV)}
                 >
                   <div className="chain-top-row">
-                    <span className="chain-ltp chain-ce-ltp">₹{r.ceLtp}</span>
+                    <span className="chain-ltp chain-ce-ltp">₹{r.ceLtp.toFixed(2)}</span>
                     <span className="chain-iv">{r.ceIV}%</span>
                   </div>
                   <span className="chain-oi">{r.ceOI}K OI</span>
                 </div>
                 <div className="chain-cell-strike">
                   <span>{r.strike}</span>
-                  {isAtm && <span style={{ fontSize: '7px', color: '#1db954', fontWeight: 700, letterSpacing: '.3px' }}>ATM</span>}
+                  {isAtm && <span style={{ fontSize: '7px', color: 'var(--green)', fontWeight: 700, letterSpacing: '.3px' }}>ATM</span>}
                 </div>
                 <div
                   className={`chain-cell-pe ${r.isITM_PE ? 'chain-itm-pe' : ''} ${chainContract?.name === `${r.strike} PE` ? 'selected' : ''}`}
@@ -752,7 +752,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 >
                   <div className="chain-top-row" style={{ justifyContent: 'flex-end' }}>
                     <span className="chain-iv">{r.peIV}%</span>
-                    <span className="chain-ltp chain-pe-ltp">₹{r.peLtp}</span>
+                    <span className="chain-ltp chain-pe-ltp">₹{r.peLtp.toFixed(2)}</span>
                   </div>
                   <span className="chain-oi">{r.peOI}K OI</span>
                 </div>
@@ -764,7 +764,6 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     }
     
     if (activeSegment === 'orders') {
-      // Show ALL pending orders across all symbols
       const openOrders = orders.filter(o => o.status === 'PENDING');
 
       return (
@@ -774,35 +773,43 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           ) : (
             openOrders.map(o => {
               const isBuy = o.side === 'BUY';
-              const orderTypeLabel = (o.order_type || 'MARKET').toUpperCase();
+              const label = o.side;
+              const labelBg = isBuy ? 'var(--green-bg)' : 'var(--red-bg)';
+              const labelClr = isBuy ? 'var(--green-text)' : 'var(--red-text)';
               const timeStr = o.created_at ? new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
               return (
-                <div key={o.id} className="order-row-rich">
-                  <div className="order-info-top">
-                    <div className="order-info-left">
-                      <span className="order-symbol-name">{o.symbol}</span>
-                      <div className="order-badges">
-                        <span className={`order-side-badge ${isBuy ? 'buy' : 'sell'}`}>{o.side}</span>
-                        <span className="order-qty-text">{o.qty} qty</span>
-                        <span className="order-type-badge">{orderTypeLabel}</span>
+                <div key={o.id} className="order-row">
+                  <div className="order-info-row" style={{ alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: '1 1 0%', minWidth: 0 }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{o.symbol}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ fontWeight: 700, color: labelClr, fontSize: '10px', background: labelBg, padding: '1px 6px', borderRadius: '4px' }}>{label}</span>
+                        <span style={{ color: 'var(--pill-text)', fontSize: '11px' }}>{o.qty} qty</span>
+                        {o.order_type && (
+                          <span style={{ fontSize: '9px', background: 'var(--blue-bg)', color: 'var(--blue-text)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                            {o.order_type.toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="order-info-right">
-                      <span className="order-price-text">₹{(() => {
-                        const type = (o.order_type || '').toUpperCase();
-                        if (type === 'GTT') {
-                          if (o.stop_loss && o.target) return `SL ${o.stop_loss.toFixed(2)} / TP ${o.target.toFixed(2)}`;
-                          if (o.stop_loss) return `SL ₹${o.stop_loss.toFixed(2)}`;
-                          if (o.target) return `TP ₹${o.target.toFixed(2)}`;
-                        }
-                        if (type === 'SL' || type === 'SLM') return (o.trigger_price ?? o.client_price ?? 0).toFixed(2);
-                        return (o.client_price ?? o.fill_price ?? o.ltp_at_entry ?? 0).toFixed(2);
-                      })()}</span>
-                      <span className="order-time-text">{timeStr}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', flexShrink: 0 }}>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '12px' }}>
+                        ₹{(() => {
+                          const type = (o.order_type || '').toUpperCase();
+                          if (type === 'GTT') {
+                            if (o.stop_loss && o.target) return `SL ${o.stop_loss.toFixed(2)} / TP ${o.target.toFixed(2)}`;
+                            if (o.stop_loss) return `SL ₹${o.stop_loss.toFixed(2)}`;
+                            if (o.target) return `TP ₹${o.target.toFixed(2)}`;
+                          }
+                          if (type === 'SL' || type === 'SLM') return (o.trigger_price ?? o.client_price ?? 0).toFixed(2);
+                          return (o.client_price ?? o.fill_price ?? o.ltp_at_entry ?? 0).toFixed(2);
+                        })()}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{timeStr}</span>
                     </div>
                   </div>
                   {o.status === 'PENDING' && (
-                    <div className="order-actions-row" style={{ display: 'flex', gap: '6px' }}>
+                    <div className="order-actions">
                       <button className="order-action-btn modify-order-btn" onClick={() => handleModifyOrder(o)}>Modify</button>
                       <button className="order-action-btn delete-order-btn" onClick={() => handleCancelOrder(o.id)}>Delete</button>
                     </div>
@@ -815,27 +822,30 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       );
     }
     
-    // Positions — Rich Layout
+    // Positions — Rich Layout matching CHARTINH.html exactly
     if (currentSymbolPositions.length === 0) {
       return <div className="empty-state">No active positions.</div>;
     }
     return currentSymbolPositions.map((pos) => {
       const entryPrice = pos.avg_price || pos.entry_price;
       const pnl = pos.unrealised_pnl ?? 0;
-      const ltp = pos.current_ltp ?? 0;
-      const pnlColor = pnl >= 0 ? '#1db954' : '#e53935';
+      const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+      const sideBg = pos.side === 'BUY' ? 'var(--green-bg)' : 'var(--red-bg)';
+      const sideClr = pos.side === 'BUY' ? 'var(--green-text)' : 'var(--red-text)';
       return (
-        <div key={pos.id} className="position-row-rich">
-          <div className="position-info-top">
-            <div className="position-left">
-              <span className="position-symbol-name">{pos.symbol}</span>
-              <div className="position-badges">
-                <span className={`order-side-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
-                <span className="order-qty-text">{pos.qty_open} qty</span>
+        <div key={pos.id} className="position-row">
+          <div className="position-info-row">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{pos.symbol}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span style={{ fontWeight: 700, color: sideClr, fontSize: '10px', background: sideBg, padding: '1px 6px', borderRadius: '4px' }}>
+                  {pos.side}
+                </span>
+                <span style={{ color: 'var(--pill-text)', fontSize: '11px' }}>{pos.qty_open} qty</span>
               </div>
             </div>
-            <div className="position-entry-text">Avg ₹{entryPrice.toFixed(2)} → LTP ₹{ltp.toFixed(2)}</div>
-            <div className="position-pnl-text" style={{ color: pnlColor }}>
+            <div style={{ color: 'var(--pill-text)', fontSize: '11px' }}>Entry ₹{entryPrice.toFixed(2)}</div>
+            <div style={{ color: pnlColor, fontWeight: 700 }}>
               {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}
             </div>
           </div>
@@ -850,29 +860,55 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   return (
     <div className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}>
+      {/* Header from CHARTINH.html */}
+      <div className="header">
+        <div className="header-top">
+          <div className="symbol-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              className="back-btn-header"
+              onClick={() => {
+                const sheet = document.getElementById('chartSheet');
+                const overlay = document.getElementById('chartSheetOverlay');
+                if (sheet) sheet.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px',
+                marginRight: '2px'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M10 3L5 8l5 5"/>
+              </svg>
+            </button>
+            <div>
+              <div className="symbol">{symbol.replace('NSE:', '').replace('BSE:', '')}</div>
+              <div className="price-row">
+                <span className={`price ${isUp ? 'positive' : 'negative'}`} id="livePriceValue">
+                  ₹{currentPrice > 0 ? currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---'}
+                </span>
+                <span className={`change ${isUp ? 'positive' : 'negative'}`} id="liveChangePercent">
+                  {isUp ? '+' : ''}{priceChangePct.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="live-badge">
+            <div className="live-dot"></div>
+            <span className="live">LIVE</span>
+          </div>
+        </div>
+      </div>
+
       {/* Top Toolbar */}
       <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
-
-        {/* ── Back button ── */}
-        <button className="tc-icon-btn" style={{ marginRight: '-6px' }} onClick={() => {
-          const sheet = document.getElementById('chartSheet');
-          const overlay = document.getElementById('chartSheetOverlay');
-          if (sheet) sheet.classList.remove('open');
-          if (overlay) overlay.classList.remove('active');
-        }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M10 3L5 8l5 5"/>
-          </svg>
-        </button>
-
-        {/* ── Symbol ── */}
-        <div className="tc-symbol-btn">
-          <span className="tc-symbol-exchange">{displayExchange}</span>
-          <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z"/></svg>
-        </div>
-
-        <div className="tc-divider"></div>
 
         {/* ── Interval flyout ── */}
         {(() => {
@@ -1287,7 +1323,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               if (activeSegment === 'orders' && isPanelExpanded) { setIsPanelExpanded(false); }
               else { setActiveSegment('orders'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
             }}>
-              <i className="ti ti-list-check"></i>Open Orders
+              <i className="ti ti-list-check"></i>Orders
             </button>
             <button className={`segment-pill ${activeSegment === 'positions' ? 'active' : ''}`} onClick={() => {
               if (activeSegment === 'positions' && isPanelExpanded) { setIsPanelExpanded(false); }
@@ -1300,7 +1336,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
             setIsPanelExpanded(!isPanelExpanded);
             if (!isPanelExpanded) setIsOrderBlockVisible(false);
           }}>
-            <i className={`ti ${isPanelExpanded ? 'ti-chevron-down' : 'ti-chevron-up'}`}></i>
+            <i className={`ti ${isPanelExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
           </div>
         </div>
 

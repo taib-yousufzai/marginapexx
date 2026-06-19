@@ -9,6 +9,9 @@ import OptionChainTable from './OptionChainTable';
 import Footer from '@/components/Footer';
 import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
 import './option-chain.css';
+import dynamic from 'next/dynamic';
+
+const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 
 function addToWatchlist(item: {
   name: string;
@@ -98,6 +101,7 @@ function OptionChainContent() {
   const { placeOrder, loading: placingOrder, error: orderError, setError: setOrderError } = useOrderEntry();
 
   const [selectedContract, setSelectedContract] = useState<{ symbol: string, type: 'CE' | 'PE', strike: number } | null>(null);
+  const [chartItem, setChartItem] = useState<any>(null);
   const [orderQty, setOrderQty] = useState(25);
   const { positions: activePositions, refreshPositions } = useActivePositions();
   const [orderType, setOrderType] = useState<OrderType>('MARKET');
@@ -853,7 +857,18 @@ function OptionChainContent() {
                       marginBottom: '8px',
                       transition: 'all 0.18s'
                     }}
-                    onClick={() => showToast("Opening Trading Chart for " + selectedContract.symbol, false)}
+                    onClick={() => {
+                      setChartItem({
+                        symbol: selectedContract.symbol,
+                        kiteSymbol: kiteId || selectedContract.symbol,
+                        segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BFO' : 'NFO'
+                      });
+                      setSelectedContract(null);
+                      const chartSheet = document.getElementById('chartSheet');
+                      const chartOverlay = document.getElementById('chartSheetOverlay');
+                      if (chartSheet) chartSheet.classList.add('open');
+                      if (chartOverlay) chartOverlay.classList.add('active');
+                    }}
                   >
                     <svg 
                       viewBox="0 0 24 24" 
@@ -1222,6 +1237,19 @@ function OptionChainContent() {
           }
         }}
       />
+
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {chartItem && (
+            <TradingChart
+              symbol={chartItem.kiteSymbol || chartItem.symbol}
+              segment={chartItem.segment}
+              liveQuote={quotes[chartItem.kiteSymbol]}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

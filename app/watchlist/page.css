@@ -253,6 +253,7 @@
     flex: 1;
     min-height: 0;
     width: 100%;
+    position: relative;
 }
 
 .mobile-app .main-content {
@@ -266,17 +267,23 @@
 }
 
 .search-results-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
     background: #FFFFFF;
-    border-radius: 20px;
-    padding: 14px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid #EEF2F8;
+    border-radius: 0;
+    padding: 16px 0;
+    box-shadow: none;
+    border: none;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    max-height: 40vh;
+    max-height: none;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .section-subtitle {
@@ -288,6 +295,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    padding: 0 16px;
 }
 
 .section-subtitle #searchResultCount {
@@ -300,7 +308,7 @@
 #searchResultsList {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0;
     flex: 1;
     overflow-y: auto;
     min-height: 0;
@@ -309,18 +317,21 @@
     overscroll-behavior-y: contain;
     will-change: scroll-position;
     padding-right: 2px;
+    padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
 }
 
 .search-result-item {
     background: #FFFFFF;
-    border-radius: 16px;
+    border-radius: 0;
     padding: 16px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid #EFF2F8;
+    border-style: none none solid none;
+    border-width: 1px;
+    border-color: #EFF2F8;
     gap: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    box-shadow: none;
 }
 
 .search-result-info {
@@ -2017,11 +2028,11 @@ body.dark .mobile-app .main-content {
 
 body.dark .search-results-section {
     background: #1e1e1e;
-    border-color: #2a2a2a;
+    border: none;
 }
 
 body.dark .search-result-item {
-    background: #252525;
+    background: #1e1e1e;
     border-color: #2a2a2a;
 }
 
@@ -3224,12 +3235,12 @@ body.black .mobile-app .main-content {
 
 body.black .search-results-section {
     background: #000000;
-    border-color: #000000;
+    border: none;
 }
 
 body.black .search-result-item {
     background: #000000;
-    border-color: #000000;
+    border-color: #222222;
 }
 
 body.black .search-result-name,
@@ -3585,13 +3596,13 @@ body.blue .mobile-app .main-content {
 
 body.blue .search-results-section {
     background: #0B141E;
-    border-color: #0B141E;
+    border: none;
 }
 
 
 body.blue .search-result-item {
     background: #0B141E;
-    border-color: #0B141E;
+    border-color: #1e293b;
 }
 
 
