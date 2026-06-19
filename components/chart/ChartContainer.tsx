@@ -226,7 +226,7 @@ export default function ChartContainer({
         top: '12px',
         right: '12px',
         zIndex: 50,
-        display: 'flex',
+        display: 'none',
         gap: '6px'
       }}>
         <button

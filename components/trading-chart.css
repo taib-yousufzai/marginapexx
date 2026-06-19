@@ -342,6 +342,9 @@
   overflow: visible;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
+.bottom-section.collapsed {
+  display: none;
+}
 
 /* Buy/Sell buttons */
 .trade-buttons {

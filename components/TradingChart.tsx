@@ -99,6 +99,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // ── CHARTINH Integration States ──
   const [activeOrderTab, setActiveOrderTab] = useState<'open' | 'executed'>('open');
   const [isExitFlow, setIsExitFlow] = useState<boolean>(false);
+  const [isAddMoreFlow, setIsAddMoreFlow] = useState<boolean>(false);
   const [exitPositionId, setExitPositionId] = useState<string | null>(null);
   const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
@@ -147,6 +148,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setUseLots(false);
     setQtyValue(lotSize);
     setIsExitFlow(false);
+    setIsAddMoreFlow(false);
     setExitPositionId(null);
     setPostOrderSegment('chain');
     setIsOrderBlockVisible(true);
@@ -462,6 +464,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       setIsOrderBlockVisible(false);
       setChainContract(null);
       setIsExitFlow(false);
+      setIsAddMoreFlow(false);
       setExitPositionId(null);
       setOrderBlockTitle(symbol);
       refreshOrders();
@@ -510,6 +513,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     setTriggerPrice(o.trigger_price ? o.trigger_price.toString() : '');
     setGttSlPrice(o.stop_loss ? o.stop_loss.toString() : '');
     setGttTargetPrice(o.target ? o.target.toString() : '');
+    setIsExitFlow(false);
+    setIsAddMoreFlow(false);
     setOrderBlockTitle(`Modify · ${o.symbol}`);
     setPostOrderSegment('orders');
     setIsOrderBlockVisible(true);
@@ -519,6 +524,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const handleExitPosition = (pos: EnrichedPosition) => {
     setIsPanelExpanded(false);
     setIsExitFlow(true);
+    setIsAddMoreFlow(false);
     setExitPositionId(pos.id);
     setOrderSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
     setQtyValue(pos.qty_open);
@@ -549,6 +555,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const handleAddMorePosition = (pos: EnrichedPosition) => {
     setIsPanelExpanded(false);
     setIsExitFlow(false);
+    setIsAddMoreFlow(true);
     setExitPositionId(null);
     setOrderSide(pos.side);
     setQtyValue(pos.qty_open);
@@ -902,6 +909,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           className="tc-tb-btn tc-tb-indicators"
           title="Indicators"
           onClick={() => setShowSettingsModal(true)}
+          style={{ display: 'none' }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
             <path d="M1 10 L4 6 L7 8 L10 3 L13 5"/>
@@ -936,7 +944,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           </div>
 
           {/* Settings */}
-          <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')}>
+          <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')} style={{ display: 'none' }}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="7.5" cy="7.5" r="2"/>
               <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12"/>
@@ -1056,6 +1064,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               } else {
                 setIsPanelExpanded(false);
                 setIsExitFlow(false);
+                setIsAddMoreFlow(false);
                 setExitPositionId(null);
                 setOrderBlockTitle(symbol);
                 setPostOrderSegment('main');
@@ -1071,6 +1080,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               } else {
                 setIsPanelExpanded(false);
                 setIsExitFlow(false);
+                setIsAddMoreFlow(false);
                 setExitPositionId(null);
                 setOrderBlockTitle(symbol);
                 setPostOrderSegment('main');
@@ -1090,7 +1100,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               <span className="order-block-title">
                 {chainContract ? `${symbol} ${chainContract.name}` : orderBlockTitle}
               </span>
-              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); setIsExitFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); }}>
+              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); }}>
                 <i className="ti ti-x"></i>
               </div>
             </div>
@@ -1157,7 +1167,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   </div>
                 </div>
                 <div className="carry-box" id="carryGroup">
-                  <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Normal</div>
+                  <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Intraday</div>
                   <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
                 </div>
               </div>
@@ -1167,7 +1177,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
                   {!isExitFlow && <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>}
                   {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
-                  {!isExitFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
+                  {!isExitFlow && isAddMoreFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
                   <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')} style={{ display: isExitFlow ? '' : 'none' }}>SL</div>
                 </div>
                 {(orderType === 'limit' || orderType === 'gtt') && (
@@ -1184,7 +1194,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 )}
                 {(orderType === 'sl' || orderType === 'slm') && (
                   <div className="limit-price-box visible" id="triggerPriceBox" style={{ width: '120px' }}>
-                    <span className="price-symbol" style={{ fontSize: '8px', color: '#8B92A8', fontWeight: 'bold' }}>TRIG ₹</span>
+                    <span className="price-symbol" style={{ fontSize: '9px', color: '#8B92A8', fontWeight: 'bold', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>Trigger ₹</span>
                     <input
                       type="number"
                       step="0.05"
