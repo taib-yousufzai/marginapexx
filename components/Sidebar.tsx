@@ -38,7 +38,7 @@ export default function Sidebar() {
     <aside className={`desktop-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="logo-icon">M</div>
+          <img src="/logonew.jpg" alt="Logo" className="logo-icon-img" />
           {!isCollapsed && <span className="logo-text">MARGIN<span>APEX</span></span>}
         </div>
         <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>

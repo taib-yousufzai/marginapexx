@@ -46,6 +46,14 @@
   box-shadow: 0 4px 12px rgba(0, 100, 0, 0.2);
 }
 
+.logo-icon-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .logo-text {
   font-weight: 800;
   font-size: 1.1rem;

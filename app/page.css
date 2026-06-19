@@ -848,6 +848,13 @@ body.dark .circle-icon {
     /* Tightest padding */
   }
 
+  .whatsapp-community,
+  .margin-settings-row,
+  .option-chain-section,
+  .expiry-block {
+    margin-bottom: 12px !important;
+  }
+
   .market-overview {
     padding: 12px !important;
     /* Reduce inner padding */
