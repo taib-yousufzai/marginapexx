@@ -168,7 +168,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         comex.push(p.symbol);
       } else {
-        kite.push(p.symbol);
+        kite.push(p.kite_instrument || p.symbol);
       }
     });
 
@@ -204,7 +204,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
       } else {
-        ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
+        const kiteKey = p.kite_instrument || p.symbol;
+        ltp = marketQuotes[kiteKey]?.lastPrice ?? ltp;
       }
 
       // Derive DB segment once — used for both PnL and anti-scalping calculations

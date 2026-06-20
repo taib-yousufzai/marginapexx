@@ -20,22 +20,27 @@ export async function GET(request: NextRequest) {
     // Fetch positions and orders in parallel
     const [posResult, ordResult] = await Promise.all([
       admin.from('positions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      admin.from('orders').select('symbol, side, product_type').eq('user_id', user.id).eq('status', 'EXECUTED').order('created_at', { ascending: true }),
+      admin.from('orders').select('symbol, side, product_type, kite_instrument').eq('user_id', user.id).eq('status', 'EXECUTED').order('created_at', { ascending: true }),
     ]);
 
     if (posResult.error) throw posResult.error;
 
     // Build a map: "SYMBOL|SIDE" -> product_type (first executed order wins) as fallback
     const productTypeMap: Record<string, string> = {};
+    const kiteInstrumentMap: Record<string, string> = {};
     for (const o of (ordResult.data ?? [])) {
       const key = `${o.symbol}|${o.side}`;
       if (!productTypeMap[key]) productTypeMap[key] = o.product_type ?? 'INTRADAY';
+      if (!kiteInstrumentMap[o.symbol] && o.kite_instrument) {
+        kiteInstrumentMap[o.symbol] = o.kite_instrument;
+      }
     }
 
     // Attach product_type to each position, prioritizing position's own stored product_type
     const positions = (posResult.data ?? []).map(p => ({
       ...p,
       product_type: p.product_type || productTypeMap[`${p.symbol}|${p.side}`] || 'INTRADAY',
+      kite_instrument: p.kite_instrument || kiteInstrumentMap[p.symbol] || p.symbol,
     }));
 
     return NextResponse.json({ positions });

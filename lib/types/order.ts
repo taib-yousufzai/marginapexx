@@ -71,6 +71,7 @@ export interface MyOrder {
 export interface MyPosition {
   id: string;
   symbol: string;
+  kite_instrument?: string;
   side: OrderSide;
   status: 'open' | 'active' | 'closed';
   qty_open: number;

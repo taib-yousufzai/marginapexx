@@ -95,7 +95,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // --- Dashboard States ---
   const [isOrderBlockVisible, setIsOrderBlockVisible] = useState<boolean>(false);
   const [orderSide, setOrderSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [qtyValue, setQtyValue] = useState<number>(() => getLotSize(symbol));
+  const [qtyValue, setQtyValue] = useState<number | string>(() => getLotSize(symbol));
   const [useLots, setUseLots] = useState<boolean>(false);
   const [orderCarry, setOrderCarry] = useState<'normal' | 'carry'>('normal');
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'slm' | 'gtt' | 'sl'>('market');
@@ -400,9 +400,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // In Lot mode: step by 0.5. In Qty mode: step by lotSize (whole units)
   const handleQtyStep = (delta: number) => {
     if (useLots) {
-      setQtyValue(prev => Math.max(0.5, parseFloat((prev + delta * 0.5).toFixed(1))));
+      setQtyValue(prev => Math.max(0.5, parseFloat((Number(prev) + delta * 0.5).toFixed(1))));
     } else {
-      setQtyValue(prev => Math.max(lotSize, prev + delta * lotSize));
+      const step = isCrypto ? 0.01 : lotSize;
+      const minQty = isCrypto ? 0.01 : lotSize;
+      setQtyValue(prev => Math.max(minQty, parseFloat((Number(prev) + delta * step).toFixed(isCrypto ? 2 : 0))));
     }
   };
 
@@ -410,19 +412,25 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const handleUnitChange = (lotsActive: boolean) => {
     setUseLots(lotsActive);
     setQtyValue(prev => {
+      const p = Number(prev);
       if (lotsActive) {
         // Convert qty -> lots, allow decimal (e.g. 12.5 qty / 25 lotSize = 0.5 lots)
-        return Math.max(0.5, parseFloat((prev / lotSize).toFixed(1)));
+        return Math.max(0.5, parseFloat((p / lotSize).toFixed(1)));
       } else {
-        // Convert lots -> qty (always whole number)
-        return Math.round(prev * lotSize);
+        // Convert lots -> qty (always whole number except for crypto)
+        return isCrypto ? parseFloat((p * lotSize).toFixed(2)) : Math.round(p * lotSize);
       }
     });
   };
 
   // Place actual order
   const handleSubmitOrder = async () => {
-    const finalQty = useLots ? Math.round(qtyValue * lotSize) : Math.round(qtyValue);
+    const qVal = Number(qtyValue) || 0;
+    if (qVal <= 0) {
+      showToast("Invalid quantity", true);
+      return;
+    }
+    const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
     
     // Determine the base execution price
     // For add-more flow on a different instrument, use that position's LTP not the chart price
@@ -491,7 +499,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       segment: orderSegment,
       side: orderSide,
       qty: finalQty,
-      lots: useLots ? qtyValue : 0,
+      lots: useLots ? Number(qtyValue) : 0,
       order_type: orderType.toUpperCase() as any,
       product_type: orderCarry === 'carry' ? 'CARRY' : 'INTRADAY',
       client_price: finalPrice,
@@ -697,7 +705,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const pnlTotal = currentSymbolPositions.reduce((acc, pos) => acc + (pos.unrealised_pnl ?? 0), 0);
 
   // Calculated Required Margin for current order block state
-  const orderQty = useLots ? qtyValue * lotSize : qtyValue;
+  const orderQty = useLots ? Number(qtyValue) * lotSize : Number(qtyValue);
   const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || currentPrice) : currentPrice;
   
   const dbSeg = mapSegmentToDbSegment(segment);
@@ -1206,12 +1214,15 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       step={useLots ? 0.5 : lotSize}
                       min={useLots ? 0.5 : lotSize}
                       onChange={(e) => {
+                        setQtyValue(e.target.value);
+                      }}
+                      onBlur={() => {
+                        const val = parseFloat(String(qtyValue));
                         if (useLots) {
-                          const val = parseFloat(e.target.value);
                           setQtyValue(isNaN(val) || val <= 0 ? 0.5 : val);
                         } else {
-                          const val = parseInt(e.target.value);
-                          setQtyValue(isNaN(val) || val <= 0 ? lotSize : val);
+                          const minVal = isCrypto ? 0.01 : lotSize;
+                          setQtyValue(isNaN(val) || val <= 0 ? minVal : val);
                         }
                       }}
                     />
@@ -1233,7 +1244,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
                   {!isExitFlow && <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>}
                   {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
-                  {!isExitFlow && isAddMoreFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
+                  {!isExitFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
                   <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')} style={{ display: isExitFlow ? '' : 'none' }}>SL</div>
                 </div>
                 {(orderType === 'limit' || orderType === 'gtt') && (
