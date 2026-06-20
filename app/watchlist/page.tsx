@@ -597,6 +597,56 @@ function WatchlistContent() {
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
 
+  // --- Global Modal History Manager ---
+  useEffect(() => {
+    let isPopping = false;
+
+    const handlePopState = () => {
+      if (window.location.hash !== '#modal') {
+        isPopping = true;
+        setIsTradeSheetOpen(false);
+        setChartItem(null);
+        setIsFolderDrawerOpen(false);
+        
+        const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer', 'tradeSheetOverlay', 'detailSheetOverlay', 'chartSheetOverlay', 'drawerOverlay'];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.remove('open');
+            el.classList.remove('active');
+          }
+        });
+        setTimeout(() => { isPopping = false; }, 50);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    const observer = new MutationObserver(() => {
+      if (isPopping) return;
+      
+      const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer'];
+      const isAnyModalOpen = ids.some(id => {
+        const el = document.getElementById(id);
+        return el && el.classList.contains('open');
+      });
+
+      if (isAnyModalOpen && window.location.hash !== '#modal') {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + '#modal');
+      } else if (!isAnyModalOpen && window.location.hash === '#modal') {
+        isPopping = true;
+        window.history.back();
+        setTimeout(() => { isPopping = false; }, 50);
+      }
+    });
+
+    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      observer.disconnect();
+    };
+  }, []);
+
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
