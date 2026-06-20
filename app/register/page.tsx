@@ -71,6 +71,7 @@ function RegisterForm() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +82,7 @@ function RegisterForm() {
   const [fullNameError, setFullNameError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [confirmEmailError, setConfirmEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
 
@@ -119,6 +121,8 @@ function RegisterForm() {
     let hasError = false;
     if (!fullName.trim()) { setFullNameError('Full name is required'); hasError = true; }
     if (!email.trim()) { setEmailError('Email address is required'); hasError = true; }
+    if (!confirmEmail.trim()) { setConfirmEmailError('Please confirm your email'); hasError = true; }
+    if (email.trim() !== confirmEmail.trim()) { setConfirmEmailError('Emails do not match'); hasError = true; }
     if (!password) { setPasswordError('Password is required'); hasError = true; }
     if (!confirmPassword) { setConfirmPasswordError('Please confirm your password'); hasError = true; }
     if (hasError) return;
@@ -251,6 +255,18 @@ function RegisterForm() {
                     autoComplete="email" disabled={isLoading} />
                 </div>
                 {emailError && <span className="login-field-error" role="alert">{emailError}</span>}
+              </div>
+
+              {/* Confirm Email */}
+              <div className="login-field-group">
+                <label htmlFor="confirmEmail" className="login-label">Confirm Email</label>
+                <div className={`login-input-wrapper${confirmEmailError ? ' login-input-error' : ''}`}>
+                  <span className="login-input-icon"><i className="fas fa-envelope" /></span>
+                  <input id="confirmEmail" type="email" className="login-input" value={confirmEmail}
+                    onChange={e => { setConfirmEmail(e.target.value); setConfirmEmailError(''); setFormError(''); }}
+                    autoComplete="email" disabled={isLoading} onPaste={e => e.preventDefault()} />
+                </div>
+                {confirmEmailError && <span className="login-field-error" role="alert">{confirmEmailError}</span>}
               </div>
 
               {/* Password */}
