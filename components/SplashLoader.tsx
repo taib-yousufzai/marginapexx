@@ -9,12 +9,12 @@ export default function SplashLoader() {
     // Start fading out after 600ms
     const fadeTimer = setTimeout(() => {
       setFading(true);
-      
+
       // Mark as hidden after 300ms transition completes
       const hideTimer = setTimeout(() => {
         setHidden(true);
       }, 300);
-      
+
       return () => clearTimeout(hideTimer);
     }, 600);
 
