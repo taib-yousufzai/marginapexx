@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/sync-instruments?secret=qwertyuiopasdfghjklzxcvbnm",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/eod-processing?secret=qwertyuiopasdfghjklzxcvbnm",
+      "schedule": "55 18 * * *"
     }
   ]
 }
