@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, getSession, getRole } from '@/lib/auth';
 import './page.css';
@@ -21,10 +21,30 @@ export default function LoginPage() {
     }
   }, []);
 
+  const isLoggingInRef = useRef(false);
+
+  // Prevent hardware back-button bypass on Android/iOS
+  useEffect(() => {
+    if (showRiskPopup && !showRulesPopup) {
+      window.history.pushState({ popup: 'auth_flow' }, '');
+    }
+  }, [showRiskPopup, showRulesPopup]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // If user presses back while popups are open, sign them out immediately
+      if (showRiskPopup || showRulesPopup) {
+        import('@/lib/auth').then(({ signOut }) => signOut());
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showRiskPopup, showRulesPopup]);
+
   // Redirect based on role if already authenticated
   useEffect(() => {
     getSession().then((session) => {
-      if (session) {
+      if (session && !isLoggingInRef.current) {
         const role = getRole(session.user);
         router.replace(role === 'admin' ? '/admin' : '/');
       }
@@ -65,6 +85,7 @@ export default function LoginPage() {
     setPasswordError('');
     setFormError('');
     setIsLoading(true);
+    isLoggingInRef.current = true;
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -98,6 +119,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setFormError('');
+    isLoggingInRef.current = true;
 
     // Small async tick so the loading state renders before the credential check
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -426,7 +448,7 @@ export default function LoginPage() {
                 className="risk-submit-btn"
                 disabled={!agreedToRules}
                 onClick={() => {
-                  if (pendingRoute) router.push(pendingRoute);
+                  if (pendingRoute) router.replace(pendingRoute);
                 }}
               >
                 [ I AGREE &amp; CONTINUE ]
