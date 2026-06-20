@@ -28,6 +28,12 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/png',
         purpose: 'maskable',
       },
+      {
+        src: '/splash-icon.jpg?v=1',
+        sizes: '512x512',
+        type: 'image/jpeg',
+        purpose: 'any',
+      },
     ],
   };
 }

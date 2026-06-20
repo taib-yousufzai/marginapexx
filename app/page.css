@@ -1526,4 +1526,6 @@ body.blue .notif-item {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  overscroll-behavior-y: contain !important;
 }
