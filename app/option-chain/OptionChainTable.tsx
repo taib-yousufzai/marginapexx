@@ -25,9 +25,10 @@ interface OptionChainTableProps {
   spotPrice: number;
   onTrade: (symbol: string, side: 'BUY' | 'SELL') => void;
   priceMode?: 'BA' | 'LTP';
+  stickyTop?: number;
 }
 
-export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, priceMode = 'LTP' }: OptionChainTableProps) {
+export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, priceMode = 'LTP', stickyTop = 58 }: OptionChainTableProps) {
   const atmRef = React.useRef<HTMLDivElement>(null);
   const tableHeaderRef = React.useRef<HTMLDivElement>(null);
   const [subheadFloating, setSubheadFloating] = React.useState(false);
@@ -79,7 +80,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
     const onScroll = () => {
       if (!tableHeaderRef.current) return;
       const rect = tableHeaderRef.current.getBoundingClientRect();
-      setSubheadFloating(rect.bottom <= 58);
+      setSubheadFloating(rect.bottom <= stickyTop);
     };
     scrollEl.addEventListener('scroll', onScroll, { passive: true });
     return () => scrollEl.removeEventListener('scroll', onScroll);
@@ -137,8 +138,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const peBid = peLtpVal ? (peLtpVal - 0.05).toFixed(1) : '---';
             const peAsk = peLtpVal ? (peLtpVal + 0.05).toFixed(1) : '---';
 
-            const ceLtp = ceLtpVal ? `â‚¹${ceLtpVal.toFixed(1)}` : '---';
-            const peLtp = peLtpVal ? `â‚¹${peLtpVal.toFixed(1)}` : '---';
+            const ceLtp = ceLtpVal ? `₹${ceLtpVal.toFixed(1)}` : '---';
+            const peLtp = peLtpVal ? `₹${peLtpVal.toFixed(1)}` : '---';
 
             return (
               <div
@@ -253,7 +254,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #ffffff;
         }
 
-        /* â”€â”€ Sticky sub-header â”€â”€ */
+        /* ——— Sticky sub-header ——— */
         .oct-subhead {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -261,13 +262,13 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           font-weight: 700;
           font-family: 'Inter', sans-serif;
           position: sticky;
-          top: 58px;
+          top: ${stickyTop}px;
           z-index: 20;
           border-bottom: 1px solid #e8eaf0;
           transition: border-radius 0.15s ease, box-shadow 0.15s ease;
         }
 
-        /* When header scrolled away â€” round top corners */
+        /* When header scrolled away — round top corners */
         .oct-subhead.floating {
           border-radius: 20px 20px 0 0;
           box-shadow: 0 4px 16px rgba(0,0,0,0.1);

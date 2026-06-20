@@ -8,6 +8,7 @@ import type { MyOrder } from '@/lib/types/order';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
+import OptionChainTable from '@/app/option-chain/OptionChainTable';
 import './trading-chart.css';
 
 interface TradingChartProps {
@@ -729,44 +730,27 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       const strikes = getChainStrikes();
       const expiry = '23 JAN';
       const atm = Math.round((currentPrice || 71.00) / 100) * 100;
+      const mappedStrikes = strikes.map(r => ({
+        strike: r.strike,
+        ce: { token: 0, symbol: `${r.strike} CE|${r.ceLtp}|${r.ceIV}`, id: '', price: r.ceLtp },
+        pe: { token: 0, symbol: `${r.strike} PE|${r.peLtp}|${r.peIV}`, id: '', price: r.peLtp }
+      }));
+
+      const handleTableTrade = (tradeSymbol: string, side: 'BUY' | 'SELL') => {
+        const [name, ltpStr, ivStr] = tradeSymbol.split('|');
+        openChainOrder(side, name, expiry, parseFloat(ltpStr), parseFloat(ivStr));
+      };
+
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <div className="chain-table-header">
-            <span className="ch-ce">CALL</span>
-            <span className="ch-strike">Strike</span>
-            <span className="ch-pe">PUT</span>
-          </div>
-          {strikes.map(r => {
-            const isAtm = r.strike === atm;
-            return (
-              <div key={r.strike} className={`chain-row${isAtm ? ' chain-atm' : ''}`}>
-                <div
-                  className={`chain-cell-ce ${r.isITM_CE ? 'chain-itm-ce' : ''} ${chainContract?.name === `${r.strike} CE` ? 'selected' : ''}`}
-                  onClick={() => openChainOrder('BUY', `${r.strike} CE`, expiry, r.ceLtp, r.ceIV)}
-                >
-                  <div className="chain-top-row">
-                    <span className="chain-ltp chain-ce-ltp">₹{r.ceLtp.toFixed(2)}</span>
-                    <span className="chain-iv">{r.ceIV}%</span>
-                  </div>
-                  <span className="chain-oi">{r.ceOI}K OI</span>
-                </div>
-                <div className="chain-cell-strike">
-                  <span>{r.strike}</span>
-                  {isAtm && <span style={{ fontSize: '7px', color: 'var(--green)', fontWeight: 700, letterSpacing: '.3px' }}>ATM</span>}
-                </div>
-                <div
-                  className={`chain-cell-pe ${r.isITM_PE ? 'chain-itm-pe' : ''} ${chainContract?.name === `${r.strike} PE` ? 'selected' : ''}`}
-                  onClick={() => openChainOrder('BUY', `${r.strike} PE`, expiry, r.peLtp, r.peIV)}
-                >
-                  <div className="chain-top-row" style={{ justifyContent: 'flex-end' }}>
-                    <span className="chain-iv">{r.peIV}%</span>
-                    <span className="chain-ltp chain-pe-ltp">₹{r.peLtp.toFixed(2)}</span>
-                  </div>
-                  <span className="chain-oi">{r.peOI}K OI</span>
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '0 10px' }}>
+          <OptionChainTable 
+            strikes={mappedStrikes} 
+            quotes={{}} 
+            spotPrice={currentPrice || 71.00} 
+            onTrade={handleTableTrade} 
+            priceMode="LTP" 
+            stickyTop={0}
+          />
         </div>
       );
     }
@@ -1219,12 +1203,12 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               <div className="bottom-row">
                 <div className="market-limit-box" id="orderTypeGroup" style={{ width: 'auto', flexGrow: 1 }}>
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
-                  {!isExitFlow && <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>Lmt</div>}
+                  <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>{isExitFlow ? 'Tgt' : 'Lmt'}</div>
                   {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
-                  {!isExitFlow && <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>}
-                  <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')} style={{ display: isExitFlow ? '' : 'none' }}>SL</div>
+                  {isExitFlow && <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>}
+                  <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
                 </div>
-                {(orderType === 'limit' || orderType === 'gtt') && (
+                {(orderType === 'limit' || (orderType === 'gtt' && !isExitFlow)) && (
                   <div className="limit-price-box visible" id="limitPriceBox" style={{ width: '120px' }}>
                     <span className="price-symbol">₹</span>
                     <input
@@ -1251,7 +1235,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               </div>
 
               {orderType === 'gtt' && (
-                <div className="gtt-row">
+                <div className="gtt-row visible">
                   <div className="gtt-field sl-field">
                     <span className="gtt-tag">SL ₹</span>
                     <input
@@ -1259,7 +1243,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       step="0.05"
                       value={gttSlPrice}
                       onChange={(e) => setGttSlPrice(e.target.value)}
-                      placeholder="stop loss"
+                      placeholder="00.0"
                     />
                   </div>
                   <div className="gtt-field tgt-field">
@@ -1269,7 +1253,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                       step="0.05"
                       value={gttTargetPrice}
                       onChange={(e) => setGttTargetPrice(e.target.value)}
-                      placeholder="target"
+                      placeholder="00.0"
                     />
                   </div>
                 </div>

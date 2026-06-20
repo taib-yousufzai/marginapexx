@@ -372,7 +372,7 @@ body.dark .oc-info-card::after { background: #2C8E5A; }
 
 .oc-app-container .main-content {
   flex: 1;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   display: flex;
   flex-direction: column;
   scrollbar-width: none;

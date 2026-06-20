@@ -45,7 +45,8 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <SplashLoader />
-        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{__html: `
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{
+          __html: `
           (function(){
             try {
               var t = localStorage.getItem('marginApexTheme');

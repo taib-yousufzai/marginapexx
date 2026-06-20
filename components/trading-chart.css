@@ -728,6 +728,7 @@
   min-width: 0;
 }
 .tc-wrapper .market-option {
+  flex: 1;
   min-width: 36px;
   text-align: center;
   border-radius: 36px;

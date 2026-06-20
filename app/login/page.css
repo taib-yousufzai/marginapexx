@@ -536,3 +536,113 @@
   color: #00AA00;
   background: rgba(0, 170, 0, 0.06);
 }
+
+/* ===== RISK POPUP ===== */
+.risk-popup-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.risk-popup-content {
+  background: var(--card-bg, #FFFFFF);
+  border-radius: 20px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  box-sizing: border-box;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+}
+.risk-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: var(--text-primary, #1A1A1A);
+}
+.risk-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: var(--text-secondary, #6B7280);
+}
+.risk-text-scroll {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-light, #E8ECF0);
+  border-radius: 12px;
+  padding: 16px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #6B7280);
+  background: var(--bg-body, #F9FAFB);
+  margin-bottom: 20px;
+}
+.risk-text-scroll p {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+.risk-highlight {
+  color: var(--text-primary, #1A1A1A);
+}
+.risk-popup-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.risk-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, #1A1A1A);
+  cursor: pointer;
+}
+.risk-checkbox-label input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+.risk-submit-btn {
+  padding: 14px;
+  background: var(--text-primary, #1A1A1A);
+  color: var(--bg-body, #FFFFFF);
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.risk-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.risk-submit-btn:not(:disabled):hover {
+  background: var(--text-secondary, #6B7280);
+}
+
+/* Dark mode overrides for Risk Popup */
+:is(body.dark, body.black, body.blue) .risk-popup-content {
+  background: var(--card-bg, #1A1A24);
+  border: 1px solid #374151;
+}
+:is(body.dark, body.black, body.blue) .risk-text-scroll {
+  background: var(--bg-body, #0A0A0F);
+  border-color: #374151;
+}
+:is(body.dark, body.black, body.blue) .risk-submit-btn {
+  background: #00AA00;
+}
+:is(body.dark, body.black, body.blue) .risk-submit-btn:not(:disabled):hover {
+  background: #00CC00;
+}
