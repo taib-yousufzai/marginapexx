@@ -7,6 +7,7 @@ import './page.css';
 
 export default function LoginPage() {
   const router = useRouter();
+  const isLoggingInRef = useRef(false);
 
   // Apply active theme on mount — same pattern as all other pages
   useEffect(() => {
@@ -21,8 +22,6 @@ export default function LoginPage() {
     }
   }, []);
 
-  const isLoggingInRef = useRef(false);
-
   // Prevent hardware back-button bypass on Android/iOS
   useEffect(() => {
     if (showRiskPopup && !showRulesPopup) {
@@ -34,7 +33,15 @@ export default function LoginPage() {
     const handlePopState = () => {
       // If user presses back while popups are open, sign them out immediately
       if (showRiskPopup || showRulesPopup) {
-        import('@/lib/auth').then(({ signOut }) => signOut());
+        // Clear Supabase session from localStorage manually to bypass Turbopack dynamic import bug
+        try {
+          for (const key in localStorage) {
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {}
+        window.location.reload();
       }
     };
     window.addEventListener('popstate', handlePopState);
