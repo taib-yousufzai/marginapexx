@@ -601,7 +601,6 @@ export default function PositionPage() {
                     ) : openPositions.map(pos => {
                       const entryDate = new Date(pos.entry_time);
                       const timeStr = entryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                      const dateStr = entryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                       return (
                         <div
@@ -625,14 +624,13 @@ export default function PositionPage() {
                                 <div className="pos-detail-meta-row">
                                   <span>Qty: <strong>{pos.qty_open || pos.qty_total}</strong></span>
                                   <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
+                                </div>
+                                <div className="pos-detail-meta-row">
+                                  <span>Time: <strong>{timeStr}</strong></span>
                                   {pos.status === 'closed'
                                     ? <span>Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></span>
                                     : <span>Current: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
                                   }
-                                </div>
-                                <div className="pos-detail-meta-row">
-                                  <span>Time: <strong>{timeStr}</strong></span>
-                                  <span>Date: <strong>{dateStr}</strong></span>
                                 </div>
                               </div>
                               {pos.product_type && (

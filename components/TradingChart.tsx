@@ -868,55 +868,32 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   return (
     <div className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}>
-      {/* Header from CHARTINH.html */}
-      <div className="header">
-        <div className="header-top">
-          <div className="symbol-section" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              className="back-btn-header"
-              onClick={() => {
-                const sheet = document.getElementById('chartSheet');
-                const overlay = document.getElementById('chartSheetOverlay');
-                if (sheet) sheet.classList.remove('open');
-                if (overlay) overlay.classList.remove('active');
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px',
-                marginRight: '2px'
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M10 3L5 8l5 5"/>
-              </svg>
-            </button>
-            <div>
-              <div className="symbol">{symbol.replace('NSE:', '').replace('BSE:', '')}</div>
-              <div className="price-row">
-                <span className={`price ${isUp ? 'positive' : 'negative'}`} id="livePriceValue">
-                  ₹{currentPrice > 0 ? currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---'}
-                </span>
-                <span className={`change ${isUp ? 'positive' : 'negative'}`} id="liveChangePercent">
-                  {isUp ? '+' : ''}{priceChangePct.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="live-badge">
-            <div className="live-dot"></div>
-            <span className="live">LIVE</span>
-          </div>
-        </div>
-      </div>
-
       {/* Top Toolbar */}
       <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
+        {/* ── Back button ── */}
+        <button
+          className="tc-icon-btn"
+          style={{ marginRight: '-6px' }}
+          onClick={() => {
+            const sheet = document.getElementById('chartSheet');
+            const overlay = document.getElementById('chartSheetOverlay');
+            if (sheet) sheet.classList.remove('open');
+            if (overlay) overlay.classList.remove('active');
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M10 3L5 8l5 5"/>
+          </svg>
+        </button>
+
+        {/* ── Symbol ── */}
+        <div className="tc-symbol-btn">
+          <span className="tc-symbol-exchange">{displayExchange}</span>
+          <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z"/></svg>
+        </div>
+
+        <div className="tc-divider"></div>
 
         {/* ── Interval flyout ── */}
         {(() => {
