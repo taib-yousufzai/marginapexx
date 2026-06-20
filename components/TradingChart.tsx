@@ -756,7 +756,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       };
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', padding: '0 10px' }}>
+        <div className="tc-chain-container" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <OptionChainTable 
             strikes={mappedStrikes} 
             quotes={{}} 
@@ -1129,7 +1129,15 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               <span className="order-block-title">
                 {chainContract ? `${symbol} ${chainContract.name}` : orderBlockTitle}
               </span>
-              <div className="close-order-block" onClick={() => { setIsOrderBlockVisible(false); setChainContract(null); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); }}>
+              <div className="close-order-block" onClick={() => { 
+                setIsOrderBlockVisible(false); 
+                setChainContract(null); 
+                if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
+                setIsExitFlow(false); 
+                setIsAddMoreFlow(false); 
+                setExitPositionId(null); 
+                setOrderBlockTitle(symbol); 
+              }}>
                 <i className="ti ti-x"></i>
               </div>
             </div>
@@ -1215,7 +1223,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
               </div>
               
               <div className="bottom-row">
-                <div className="market-limit-box" id="orderTypeGroup" style={{ width: 'auto', flexGrow: 1 }}>
+                <div className="market-limit-box" id="orderTypeGroup" style={{ flex: 6 }}>
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
                   <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>{isExitFlow ? 'Tgt' : 'Lmt'}</div>
                   {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
@@ -1223,7 +1231,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
                 </div>
                 {(orderType === 'limit' || (orderType === 'gtt' && !isExitFlow)) && (
-                  <div className="limit-price-box visible" id="limitPriceBox" style={{ width: '120px' }}>
+                  <div className="limit-price-box visible" id="limitPriceBox" style={{ flex: 4 }}>
                     <span className="price-symbol">₹</span>
                     <input
                       type="number"
@@ -1235,7 +1243,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   </div>
                 )}
                 {(orderType === 'sl' || orderType === 'slm') && (
-                  <div className="limit-price-box visible" id="triggerPriceBox" style={{ width: '120px' }}>
+                  <div className="limit-price-box visible" id="triggerPriceBox" style={{ flex: 4 }}>
                     <span className="price-symbol" style={{ fontSize: '9px', color: '#8B92A8', fontWeight: 'bold', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>Trigger ₹</span>
                     <input
                       type="number"

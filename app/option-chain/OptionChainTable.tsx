@@ -403,10 +403,10 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           background: #1e1414;
         }
 
-        /* â”€â”€ Values â”€â”€ */
+        /* ── Values ── */
         .oct-val {
-          font-size: 0.82rem;
-          font-weight: 600;
+          font-size: 12px;
+          font-weight: 700;
           font-family: 'Inter', sans-serif;
         }
 
@@ -414,7 +414,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-val.put  { color: #c0392b; }
 
         .oct-val.ltp-single {
-          font-size: 0.9rem;
+          font-size: 12px;
           font-weight: 700;
         }
 
@@ -425,9 +425,9 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           color: #f87171;
         }
 
-        /* â”€â”€ Strike value â”€â”€ */
+        /* ── Strike value ── */
         .oct-strike-val {
-          font-size: 0.85rem;
+          font-size: 12px;
           font-weight: 700;
           color: #C62E2E;
           font-family: 'Inter', sans-serif;
@@ -436,7 +436,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-strike-val.atm {
           color: #C62E2E;
           font-weight: 800;
-          font-size: 0.9rem;
+          font-size: 12px;
         }
 
         :global(body.dark) .oct-strike-val {
