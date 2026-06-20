@@ -503,10 +503,10 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       lots: useLots ? Number(qtyValue) : 0,
       order_type: orderType.toUpperCase() as any,
       product_type: orderCarry === 'carry' ? 'CARRY' : 'INTRADAY',
-      client_price: finalPrice,
+      client_price: orderType === 'market' ? 0 : finalPrice,
       trigger_price: (orderType === 'sl' || orderType === 'slm') ? parseFloat(triggerPrice) : undefined,
-      stop_loss: orderType === 'gtt' ? parseFloat(gttSlPrice) : undefined,
-      target: orderType === 'gtt' ? parseFloat(gttTargetPrice) : undefined,
+      stop_loss: gttSlPrice ? parseFloat(gttSlPrice) : undefined,
+      target: gttTargetPrice ? parseFloat(gttTargetPrice) : undefined,
       is_exit: isExitFlow
     });
 
@@ -630,8 +630,18 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   };
 
   const handleQuickMarketOrder = async (side: 'BUY' | 'SELL') => {
-    const qty = 100;
-    const required = Math.ceil(currentPrice * qty * 0.12);
+    const qVal = Number(qtyValue) || 0;
+    if (qVal <= 0) {
+      showToast("Invalid quantity", true);
+      return;
+    }
+    const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
+
+    const dbSeg = mapSegmentToDbSegment(segment);
+    const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === side);
+    const intradayLeverage = segSetting?.intraday_leverage ?? 1;
+    const required = Math.ceil((currentPrice * finalQty) / intradayLeverage);
+
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
       return;
@@ -643,11 +653,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       kite_instrument: symbol,
       segment: segment,
       side: side,
-      qty: qty,
-      lots: 0,
+      qty: finalQty,
+      lots: useLots ? qVal : 0,
       order_type: 'MARKET',
       product_type: 'INTRADAY',
-      client_price: currentPrice,
+      client_price: 0,
       is_exit: false
     });
 
@@ -670,7 +680,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   const handleQuickAddPosition = async (pos: EnrichedPosition) => {
     const addQty = pos.qty_open;
-    const required = Math.ceil(currentPrice * addQty * 0.12);
+    const dbSeg = mapSegmentToDbSegment(segment);
+    const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === pos.side);
+    const leverage = pos.product_type === 'CARRY' ? (segSetting?.holding_leverage ?? 1) : (segSetting?.intraday_leverage ?? 1);
+    const required = Math.ceil((currentPrice * addQty) / leverage);
+
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
       return;
@@ -686,7 +700,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       lots: 0,
       order_type: 'MARKET',
       product_type: pos.product_type === 'CARRY' ? 'CARRY' : 'INTRADAY',
-      client_price: currentPrice,
+      client_price: 0,
       is_exit: false
     });
 
@@ -1234,30 +1248,28 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 )}
               </div>
 
-              {orderType === 'gtt' && (
-                <div className="gtt-row visible">
-                  <div className="gtt-field sl-field">
-                    <span className="gtt-tag">SL ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttSlPrice}
-                      onChange={(e) => setGttSlPrice(e.target.value)}
-                      placeholder="00.0"
-                    />
-                  </div>
-                  <div className="gtt-field tgt-field">
-                    <span className="gtt-tag">Target ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttTargetPrice}
-                      onChange={(e) => setGttTargetPrice(e.target.value)}
-                      placeholder="00.0"
-                    />
-                  </div>
+              <div className="gtt-row visible">
+                <div className="gtt-field sl-field">
+                  <span className="gtt-tag">SL ₹</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={gttSlPrice}
+                    onChange={(e) => setGttSlPrice(e.target.value)}
+                    placeholder="Optional"
+                  />
                 </div>
-              )}
+                <div className="gtt-field tgt-field">
+                  <span className="gtt-tag">Target ₹</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={gttTargetPrice}
+                    onChange={(e) => setGttTargetPrice(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
 
               <div className="order-margin-simple">
                 <div className="margin-line">
