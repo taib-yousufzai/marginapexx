@@ -7,7 +7,6 @@ import './page.css';
 
 export default function LoginPage() {
   const router = useRouter();
-  const isLoggingInRef = useRef(false);
 
   // Apply active theme on mount — same pattern as all other pages
   useEffect(() => {
@@ -22,13 +21,34 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Prevent hardware back-button bypass on Android/iOS
-  useEffect(() => {
-    if (showRiskPopup && !showRulesPopup) {
-      window.history.pushState({ popup: 'auth_flow' }, '');
-    }
-  }, [showRiskPopup, showRulesPopup]);
+  // Form state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
+  const [showRiskPopup, setShowRiskPopup] = useState(false);
+  const [agreedToRisk, setAgreedToRisk] = useState(false);
+  const [showRulesPopup, setShowRulesPopup] = useState(false);
+  const [agreedToRules, setAgreedToRules] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+
+  const isLoggingInRef = useRef(false);
+
+  // Redirect based on role if already authenticated
+  useEffect(() => {
+    getSession().then((session) => {
+      if (session && !isLoggingInRef.current) {
+        const role = getRole(session.user);
+        router.replace(role === 'admin' ? '/admin' : '/');
+      }
+    });
+  }, [router]);
+
+  // Prevent hardware back-button bypass on Android/iOS
   useEffect(() => {
     const handlePopState = () => {
       // If user presses back while popups are open, sign them out immediately
@@ -48,30 +68,12 @@ export default function LoginPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [showRiskPopup, showRulesPopup]);
 
-  // Redirect based on role if already authenticated
+  // Push dummy state when risk popup opens
   useEffect(() => {
-    getSession().then((session) => {
-      if (session && !isLoggingInRef.current) {
-        const role = getRole(session.user);
-        router.replace(role === 'admin' ? '/admin' : '/');
-      }
-    });
-  }, [router]);
-
-  // Form state
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [usernameError, setUsernameError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [formError, setFormError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [showRiskPopup, setShowRiskPopup] = useState(false);
-  const [agreedToRisk, setAgreedToRisk] = useState(false);
-  const [showRulesPopup, setShowRulesPopup] = useState(false);
-  const [agreedToRules, setAgreedToRules] = useState(false);
-  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+    if (showRiskPopup && !showRulesPopup) {
+      window.history.pushState({ popup: 'auth_flow' }, '');
+    }
+  }, [showRiskPopup, showRulesPopup]);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUsername(e.target.value);
