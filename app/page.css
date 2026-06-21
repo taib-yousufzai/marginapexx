@@ -790,12 +790,6 @@ body.dark .circle-icon {
   .app-container {
     max-width: 100% !important;
     width: 100vw !important;
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 100% !important;
     margin: 0 !important;
     overflow-x: hidden !important;
     padding-bottom: 0 !important;
@@ -1520,10 +1514,10 @@ body.blue .notif-item {
 }
 
 .home-isolated-container {
-  height: 100dvh !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
+  height: 100dvh !important;
 }
 
 /* Force normal document flow (flex items) instead of out-of-flow positioning */
