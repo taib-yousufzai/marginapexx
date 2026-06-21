@@ -729,7 +729,7 @@
 }
 .tc-wrapper .market-option {
   flex: 1;
-  min-width: 36px;
+  min-width: 28px;
   text-align: center;
   border-radius: 36px;
   font-size: 11px;
@@ -741,7 +741,7 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  padding: 0 8px;
+  padding: 0 4px;
 }
 .tc-wrapper .market-option.active {
   background: var(--surface);
@@ -1825,3 +1825,12 @@
   font-size: 13px;
 }
 
+/* ── Option Chain fixes inside TradingChart ── */
+.tc-chain-container .oct-wrap {
+  padding: 0 !important;
+}
+.tc-chain-container .oct-table {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
