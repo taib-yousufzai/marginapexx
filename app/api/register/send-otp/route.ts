@@ -11,7 +11,7 @@
 import { NextRequest } from 'next/server';
 import { createHash, randomInt } from 'crypto';
 import { getAdminClient } from '@/lib/adminClient';
-import { sendEmail, sendSms } from '@/lib/twilio';
+import { sendEmail, sendOtpSms } from '@/lib/twilio';
 
 const OTP_TTL_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -109,10 +109,10 @@ export async function POST(req: NextRequest) {
 
     await sendEmail(emailLower, emailSubject, emailHtml, emailText);
 
-    // ── Send OTP SMS via Twilio if phone number is provided ──────────────────
+    // ── Send OTP SMS via APItxt or Twilio ─────────────────────────────────────
     if (phone && phone.trim()) {
       const smsBody = `Your MarginApex verification code is: ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-      await sendSms(phone, smsBody);
+      await sendOtpSms(phone, otp, smsBody);
     }
 
     console.info('[send-otp] OTP sent to', emailLower);

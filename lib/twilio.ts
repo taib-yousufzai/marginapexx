@@ -54,8 +54,8 @@ function getNodemailerTransporter() {
 }
 
 /**
- * Sends an SMS using Twilio.
- * If Twilio is not configured, logs the message instead (simulation).
+ * Sends an SMS using APItxt (primary) or Twilio (fallback).
+ * If neither is configured, logs the message instead (simulation).
  * Formats the number to E.164 if it's a simple 10-digit number.
  */
 export async function sendSms(
@@ -71,6 +71,40 @@ export async function sendSms(
     formattedTo = `+${formattedTo}`;
   }
 
+  const apitxtAuthKey = process.env.APITXT_AUTH_KEY;
+  if (apitxtAuthKey) {
+    try {
+      // APItxt typically expects numbers without the + sign
+      const mobileForApitxt = formattedTo.replace('+', '');
+      
+      const res = await fetch('https://apitxt.com/api/sendMsg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authkey: apitxtAuthKey,
+          mobiles: mobileForApitxt,
+          message: body,
+          sender: 'MARGIN', // NOTE: Requires an approved 6-character sender ID
+          route: '4',       // 4 is typically Transactional route
+          // template_id: '...', // Required for DLT compliance in India
+          // pe_id: '...'        // Required for DLT compliance in India
+        })
+      });
+      
+      const data = await res.json();
+      if (data.status === 'success' || data.status === 'OK') {
+        console.info(`SMS sent via APItxt to ${formattedTo}.`);
+        return { success: true, messageId: data.data?.msg_id || 'apitxt-success' };
+      } else {
+        console.error(`Failed to send SMS via APItxt to ${formattedTo}:`, data);
+        console.info('Attempting fallback to Twilio...');
+      }
+    } catch (err: any) {
+      console.error(`Failed to send SMS via APItxt to ${formattedTo}:`, err);
+      console.info('Attempting fallback to Twilio...');
+    }
+  }
+
   if (!twilioClient || !fromPhone) {
     console.info(`[SMS SIMULATION] To: ${formattedTo} | Body: ${body}`);
     return { success: true, messageId: 'simulated-msg-id' };
@@ -82,12 +116,61 @@ export async function sendSms(
       from: fromPhone,
       to: formattedTo,
     });
-    console.info(`SMS sent to ${formattedTo}. SID: ${message.sid}`);
+    console.info(`SMS sent via Twilio to ${formattedTo}. SID: ${message.sid}`);
     return { success: true, messageId: message.sid };
   } catch (err: any) {
-    console.error(`Failed to send SMS to ${formattedTo}:`, err);
+    console.error(`Failed to send SMS via Twilio to ${formattedTo}:`, err);
     return { success: false, error: err.message || String(err) };
   }
+}
+
+/**
+ * Sends an OTP SMS using APItxt's dedicated OTP API (primary) or generic SMS (fallback).
+ * Using the OTP API bypasses the strict template and sender ID requirements for general SMS.
+ */
+export async function sendOtpSms(
+  to: string,
+  otp: string,
+  fallbackBody: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  let formattedTo = to.trim();
+  
+  if (/^\d{10}$/.test(formattedTo)) {
+    formattedTo = `+91${formattedTo}`;
+  } else if (/^\d{12}$/.test(formattedTo) && formattedTo.startsWith('91')) {
+    formattedTo = `+${formattedTo}`;
+  }
+
+  const apitxtAuthKey = process.env.APITXT_AUTH_KEY;
+  if (apitxtAuthKey) {
+    try {
+      const mobileForApitxt = formattedTo.replace('+', '');
+      
+      const res = await fetch('https://apitxt.com/api/sendOTP', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          authkey: apitxtAuthKey,
+          mobile: mobileForApitxt,
+          otp: otp
+        }).toString()
+      });
+      
+      const data = await res.json();
+      if (data.status === 'success' || data.status === 'OK') {
+        console.info(`OTP sent via APItxt to ${formattedTo}.`);
+        return { success: true, messageId: data.data?.msg_id || 'apitxt-otp-success' };
+      } else {
+        console.error(`Failed to send OTP via APItxt to ${formattedTo}:`, data);
+        // Fall back to generic sendSms
+      }
+    } catch (err: any) {
+      console.error(`Failed to send OTP via APItxt to ${formattedTo}:`, err);
+      // Fall back to generic sendSms
+    }
+  }
+
+  return sendSms(formattedTo, fallbackBody);
 }
 
 /**
