@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import RiskRulesPopup from '@/components/RiskRulesPopup';
 import '../login/page.css';
 
 // ─── OTP Input component — 6 auto-advance boxes ───────────────────────────────
@@ -172,7 +173,6 @@ function RegisterForm() {
       await supabase.auth.signInWithPassword({ email: email.trim(), password });
       setIsLoading(false);
       setIsSuccess(true);
-      setTimeout(() => router.replace('/'), 2000);
     }
   };
 
@@ -205,9 +205,10 @@ function RegisterForm() {
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ fontSize: '3rem', marginBottom: 16, color: '#16a34a' }}><i className="fas fa-check-circle" /></div>
             <h2 className="login-card-title">Account Created!</h2>
-            <p className="login-card-subtitle">Signing you in…</p>
+            <p className="login-card-subtitle">Please read the terms to continue.</p>
           </div>
         </div>
+        <RiskRulesPopup onAccept={() => router.replace('/')} />
       </div>
     );
   }
