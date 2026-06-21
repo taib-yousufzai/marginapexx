@@ -160,6 +160,12 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                   ) : (
                     <span className="oct-val call ltp-single">{ceLtp}</span>
                   )}
+                  {s.ce && (
+                    <div className="hover-actions">
+                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); onTrade(s.ce.symbol, 'BUY'); }}>B</button>
+                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); onTrade(s.ce.symbol, 'SELL'); }}>S</button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Strike */}
@@ -181,6 +187,12 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                     </>
                   ) : (
                     <span className="oct-val put ltp-single">{peLtp}</span>
+                  )}
+                  {s.pe && (
+                    <div className="hover-actions">
+                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); onTrade(s.pe.symbol, 'BUY'); }}>B</button>
+                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); onTrade(s.pe.symbol, 'SELL'); }}>S</button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -358,6 +370,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
 
         /* â”€â”€ Cells â”€â”€ */
         .oct-cell-calls {
+          position: relative;
           background: #f4fbf4;
           display: flex;
           justify-content: space-around;
@@ -374,6 +387,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 11px 4px;
         }
         .oct-cell-puts {
+          position: relative;
           background: #fff7f3;
           display: flex;
           justify-content: space-around;
@@ -445,6 +459,60 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         :global(body.dark) .oct-strike-val.atm {
           color: #ff6b6b;
           font-weight: 800;
+        }
+
+        /* ── Hover Actions ── */
+        .hover-actions {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          background: rgba(255, 255, 255, 0.95);
+          opacity: 0;
+          transition: opacity 0.15s ease-in-out;
+          pointer-events: none;
+        }
+
+        :global(body.dark) .hover-actions {
+          background: rgba(20, 20, 20, 0.95);
+        }
+
+        .oct-cell-calls:hover .hover-actions,
+        .oct-cell-puts:hover .hover-actions {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .btn-buy, .btn-sell {
+          width: 24px;
+          height: 24px;
+          border-radius: 4px;
+          border: none;
+          font-size: 11px;
+          font-weight: 800;
+          color: white;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.1s;
+        }
+
+        .btn-buy:active, .btn-sell:active {
+          transform: scale(0.9);
+        }
+
+        .btn-buy {
+          background: #12B76A;
+        }
+
+        .btn-sell {
+          background: #F04438;
         }
       `}</style>
     </div>
