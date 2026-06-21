@@ -329,7 +329,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
         if (isCrypto) {
           const interval = getIntervalString();
-          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=500`);
+          let binanceSymbol = symbol.replace('/', '');
+          if (!binanceSymbol.endsWith('USDT')) {
+            binanceSymbol += 'USDT';
+          }
+          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=500`);
           const json = await res.json();
           if (!Array.isArray(json)) throw new Error(json.msg || 'Failed to fetch');
           data = json.map((k: any) => ({
