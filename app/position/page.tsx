@@ -1098,6 +1098,7 @@ export default function PositionPage() {
             <TradingChart
               symbol={chartItem.kiteSymbol || chartItem.symbol}
               segment={chartItem.segment}
+              liveQuote={{ lastPrice: positions.find(p => p.symbol === chartItem.symbol)?.current_ltp ?? chartItem.price }}
             />
           )}
         </div>

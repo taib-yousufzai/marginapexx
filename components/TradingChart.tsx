@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabaseClient';
 import OptionChainTable from '@/app/option-chain/OptionChainTable';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import useSWR from 'swr';
+import { parseOptionSymbol } from '@/lib/parseOptionSymbol';
 import './trading-chart.css';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -22,6 +23,12 @@ const getUnderlyingSymbol = (sym: string) => {
   if (sym.includes('NIFTY MID SELECT')) return 'MIDCPNIFTY';
   if (sym.includes('SENSEX')) return 'SENSEX';
   if (sym.includes('BANKEX')) return 'BANKEX';
+  
+  const parsed = parseOptionSymbol(sym);
+  if (parsed) {
+    return parsed.underlying;
+  }
+  
   if (sym.includes(':')) return sym.split(':')[1];
   return sym;
 };
@@ -129,7 +136,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [triggerPrice, setTriggerPrice] = useState<string>('');
   const [gttSlPrice, setGttSlPrice] = useState<string>('');
   const [gttTargetPrice, setGttTargetPrice] = useState<string>('');
-  const [chainContract, setChainContract] = useState<{ name: string; expiry: string; ltp: number; iv: number; bid: number; ask: number } | null>(null);
+  const [chainContract, setChainContract] = useState<{ name: string; expiry: string; ltp: number; iv: number; bid: number; ask: number; kiteId?: string } | null>(null);
   const [activeSegment, setActiveSegment] = useState<'chain' | 'orders' | 'positions'>('orders');
   const [isPanelExpanded, setIsPanelExpanded] = useState<boolean>(false);
   const [isBottomSectionVisible, setIsBottomSectionVisible] = useState<boolean>(true);
@@ -175,11 +182,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
 
-  const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number) => {
+  const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number, kiteId?: string) => {
     setIsPanelExpanded(false);
     const bid = ltp;
     const ask = parseFloat((ltp + Math.max(0.05, ltp * 0.005)).toFixed(2));
-    const contract = { name: contractName, expiry, ltp, iv, bid, ask };
+    const contract = { name: contractName, expiry, ltp, iv, bid, ask, kiteId };
     setChainContract(contract);
     setOrderSide(defaultAction);
     const displayPrice = defaultAction === 'BUY' ? ask : bid;
@@ -520,7 +527,12 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       const optionType = parts[1]; // CE or PE
       
       orderSymbol = `${underlying}${expiry}${strike}${optionType}`;
-      orderKiteInstrument = `NFO:${orderSymbol}`;
+      
+      let prefix = 'NFO';
+      if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
+      else if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(underlying)) prefix = 'MCX';
+      
+      orderKiteInstrument = chainContract.kiteId || `${prefix}:${orderSymbol}`;
       orderSegment = 'INDEX-OPT';
     }
 
@@ -785,9 +797,14 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
         return <div className="empty-state">Loading chain...</div>;
       }
       
-      const handleTableTrade = (tradeSymbol: string, side: 'BUY' | 'SELL') => {
-        const [name, ltpStr, ivStr] = tradeSymbol.split('|');
-        openChainOrder(side, name, chainExpiry, parseFloat(ltpStr), parseFloat(ivStr));
+      const handleTableTrade = (tradeSymbol: string, defaultAction: 'BUY' | 'SELL') => {
+        // tradeSymbol = "NIFTY26JUN24000CE|221.45|0|NFO:NIFTY26JUN24000CE"
+        const parts = tradeSymbol.split('|');
+        if (parts.length < 2) return;
+        const contractName = parts[0];
+        const ltp = parseFloat(parts[1]) || 0;
+        const kiteId = parts[3] || '';
+        openChainOrder(defaultAction, contractName, chainExpiry, ltp, 0, kiteId);
       };
 
       // Transform real strikes for TradingChart format (needs tradeSymbol with | format for handleTableTrade)
@@ -799,8 +816,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
         
         return {
           strike: r.strike,
-          ce: { ...r.ce, symbol: r.ce ? `${r.ce.symbol}|${ceLtp}|0` : '' },
-          pe: { ...r.pe, symbol: r.pe ? `${r.pe.symbol}|${peLtp}|0` : '' }
+          ce: { ...r.ce, symbol: r.ce ? `${r.ce.symbol}|${ceLtp}|0|${r.ce.id}` : '' },
+          pe: { ...r.pe, symbol: r.pe ? `${r.pe.symbol}|${peLtp}|0|${r.pe.id}` : '' }
         };
       });
 
