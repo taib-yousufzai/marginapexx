@@ -1256,28 +1256,30 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 )}
               </div>
 
-              <div className="gtt-row visible">
-                <div className="gtt-field sl-field">
-                  <span className="gtt-tag">SL ₹</span>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={gttSlPrice}
-                    onChange={(e) => setGttSlPrice(e.target.value)}
-                    placeholder="Optional"
-                  />
+              {orderType === 'gtt' && (
+                <div className="gtt-row visible">
+                  <div className="gtt-field sl-field">
+                    <span className="gtt-tag">SL ₹</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={gttSlPrice}
+                      onChange={(e) => setGttSlPrice(e.target.value)}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="gtt-field tgt-field">
+                    <span className="gtt-tag">Target ₹</span>
+                    <input
+                      type="number"
+                      step="0.05"
+                      value={gttTargetPrice}
+                      onChange={(e) => setGttTargetPrice(e.target.value)}
+                      placeholder="Optional"
+                    />
+                  </div>
                 </div>
-                <div className="gtt-field tgt-field">
-                  <span className="gtt-tag">Target ₹</span>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={gttTargetPrice}
-                    onChange={(e) => setGttTargetPrice(e.target.value)}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
+              )}
 
               <div className="order-margin-simple">
                 <div className="margin-line">
