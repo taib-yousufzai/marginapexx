@@ -81,12 +81,12 @@ const getNextExpiryDate = (dayOfWeek: number) => {
 };
 
 const getExpiryIndexes = () => [
-  { name: "NIFTY",       fullName: "NIFTY 50",     shortCode: "N50",  expiry: getNextExpiryDate(4), lotSize: 50  },
-  { name: "BANKNIFTY",   fullName: "BANK NIFTY",   shortCode: "BNF",  expiry: getNextExpiryDate(3), lotSize: 15  },
-  { name: "FINNIFTY",    fullName: "FIN NIFTY",    shortCode: "FIN",  expiry: getNextExpiryDate(2), lotSize: 40  },
-  { name: "SENSEX",      fullName: "SENSEX",       shortCode: "SEN",  expiry: getNextExpiryDate(5), lotSize: 10  },
-  { name: "MIDCAP",      fullName: "MIDCAP NIFTY", shortCode: "MID",  expiry: getNextExpiryDate(1), lotSize: 75  },
-  { name: "BANKEX",      fullName: "BANKEX",       shortCode: "BKX",  expiry: getNextExpiryDate(5), lotSize: 15  },
+  { name: "NIFTY",       fullName: "NIFTY 50",     shortCode: "N50",  expiry: getNextExpiryDate(4), lotSize: 65  },
+  { name: "BANKNIFTY",   fullName: "BANK NIFTY",   shortCode: "BNF",  expiry: getNextExpiryDate(3), lotSize: 30  },
+  { name: "FINNIFTY",    fullName: "FIN NIFTY",    shortCode: "FIN",  expiry: getNextExpiryDate(2), lotSize: 60  },
+  { name: "SENSEX",      fullName: "SENSEX",       shortCode: "SEN",  expiry: getNextExpiryDate(5), lotSize: 20  },
+  { name: "MIDCAP",      fullName: "MIDCAP NIFTY", shortCode: "MID",  expiry: getNextExpiryDate(1), lotSize: 120 },
+  { name: "BANKEX",      fullName: "BANKEX",       shortCode: "BKX",  expiry: getNextExpiryDate(5), lotSize: 30  },
 ];
 
 const playNotificationSound = () => {
