@@ -88,6 +88,7 @@ function RegisterForm() {
 
   // Step 2 fields
   const [otp, setOtp] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState({ emailSent: false, smsSent: false });
 
   // Shared state
   const [formError, setFormError] = useState('');
@@ -142,6 +143,7 @@ function RegisterForm() {
     if (!res.ok) {
       setFormError(data.error || 'Failed to send OTP');
     } else {
+      setDeliveryStatus({ emailSent: data.emailSent, smsSent: data.smsSent });
       setStep('otp');
       setResendCooldown(60);
     }
@@ -179,11 +181,15 @@ function RegisterForm() {
     if (resendCooldown > 0) return;
     setFormError('');
     setOtp('');
-    await fetch('/api/register/send-otp', {
+    const res = await fetch('/api/register/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim(), fullName: fullName.trim(), phone: phone.trim(), brokerRef }),
     });
+    const data = await res.json();
+    if (res.ok) {
+      setDeliveryStatus({ emailSent: data.emailSent, smsSent: data.smsSent });
+    }
     setResendCooldown(60);
   };
 
@@ -320,9 +326,16 @@ function RegisterForm() {
           </>
         ) : (
           <>
-            <h1 className="login-card-title">Verify your email</h1>
+            <h1 className="login-card-title">Verify your account</h1>
             <p className="login-card-subtitle">
-              We sent a 6-digit code to <strong>{email}</strong>
+              We sent a 6-digit code to{' '}
+              {deliveryStatus.emailSent && deliveryStatus.smsSent ? (
+                <><strong>{email}</strong> and your phone</>
+              ) : deliveryStatus.smsSent ? (
+                <>your phone</>
+              ) : (
+                <strong>{email}</strong>
+              )}
             </p>
 
             <form className="login-form" onSubmit={handleVerifyOtp} noValidate>

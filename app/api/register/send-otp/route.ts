@@ -107,16 +107,28 @@ export async function POST(req: NextRequest) {
     `;
     const emailText = `Your MarginApex verification code is: ${otp}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`;
 
-    await sendEmail(emailLower, emailSubject, emailHtml, emailText);
-
-    // ── Send OTP SMS via APItxt or Twilio ─────────────────────────────────────
-    if (phone && phone.trim()) {
-      const smsBody = `Your MarginApex verification code is: ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-      await sendOtpSms(phone, otp, smsBody);
+    const emailResult = await sendEmail(emailLower, emailSubject, emailHtml, emailText);
+    if (!emailResult.success) {
+      console.error('[send-otp] Email delivery failed:', emailResult.error);
     }
 
-    console.info('[send-otp] OTP sent to', emailLower);
-    return Response.json({ success: true });
+    // ── Send OTP SMS via APItxt or Twilio ─────────────────────────────────────
+    let smsSent = false;
+    if (phone && phone.trim()) {
+      const smsBody = `Your MarginApex verification code is: ${otp}. It expires in ${OTP_TTL_MINUTES} minutes.`;
+      const smsResult = await sendOtpSms(phone, otp, smsBody);
+      if (smsResult.success) smsSent = true;
+    }
+
+    if (!emailResult.success && !smsSent) {
+      return Response.json(
+        { error: 'Failed to send OTP to both email and phone. Please try again later.' },
+        { status: 500 },
+      );
+    }
+
+    console.info(`[send-otp] OTP sent. Email: ${emailResult.success}, SMS: ${smsSent}`);
+    return Response.json({ success: true, emailSent: emailResult.success, smsSent });
   } catch (err) {
     console.error('[send-otp] Unexpected error:', err);
     return Response.json(
