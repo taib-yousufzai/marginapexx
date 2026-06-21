@@ -15,6 +15,7 @@ interface TradingChartProps {
   symbol: string;         // e.g., "BTCUSDT" or "NSE:INFY"
   segment: string;        // e.g., "CRYPTO" or "EQ"
   liveQuote?: any;        // Live quote object to update the last candle
+  hideTradingControls?: boolean;
 }
 
 type Timeframe = '1m' | '5m' | '15m' | '60m' | 'day';
@@ -50,7 +51,7 @@ function mapSegmentToDbSegment(s: string): string {
   return 'NSE-EQ';
 }
 
-export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol, segment, liveQuote, hideTradingControls = false }: TradingChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
@@ -1068,7 +1069,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       </div>
 
       {/* P&L Card — hide when order block or panel is expanded */}
-      {!isOrderBlockVisible && !isPanelExpanded && (
+      {!isOrderBlockVisible && !isPanelExpanded && !hideTradingControls && (
         <div className="pnl-card" id="pnlCard">
           <div>
             <span className="pnl-text">P/L: </span>
@@ -1083,6 +1084,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       )}
 
       {/* Bottom Section */}
+      {!hideTradingControls && (
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Buy/Sell Buttons — always visible, act as quick order when panel is expanded */}
         {!isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
@@ -1342,6 +1344,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
           </div>
         </div>
       </div>
+      )}
       {toast.visible && (
         <div className={`toast-message toast-show ${toast.isError ? 'neg' : ''}`}>
           {toast.msg}
