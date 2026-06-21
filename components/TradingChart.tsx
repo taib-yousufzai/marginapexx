@@ -154,7 +154,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX');
 
   const { data: chainData, isLoading: chainLoading } = useSWR(
-    activeSegment === 'chain' && isIndex
+    activeSegment === 'chain' && !isCrypto && !segment.toUpperCase().includes('FOREX')
       ? `/api/market/option-chain?symbol=${underlyingSym}`
       : null,
     fetcher
@@ -778,7 +778,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   // Render collapsible panel tabs content
   const renderPanelContent = () => {
     if (activeSegment === 'chain') {
-      if (!isIndex) {
+      if (isCrypto || segment.toUpperCase().includes('FOREX')) {
         return <div className="empty-state">Option Chain not available for this segment.</div>;
       }
       if (chainLoading) {
