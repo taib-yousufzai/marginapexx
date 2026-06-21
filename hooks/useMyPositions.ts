@@ -158,7 +158,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
     rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
       const seg = (p.settlement || '').toUpperCase();
-      if (seg.includes('CRYPTO')) {
+      if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
         // Binance API expects symbols without slashes like BTCUSDT
         let sym = p.symbol.replace('/', '');
         if (!sym.endsWith('USDT')) {
@@ -195,7 +195,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const seg = (p.settlement || '').toUpperCase();
       let ltp = p.ltp || p.entry_price;
       
-      if (seg.includes('CRYPTO')) {
+      if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
         let binanceKey = p.symbol.replace('/', '');
         if (!binanceKey.endsWith('USDT')) {
           binanceKey = binanceKey + 'USDT';

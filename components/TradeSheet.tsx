@@ -116,10 +116,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
   const segSetting = side === 'SELL' ? sellSetting : buySetting;
 
-  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
-  const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0.0017;
-  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
-  const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0.0017;
+  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0;
+  const buyExitBuffer = buySetting ? buySetting.exit_buffer : 0;
+  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0;
+  const sellExitBuffer = sellSetting ? sellSetting.exit_buffer : 0;
 
   let bidPrice = 0;
   let askPrice = 0;

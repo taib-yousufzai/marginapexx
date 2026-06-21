@@ -53,9 +53,9 @@ const defaultSeg = (): SegmentSettingsType => ({
   strikeRange: '0', maxLot: '50',
   maxOrderLot: '50', intradayLeverage: '50',
   intradayType: 'Multiplier',
-  holdingLeverage: '5', entryBuffer: '0.003',
+  holdingLeverage: '5', entryBuffer: '0',
   holdingType: 'Multiplier',
-  exitBuffer: '0.0017', tradeAllowed: true,
+  exitBuffer: '0', tradeAllowed: true,
   topLimit: '0',
   minLimit: '0',
 });
