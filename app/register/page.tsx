@@ -326,9 +326,13 @@ function RegisterForm() {
             </p>
 
             <form className="login-form" onSubmit={handleVerifyOtp} noValidate>
-              <div style={{ margin: '24px 0' }}>
+              <div style={{ margin: '24px 0 12px' }}>
                 <OtpInput value={otp} onChange={v => { setOtp(v); setFormError(''); }} />
               </div>
+              <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '0.85rem', marginBottom: '24px' }}>
+                <i className="far fa-clock" style={{ marginRight: 4 }}></i>
+                The OTP will expire in 10 minutes
+              </p>
 
               {formError && (
                 <div className="login-form-error" role="alert">
