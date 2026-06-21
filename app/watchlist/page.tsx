@@ -2208,7 +2208,6 @@ function WatchlistContent() {
               symbol={chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}
               segment={chartItem.binanceSymbol ? 'CRYPTO' : chartItem.segment}
               liveQuote={chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol]}
-              hideTradingControls={isBenchmarkChart}
             />
           )}
         </div>

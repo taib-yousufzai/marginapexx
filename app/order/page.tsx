@@ -6,7 +6,7 @@ import { useMyOrders } from '@/hooks/useMyOrders';
 import { useKitePositions } from '@/hooks/useKitePositions';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
-import KiteConnectButton from '@/components/KiteConnectButton';
+
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
 import './page.css';
 import dynamic from 'next/dynamic';
@@ -214,14 +214,7 @@ export default function OrderPage() {
                   <div className="ord-empty">
                     <i className={search ? 'fas fa-search' : tab === 'open' ? 'fas fa-clock' : 'fas fa-check-circle'} />
                     <p>{search ? `No results for "${search}"` : `No ${tab} orders found`}</p>
-                    {!kiteConnected && (
-                      <div style={{ marginTop: 12 }}>
-                        <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
-                          Connect Zerodha for live price tracking
-                        </p>
-                        <KiteConnectButton />
-                      </div>
-                    )}
+
                   </div>
                 )}
 

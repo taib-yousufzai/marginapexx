@@ -30,7 +30,6 @@ interface TradingChartProps {
   symbol: string;         // e.g., "BTCUSDT" or "NSE:INFY"
   segment: string;        // e.g., "CRYPTO" or "EQ"
   liveQuote?: any;        // Live quote object to update the last candle
-  hideTradingControls?: boolean;
 }
 
 type Timeframe = '1m' | '5m' | '15m' | '60m' | 'day';
@@ -71,7 +70,7 @@ function mapSegmentToDbSegment(s: string): string {
   return 'NSE-EQ';
 }
 
-export default function TradingChart({ symbol, segment, liveQuote, hideTradingControls = false }: TradingChartProps) {
+export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
@@ -108,6 +107,11 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
   const [activeDrawingTool, setActiveDrawingTool] = useState<string | null>(null);
 
   const isCrypto = segment.toUpperCase() === 'CRYPTO' || symbol.endsWith('USDT');
+
+  const isUnderlyingIndex = useMemo(() => {
+    const s = getUnderlyingSymbol(symbol.toUpperCase());
+    return ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'NIFTY 50', 'NIFTY BANK'].includes(s);
+  }, [symbol]);
 
   // --- Real Data Hooks ---
   const { orders, cancelOrder, refresh: refreshOrders } = useMyOrders();
@@ -1109,7 +1113,7 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
       </div>
 
       {/* P&L Card — hide when order block or panel is expanded */}
-      {!isOrderBlockVisible && !isPanelExpanded && !hideTradingControls && (
+      {!isOrderBlockVisible && !isPanelExpanded && (
         <div className="pnl-card" id="pnlCard">
           <div>
             <span className="pnl-text">P/L: </span>
@@ -1126,7 +1130,7 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
       {/* Bottom Section */}
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Buy/Sell Buttons — always visible, act as quick order when panel is expanded */}
-        {!hideTradingControls && !isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
+        {!isUnderlyingIndex && !isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
           <div className="trade-buttons" id="tradeButtons">
             <button id="buyButton" className="trade-btn buy" onClick={() => {
               if (isPanelExpanded && activeSegment === 'chain') {
@@ -1164,7 +1168,7 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
         )}
 
         {/* Order Block */}
-        {!hideTradingControls && isOrderBlockVisible && (
+        {isOrderBlockVisible && (
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
               <span className="order-block-title">

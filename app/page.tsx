@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
-import KiteConnectButton from '@/components/KiteConnectButton';
+
 import { getSession, getRole } from '@/lib/auth';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import TickFlash from '@/components/TickFlash';
@@ -442,16 +442,7 @@ export default function Page() {
                       <div className="market-status-msg"><i className="fas fa-circle-notch fa-spin" /> Checking connection…</div>
                     )}
 
-                    {!kiteLoading && !kiteConnected && Object.keys(quotes).length === 0 && (
-                      <div className="kite-connect-prompt">
-                        <i className="fas fa-plug" />
-                        <div>
-                          <div className="prompt-title">No live data</div>
-                          <div className="prompt-desc">Connect your Zerodha account to see real-time prices.</div>
-                        </div>
-                        <KiteConnectButton />
-                      </div>
-                    )}
+
 
                     {!kiteLoading && Object.keys(quotes).length > 0 && (
                       <div className="markets-two-rows">
