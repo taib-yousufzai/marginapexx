@@ -35,13 +35,18 @@ interface TradingChartProps {
 
 type Timeframe = '1m' | '5m' | '15m' | '60m' | 'day';
 
-function getLotSize(name: string): number {
+function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: number }[]): number {
   const n = name.toUpperCase();
-  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
-  if (n.includes('FINNIFTY')) return 40;
-  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
-  if (n.includes('SENSEX')) return 10;
-  if (n.includes('NIFTY')) return 25;
+  if (scriptSettings && scriptSettings.length > 0) {
+    const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
+    const match = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
+    if (match) return Number(match.lot_size);
+  }
+  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 30;
+  if (n.includes('FINNIFTY')) return 60;
+  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 120;
+  if (n.includes('SENSEX')) return 20;
+  if (n.includes('NIFTY')) return 65;
   if (n.includes('GOLDM')) return 10;
   if (n.includes('GOLD')) return 100;
   if (n.includes('SILVERM')) return 5;
@@ -127,6 +132,7 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
 
   // ── CHARTINH Integration States ──
   const [activeOrderTab, setActiveOrderTab] = useState<'open' | 'executed'>('open');
@@ -222,7 +228,14 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
   };
 
   // Get lot size of instrument
-  const lotSize = useMemo(() => getLotSize(symbol), [symbol]);
+  const lotSize = useMemo(() => getLotSize(symbol, scriptSettings), [symbol, scriptSettings]);
+
+  // Update qtyValue when lotSize changes (if user hasn't typed a custom qty yet)
+  useEffect(() => {
+    if (!useLots && qtyValue === getLotSize(symbol, [])) {
+      setQtyValue(lotSize);
+    }
+  }, [lotSize]);
 
   // Toast helper
   const showToast = (msg: string, isError = false) => {
@@ -269,15 +282,20 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
         setBalance(data.balance);
       }
 
-      // Fetch segment settings for dynamic leverage calculation
+      // Fetch segment settings and script settings
       const profileRes = await supabase.from('profiles').select('trading_mode').single();
       const mode = profileRes.data?.trading_mode || 'normal';
-      const settingsRes = await fetch(`/api/user/segments?mode=${mode}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const [settingsRes, scriptRes] = await Promise.all([
+        fetch(`/api/user/segments?mode=${mode}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/user/script-settings', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json();
         setSegmentSettings(settingsData || []);
+      }
+      if (scriptRes.ok) {
+        const ssData = await scriptRes.json();
+        setScriptSettings(ssData || []);
       }
     } catch (err) {
       console.error('Failed to fetch balance or segment settings:', err);
