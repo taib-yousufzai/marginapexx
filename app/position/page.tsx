@@ -67,12 +67,22 @@ export default function PositionPage() {
   const [chartItem, setChartItem] = useState<any | null>(null);
 
   const openChart = (pos: EnrichedPosition) => {
+    let seg = 'NSE - Equity';
+    const settlement = (pos.settlement || '').toUpperCase();
+    if (settlement.includes('CRYPTO') || pos.symbol.endsWith('USDT')) {
+      seg = 'CRYPTO';
+    } else if (settlement.includes('COMEX') || pos.symbol.endsWith('=F')) {
+      seg = 'COMEX';
+    } else if (pos.settlement) {
+      seg = pos.settlement;
+    }
+
     setChartItem({
       name: pos.symbol,
       symbol: pos.symbol,
       kiteSymbol: pos.symbol,
       price: pos.current_ltp,
-      segment: pos.settlement === 'USDT' || pos.symbol.endsWith('USDT') ? 'CRYPTO' : 'NSE - Equity',
+      segment: seg,
     });
     const chartSheet = document.getElementById('chartSheet');
     const chartOverlay = document.getElementById('chartSheetOverlay');
