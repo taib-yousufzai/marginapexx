@@ -1520,7 +1520,7 @@ body.blue .notif-item {
 }
 
 .home-isolated-container {
-  height: 100dvh !important;
+  height: 100% !important; /* Use 100% to inherit fixed viewport size and avoid 100dvh jumping */
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;

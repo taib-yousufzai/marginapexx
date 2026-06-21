@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
       let dbQuery = supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-        .eq('underlying_symbol', parsed.underlying)
+        .eq('name', parsed.underlying)
         .eq('strike_price', parsed.strike)
         .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
