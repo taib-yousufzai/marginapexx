@@ -9,7 +9,22 @@ import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import OptionChainTable from '@/app/option-chain/OptionChainTable';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import useSWR from 'swr';
 import './trading-chart.css';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+const getUnderlyingSymbol = (sym: string) => {
+  if (sym.includes('NIFTY 50')) return 'NIFTY';
+  if (sym.includes('NIFTY BANK')) return 'BANKNIFTY';
+  if (sym.includes('NIFTY FIN SERVICE')) return 'FINNIFTY';
+  if (sym.includes('NIFTY MID SELECT')) return 'MIDCPNIFTY';
+  if (sym.includes('SENSEX')) return 'SENSEX';
+  if (sym.includes('BANKEX')) return 'BANKEX';
+  if (sym.includes(':')) return sym.split(':')[1];
+  return sym;
+};
 
 interface TradingChartProps {
   symbol: string;         // e.g., "BTCUSDT" or "NSE:INFY"
@@ -125,31 +140,30 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
   const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
 
-  // ── Strike data generator ──
-  const getChainStrikes = () => {
-    const s = currentPrice || 71.00;
-    const atm = Math.round(s / 100) * 100; // nearest 100
-    const strikes = [];
-    for (let i = -5; i <= 5; i++) strikes.push(atm + i * 100);
-    return strikes.map(strike => {
-      const dist = s - strike;
-      const ceIntrinsic = Math.max(0, dist);
-      const ceTime = Math.max(0.5, 8 - Math.abs(dist) * 0.05);
-      const ceLtp = parseFloat((ceIntrinsic + ceTime + Math.random() * 0.5).toFixed(1));
-      const ceIV  = parseFloat((22 + Math.abs(dist) * 0.02 + Math.random()).toFixed(1));
-      const ceOI  = Math.round((500 + Math.random() * 200) * (1 - Math.abs(dist)/500));
-      
-      const peIntrinsic = Math.max(0, -dist);
-      const peTime = Math.max(0.5, 8 - Math.abs(dist) * 0.05);
-      const peLtp = parseFloat((peIntrinsic + peTime + Math.random() * 0.5).toFixed(1));
-      const peIV  = parseFloat((24 + Math.abs(dist) * 0.02 + Math.random()).toFixed(1));
-      const peOI  = Math.round((450 + Math.random() * 200) * (1 - Math.abs(dist)/500));
-      
-      const isITM_CE = dist > 0;
-      const isITM_PE = dist < 0;
-      return { strike, ceLtp, ceIV, ceOI, peLtp, peIV, peOI, isITM_CE, isITM_PE };
+  const underlyingSym = getUnderlyingSymbol(symbol);
+  const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX');
+
+  const { data: chainData, isLoading: chainLoading } = useSWR(
+    activeSegment === 'chain' && isIndex
+      ? `/api/market/option-chain?symbol=${underlyingSym}`
+      : null,
+    fetcher
+  );
+
+  const chainStrikes = useMemo(() => chainData?.strikes || [], [chainData]);
+  const chainExpiry = chainData?.selectedExpiry || '';
+
+  const symbolsToFetch = useMemo(() => {
+    if (activeSegment !== 'chain' || !chainStrikes.length) return [];
+    const syms: string[] = [];
+    chainStrikes.forEach((s: any) => {
+      if (s.ce?.id) syms.push(s.ce.id);
+      if (s.pe?.id) syms.push(s.pe.id);
     });
-  };
+    return syms;
+  }, [activeSegment, chainStrikes]);
+
+  const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
 
   const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number) => {
     setIsPanelExpanded(false);
@@ -738,29 +752,37 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
   // Render collapsible panel tabs content
   const renderPanelContent = () => {
     if (activeSegment === 'chain') {
-      const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY');
       if (!isIndex) {
         return <div className="empty-state">Option Chain not available for this segment.</div>;
       }
-      const strikes = getChainStrikes();
-      const expiry = '23 JAN';
-      const atm = Math.round((currentPrice || 71.00) / 100) * 100;
-      const mappedStrikes = strikes.map(r => ({
-        strike: r.strike,
-        ce: { token: 0, symbol: `${r.strike} CE|${r.ceLtp}|${r.ceIV}`, id: '', price: r.ceLtp },
-        pe: { token: 0, symbol: `${r.strike} PE|${r.peLtp}|${r.peIV}`, id: '', price: r.peLtp }
-      }));
-
+      if (chainLoading) {
+        return <div className="empty-state">Loading chain...</div>;
+      }
+      
       const handleTableTrade = (tradeSymbol: string, side: 'BUY' | 'SELL') => {
         const [name, ltpStr, ivStr] = tradeSymbol.split('|');
-        openChainOrder(side, name, expiry, parseFloat(ltpStr), parseFloat(ivStr));
+        openChainOrder(side, name, chainExpiry, parseFloat(ltpStr), parseFloat(ivStr));
       };
+
+      // Transform real strikes for TradingChart format (needs tradeSymbol with | format for handleTableTrade)
+      const mappedStrikes = chainStrikes.map((r: any) => {
+        const ceQuote = r.ce?.id ? marketQuotes[r.ce.id] : null;
+        const peQuote = r.pe?.id ? marketQuotes[r.pe.id] : null;
+        const ceLtp = ceQuote ? ceQuote.lastPrice : (r.ce?.price || 0);
+        const peLtp = peQuote ? peQuote.lastPrice : (r.pe?.price || 0);
+        
+        return {
+          strike: r.strike,
+          ce: { ...r.ce, symbol: r.ce ? `${r.ce.symbol}|${ceLtp}|0` : '' },
+          pe: { ...r.pe, symbol: r.pe ? `${r.pe.symbol}|${peLtp}|0` : '' }
+        };
+      });
 
       return (
         <div className="tc-chain-container" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           <OptionChainTable 
             strikes={mappedStrikes} 
-            quotes={{}} 
+            quotes={marketQuotes} 
             spotPrice={currentPrice || 71.00} 
             onTrade={handleTableTrade} 
             priceMode="LTP" 
@@ -1084,10 +1106,9 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
       )}
 
       {/* Bottom Section */}
-      {!hideTradingControls && (
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Buy/Sell Buttons — always visible, act as quick order when panel is expanded */}
-        {!isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
+        {!hideTradingControls && !isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
           <div className="trade-buttons" id="tradeButtons">
             <button id="buyButton" className="trade-btn buy" onClick={() => {
               if (isPanelExpanded && activeSegment === 'chain') {
@@ -1125,7 +1146,7 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
         )}
 
         {/* Order Block */}
-        {isOrderBlockVisible && (
+        {!hideTradingControls && isOrderBlockVisible && (
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
               <span className="order-block-title">
@@ -1344,7 +1365,6 @@ export default function TradingChart({ symbol, segment, liveQuote, hideTradingCo
           </div>
         </div>
       </div>
-      )}
       {toast.visible && (
         <div className={`toast-message toast-show ${toast.isError ? 'neg' : ''}`}>
           {toast.msg}
