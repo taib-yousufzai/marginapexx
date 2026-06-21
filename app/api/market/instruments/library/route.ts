@@ -42,7 +42,7 @@ export async function GET() {
     // 1. Index-FUT
     const { data: indexFuts } = await supabase
       .from('instruments')
-      .select('tradingsymbol, name, exchange, instrument_type, segment, expiry')
+      .select('tradingsymbol, name, exchange, instrument_type, segment, expiry, lot_size')
       .in('name', ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'])
       .in('instrument_type', ['FUTIDX', 'FUT', 'MAPPED_FUT'])
       .gte('expiry', today)
@@ -61,7 +61,7 @@ export async function GET() {
         icon: 'fa-chart-line',
         instruments: Array.from(earliestExpiries.values()).map(i => ({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
         }))
       });
     }
@@ -88,7 +88,7 @@ export async function GET() {
 
       const { data: opts } = await supabase
         .from('instruments')
-        .select('tradingsymbol, name, exchange, instrument_type, strike_price, option_type, expiry, underlying_symbol')
+        .select('tradingsymbol, name, exchange, instrument_type, strike_price, option_type, expiry, underlying_symbol, lot_size')
         .eq('underlying_symbol', idx)
         .eq('expiry', nearestExpiry)
         .order('strike_price', { ascending: true });
@@ -132,7 +132,7 @@ export async function GET() {
         name: `${idx} Options`,
         instruments: selectedOpts.map((i: any) => ({
           name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
         }))
       };
     }))).filter(Boolean);
@@ -149,7 +149,7 @@ export async function GET() {
       if (futs && futs.length > 0) {
         futs.forEach((i: any) => mcxFutInstruments.push({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
         }));
       }
       // OPT — apply expiry + strike range filter
@@ -198,7 +198,7 @@ export async function GET() {
 
           mcxOptCats.push({
             name: cmd,
-            instruments: selectedOpts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
+            instruments: selectedOpts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size }))
           });
         }
       }
@@ -219,7 +219,7 @@ export async function GET() {
       if (futs && futs.length > 0) {
         futs.forEach((i: any) => stockFutInstruments.push({
           name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
         }));
       }
       // OPT
@@ -260,7 +260,7 @@ export async function GET() {
 
           stockOptCats.push({
             name: stk,
-            instruments: selectedOpts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }))
+            instruments: selectedOpts.map((i: any) => ({ name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange === 'NFO' ? 'NSE' : i.exchange === 'BFO' ? 'BSE' : i.exchange} - Stock Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size }))
           });
         }
       }
@@ -269,7 +269,7 @@ export async function GET() {
       if (eq && eq.length > 0) {
         eq.forEach((i: any) => nseEqInstruments.push({
           name: `${i.tradingsymbol} (EQ)`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`,
-          price: 0, change: '0%', segment: `${i.exchange} - Equity`, contractDate: '', open: 0, high: 0, low: 0, close: 0
+          price: 0, change: '0%', segment: `${i.exchange} - Equity`, contractDate: '', open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
         }));
       }
     }));
@@ -294,7 +294,7 @@ export async function GET() {
           icon: 'fa-bitcoin',
           instruments: Array.from(uniqueCryptos.values()).map((i: any) => ({
             name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: i.id,
-            price: 0, change: '0%', segment: 'CRYPTO', contractDate: '', open: 0, high: 0, low: 0, close: 0
+            price: 0, change: '0%', segment: 'CRYPTO', contractDate: '', open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size
           }))
         });
       }
@@ -305,7 +305,7 @@ export async function GET() {
     if (comex && comex.length > 0) {
       const { data: mcxFuts } = await supabase
         .from('instruments')
-        .select('tradingsymbol, name, exchange, expiry')
+        .select('tradingsymbol, name, exchange, expiry, lot_size')
         .eq('exchange', 'MCX')
         .in('instrument_type', ['FUTCOM', 'FUT', 'MAPPED_FUT'])
         .gte('expiry', today);
@@ -378,8 +378,8 @@ export async function GET() {
 
       filtered.forEach((i: any) => {
         const entry = ['CE', 'PE'].includes(i.option_type)
-          ? { name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 }
-          : { name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0 };
+          ? { name: `${i.underlying_symbol} ${i.strike_price} ${i.option_type}`, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Options`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size }
+          : { name: i.tradingsymbol, symbol: i.tradingsymbol, kiteSymbol: `${i.exchange}:${i.tradingsymbol}`, price: 0, change: '0%', segment: `${i.exchange} - Futures`, contractDate: i.expiry, open: 0, high: 0, low: 0, close: 0, lotSize: i.lot_size };
         forexInstruments.push(entry);
       });
     }));

@@ -27,6 +27,7 @@ interface WatchlistItem {
   low: number;
   close: number;
   category?: string;
+  lotSize?: number;
 }
 
 declare global {
@@ -473,13 +474,14 @@ function WatchlistContent() {
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [userId, setUserId] = useState<string>('');
 
-  const getWatchlistLotSize = (name: string, symbol: string): number => {
-    const n = name.toUpperCase();
-    const s = symbol.toUpperCase();
+  const getWatchlistLotSize = (item: any): number => {
+    if (item && item.lotSize && item.lotSize > 0) return item.lotSize;
+    const n = (item.name || '').toUpperCase();
+    const s = (item.symbol || '').toUpperCase();
     const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
-    const dbMatch = sortedSettings.find(item => 
-      n.includes(item.symbol.toUpperCase()) || 
-      s.includes(item.symbol.toUpperCase())
+    const dbMatch = sortedSettings.find(set => 
+      n.includes(set.symbol.toUpperCase()) || 
+      s.includes(set.symbol.toUpperCase())
     );
     if (dbMatch) return Number(dbMatch.lot_size);
     if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
@@ -759,7 +761,7 @@ function WatchlistContent() {
           setQtyInput(String(existingPos.qty_open));
         }
       } else if (tradeSide === 'BUY') {
-        const computedLot = getWatchlistLotSize(selectedItem.name, selectedItem.symbol);
+        const computedLot = getWatchlistLotSize(selectedItem);
         setOrderQty(computedLot);
         setQtyInput(String(computedLot));
       }
@@ -1005,7 +1007,7 @@ function WatchlistContent() {
       if (item) {
         // Directly set state - avoid stale closure
         setSelectedItem(item);
-        const computedLot = getWatchlistLotSize(item.name || item.symbol, item.symbol);
+        const computedLot = getWatchlistLotSize(item);
         setOrderQty(computedLot);
         setQtyInput(String(computedLot));
         setOrderUnit('qty');
@@ -1023,7 +1025,7 @@ function WatchlistContent() {
     (window as any).__reactOpenTradeSheetWithItem = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BUY') => {
       setSelectedItem(item);
       setTradeSide(side);
-      const computedLot = getWatchlistLotSize(item.name || item.symbol, item.symbol);
+      const computedLot = getWatchlistLotSize(item);
       setOrderQty(computedLot);
       setQtyInput(String(computedLot));
       setOrderUnit('qty');
@@ -1088,7 +1090,7 @@ function WatchlistContent() {
     setTradeSide(side);
     setSelectedItem(item);
     // Reset defaults or set based on item type
-    const computedLot = getWatchlistLotSize(item.name, item.symbol);
+    const computedLot = getWatchlistLotSize(item);
     setOrderQty(computedLot);
     setQtyInput(String(computedLot));
     setOrderUnit('qty');
@@ -1128,7 +1130,7 @@ function WatchlistContent() {
 
   let lotSize = 1;
   if (selectedItem) {
-    lotSize = getWatchlistLotSize(selectedItem.name, selectedItem.symbol);
+    lotSize = getWatchlistLotSize(selectedItem);
   }
 
   const handlePlaceOrder = async (side: OrderSide) => {

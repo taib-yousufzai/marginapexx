@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
           name,
           exchange,
           instrument_type,
-          segment
+          segment,
+          lot_size
         )
       `);
 
@@ -117,6 +118,7 @@ export async function GET(request: NextRequest) {
         changePercent: Number(changePercent.toFixed(2)),
         gap: Number(gap.toFixed(2)),
         gapPercent: Number(gapPercent.toFixed(2)),
+        lotSize: inst.lot_size,
         updated_at: row.updated_at
       };
     });

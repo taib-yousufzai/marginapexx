@@ -218,13 +218,14 @@ function OptionChainContent() {
       kiteSymbol: kiteId || selectedContract.symbol,
       price,
       change,
-      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BFO' : 'NFO',
+      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
       contractDate: selectedExpiry ? selectedExpiry : '',
       open,
       high,
       low,
       close,
-      category: 'WATCHLIST'
+      category: 'INDEX-OPT',
+      lotSize: contractData.lotSize
     }, userId);
 
     if (success) {
