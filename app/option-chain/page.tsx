@@ -166,11 +166,11 @@ function OptionChainContent() {
     const sortedSettings = [...scriptSettings].sort((a, b) => b.symbol.length - a.symbol.length);
     const dbMatch = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
     if (dbMatch) return Number(dbMatch.lot_size);
-    if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
-    if (n.includes('FINNIFTY')) return 40;
-    if (n.includes('MIDCP') || n.includes('MIDCAP')) return 75;
-    if (n.includes('SENSEX')) return 10;
-    if (n.includes('NIFTY')) return 25;
+    if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 30;
+    if (n.includes('FINNIFTY')) return 60;
+    if (n.includes('MIDCP') || n.includes('MIDCAP')) return 120;
+    if (n.includes('SENSEX')) return 20;
+    if (n.includes('NIFTY')) return 65;
     if (n.includes('GOLDM')) return 10;
     if (n.includes('GOLD')) return 100;
     if (n.includes('SILVERM')) return 5;
