@@ -571,6 +571,7 @@ function WatchlistContent() {
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
   const [orderQty, setOrderQty] = useState<number>(25);
   const [qtyInput, setQtyInput] = useState<string>('25');
+  const [isBenchmarkChart, setIsBenchmarkChart] = useState<boolean>(false);
 
   const handleQtyChange = (val: string) => {
     setQtyInput(val);
@@ -840,6 +841,7 @@ function WatchlistContent() {
         const dashboardBenchmarks = ['NIFTY 50', 'SENSEX', 'BANK NIFTY', 'USD/INR', 'CRUDE OIL', 'GOLD', 'SILVER', 'NAT GAS'];
         if (dashboardBenchmarks.includes(deepLinkSymbol)) {
           setChartItem(item!);
+          setIsBenchmarkChart(true);
           const chartSheet = document.getElementById('chartSheet');
           const chartOverlay = document.getElementById('chartSheetOverlay');
           if (chartSheet) chartSheet.classList.add('open');
@@ -1841,6 +1843,7 @@ function WatchlistContent() {
                   }}
                   onClick={() => {
                     setChartItem(selectedItem);
+                    setIsBenchmarkChart(false);
                     const detailSheet = document.getElementById('detailSheet');
                     const detailOverlay = document.getElementById('detailSheetOverlay');
                     if (detailSheet) detailSheet.classList.remove('open');
@@ -2197,7 +2200,7 @@ function WatchlistContent() {
         {toast.msg}
       </div>
 
-      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); }}></div>
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('chartSheet'); const overlay = document.getElementById('chartSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); setChartItem(null); setIsBenchmarkChart(false); }}></div>
       <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
           {chartItem && (
@@ -2205,7 +2208,7 @@ function WatchlistContent() {
               symbol={chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}
               segment={chartItem.binanceSymbol ? 'CRYPTO' : chartItem.segment}
               liveQuote={chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol]}
-              hideTradingControls={['NIFTY 50', 'SENSEX', 'BANK NIFTY', 'USD/INR', 'CRUDE OIL', 'GOLD', 'SILVER', 'NAT GAS'].includes(chartItem.name)}
+              hideTradingControls={isBenchmarkChart}
             />
           )}
         </div>
