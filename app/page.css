@@ -1552,6 +1552,7 @@ body.blue .notif-item {
 /* Remove the padding that was meant for fixed header/footer */
 .home-isolated-scroll {
   flex: 1 !important;
+  min-height: 0 !important; /* CRITICAL: Allows flex item to shrink below content height */
   overflow-y: auto !important;
   overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
