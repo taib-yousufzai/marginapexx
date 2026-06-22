@@ -109,6 +109,52 @@ export async function PATCH(
       return Response.json({ error: 'Failed to update position' }, { status: 500 });
     }
 
+    // Step 7b: Margin adjustment — sync user balance when position value changes
+    // Position value = avg_price × qty_total. If admin changes either, the difference
+    // must be debited or credited to the user's balance.
+    const oldValue = Number(existingPosition.avg_price || 0) * Number(existingPosition.qty_total || 0);
+    const newValue = Number(updatedPosition.avg_price || 0) * Number(updatedPosition.qty_total || 0);
+    const valueDiff = newValue - oldValue; // positive = user owes more, negative = user gets refund
+
+    if (Math.abs(valueDiff) > 0.01) {
+      const adjRefId = `MADJ_${id}`;
+      const adjType = valueDiff > 0 ? 'MARGIN_ADJ_DEBIT' : 'MARGIN_ADJ_CREDIT';
+      const adjAmount = Math.abs(valueDiff);
+
+      // Check if an adjustment transaction already exists for this position
+      const { data: existingAdjTx } = await adminClient
+        .from('transactions')
+        .select('id, amount, type')
+        .eq('ref_id', adjRefId)
+        .maybeSingle();
+
+      if (existingAdjTx) {
+        // Update existing adjustment transaction
+        await adminClient
+          .from('transactions')
+          .update({
+            type: adjType,
+            amount: adjAmount,
+            status: 'APPROVED',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingAdjTx.id);
+      } else {
+        // Create new adjustment transaction
+        await adminClient
+          .from('transactions')
+          .insert({
+            user_id: updatedPosition.user_id,
+            type: adjType,
+            amount: adjAmount,
+            status: 'APPROVED',
+            ref_id: adjRefId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+      }
+    }
+
     // Step 8: Sync PnL transaction
     if (updatedPosition.status === 'closed') {
       const { data: existingPnlTx } = await adminClient
@@ -216,6 +262,9 @@ export async function PATCH(
     }
 
     // Step 10: Log action to act_logs
+    const adjInfo = Math.abs(valueDiff) > 0.01
+      ? `, Margin Adj: ${valueDiff > 0 ? '-' : '+'}₹${Math.abs(valueDiff).toFixed(2)} (${valueDiff > 0 ? 'debited' : 'credited'})`
+      : '';
     await adminClient.from('act_logs').insert({
       type: 'POSITION_EDIT',
       user_id: callerUser.id,
@@ -223,7 +272,7 @@ export async function PATCH(
       symbol: updatedPosition.symbol,
       qty: updatedPosition.qty_total,
       price: updatedPosition.avg_price,
-      reason: `Admin updated position ${id}. Status: ${updatedPosition.status}, PnL: ${updatedPosition.pnl}, Brokerage: ${updatedPosition.brokerage}`,
+      reason: `Admin updated position ${id}. Status: ${updatedPosition.status}, PnL: ${updatedPosition.pnl}, Brokerage: ${updatedPosition.brokerage}${adjInfo}`,
     });
 
     // Step 11: Return the updated position row

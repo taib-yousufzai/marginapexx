@@ -500,6 +500,13 @@ export default function Page() {
                         ))}
                       </div>
                     )}
+
+                    {!kiteLoading && Object.keys(quotes).length === 0 && (
+                      <div className="market-status-msg" style={{ padding: '20px', textAlign: 'center', color: 'var(--red)', fontSize: '0.9rem' }}>
+                        <i className="fas fa-exclamation-triangle" style={{ marginRight: '8px' }}></i>
+                        Market data server is currently unreachable.
+                      </div>
+                    )}
                   </div>
 
                   {/* AI & Learning */}

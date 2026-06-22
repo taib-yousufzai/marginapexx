@@ -303,11 +303,14 @@ export default function UnifiedSettingsPage() {
                     <div className="settings-section">
                       <div className="section-title-faint">TRADING & COMMISSIONS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
-                        <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">{item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : '—'}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span></div>
-
+                        <div className="detail-item">
+                          <span className="detail-label">Commission {formatCommissionType(item.commission_type)}</span>
+                          <span className="detail-value">{item.commission_value}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Carry Comm. {item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : ''}</span>
+                          <span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -379,11 +382,14 @@ export default function UnifiedSettingsPage() {
                     <div className="settings-section">
                       <div className="section-title-faint">TRADING & COMMISSIONS</div>
                       <div className="segment-details-grid">
-                        <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
-                        <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">{item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : '—'}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span></div>
-
+                        <div className="detail-item">
+                          <span className="detail-label">Commission {formatCommissionType(item.commission_type)}</span>
+                          <span className="detail-value">{item.commission_value}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">Carry Comm. {item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : ''}</span>
+                          <span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span>
+                        </div>
                       </div>
                     </div>
 
