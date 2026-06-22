@@ -75,8 +75,7 @@ export default function FundsPage() {
   };
 
   const handleWhatsAppSupport = () => {
-    const number = process.env.NEXT_PUBLIC_SUPPORT_NUMBER || '+1234567890';
-    window.open(`https://wa.me/${number.replace(/[^0-9]/g, '')}`, '_blank');
+    window.open('https://wa.me/918796535838', '_blank');
   };
 
   const downloadQRCode = () => {
