@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Property-based tests for Admin User Management API routes.
  *
  * Feature: admin-user-management
@@ -27,6 +27,8 @@ const mockEq = vi.fn();
 const mockSelect = vi.fn();
 const mockUpdate = vi.fn();
 
+let currentUpdateResult: any = null;
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({
     auth: {
@@ -40,6 +42,7 @@ vi.mock('@supabase/supabase-js', () => ({
     from: vi.fn(() => ({
       insert: mockInsert,
       update: mockUpdate,
+      select: mockSelect,
     })),
   })),
 }));
@@ -103,9 +106,13 @@ function makeUser(role: string) {
 }
 
 function setupUpdateChain(result: { data: unknown; error: unknown }) {
-  mockSingle.mockResolvedValue(result);
+  currentUpdateResult = result;
   mockSelectSingle.mockReturnValue({ single: mockSingle });
-  mockEq.mockReturnValue({ select: mockSelectSingle });
+  mockEq.mockReturnValue({
+    select: mockSelectSingle,
+    single: mockSingle,
+    then: (onfulfilled: any) => Promise.resolve(result).then(onfulfilled),
+  });
   mockUpdate.mockReturnValue({ eq: mockEq });
 }
 
@@ -115,6 +122,18 @@ function setupUpdateChain(result: { data: unknown; error: unknown }) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+
+  mockSelect.mockReturnValue({ eq: mockEq });
+  mockUpdate.mockReturnValue({ eq: mockEq });
+
+  mockSingle.mockImplementation(() => {
+    // Check if the last select arg was 'id' (signaling client_id uniqueness check)
+    const lastSelectArg = mockSelect.mock.calls[mockSelect.mock.calls.length - 1]?.[0];
+    if (lastSelectArg === 'id') {
+      return { data: null, error: null };
+    }
+    return currentUpdateResult;
+  });
 
   mockGetUser.mockResolvedValue({
     data: { user: makeUser('admin') },

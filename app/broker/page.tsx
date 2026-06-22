@@ -6,12 +6,14 @@ import { supabase } from '@/lib/supabaseClient';
 import { signOut } from '@/lib/auth';
 import '../admin-layout.css';
 import './page.css';
+import { ConfirmDialog } from '@/components/admin/AdminUtils';
+import UpdatePage from '@/components/admin/UpdatePage';
 
 // --- Constants ---
 const PAGE_SIZE = 20;
 
 // --- Types ---
-type NavPage = 'dashboard' | 'users' | 'position' | 'order' | 'actledger' | 'accounts' | 'payinout';
+type NavPage = 'dashboard' | 'users' | 'position' | 'order' | 'actledger' | 'accounts' | 'payinout' | 'update';
 
 type ToastState = { message: string; type: 'success' | 'error' | 'info' } | null;
 
@@ -188,6 +190,7 @@ export default function BrokerPage() {
   const [activePage, setActivePage] = useState<NavPage>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string } | null>(null);
+  const [selectedUserTab, setSelectedUserTab] = useState<'profile' | 'segments' | 'ledger'>('profile');
   const [toast, setToast] = useState<ToastState>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -314,6 +317,8 @@ export default function BrokerPage() {
             setToast={setToast}
             setSelectedUser={setSelectedUser}
             selectedUser={selectedUser}
+            selectedUserTab={selectedUserTab}
+            setSelectedUserTab={setSelectedUserTab}
             onNavigate={setActivePage}
           />
         </div>
@@ -324,15 +329,16 @@ export default function BrokerPage() {
 
 // --- Page Switcher ---
 
-function PageContent({ page, broker, apiCall, setToast, setSelectedUser, selectedUser, onNavigate }: any) {
+function PageContent({ page, broker, apiCall, setToast, setSelectedUser, selectedUser, selectedUserTab, setSelectedUserTab, onNavigate }: any) {
   switch (page) {
     case 'dashboard': return <BrokerDashboard broker={broker} apiCall={apiCall} onNavigate={onNavigate} onSelectUser={setSelectedUser} />;
-    case 'users': return <BrokerUsers apiCall={apiCall} onSelectUser={setSelectedUser} onNavigate={onNavigate} />;
+    case 'users': return <BrokerUsers apiCall={apiCall} onSelectUser={setSelectedUser} onNavigate={onNavigate} setSelectedUserTab={setSelectedUserTab} setToast={setToast} />;
     case 'position': return <BrokerPositions apiCall={apiCall} selectedUser={selectedUser} />;
     case 'order': return <BrokerOrders apiCall={apiCall} selectedUser={selectedUser} />;
     case 'actledger': return <BrokerActLogs apiCall={apiCall} />;
     case 'accounts': return <BrokerAccounts apiCall={apiCall} />;
     case 'payinout': return <BrokerPayInOut apiCall={apiCall} />;
+    case 'update': return <UpdatePage selectedUser={selectedUser} isBroker={true} initialTab={selectedUserTab} />;
     default: return (
       <div className="adm-card" style={{ padding: 40, textAlign: 'center' }}>
         <i className="fas fa-tools" style={{ fontSize: '3rem', color: '#30363d', marginBottom: 20 }} />
@@ -448,10 +454,13 @@ function BrokerDashboard({ broker, apiCall, onNavigate, onSelectUser }: any) {
   );
 }
 
-function BrokerUsers({ apiCall, onSelectUser, onNavigate }: any) {
+function BrokerUsers({ apiCall, onSelectUser, onNavigate, setSelectedUserTab, setToast }: any) {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{ userId: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deletedUsers, setDeletedUsers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     apiCall('/api/broker/users').then(({ ok, data }: any) => {
@@ -465,6 +474,25 @@ function BrokerUsers({ apiCall, onSelectUser, onNavigate }: any) {
     });
   }, [apiCall]);
 
+  const handleDelete = () => {
+    if (!confirmDialog) return;
+    setDeleteLoading(true);
+    apiCall(`/api/admin/users/${confirmDialog.userId}`, { method: 'DELETE' })
+      .then(({ ok, status, data }: any) => {
+        if (status === 401) { signOut(); return; }
+        if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+        if (!ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+        const { scheduled_delete_at } = data as { scheduled_delete_at: string };
+        setDeletedUsers(prev => ({ ...prev, [confirmDialog.userId]: scheduled_delete_at }));
+        setToast({ message: 'User scheduled for deletion', type: 'success' });
+        setConfirmDialog(null);
+      })
+      .catch((err: any) => {
+        setToast({ message: err?.message || 'Network error', type: 'error' });
+      })
+      .finally(() => setDeleteLoading(false));
+  };
+
   const filtered = users.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
     (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -475,6 +503,14 @@ function BrokerUsers({ apiCall, onSelectUser, onNavigate }: any) {
 
   return (
     <div className="adm-page">
+      {confirmDialog && (
+        <ConfirmDialog
+          message={`Delete user ${confirmDialog.userId}? This will schedule deletion after 30 days.`}
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDialog(null)}
+          loading={deleteLoading}
+        />
+      )}
 
       {/* ── Search ── */}
       <div style={{ position: 'relative', width: '100%' }}>
@@ -579,27 +615,74 @@ function BrokerUsers({ apiCall, onSelectUser, onNavigate }: any) {
               </div>
 
               {/* ── Buttons ── */}
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   className="adm-btn-primary"
-                  style={{ flex: 1, fontSize: '0.82rem' }}
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '6px 12px', minWidth: '80px' }}
                   onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('position'); }}
                 >
                   <i className="fas fa-chart-pie" style={{ marginRight: 6 }} />Positions
                 </button>
                 <button
                   className="adm-btn-ghost"
-                  style={{ flex: 1, fontSize: '0.82rem' }}
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '6px 12px', minWidth: '80px' }}
                   onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('order'); }}
                 >
                   <i className="fas fa-list-ul" style={{ marginRight: 6 }} />Orders
                 </button>
+                <button
+                  className="adm-btn-ghost"
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '6px 12px', minWidth: '80px', borderColor: '#2f74e5', color: '#58a6ff' }}
+                  onClick={() => { onSelectUser({ id: u.id, role: u.role }); setSelectedUserTab('profile'); onNavigate('update'); }}
+                >
+                  <i className="fas fa-edit" style={{ marginRight: 6 }} />Update
+                </button>
+                <button
+                  className="adm-btn-ghost"
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '6px 12px', minWidth: '80px', borderColor: '#f0883e', color: '#f0883e' }}
+                  onClick={() => { onSelectUser({ id: u.id, role: u.role }); setSelectedUserTab('ledger'); onNavigate('update'); }}
+                >
+                  <i className="fas fa-wallet" style={{ marginRight: 6 }} />Ledger
+                </button>
+                <button
+                  className="adm-btn-ghost"
+                  style={{ flex: 1, fontSize: '0.78rem', padding: '6px 12px', minWidth: '80px', borderColor: '#f85149', color: '#f85149' }}
+                  onClick={() => setConfirmDialog({ userId: u.id })}
+                >
+                  <i className="fas fa-trash-alt" style={{ marginRight: 6 }} />Delete
+                </button>
               </div>
+
+              {(deletedUsers[u.id] || u.scheduled_delete_at) && (
+                <DeletionBanner scheduledDeleteAt={deletedUsers[u.id] || u.scheduled_delete_at!} />
+              )}
 
             </div>
           ))
         )}
       </div>
+    </div>
+  );
+}
+
+function DeletionBanner({ scheduledDeleteAt }: { scheduledDeleteAt: string }) {
+  const dateStr = scheduledDeleteAt ? new Date(scheduledDeleteAt).toLocaleString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  }) : 'N/A';
+  return (
+    <div style={{
+      background: '#7c2d12',
+      color: '#fca5a5',
+      borderRadius: 6,
+      padding: '8px 12px',
+      fontSize: '0.8rem',
+      marginTop: 10,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    }}>
+      <i className="fas fa-trash-alt" />
+      <span>Scheduled for deletion on {dateStr}</span>
     </div>
   );
 }

@@ -82,9 +82,9 @@ export async function requireAdmin(
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Step 4: Determine caller role and assert admin or super_admin
+  // Step 4: Determine caller role and assert admin, super_admin, or broker
   const role = getRole(userData.user);
-  if (role !== 'admin' && role !== 'super_admin') {
+  if (role !== 'admin' && role !== 'super_admin' && role !== 'broker') {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 

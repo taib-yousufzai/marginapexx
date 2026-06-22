@@ -9,6 +9,7 @@ export type UserListItem = {
   role: string; parent_id: string | null; segments: string[] | null;
   active: boolean; read_only: boolean; demo_user: boolean;
   balance: number; created_at: string; scheduled_delete_at: string | null;
+  client_id?: string;
 };
 
 const PAGE_SIZE = 8;
@@ -48,7 +49,12 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
     });
   }, [router]);
 
-  const filtered = users.filter(u => u.id.toLowerCase().includes(search.toLowerCase()));
+  const filtered = users.filter(u => 
+    u.id.toLowerCase().includes(search.toLowerCase()) ||
+    (u.client_id && u.client_id.toLowerCase().includes(search.toLowerCase())) ||
+    (u.full_name && u.full_name.toLowerCase().includes(search.toLowerCase())) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -85,13 +91,20 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
             ))
             : paged.map((u, i) => {
               const isSelected = selectedUser.id === u.id;
+              const displayName = u.full_name || u.email;
+              const displayId = (u.client_id || u.id.slice(0, 8)).toUpperCase();
               return (
                 <div
                   key={i}
                   className={`adm-up-row ${isSelected ? 'selected' : ''}`}
                   onClick={() => onSelectUser(u)}
                 >
-                  <span className="adm-up-id">{u.id}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                    <span className="adm-up-id" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayName}>
+                      {displayName}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: '#8b949e', fontFamily: 'monospace' }}>{displayId}</span>
+                  </div>
                   <span className={`adm-up-role ${u.role === 'SUB_BROKER' ? 'sub' : ''} ${isSelected ? 'sel' : ''}`}>
                     {u.role}
                   </span>

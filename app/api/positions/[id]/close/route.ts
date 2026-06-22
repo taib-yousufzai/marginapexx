@@ -239,7 +239,7 @@ export async function POST(
   const lookupId = profileResult.data?.parent_id ?? user.id;
   const [segSettingResult, kiteLtp] = await Promise.all([
     admin.from(targetTable)
-      .select('exit_buffer, profit_hold_sec, loss_hold_sec, entry_buffer')
+      .select('exit_buffer, profit_hold_sec, loss_hold_sec, entry_buffer, commission_type, commission_value, carry_commission_type, carry_commission_value')
       .eq('user_id', lookupId)
       .eq('segment', pos.settlement ?? '')
       .eq('side', pos.side)

@@ -16,6 +16,7 @@
  */
 
 import { requireAdmin } from '../_auth';
+import { getRole } from '../../../../lib/auth'; // trigger recompile
 
 export async function GET(request: Request): Promise<Response> {
   try {
@@ -23,17 +24,31 @@ export async function GET(request: Request): Promise<Response> {
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
-    // 1. Fetch all profiles
-    const { data: profiles, error: pError } = await adminClient
+    // 1. Fetch profiles (filtered by parent_id if broker)
+    const callerRole = getRole(authResult.callerUser);
+    const isBroker = callerRole === 'broker';
+
+    let pQuery = adminClient
       .from('profiles')
       .select('id, client_id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
+    
+    if (isBroker) {
+      pQuery = pQuery.eq('parent_id', authResult.callerUser.id);
+    }
+    const { data: profiles, error: pError } = await pQuery;
 
     if (pError) throw pError;
 
-    // 2. Fetch all positions to calculate live stats
+    const targetUserIds = (profiles ?? []).map((p: any) => p.id);
+    if (targetUserIds.length === 0) {
+      return Response.json([], { status: 200 });
+    }
+
+    // 2. Fetch positions to calculate live stats (only for filtered users)
     const { data: positions, error: posError } = await adminClient
       .from('positions')
-      .select('user_id, pnl, status, entry_time, exit_time, margin_required');
+      .select('user_id, pnl, status, entry_time, exit_time, margin_required')
+      .in('user_id', targetUserIds);
 
     if (posError) throw posError;
 
@@ -109,7 +124,12 @@ export async function POST(request: Request): Promise<Response> {
     // Validates: Requirements 2.1–2.7
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
+
+    const callerRole = getRole(callerUser);
+    if (callerRole === 'broker') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Step 2: Parse JSON body
     // Validates: Requirement 6.4

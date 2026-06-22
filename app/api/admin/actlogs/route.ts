@@ -83,6 +83,7 @@ export async function GET(request: Request): Promise<Response> {
     const dateFrom = url.searchParams.get('date_from') ?? null;
     const dateTo = url.searchParams.get('date_to') ?? null;
     const search = url.searchParams.get('search') ?? null;
+    const userId = url.searchParams.get('user_id') ?? null;
     const pageParam = url.searchParams.get('page') ?? null;
     const rowsParam = url.searchParams.get('rows') ?? null;
     const exportParam = url.searchParams.get('export') ?? null;
@@ -104,6 +105,11 @@ export async function GET(request: Request): Promise<Response> {
     }
     if (dateTo) {
       query = query.lte('created_at', dateTo);
+    }
+
+    // Step 4.5: Apply user_id filter if present
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},target_user_id.eq.${userId}`);
     }
 
     // Step 5: Apply search filter
@@ -129,7 +135,28 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Step 7: Map database rows to ActLogItem[]
+    // Step 7: Fetch profiles to resolve friendly names/IDs
+    const { data: profiles, error: pError } = await adminClient
+      .from('profiles')
+      .select('id, email, full_name, client_id');
+
+    const profileMap: Record<string, { email: string; full_name: string | null; client_id?: string }> = {};
+    if (!pError && profiles) {
+      profiles.forEach((p: any) => {
+        profileMap[p.id] = p;
+      });
+    }
+
+    const formatUser = (id: string | null) => {
+      if (!id) return '';
+      const p = profileMap[id];
+      if (!p) return id; // fallback to raw ID if profile not found
+      const name = p.full_name || p.email;
+      const cid = p.client_id || id.slice(0, 8);
+      return `${name} (${cid.toUpperCase()})`;
+    };
+
+    // Step 8: Map database rows to ActLogItem[]
     // Validates: Requirement 9.5
     const logs: ActLogItem[] = (data ?? []).map(
       (row: {
@@ -147,8 +174,8 @@ export async function GET(request: Request): Promise<Response> {
         id: row.id,
         type: row.type,
         time: row.created_at,
-        by: row.user_id ?? '',
-        target: row.target_user_id ?? '',
+        by: formatUser(row.user_id),
+        target: formatUser(row.target_user_id),
         symbol: row.symbol,
         qty: row.qty,
         price: row.price,

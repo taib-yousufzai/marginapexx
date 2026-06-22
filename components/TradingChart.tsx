@@ -116,8 +116,12 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const isCrypto = segment.toUpperCase() === 'CRYPTO' || symbol.endsWith('USDT');
 
   const isUnderlyingIndex = useMemo(() => {
-    const s = getUnderlyingSymbol(symbol.toUpperCase());
-    return ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX', 'NIFTY 50', 'NIFTY BANK'].includes(s);
+    const s = symbol.toUpperCase();
+    const spotIndices = [
+      'NIFTY 50', 'NIFTY BANK', 'SENSEX', 'NIFTY FIN SERVICE', 'NIFTY MID SELECT', 'BANKEX',
+      'NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'BSE:BANKEX'
+    ];
+    return spotIndices.includes(s);
   }, [symbol]);
 
   // --- Real Data Hooks ---

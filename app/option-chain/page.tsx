@@ -26,6 +26,7 @@ function addToWatchlist(item: {
   low: number;
   close: number;
   category?: string;
+  lotSize?: number;
 }, userId?: string) {
   const WATCHLIST_KEY = 'marginApex_watchlist';
   try {

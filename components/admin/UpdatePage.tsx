@@ -32,8 +32,24 @@ const EmptyState = ({ message, onOpen }: { message: string, onOpen?: () => void 
   </div>
 );
 
-export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selectedUser?: { id: string; role: string }, onOpenUserPanel?: () => void }) {
-  const [activeTab, setActiveTab] = useState<UpdateTab>('profile');
+export default function UpdatePage({ 
+  selectedUser, 
+  onOpenUserPanel,
+  isBroker = false,
+  initialTab
+}: { 
+  selectedUser?: { id: string; role: string }, 
+  onOpenUserPanel?: () => void,
+  isBroker?: boolean,
+  initialTab?: UpdateTab
+}) {
+  const [activeTab, setActiveTab] = React.useState<UpdateTab>('profile');
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -55,6 +71,22 @@ export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selected
         return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} /> : <EmptyState message="Please select a user first." onOpen={onOpenUserPanel} />;
     }
   };
+
+  const tabs: { key: UpdateTab, label: string }[] = isBroker
+    ? [
+        { key: 'profile', label: 'Profile' },
+        { key: 'segments', label: 'Segments' },
+        { key: 'ledger', label: 'Ledger' },
+      ]
+    : [
+        { key: 'profile', label: 'Profile' },
+        { key: 'segments', label: 'Segments' },
+        { key: 'ledger', label: 'Ledger' },
+        { key: 'copy_settings', label: 'Copy' },
+        { key: 'block_scripts', label: 'Block' },
+        { key: 'notifications', label: 'Notify' },
+        { key: 'multiple_settings', label: 'Bulk' },
+      ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)' }}>
@@ -82,13 +114,14 @@ export default function UpdatePage({ selectedUser, onOpenUserPanel }: { selected
         borderBottom: '1px solid #30363d', padding: '8px 12px', gap: '4px',
         flexShrink: 0, scrollbarWidth: 'none', msOverflowStyle: 'none',
       }}>
-        <SidebarButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
-        <SidebarButton active={activeTab === 'segments'} onClick={() => setActiveTab('segments')} label="Segments" />
-        <SidebarButton active={activeTab === 'ledger'} onClick={() => setActiveTab('ledger')} label="Ledger" />
-        <SidebarButton active={activeTab === 'copy_settings'} onClick={() => setActiveTab('copy_settings')} label="Copy" />
-        <SidebarButton active={activeTab === 'block_scripts'} onClick={() => setActiveTab('block_scripts')} label="Block" />
-        <SidebarButton active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} label="Notify" />
-        <SidebarButton active={activeTab === 'multiple_settings'} onClick={() => setActiveTab('multiple_settings')} label="Bulk" />
+        {tabs.map(t => (
+          <SidebarButton 
+            key={t.key}
+            active={activeTab === t.key}
+            onClick={() => setActiveTab(t.key)}
+            label={t.label}
+          />
+        ))}
       </div>
 
       {/* Main Content Area */}

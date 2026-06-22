@@ -89,7 +89,7 @@ export async function GET(request: Request) {
     if (expiry) {
       optionsPromise = supabase
         .from('instruments')
-        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
+        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange, lot_size')
         .eq('name', symbol)
         .eq('expiry', expiry)
         .in('option_type', ['CE', 'PE'])
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     if (!expiry && selectedExpiry) {
       const secondRes = await supabase
         .from('instruments')
-        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
+        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange, lot_size')
         .eq('name', symbol)
         .eq('expiry', selectedExpiry)
         .in('option_type', ['CE', 'PE'])

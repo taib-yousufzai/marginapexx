@@ -9,6 +9,7 @@
  */
 
 import { requireAdmin } from '../../../_auth';
+import { getRole } from '../../../../../../lib/auth';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,11 +60,24 @@ export async function GET(
     // Validates: Requirements 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Step 2: Resolve params
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
+
+    // Scope broker access to their own child users
+    const callerRole = getRole(callerUser);
+    if (callerRole === 'broker') {
+      const { data: targetProfile, error: targetError } = await adminClient
+        .from('profiles')
+        .select('parent_id')
+        .eq('id', id)
+        .single();
+      if (targetError || !targetProfile || targetProfile.parent_id !== callerUser.id) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     // Step 3: Query all segment_settings rows for this user
     // Validates: Requirements 8.1, 8.3
@@ -98,11 +112,24 @@ export async function POST(
     // Validates: Requirements 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Step 2: Resolve params
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
+
+    // Scope broker updates to their own child users
+    const callerRole = getRole(callerUser);
+    if (callerRole === 'broker') {
+      const { data: targetProfile, error: targetError } = await adminClient
+        .from('profiles')
+        .select('parent_id')
+        .eq('id', id)
+        .single();
+      if (targetError || !targetProfile || targetProfile.parent_id !== callerUser.id) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     // Step 3: Parse JSON body
     let body: unknown;

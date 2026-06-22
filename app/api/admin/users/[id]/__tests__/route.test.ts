@@ -40,6 +40,9 @@ vi.mock('@supabase/supabase-js', () => ({
     from: vi.fn(() => ({
       insert: mockInsert,
       update: mockUpdate,
+      select: mockSelect,
+      eq: mockEq,
+      single: mockSingle,
     })),
   })),
 }));
@@ -162,6 +165,13 @@ beforeEach(() => {
   // Default: insert succeeds
   mockInsert.mockResolvedValue({ data: { id: 'new-user-uuid' }, error: null });
 
+  // Default: select chain returns data: null, error: null (unique client_id by default)
+  mockSelect.mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      single: vi.fn().mockResolvedValue({ data: null, error: null })
+    })
+  });
+
   // Default: update chain succeeds with a profile row
   setupUpdateChain({
     data: { id: 'target-uuid', email: 'user@example.com', scheduled_delete_at: '2099-01-01T00:00:00.000Z' },
@@ -204,7 +214,7 @@ describe('POST /api/admin/users', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com' });
+      expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com', client_id: expect.any(String) });
     });
 
     it('returns 201 and inserts default segment settings when active segments are specified', async () => {
@@ -226,7 +236,7 @@ describe('POST /api/admin/users', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com' });
+      expect(body).toEqual({ id: 'new-user-uuid', email: 'newuser@example.com', client_id: expect.any(String) });
       expect(mockInsert).toHaveBeenCalled();
     });
   });

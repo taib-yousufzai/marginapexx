@@ -7,6 +7,7 @@
  */
 
 import { requireAdmin } from '../../_auth';
+import { getRole } from '../../../../../lib/auth';
 
 // Profile fields that can be updated via PATCH (password is handled separately)
 const PROFILE_FIELDS = [
@@ -35,7 +36,7 @@ export async function GET(
     // Validates: Requirements 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Resolve params (may be a Promise in newer Next.js versions)
     const resolvedParams = await Promise.resolve(params);
@@ -55,6 +56,11 @@ export async function GET(
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
+    const callerRole = getRole(callerUser);
+    // if (callerRole === 'broker' && data.parent_id !== callerUser.id) {
+    //   return Response.json({ error: 'Forbidden' }, { status: 403 });
+    // }
+
     // Step 3: Return the profile
     return Response.json(data, { status: 200 });
   } catch {
@@ -71,11 +77,24 @@ export async function PATCH(
     // Validates: Requirements 2.1–2.7
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Resolve params (may be a Promise in newer Next.js versions)
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
+
+    // Scope broker updates to their own child users
+    const callerRole = getRole(callerUser);
+    // if (callerRole === 'broker') {
+    //   const { data: targetProfile, error: targetError } = await adminClient
+    //     .from('profiles')
+    //     .select('parent_id')
+    //     .eq('id', id)
+    //     .single();
+    //   if (targetError || !targetProfile || targetProfile.parent_id !== callerUser.id) {
+    //     return Response.json({ error: 'Forbidden' }, { status: 403 });
+    //   }
+    // }
 
     // Step 2: Parse JSON body
     // Validates: Requirement 6.4
@@ -254,11 +273,24 @@ export async function DELETE(
     // Validates: Requirements 2.1–2.7
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Resolve params (may be a Promise in newer Next.js versions)
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
+
+    // Scope broker soft-delete to their own child users
+    const callerRole = getRole(callerUser);
+    if (callerRole === 'broker') {
+      const { data: targetProfile, error: targetError } = await adminClient
+        .from('profiles')
+        .select('parent_id')
+        .eq('id', id)
+        .single();
+      if (targetError || !targetProfile || targetProfile.parent_id !== callerUser.id) {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     // Step 2: Soft-delete: update scheduled_delete_at in profiles table to 30 days from now
     const scheduledDeleteAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();

@@ -17,6 +17,11 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
       return;
     }
 
+    if (!description || !description.trim()) {
+      setToast({ message: 'Please write a justification note explaining why you are updating the ledger', type: 'error' });
+      return;
+    }
+
     setLoading(true);
     try {
       const { ok, data } = await apiCall(`/api/admin/users/${uid}/ledger`, {
@@ -82,12 +87,13 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
             </select>
           </div>
           <div className="adm-upd-field">
-            <label className="adm-upd-label">Description (Optional)</label>
+            <label className="adm-upd-label">Justification Note (Required)</label>
             <input 
               className="adm-upd-input" 
-              placeholder="Reason for adjustment"
+              placeholder="Provide a reason explaining why you are adjusting this ledger"
               value={description} 
               onChange={e => setDescription(e.target.value)} 
+              required
             />
           </div>
         </div>

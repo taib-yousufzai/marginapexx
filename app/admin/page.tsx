@@ -5,6 +5,11 @@ import { getSession, getRole, signOut } from '@/lib/auth';
 import KiteConnectButton from '@/components/KiteConnectButton';
 import '../admin-layout.css';
 
+export type AdminUserPayload = {
+  id: string;
+  role: string;
+};
+
 // Modular Components
 import TelegramPage from '@/components/admin/TelegramPage';
 import SettingsPage from '@/components/admin/SettingsPage';
@@ -202,7 +207,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
           }}
         />
       </div>
-      <div style={show('actledger')}><ActLedgerPage /></div>
+      <div style={show('actledger')}><ActLedgerPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('accounts')}><AccountsPage /></div>
       <div style={show('payinout')}><PayinOutPage /></div>
       <div style={show('transactions')}><TransactionsPage /></div>

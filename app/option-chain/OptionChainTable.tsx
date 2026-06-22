@@ -162,8 +162,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                   )}
                   {s.ce && (
                     <div className="hover-actions">
-                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); onTrade(s.ce.symbol, 'BUY'); }}>B</button>
-                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); onTrade(s.ce.symbol, 'SELL'); }}>S</button>
+                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); if (s.ce) onTrade(s.ce.symbol, 'BUY'); }}>B</button>
+                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); if (s.ce) onTrade(s.ce.symbol, 'SELL'); }}>S</button>
                     </div>
                   )}
                 </div>
@@ -190,8 +190,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                   )}
                   {s.pe && (
                     <div className="hover-actions">
-                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); onTrade(s.pe.symbol, 'BUY'); }}>B</button>
-                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); onTrade(s.pe.symbol, 'SELL'); }}>S</button>
+                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); if (s.pe) onTrade(s.pe.symbol, 'BUY'); }}>B</button>
+                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); if (s.pe) onTrade(s.pe.symbol, 'SELL'); }}>S</button>
                     </div>
                   )}
                 </div>
