@@ -236,7 +236,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
               <span className={`adm-users-status ${u.active ? 'active' : 'inactive'}`}>{u.active ? 'Active' : 'Inactive'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="adm-users-uid">{u.client_id || u.id.slice(0, 8)} <span style={{ opacity: 0.5, fontSize: '0.7em' }}>{u.id.slice(0, 12)}</span></div>
+              <div className="adm-users-uid">{(u.client_id || u.id.slice(0, 8)).toUpperCase()} <span style={{ opacity: 0.5, fontSize: '0.7em' }}>{u.id.slice(0, 12)}</span></div>
               {u.broker !== 'DIRECT' && (
                 <div className="adm-acc-broker-tag" style={{ margin: 0 }}>Managed by: {u.broker}</div>
               )}

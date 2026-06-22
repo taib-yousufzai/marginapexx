@@ -217,7 +217,7 @@ export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selected
               onClick={() => { setViewMode('user'); setPage(1); }}
               style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {uid ? `User: ${selectedUser.client_id || uid.slice(0, 8)}…` : 'User View'}
+              {uid ? `User: ${(selectedUser.client_id || uid.slice(0, 8)).toUpperCase()}…` : 'User View'}
               {viewMode === 'user' && onOpenUserPanel && (
                 <span
                   onClick={(e) => { e.stopPropagation(); onOpenUserPanel(); }}

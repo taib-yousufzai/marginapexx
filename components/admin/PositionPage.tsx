@@ -263,7 +263,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">USER</div>
           <div className="adm-pos-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {uid ? (selectedUser.client_id || (uid.length > 12 ? uid.slice(0, 12) + '...' : uid)) : 'None'}
+            {uid ? (selectedUser.client_id || (uid.length > 12 ? uid.slice(0, 12) + '...' : uid)).toUpperCase() : 'None'}
             {onOpenUserPanel && (
               <button 
                 onClick={onOpenUserPanel} 
