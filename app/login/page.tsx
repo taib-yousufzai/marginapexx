@@ -73,9 +73,10 @@ export default function LoginPage() {
 
     if (!result.error) {
       const role = getRole(result.user ?? null);
-      const route = role === 'admin' ? '/admin' : '/';
+      const isAdmin = role === 'admin' || role === 'super_admin';
+      const route = isAdmin ? '/admin' : '/';
       
-      if (role === 'admin' || result.user?.email === 'demo@gmail.com') {
+      if (isAdmin || result.user?.email === 'demo@gmail.com') {
         router.replace(route);
       } else {
         setPendingRoute(route);
@@ -114,9 +115,10 @@ export default function LoginPage() {
 
     if (!result.error) {
       const role = getRole(result.user ?? null);
-      const route = role === 'admin' ? '/admin' : '/';
+      const isAdmin = role === 'admin' || role === 'super_admin';
+      const route = isAdmin ? '/admin' : '/';
       
-      if (role === 'admin' || result.user?.email === 'demo@gmail.com') {
+      if (isAdmin || result.user?.email === 'demo@gmail.com') {
         router.replace(route);
       } else {
         setPendingRoute(route);
