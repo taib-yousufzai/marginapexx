@@ -8,6 +8,9 @@ import Sidebar from '@/components/Sidebar';
 
 import { getSession, getRole } from '@/lib/auth';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import Header from '@/components/Header';
+import dynamic from 'next/dynamic';
+const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import TickFlash from '@/components/TickFlash';
 import './page.css';
 
@@ -167,6 +170,22 @@ export default function Page() {
   const [activeCategory, setActiveCategory] = useState<'equity' | 'commodity'>('equity');
   const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
+  const [chartItem, setChartItem] = useState<{name: string, kiteSymbol: string, segment: string} | null>(null);
+
+  const handleLiveMarketTrade = (kiteSymbol: string, displaySymbol: string) => {
+    let tradeSegment = 'NSE - Equity';
+    if (kiteSymbol.includes('NFO:')) tradeSegment = 'NSE - Options';
+    else if (kiteSymbol.includes('BFO:')) tradeSegment = 'BSE - Options';
+    else if (kiteSymbol.includes('MCX:')) tradeSegment = 'MCX - Futures';
+    else if (kiteSymbol.includes('CDS:')) tradeSegment = 'CDS - Futures';
+    else if (kiteSymbol.includes('BSE:')) tradeSegment = 'BSE - Equity';
+
+    setChartItem({ name: displaySymbol, kiteSymbol, segment: tradeSegment });
+    const sheet = document.getElementById('chartSheet');
+    const overlay = document.getElementById('chartSheetOverlay');
+    if (sheet) sheet.classList.add('open');
+    if (overlay) overlay.classList.add('active');
+  };
 
   // Build expiry index list, overriding hardcoded lot sizes with DB values
   const expiryIndexes = getExpiryIndexes().map(item => {
@@ -392,13 +411,21 @@ export default function Page() {
                     </div>
                     <div className="scrollable-instruments">
                       <div className="instruments-row">
-                        {instruments.map((inst, i) => (
-                          <div className="circle-instrument" key={i} onClick={() => router.push(`/option-chain?symbol=${encodeURIComponent(inst.name)}`)}>
-                            <div className="circle-icon"><i className={inst.icon}></i></div>
-                            <div className="circle-label">{inst.name}</div>
-                            <div className="circle-sub">{inst.sub}</div>
-                          </div>
-                        ))}
+                        {instruments.map((inst, i) => {
+                          const kiteIdMap: Record<string, string> = {
+                            'NIFTY': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
+                            'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
+                            'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
+                          };
+                          const kiteId = kiteIdMap[inst.name] ?? `MCX:${inst.name}`;
+                          return (
+                            <div className="circle-instrument" key={i} onClick={() => handleLiveMarketTrade(kiteId, inst.name)}>
+                              <div className="circle-icon"><i className={inst.icon}></i></div>
+                              <div className="circle-label">{inst.name}</div>
+                              <div className="circle-sub">{inst.sub}</div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -449,21 +476,30 @@ export default function Page() {
                         {[marketRow1, marketRow2].map((row, rowIdx) => (
                           <div className="market-row-scroll" key={`row-${rowIdx}`}>
                             <div className="market-row-blocks">
-                              {row.map((market, i) => (
-                                <div className="market-rectangle" key={i} onClick={() => router.push(`/watchlist?symbol=${encodeURIComponent(market.name)}`)}>
-                                  <div className="market-rect-header">
-                                    <span className="market-rect-name">{market.name}</span>
+                              {row.map((market, i) => {
+                                const kiteIdMap: Record<string, string> = {
+                                  'NIFTY 50': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
+                                  'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
+                                  'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
+                                };
+                                const kiteId = kiteIdMap[market.name] ?? `MCX:${market.name}`;
+                                return (
+                                  <div className="market-rectangle" key={i} onClick={() => handleLiveMarketTrade(kiteId, market.name)}>
+                                    <div className="market-rect-header">
+                                      <span className="market-rect-name">{market.name}</span>
+                                    </div>
+                                    <div className="market-rect-price">
+                                      {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                    <div className={`market-rect-change ${market.type}`}>
+                                      {market.change >= 0 
+                                        ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)` 
+                                        : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
+                                    </div>
                                   </div>
-                                  <div className="market-rect-price">
-                                    {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </div>
-                                  <div className={`market-rect-change ${market.type}`}>
-                                    {market.change >= 0 
-                                      ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)` 
-                                      : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
+
                             </div>
                           </div>
                         ))}
@@ -526,7 +562,13 @@ export default function Page() {
                   className={`ew-item${item.expiry.isToday ? ' ew-item--today' : ''}`}
                   onClick={() => {
                     setIsExpiryDrawerOpen(false);
-                    router.push(`/option-chain?symbol=${encodeURIComponent(item.name)}`);
+                    const kiteIdMap: Record<string, string> = {
+                      'NIFTY': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
+                      'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
+                      'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
+                    };
+                    const kiteId = kiteIdMap[item.name] ?? `MCX:${item.name}`;
+                    handleLiveMarketTrade(kiteId, item.name);
                   }}
                 >
                   {/* EXPIRES TODAY banner */}
@@ -601,6 +643,25 @@ export default function Page() {
           </div>
         )}
       </main>
+
+      <div id="chartSheetOverlay" className="trade-sheet-overlay" onClick={() => { 
+        const sheet = document.getElementById('chartSheet'); 
+        const overlay = document.getElementById('chartSheetOverlay'); 
+        if (sheet) sheet.classList.remove('open'); 
+        if (overlay) overlay.classList.remove('active'); 
+        setChartItem(null); 
+      }}></div>
+      <div id="chartSheet" className="trade-sheet" style={{ height: '100dvh', paddingBottom: '0', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
+          {chartItem && (
+            <TradingChart
+              symbol={chartItem.name}
+              segment={chartItem.segment}
+              liveQuote={quotes[chartItem.kiteSymbol]}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -17,9 +17,17 @@ export async function GET(request: NextRequest) {
 
     const admin = getAdminClient();
 
+    const { searchParams } = new URL(request.url);
+    const statusParam = searchParams.get('status');
+
+    let positionsQuery = admin.from('positions').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    if (statusParam) {
+      positionsQuery = positionsQuery.eq('status', statusParam);
+    }
+
     // Fetch positions and orders in parallel
     const [posResult, ordResult] = await Promise.all([
-      admin.from('positions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      positionsQuery,
       admin.from('orders').select('symbol, side, product_type, kite_instrument').eq('user_id', user.id).eq('status', 'EXECUTED').order('created_at', { ascending: true }),
     ]);
 

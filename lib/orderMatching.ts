@@ -210,7 +210,7 @@ export class InMemoryMatchingEngine {
           // For exit orders only: verify an opposing open position exists in memory
           // (Entry orders are always allowed — each creates its own position row)
           if (order.is_exit) {
-            const existingPos = openPositions.filter((p) => p.symbol === symbolKey);
+            const existingPos = openPositions.filter((p) => p.symbol === order.symbol);
             if (order.side === 'BUY') {
               if (!existingPos.some((p) => p.side === 'SELL')) continue;
             } else if (order.side === 'SELL') {
@@ -321,14 +321,13 @@ export class InMemoryMatchingEngine {
         for (const pos of userPositions) {
           let ltp = pricesMap.get(pos.symbol);
 
-          if (ltp === undefined && pos.settlement) {
-            let exchange = 'NSE';
-            const s = pos.settlement.toUpperCase();
-            if (s.includes('MCX')) exchange = 'MCX';
-            else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-            else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-            else if (s.includes('BSE')) exchange = 'BSE';
-            ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
+          if (ltp === undefined) {
+            for (const key of pricesMap.keys()) {
+              if (key === pos.symbol || key.endsWith(`:${pos.symbol}`)) {
+                ltp = pricesMap.get(key);
+                break;
+              }
+            }
           }
 
           if (ltp === undefined || ltp <= 0) {
@@ -392,14 +391,15 @@ export class InMemoryMatchingEngine {
 
         let ltp = pricesMap.get(pos.symbol);
 
-        if (ltp === undefined && pos.settlement) {
-          let exchange = 'NSE';
-          const s = pos.settlement.toUpperCase();
-          if (s.includes('MCX')) exchange = 'MCX';
-          else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-          else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-          else if (s.includes('BSE')) exchange = 'BSE';
-          ltp = pricesMap.get(`${exchange}:${pos.symbol}`);
+        if (ltp === undefined) {
+          // Robust fallback: search pricesMap for any key ending in :pos.symbol
+          // This avoids hardcoding exchange prefixes like NFO, BFO, MCX, etc.
+          for (const key of pricesMap.keys()) {
+            if (key === pos.symbol || key.endsWith(`:${pos.symbol}`)) {
+              ltp = pricesMap.get(key);
+              break;
+            }
+          }
         }
 
         if (ltp === undefined || ltp <= 0) continue;
