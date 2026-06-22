@@ -129,8 +129,12 @@ export default function UnifiedSettingsPage() {
   }, [activeTab]);
 
   const formatCommissionType = (type: string) => {
-    if (!type) return 'per crore';
-    return type.toLowerCase().replace(/[_-]/g, ' ');
+    if (!type) return 'Per Crore';
+    return type
+      .replace(/[_-]/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   const handleChooseNormal = () => {
@@ -288,7 +292,10 @@ export default function UnifiedSettingsPage() {
                         <div className="detail-item"><span className="detail-label">Max Lot</span><span className="detail-value">{item.max_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Max Order Lot</span><span className="detail-value">{item.max_order_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Strike Range</span><span className="detail-value">{item.strike_range || '0'}</span></div>
-                        <div className="detail-item"><span className="detail-label">GTT Commission &amp; Value</span><span className="detail-value">—</span></div>
+                        <div className="detail-item">
+                          <span className="detail-label">GTT Comm. {item.gtt_commission_type ? formatCommissionType(item.gtt_commission_type) : ''}</span>
+                          <span className="detail-value">{item.gtt_commission_value != null ? item.gtt_commission_value : '—'}</span>
+                        </div>
 
                       </div>
                     </div>
@@ -298,8 +305,8 @@ export default function UnifiedSettingsPage() {
                       <div className="segment-details-grid">
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">—</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">—</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">{item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : '—'}</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span></div>
 
                       </div>
                     </div>
@@ -361,7 +368,10 @@ export default function UnifiedSettingsPage() {
                         <div className="detail-item"><span className="detail-label">Max Lot</span><span className="detail-value">{item.max_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Max Order Lot</span><span className="detail-value">{item.max_order_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Strike Range</span><span className="detail-value">{item.strike_range || '0'}</span></div>
-                        <div className="detail-item"><span className="detail-label">GTT Commission &amp; Value</span><span className="detail-value">—</span></div>
+                        <div className="detail-item">
+                          <span className="detail-label">GTT Comm. {item.gtt_commission_type ? formatCommissionType(item.gtt_commission_type) : ''}</span>
+                          <span className="detail-value">{item.gtt_commission_value != null ? item.gtt_commission_value : '—'}</span>
+                        </div>
 
                       </div>
                     </div>
@@ -371,8 +381,8 @@ export default function UnifiedSettingsPage() {
                       <div className="segment-details-grid">
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">—</span></div>
-                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">—</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">{item.carry_commission_type ? formatCommissionType(item.carry_commission_type) : '—'}</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">{item.carry_commission_value != null ? item.carry_commission_value : '—'}</span></div>
 
                       </div>
                     </div>
