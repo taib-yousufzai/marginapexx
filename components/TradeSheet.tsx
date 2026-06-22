@@ -151,48 +151,43 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
   const effectivePrice = side === 'SELL' ? bidPrice : askPrice;
-  const requiredMargin = orderType === 'LIMIT' && limitPrice
-    ? (totalQty * parseFloat(limitPrice)) / leverage
-    : (totalQty * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
-
-  const calculatedCarryCharges = productType === 'CARRY' && segSetting ? (() => {
-    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-    const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+  const calculatedBrokerage = segSetting ? (() => {
+    const qtyForComm = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+    const priceForComm = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
       ? parseFloat(limitPrice)
-      : (currentLtp > 0 ? effectivePrice : 0);
-    // Use dedicated carry commission fields if available, fall back to standard commission
-    const commType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
-    const commVal = segSetting.carry_commission_value ?? segSetting.commission_value ?? 0;
-    if (commType === 'Per Crore') {
-      return (totalQty * price * commVal) / 10000000;
-    } else if (commType === 'Per Lot') {
-      const lots = totalQty / lotSize;
-      return lots * commVal;
-    } else if (commType === 'Per Trade' || commType === 'Flat') {
-      return commVal;
-    } else {
-      return totalQty * price * 0.001;
-    }
-  })() : 0;
-
-  const calculatedGttBrokerage = orderType === 'GTT' && segSetting ? (() => {
-    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-    const price = limitPrice && !isNaN(parseFloat(limitPrice))
-      ? parseFloat(limitPrice)
-      : (currentLtp > 0 ? effectivePrice : 0);
-    const commType = segSetting.gtt_commission_type || 'Per Trade';
-    const commVal = segSetting.gtt_commission_value ?? 10;
-    if (commType === 'Per Crore') {
-      return (totalQty * price * commVal) / 10000000;
-    } else if (commType === 'Per Lot') {
-      const lots = totalQty / lotSize;
-      return lots * commVal;
-    } else if (commType === 'Per Trade' || commType === 'Flat') {
-      return commVal;
-    } else {
+      : (currentLtp > 0 ? currentLtp : 0);
+      
+    if (orderType === 'GTT') {
+      const commType = segSetting.gtt_commission_type || 'Per Trade';
+      const commVal = segSetting.gtt_commission_value ?? 10;
+      if (commType === 'Per Crore') return (qtyForComm * priceForComm * commVal) / 10000000;
+      if (commType === 'Per Lot') return (qtyForComm / lotSize) * commVal;
+      if (commType === 'Per Trade' || commType === 'Flat') return commVal;
       return 0;
+    } else {
+      const isCarry = productType === 'CARRY';
+      const commType = isCarry 
+        ? (segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore')
+        : (segSetting.commission_type || 'Per Crore');
+      const commVal = isCarry
+        ? (segSetting.carry_commission_value ?? segSetting.commission_value ?? 0)
+        : (segSetting.commission_value ?? 0);
+      if (commType === 'Per Crore') return (qtyForComm * priceForComm * commVal) / 10000000;
+      if (commType === 'Per Lot') return (qtyForComm / lotSize) * commVal;
+      if (commType === 'Per Trade' || commType === 'Flat') return commVal;
+      return qtyForComm * priceForComm * 0.001;
     }
   })() : 0;
+
+  const baseExposure = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+    ? (totalQty * parseFloat(limitPrice))
+    : (totalQty * (currentLtp > 0 ? currentLtp : 0));
+
+  const marginPortion = baseExposure / leverage;
+  const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
+  const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);
+
+  const requiredMargin = marginPortion + entryBufferCost + exitBufferCost + calculatedBrokerage;
 
   const userHasEditedQty = useRef(false);
   const activePositionsRef = useRef(activePositions);
@@ -1258,16 +1253,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span className="ts2-ml">Required Margin</span>
                     <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="ts2-margin-row">
-                    <span className="ts2-ml">Carry Charges</span>
-                    <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </div>
-                  {orderType === 'GTT' && (
-                    <div className="ts2-margin-row">
-                      <span className="ts2-ml">GTT Charges</span>
-                      <span className="ts2-mv" style={{ color: '#6B7280' }}>₹ {calculatedGttBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div style={{ height: 8 }} />

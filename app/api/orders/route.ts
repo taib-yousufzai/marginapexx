@@ -706,7 +706,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ? client_price   // pending orders: use the user's specified price
     : baseLtp;       // MARKET/SLM: use live server price
   const exposure      = qty * marginPrice;
-  const requiredMargin = exposure / leverage;
+  const marginPortion = exposure / leverage;
+
+  const entryBufferRatio = (side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0;
+  const exitBufferRatio = (side === 'SELL' ? sellSetting.exit_buffer : buySetting.exit_buffer) ?? 0;
+  const entryBufferCost = exposure * entryBufferRatio;
+  const exitBufferCost = exposure * exitBufferRatio;
+
+  let brokerage = 0;
+  if (order_type === 'GTT') {
+    const commType = segSetting.gtt_commission_type || 'Per Trade';
+    const commVal = Number(segSetting.gtt_commission_value ?? 10);
+    if (commType === 'Per Crore') {
+      brokerage = (exposure * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
+      brokerage = lotsUsed * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      brokerage = commVal;
+    }
+  } else {
+    const commType = targetProductType === 'CARRY' 
+      ? (segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore')
+      : (segSetting.commission_type || 'Per Crore');
+    const commVal = Number(targetProductType === 'CARRY'
+      ? (segSetting.carry_commission_value ?? segSetting.commission_value ?? 0)
+      : (segSetting.commission_value ?? 0));
+      
+    if (commType === 'Per Crore') {
+      brokerage = (exposure * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
+      brokerage = lotsUsed * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      brokerage = commVal;
+    } else {
+      brokerage = exposure * 0.001; // fallback
+    }
+  }
+
+  const requiredMargin = marginPortion + entryBufferCost + exitBufferCost + brokerage;
 
   if (balance < requiredMargin) {
     return NextResponse.json({
