@@ -19,6 +19,10 @@ interface SegmentSetting {
   max_order_lot: number;
   commission_type: string;
   commission_value: number;
+  carry_commission_type: string;
+  carry_commission_value: number;
+  gtt_commission_type: string;
+  gtt_commission_value: number;
   profit_hold_sec: number;
   loss_hold_sec: number;
   entry_buffer: number;
@@ -31,7 +35,7 @@ export default function UnifiedSettingsPage() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [segments, setSegments] = useState<SegmentSetting[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [activeTab, setActiveTab] = useState<'normal' | 'scalper'>('normal');
   const [actualMode, setActualMode] = useState<'normal' | 'scalper'>('normal');
   const [modeLockedUntil, setModeLockedUntil] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export default function UnifiedSettingsPage() {
   const [isGoToScalperModalOpen, setIsGoToScalperModalOpen] = useState(false);
   const [isGoToNormalModalOpen, setIsGoToNormalModalOpen] = useState(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
-  
+
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [alertModalContent, setAlertModalContent] = useState<{ title: string, bullets: string[] } | null>(null);
 
@@ -221,7 +225,7 @@ export default function UnifiedSettingsPage() {
 
   return (
     <div className={`app-container ${theme}`}>
-      
+
       {/* HEADER */}
       <div className="compact-header">
         <div className="header-row-top">
@@ -229,14 +233,14 @@ export default function UnifiedSettingsPage() {
             <i className="fas fa-arrow-left"></i>
           </Link>
           <div className="rectangle-toggle-group">
-            <button 
-              className={`rect-toggle-btn ${activeTab === 'normal' ? 'active-toggle' : ''}`} 
+            <button
+              className={`rect-toggle-btn ${activeTab === 'normal' ? 'active-toggle' : ''}`}
               onClick={() => setActiveTab('normal')}
             >
               Normal Mode {actualMode === 'normal' && <span style={{ color: '#10b981', marginLeft: '4px' }}>●</span>}
             </button>
-            <button 
-              className={`rect-toggle-btn ${activeTab === 'scalper' ? 'active-toggle' : ''}`} 
+            <button
+              className={`rect-toggle-btn ${activeTab === 'scalper' ? 'active-toggle' : ''}`}
               onClick={() => setActiveTab('scalper')}
             >
               Scalper Mode {actualMode === 'scalper' && <span style={{ color: '#10b981', marginLeft: '4px' }}>●</span>}
@@ -266,7 +270,7 @@ export default function UnifiedSettingsPage() {
               {segments.map((item) => {
                 const isBuy = item.side.toUpperCase() === 'BUY';
                 const isAllowed = item.trade_allowed;
-                
+
                 return (
                   <div key={item.id} className={`segment-premium-card ${isBuy ? 'side-buy' : 'side-sell'} ${!isAllowed ? 'trade-blocked' : ''}`}>
                     <div className="card-top-header">
@@ -284,6 +288,8 @@ export default function UnifiedSettingsPage() {
                         <div className="detail-item"><span className="detail-label">Max Lot</span><span className="detail-value">{item.max_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Max Order Lot</span><span className="detail-value">{item.max_order_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Strike Range</span><span className="detail-value">{item.strike_range || '0'}</span></div>
+                        <div className="detail-item"><span className="detail-label">GTT Commission &amp; Value</span><span className="detail-value">—</span></div>
+
                       </div>
                     </div>
 
@@ -292,6 +298,9 @@ export default function UnifiedSettingsPage() {
                       <div className="segment-details-grid">
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">—</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">—</span></div>
+
                       </div>
                     </div>
 
@@ -333,7 +342,7 @@ export default function UnifiedSettingsPage() {
               {segments.map((item) => {
                 const isBuy = item.side.toUpperCase() === 'BUY';
                 const isAllowed = item.trade_allowed;
-                
+
                 return (
                   <div key={item.id} className={`segment-premium-card ${isBuy ? 'side-buy' : 'side-sell'} ${!isAllowed ? 'trade-blocked' : ''}`}>
                     <div className="card-top-header">
@@ -352,6 +361,8 @@ export default function UnifiedSettingsPage() {
                         <div className="detail-item"><span className="detail-label">Max Lot</span><span className="detail-value">{item.max_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Max Order Lot</span><span className="detail-value">{item.max_order_lot}</span></div>
                         <div className="detail-item"><span className="detail-label">Strike Range</span><span className="detail-value">{item.strike_range || '0'}</span></div>
+                        <div className="detail-item"><span className="detail-label">GTT Commission &amp; Value</span><span className="detail-value">—</span></div>
+
                       </div>
                     </div>
 
@@ -360,6 +371,9 @@ export default function UnifiedSettingsPage() {
                       <div className="segment-details-grid">
                         <div className="detail-item"><span className="detail-label">Commission Type</span><span className="detail-value">{formatCommissionType(item.commission_type)}</span></div>
                         <div className="detail-item"><span className="detail-label">Commission Value</span><span className="detail-value">{item.commission_value}</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Type</span><span className="detail-value">—</span></div>
+                        <div className="detail-item"><span className="detail-label">Carry Comm. Value</span><span className="detail-value">—</span></div>
+
                       </div>
                     </div>
 
@@ -396,7 +410,7 @@ export default function UnifiedSettingsPage() {
           </div>
           <div className="modal-body">
             <p className="modal-intro-text">Choose your preferred trading mode. <strong>Once selected, you cannot switch for 48 hours.</strong></p>
-            
+
             <div className="mode-option-card" onClick={handleChooseNormal}>
               <div className="mode-option-title">Normal Mode</div>
               <ul className="mode-feature-list">
@@ -406,7 +420,7 @@ export default function UnifiedSettingsPage() {
                 <li>No lock-in period on mode switching</li>
               </ul>
             </div>
-            
+
             <div className="mode-option-card" onClick={handleChooseScalper}>
               <div className="mode-option-title">Scalper Mode</div>
               <ul className="mode-feature-list">
@@ -416,7 +430,7 @@ export default function UnifiedSettingsPage() {
                 <li>48-hour lock period - Cannot switch back to Normal for 48 hours</li>
               </ul>
             </div>
-            
+
             <div className="warning-48h">
               <strong>Important:</strong> Once you select a mode, you cannot change it for 48 hours. Please choose carefully based on your trading strategy.
             </div>
@@ -496,7 +510,7 @@ export default function UnifiedSettingsPage() {
       {/* 5. Custom Alert / Success Modal (Professional Minimal) */}
       <div className={`scalper-modal-overlay ${isAlertModalOpen ? 'active' : ''}`} onClick={() => setIsAlertModalOpen(false)}>
         <div className="scalper-modal-card" onClick={e => e.stopPropagation()} style={{ padding: 0, borderRadius: '16px', overflow: 'hidden', maxWidth: '340px' }}>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
               {alertModalContent?.title || 'Notice'}
@@ -508,10 +522,10 @@ export default function UnifiedSettingsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {alertModalContent?.bullets.map((bullet, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                  <div style={{ 
-                    minWidth: '20px', height: '20px', background: '#22c55e', borderRadius: '6px', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', 
-                    fontSize: '0.75rem', marginTop: '1px' 
+                  <div style={{
+                    minWidth: '20px', height: '20px', background: '#22c55e', borderRadius: '6px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                    fontSize: '0.75rem', marginTop: '1px'
                   }}>
                     <i className="fas fa-check"></i>
                   </div>
@@ -524,10 +538,10 @@ export default function UnifiedSettingsPage() {
           </div>
 
           <div style={{ padding: '0 24px 24px 24px' }}>
-            <button onClick={() => setIsAlertModalOpen(false)} style={{ 
-              width: '100%', padding: '14px', background: '#0f172a', color: 'white', 
-              border: 'none', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 600, 
-              cursor: 'pointer' 
+            <button onClick={() => setIsAlertModalOpen(false)} style={{
+              width: '100%', padding: '14px', background: '#0f172a', color: 'white',
+              border: 'none', borderRadius: '10px', fontSize: '0.95rem', fontWeight: 600,
+              cursor: 'pointer'
             }}>
               OK
             </button>
