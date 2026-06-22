@@ -1,0 +1,139 @@
+/* app/rules/page.css */
+
+.rules-content {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.rules-intro {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card-alt-bg, #f8fafc);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-left: 4px solid var(--footer-active, #1475e1);
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+}
+
+.rules-intro i {
+  font-size: 1.8rem;
+  color: var(--footer-active, #1475e1);
+}
+
+.rules-intro p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-primary, #334155);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.rules-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rule-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.04));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rule-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+}
+
+.rule-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+
+.rule-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(20, 117, 225, 0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--footer-active, #1475e1);
+  font-size: 1.1rem;
+}
+
+.rule-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin: 0;
+}
+
+.rule-list {
+  margin: 0;
+  padding: 0 0 0 24px;
+  color: var(--text-secondary, #475569);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.rule-list li {
+  margin-bottom: 8px;
+}
+
+.rule-list li:last-child {
+  margin-bottom: 0;
+}
+
+.rules-footer {
+  margin-top: 30px;
+  text-align: center;
+  padding: 20px;
+  background: var(--card-alt-bg, #f8fafc);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #64748b);
+  border: 1px solid var(--border-light, #e2e8f0);
+}
+
+/* Theme overrides */
+body.dark .rules-intro,
+body.dark .rules-footer {
+  background: #0f212e;
+  border-color: #213743;
+}
+
+body.dark .rule-card {
+  background: #0f212e;
+  border-color: #213743;
+}
+
+body.dark .rule-card-header {
+  border-color: #213743;
+}
+
+body.black .rules-intro,
+body.black .rules-footer {
+  background: #111111;
+  border-color: #222222;
+}
+
+body.black .rule-card {
+  background: #000000;
+  border-color: #222222;
+}
+
+body.black .rule-card-header {
+  border-color: #222222;
+}

@@ -599,6 +599,7 @@ function WatchlistContent() {
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
+  const [showCharges, setShowCharges] = useState(true);
 
   // --- Global Modal History Manager ---
   useEffect(() => {
@@ -1319,29 +1320,38 @@ function WatchlistContent() {
   const holdingLeverage  = segSetting?.holding_leverage  ?? 1;
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
-  const effectivePrice = tradeSide === 'SELL' ? bidPrice : askPrice;
-  const calculatedRequiredMargin = orderType === 'LIMIT' && limitPrice
-    ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
-    : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? effectivePrice : 0)) / leverage;
+  const priceOfScript = tradeSide === 'SELL' ? rawBid : rawAsk;
 
-  const calculatedCarryCharges = productType === 'CARRY' && segSetting ? (() => {
-    const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-    const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
-      ? parseFloat(limitPrice)
-      : (currentLtp > 0 ? effectivePrice : 0);
-    const commType = segSetting.commission_type || 'Per Crore';
-    const commVal = segSetting.commission_value ?? 0;
-    if (commType === 'Per Crore') {
-      return (totalQty * price * commVal) / 10000000;
-    } else if (commType === 'Per Lot') {
-      const lots = totalQty / lotSize;
-      return lots * commVal;
-    } else if (commType === 'Per Trade' || commType === 'Flat') {
-      return commVal;
-    } else {
-      return totalQty * price * 0.001;
-    }
-  })() : 0;
+  const chargePrice = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+    ? parseFloat(limitPrice) : (currentLtp > 0 ? priceOfScript : 0);
+  const chargeQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+  const chargeExposure = chargeQty * chargePrice;
+
+  const computeCharge = (commType: string, commVal: number) => {
+    if (commType === 'Per Crore') return (chargeExposure * commVal) / 10000000;
+    if (commType === 'Per Lot') return (chargeQty / lotSize) * commVal;
+    if (commType === 'Per Trade' || commType === 'Flat') return commVal;
+    return chargeExposure * 0.001;
+  };
+
+  const intradayCharge = segSetting ? computeCharge(
+    segSetting.commission_type || 'Per Crore',
+    segSetting.commission_value ?? 0
+  ) : 0;
+
+  const carryCharge = segSetting ? computeCharge(
+    segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
+    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
+  ) : 0;
+
+  const gttCharge = segSetting ? computeCharge(
+    segSetting.gtt_commission_type || 'Per Trade',
+    segSetting.gtt_commission_value ?? 10
+  ) : 0;
+
+  const calculatedRequiredMargin = (orderType === 'LIMIT' && limitPrice
+    ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
+    : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? priceOfScript : 0)) / leverage) + (orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge);
 
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
@@ -1750,7 +1760,45 @@ function WatchlistContent() {
             <div className="ts-margin-card">
               <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">{availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-              <div className="ts-margin-row"><span className="ts-ml">Carry Charges</span><span className="ts-mv carry">₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+            </div>
+
+            <div style={{ height: '8px' }}></div>
+
+            <div className="ts-margin-card">
+              <div 
+                className="ts-margin-row" 
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                onClick={() => setShowCharges(!showCharges)}
+              >
+                <span className="ts-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                  Charges Breakdown {showCharges ? '▲' : '▼'}
+                </span>
+                <span className="ts-mv required" style={{ color: '#15803D', fontWeight: 800 }}>
+                  ₹ {(orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              {showCharges && (
+                <>
+                  <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
+                    <span className="ts-ml">Intraday Brokerage</span>
+                    <span className="ts-mv carry" style={productType === 'INTRADAY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                      ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="ts-margin-row">
+                    <span className="ts-ml">Carry Charges</span>
+                    <span className="ts-mv carry" style={productType === 'CARRY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                      ₹ {carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="ts-margin-row">
+                    <span className="ts-ml">GTT Charges</span>
+                    <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                      ₹ {gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
             <div style={{ height: '8px' }}></div>
           </div>

@@ -40,7 +40,7 @@ type MarketItem = { name: string; price: number; change: number; changeAmt?: num
 
 const learningData = [
   { id: 1, name: "Try Algo", icon: "fas fa-chart-line", iconClass: "algo", badge: "Free", action: "algo" },
-  { id: 2, name: "TRADING SCANNER", icon: "fas fa-search-dollar", iconClass: "ai", badge: "Beta", action: "ai" },
+  { id: 2, name: "Scanner", icon: "fas fa-search-dollar", iconClass: "ai", badge: "Beta", action: "ai" },
   { id: 3, name: "Indicator", icon: "fas fa-chart-bar", iconClass: "indicator", badge: "Pro", action: "indicator" },
   { id: 4, name: "Course", icon: "fas fa-video", iconClass: "default", badge: "Enroll", action: "course" },
   { id: 5, name: "Classes", icon: "fas fa-chalkboard-user", iconClass: "default", badge: "Live", action: "classes" },
@@ -374,7 +374,16 @@ export default function Page() {
                   <div className="margin-settings-row" onClick={() => router.push('/margin-settings')}>
                     <div className="margin-settings-left">
                       <div className="margin-settings-icon"><i className="fas fa-chart-line"></i></div>
-                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check margin &amp; trading rules before trading</p></div>
+                      <div className="margin-settings-text"><h4>Margin Settings</h4><p>Check your trading margin and limits</p></div>
+                    </div>
+                    <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
+                  </div>
+
+                  {/* Rules & Regulations */}
+                  <div className="margin-settings-row" onClick={() => router.push('/rules')} style={{ marginTop: '12px' }}>
+                    <div className="margin-settings-left">
+                      <div className="margin-settings-icon" style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#eab308' }}><i className="fas fa-file-contract"></i></div>
+                      <div className="margin-settings-text"><h4>Rules &amp; Regulations</h4><p>Check the platform policies before trading</p></div>
                     </div>
                     <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
                   </div>

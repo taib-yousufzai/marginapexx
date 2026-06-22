@@ -82,6 +82,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [toast, setToast] = useState<string | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
+  const [showCharges, setShowCharges] = useState(true);
   
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
@@ -123,11 +124,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   let bidPrice = 0;
   let askPrice = 0;
+  let rawBid = currentLtp;
+  let rawAsk = currentLtp;
 
   if (currentLtp > 0) {
-    let rawBid = currentLtp;
-    let rawAsk = currentLtp;
-
     if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
       rawBid = marketQuotes[bSymbol].bid || currentLtp;
       rawAsk = marketQuotes[bSymbol].ask || currentLtp;
@@ -144,6 +144,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       askPrice = rawAsk * (1 + buyEntryBuffer);
     }
   }
+
+  const priceOfScript = activeSide === 'SELL' ? rawBid : rawAsk;
 
   const intradayLeverage = segSetting?.intraday_leverage ?? 1;
   const holdingLeverage  = segSetting?.holding_leverage  ?? 1;
@@ -179,9 +181,37 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   })() : 0;
 
+  // Compute individual charge amounts for display
+  const chargePrice = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+    ? parseFloat(limitPrice) : (currentLtp > 0 ? currentLtp : 0);
+  const chargeQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
+  const chargeExposure = chargeQty * chargePrice;
+
+  const computeCharge = (commType: string, commVal: number) => {
+    if (commType === 'Per Crore') return (chargeExposure * commVal) / 10000000;
+    if (commType === 'Per Lot') return (chargeQty / lotSize) * commVal;
+    if (commType === 'Per Trade' || commType === 'Flat') return commVal;
+    return chargeExposure * 0.001;
+  };
+
+  const intradayCharge = segSetting ? computeCharge(
+    segSetting.commission_type || 'Per Crore',
+    segSetting.commission_value ?? 0
+  ) : 0;
+
+  const carryCharge = segSetting ? computeCharge(
+    segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
+    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
+  ) : 0;
+
+  const gttCharge = segSetting ? computeCharge(
+    segSetting.gtt_commission_type || 'Per Trade',
+    segSetting.gtt_commission_value ?? 10
+  ) : 0;
+
   const baseExposure = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
     ? (totalQty * parseFloat(limitPrice))
-    : (totalQty * (currentLtp > 0 ? currentLtp : 0));
+    : (totalQty * (priceOfScript > 0 ? priceOfScript : 0));
 
   const marginPortion = baseExposure / leverage;
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
@@ -1253,6 +1283,46 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span className="ts2-ml">Required Margin</span>
                     <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
+                </div>
+
+                <div style={{ height: 8 }} />
+
+                {/* Collapsible Charges Breakdown */}
+                <div className="ts2-margin-card">
+                  <div 
+                    className="ts2-margin-row" 
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => setShowCharges(!showCharges)}
+                  >
+                    <span className="ts2-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                      Charges Breakdown {showCharges ? '▲' : '▼'}
+                    </span>
+                    <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 800 }}>
+                      ₹ {(orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {showCharges && (
+                    <>
+                      <div className="ts2-margin-row" style={{ borderTop: '1px solid var(--border-light, #F1F5F9)' }}>
+                        <span className="ts2-ml">Intraday Brokerage</span>
+                        <span className="ts2-mv" style={productType === 'INTRADAY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                          ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="ts2-margin-row">
+                        <span className="ts2-ml">Carry Charges</span>
+                        <span className="ts2-mv" style={productType === 'CARRY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                          ₹ {carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="ts2-margin-row">
+                        <span className="ts2-ml">GTT Charges</span>
+                        <span className="ts2-mv" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                          ₹ {gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{ height: 8 }} />

@@ -106,7 +106,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
 
-  // Live P&L, Used Margin and Equity (Position Value) calculations
+  // Live P&L, Used Margin and Equity calculations — update on every tick
   const { floatingPnl, usedMargin, positionValue } = useMemo(() => {
     let totalUnrealised = 0;
     let totalUsedMargin = 0;
@@ -135,8 +135,13 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
           }
         }
         totalUnrealised += unrealised;
-        totalUsedMargin += Number(p.margin_required || p.margin_used || 0);
-        totalPositionValue += p.qty_open * ltp;
+
+        // Used Margin = entry_price * qty_open / leverage (from segment settings or DB)
+        const posLeverage = Number(p.intraday_leverage || p.leverage || 1);
+        const posMargin = (p.entry_price * Math.abs(p.qty_open)) / (posLeverage > 0 ? posLeverage : 1);
+        totalUsedMargin += posMargin;
+
+        totalPositionValue += Math.abs(p.qty_open) * ltp;
       }
     });
 
@@ -147,8 +152,10 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     };
   }, [rawPositions, marketQuotes, comexQuotes]);
 
-  const equity = positionValue;
-  const freeMargin = (balance + floatingPnl) - usedMargin;
+  // Equity = Balance + Floating P/L (reflects the true account value)
+  const equity = balance + floatingPnl;
+  // Free Margin = Equity - Used Margin
+  const freeMargin = equity - usedMargin;
   const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const [openHeight, setOpenHeight] = useState(0);
@@ -248,11 +255,13 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
               <div className="summary-grid">
                 <div className="summary-item">
                   <span className="summary-label">Balance</span>
-                  <span className="summary-value">₹{fmt(balance)}</span>
+                  <span className="summary-value">₹<TickFlash value={balance}>{fmt(balance)}</TickFlash></span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Free Margin</span>
-                  <span className="summary-value">₹{fmt(freeMargin)}</span>
+                  <span className={`summary-value ${freeMargin >= 0 ? '' : 'negative'}`}>
+                    ₹<TickFlash value={freeMargin}>{fmt(freeMargin)}</TickFlash>
+                  </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Floating P/L</span>
@@ -274,8 +283,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Liquidation</span>
-                  <span className="summary-value">
-                    ₹<TickFlash value={-balance * 0.9}>{fmt(-balance * 0.9)}</TickFlash>
+                  <span className={`summary-value ${equity > 0 ? '' : 'negative'}`}>
+                    ₹<TickFlash value={-equity}>{fmt(-equity)}</TickFlash>
                   </span>
                 </div>
               </div>

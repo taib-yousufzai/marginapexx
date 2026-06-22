@@ -12,6 +12,7 @@ const navItems = [
   { key: 'position', label: 'Positions', icon: 'fas fa-chart-line', path: '/position' },
   { key: 'history', label: 'History', icon: 'fas fa-history', path: '/history' },
   { key: 'funds', label: 'Funds', icon: 'fas fa-wallet', path: '/funds' },
+  { key: 'rules', label: 'Rules', icon: 'fas fa-file-contract', path: '/rules' },
   { key: 'profile', label: 'Profile', icon: 'fas fa-user-circle', path: '/profile' },
 ];
 

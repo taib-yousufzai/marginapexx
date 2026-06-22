@@ -156,6 +156,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
   const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
+  const [showCharges, setShowCharges] = useState(true);
 
   const underlyingSym = getUnderlyingSymbol(symbol);
   const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX');
@@ -768,8 +769,12 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const pnlTotal = currentSymbolPositions.reduce((acc, pos) => acc + (pos.unrealised_pnl ?? 0), 0);
 
   // Calculated Required Margin for current order block state
+  const rawBid = liveQuote ? (liveQuote.bid || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
+  const rawAsk = liveQuote ? (liveQuote.ask || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
+  const priceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
+
   const orderQty = useLots ? Number(qtyValue) * lotSize : Number(qtyValue);
-  const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || currentPrice) : currentPrice;
+  const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || priceOfScript) : priceOfScript;
   
   const dbSeg = mapSegmentToDbSegment(segment);
   const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
@@ -780,7 +785,34 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const holdingLeverage  = segSetting?.holding_leverage ?? 1;
   const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
 
-  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage);
+  const chargePrice = orderType === 'limit' && limitPrice && !isNaN(parseFloat(limitPrice))
+    ? parseFloat(limitPrice) : (priceOfScript > 0 ? priceOfScript : 0);
+  const chargeQty = orderQty;
+  const chargeExposure = chargeQty * chargePrice;
+
+  const computeCharge = (commType: string, commVal: number) => {
+    if (commType === 'Per Crore') return (chargeExposure * commVal) / 10000000;
+    if (commType === 'Per Lot') return (chargeQty / lotSize) * commVal;
+    if (commType === 'Per Trade' || commType === 'Flat') return commVal;
+    return chargeExposure * 0.001;
+  };
+
+  const intradayCharge = segSetting ? computeCharge(
+    segSetting.commission_type || 'Per Crore',
+    segSetting.commission_value ?? 0
+  ) : 0;
+
+  const carryCharge = segSetting ? computeCharge(
+    segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
+    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
+  ) : 0;
+
+  const gttCharge = segSetting ? computeCharge(
+    segSetting.gtt_commission_type || 'Per Trade',
+    segSetting.gtt_commission_value ?? 10
+  ) : 0;
+
+  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage) + (orderType === 'gtt' ? gttCharge : orderCarry === 'carry' ? carryCharge : intradayCharge);
 
   // Render collapsible panel tabs content
   const renderPanelContent = () => {
@@ -1345,16 +1377,68 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 </div>
               )}
 
-              <div className="order-margin-simple">
-                <div className="margin-line">
-                  <span className="margin-line-label">Free Margin:</span>
-                  <span className="margin-line-value">₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '4px', alignItems: 'stretch' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <div className="margin-line">
+                    <span className="margin-line-label">Free Margin:</span>
+                    <span className="margin-line-value">₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="margin-line">
+                    <span className="margin-line-label">Required Margin:</span>
+                    <span className={`margin-line-value ${reqMargin > balance ? 'negative' : ''}`}>
+                      ₹{reqMargin.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
-                <div className="margin-line">
-                  <span className="margin-line-label">Required Margin:</span>
-                  <span className={`margin-line-value ${reqMargin > balance ? 'negative' : ''}`}>
-                    ₹{reqMargin.toLocaleString('en-IN')}
-                  </span>
+
+                <div style={{ height: '4px' }} />
+
+                <div 
+                  style={{ 
+                    background: 'var(--bg)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '8px', 
+                    padding: '8px 10px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '6px',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <div 
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => setShowCharges(!showCharges)}
+                  >
+                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      Charges Breakdown {showCharges ? '▲' : '▼'}
+                    </span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)' }}>
+                      ₹{(orderType === 'gtt' ? gttCharge : orderCarry === 'carry' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  {showCharges && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
+                        <span style={orderCarry === 'normal' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
+                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
+                        <span style={orderCarry === 'carry' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
+                          ₹{carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
+                        <span style={orderType === 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
+                          ₹{gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
