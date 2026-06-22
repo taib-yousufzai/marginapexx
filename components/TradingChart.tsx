@@ -1192,9 +1192,21 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
         {isOrderBlockVisible && (
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
-              <span className="order-block-title">
-                {chainContract ? `${symbol} ${chainContract.name}` : orderBlockTitle}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
+                </span>
+                {chainContract && (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0, marginLeft: 'auto', marginRight: '8px' }}>
+                    <span style={{ background: orderSide === 'BUY' ? '#e8faf0' : '#fde8e8', color: orderSide === 'BUY' ? '#1db954' : '#e53935', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                      {orderSide === 'BUY' ? 'Ask' : 'Bid'} ₹{orderSide === 'BUY' ? chainContract.ask : chainContract.bid}
+                    </span>
+                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                      {chainContract.expiry}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="close-order-block" onClick={() => { 
                 setIsOrderBlockVisible(false); 
                 setChainContract(null); 
@@ -1241,16 +1253,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                 </div>
               )}
 
-              {chainContract && (
-                <div id="chainContractDetail" style={{ fontSize: '10px', color: '#8B92A8', fontWeight: '600', padding: '0 0 6px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <span style={{ background: orderSide === 'BUY' ? '#e8faf0' : '#fde8e8', color: orderSide === 'BUY' ? '#1db954' : '#e53935', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '10px' }}>
-                    {orderSide === 'BUY' ? 'Ask' : 'Bid'} ₹{orderSide === 'BUY' ? chainContract.ask : chainContract.bid}
-                  </span>
-                  <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 8px', borderRadius: '6px', fontSize: '10px' }}>
-                    {chainContract.expiry}
-                  </span>
-                </div>
-              )}
+              {/* chainContractDetail moved to header */}
 
               <div className="top-row">
                 <div className="quantity-box">

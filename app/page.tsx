@@ -40,7 +40,7 @@ type MarketItem = { name: string; price: number; change: number; changeAmt?: num
 
 const learningData = [
   { id: 1, name: "Try Algo", icon: "fas fa-chart-line", iconClass: "algo", badge: "Free", action: "algo" },
-  { id: 2, name: "AI Trading", icon: "fas fa-brain", iconClass: "ai", badge: "Beta", action: "ai" },
+  { id: 2, name: "TRADING SCANNER", icon: "fas fa-search-dollar", iconClass: "ai", badge: "Beta", action: "ai" },
   { id: 3, name: "Indicator", icon: "fas fa-chart-bar", iconClass: "indicator", badge: "Pro", action: "indicator" },
   { id: 4, name: "Course", icon: "fas fa-video", iconClass: "default", badge: "Enroll", action: "course" },
   { id: 5, name: "Classes", icon: "fas fa-chalkboard-user", iconClass: "default", badge: "Live", action: "classes" },

@@ -175,7 +175,7 @@ export default function LearningPage() {
   const getDetails = (act: string) => {
     switch (act) {
       case 'algo': return { title: 'Algorithmic Trading', icon: 'fas fa-robot', desc: 'Automate your trading strategies with our powerful algo engine.' };
-      case 'ai': return { title: 'AI Trading Beta', icon: 'fas fa-brain', desc: 'Leverage machine learning to predict market trends and optimize entry points.' };
+      case 'ai': return { title: 'TRADING SCANNER Beta', icon: 'fas fa-search-dollar', desc: 'Real-time market scanner powered by breakout indicators and momentum tracking.' };
       case 'indicator': return { title: 'Pro Indicators', icon: 'fas fa-chart-simple', desc: 'Unlock advanced technical indicators for your charts.' };
       case 'course': return { title: 'Masterclass Course', icon: 'fas fa-video', desc: 'Comprehensive video tutorials from market experts.' };
       case 'classes': return { title: 'Live Classes', icon: 'fas fa-chalkboard-user', desc: 'Join our weekly live trading sessions and Q&A.' };
@@ -206,7 +206,7 @@ export default function LearningPage() {
               {action === 'ai' ? (
                 <div className="full-scanner-workspace">
                   <div className="scanner-section-header">
-                    <h2>AI Trading (Beta)</h2>
+                    <h2>TRADING SCANNER (Beta)</h2>
                     <p className="scanner-subtitle">Real-time market scanner powered by breakout indicators and momentum tracking</p>
                   </div>
 

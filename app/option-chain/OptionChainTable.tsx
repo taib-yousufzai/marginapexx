@@ -224,11 +224,11 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           box-shadow: 0 2px 16px rgba(0,0,0,0.4);
         }
 
-        /* â”€â”€ Header â”€â”€ */
+        /* ── Header ── */
         .oct-head {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          font-size: 0.8rem;
+          font-size: 0.925rem;
           font-weight: 800;
           letter-spacing: 0.5px;
           font-family: 'Inter', sans-serif;
@@ -270,7 +270,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-subhead {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          font-size: 0.72rem;
+          font-size: 0.845rem;
           font-weight: 700;
           font-family: 'Inter', sans-serif;
           position: sticky;
@@ -319,7 +319,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           align-items: center;
           justify-content: center;
           padding: 10px 0;
-          font-size: 0.85rem;
+          font-size: 0.975rem;
         }
         .oct-sub-puts {
           background: #ffffff;
@@ -419,7 +419,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
 
         /* ── Values ── */
         .oct-val {
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 700;
           font-family: 'Inter', sans-serif;
         }
@@ -428,7 +428,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-val.put  { color: #1e293b; }
 
         .oct-val.ltp-single {
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 700;
         }
 
@@ -441,7 +441,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
 
         /* ── Strike value ── */
         .oct-strike-val {
-          font-size: 12px;
+          font-size: 14px;
           font-weight: 700;
           color: #C62E2E;
           font-family: 'Inter', sans-serif;
@@ -450,7 +450,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-strike-val.atm {
           color: #C62E2E;
           font-weight: 800;
-          font-size: 12px;
+          font-size: 14px;
         }
 
         :global(body.dark) .oct-strike-val {
