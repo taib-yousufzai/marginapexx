@@ -359,7 +359,7 @@ export default function Page() {
               <div className="screen">
                 <div className="content-padded">
                   {/* WhatsApp Community */}
-                  <div className="whatsapp-community" onClick={() => window.open(process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_LINK || 'https://chat.whatsapp.com/', '_blank')}>
+                  <div className="whatsapp-community" onClick={() => window.open(process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_LINK || 'https://chat.whatsapp.com/BqxIlyVnRQNIJ2JB2swEVh', '_blank')}>
                     <div className="whatsapp-inner">
                       <div className="whatsapp-icon"><i className="fab fa-whatsapp"></i></div>
                       <div className="whatsapp-content">
@@ -486,7 +486,7 @@ export default function Page() {
                   </div>
 
                   {/* WhatsApp Support */}
-                  <div className="whatsapp-support" onClick={() => window.open(`https://wa.me/${(process.env.NEXT_PUBLIC_SUPPORT_NUMBER || '').replace(/[^0-9]/g, '')}`, '_blank')}>
+                  <div className="whatsapp-support" onClick={() => window.open('https://wa.me/918796535838', '_blank')}>
                     <div className="whatsapp-inner">
                       <div className="whatsapp-icon"><i className="fab fa-whatsapp"></i></div>
                       <div className="whatsapp-content">
