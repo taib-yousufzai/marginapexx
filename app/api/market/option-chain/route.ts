@@ -89,7 +89,7 @@ export async function GET(request: Request) {
     if (expiry) {
       optionsPromise = supabase
         .from('instruments')
-        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange, lot_size')
+        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
         .eq('name', symbol)
         .eq('expiry', expiry)
         .in('option_type', ['CE', 'PE'])
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
     if (!expiry && selectedExpiry) {
       const secondRes = await supabase
         .from('instruments')
-        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange, lot_size')
+        .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
         .eq('name', symbol)
         .eq('expiry', selectedExpiry)
         .in('option_type', ['CE', 'PE'])
@@ -204,15 +204,13 @@ export async function GET(request: Request) {
         strikeMap[strike].ce = {
           token: opt.instrument_token,
           symbol: opt.tradingsymbol,
-          id: kiteId,
-          lotSize: opt.lot_size
+          id: kiteId
         };
       } else {
         strikeMap[strike].pe = {
           token: opt.instrument_token,
           symbol: opt.tradingsymbol,
-          id: kiteId,
-          lotSize: opt.lot_size
+          id: kiteId
         };
       }
     });

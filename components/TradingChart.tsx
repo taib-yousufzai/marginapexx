@@ -1182,7 +1182,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
       {/* Bottom Section */}
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Buy/Sell Buttons — always visible, act as quick order when panel is expanded */}
-        {!isUnderlyingIndex && !isOrderBlockVisible && (!isPanelExpanded || activeSegment === 'chain') && (
+        {!isUnderlyingIndex && !isOrderBlockVisible && (
           <div className="trade-buttons" id="tradeButtons">
             <button id="buyButton" className="trade-btn buy" onClick={() => {
               if (isPanelExpanded && activeSegment === 'chain') {
