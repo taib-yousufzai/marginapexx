@@ -38,9 +38,38 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
 
 type MarketItem = { name: string; price: number; change: number; changeAmt?: number; type: string; icon: string };
 
-const learningData = [
+type LearningItem = {
+  id: number;
+  name: string;
+  icon: any;
+  isSvg?: boolean;
+  iconClass: string;
+  badge: string;
+  action: string;
+};
+
+const learningData: LearningItem[] = [
   { id: 1, name: "Try Algo", icon: "fas fa-chart-line", iconClass: "algo", badge: "Free", action: "algo" },
-  { id: 2, name: "Scanner", icon: "fas fa-search-dollar", iconClass: "ai", badge: "Beta", action: "ai" },
+  { 
+    id: 2, 
+    name: "Scanner", 
+    isSvg: true,
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="1.4em" height="1.4em">
+        <path d="M3 8V5a2 2 0 0 1 2-2h3"/>
+        <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+        <path d="M21 16v3a2 2 0 0 1-2 2h-3"/>
+        <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+        <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth="2">
+          <animate attributeName="y1" values="5;19;5" dur="2s" repeatCount="indefinite" />
+          <animate attributeName="y2" values="5;19;5" dur="2s" repeatCount="indefinite" />
+        </line>
+      </svg>
+    ), 
+    iconClass: "ai", 
+    badge: "Beta", 
+    action: "ai" 
+  },
   { id: 3, name: "Indicator", icon: "fas fa-chart-bar", iconClass: "indicator", badge: "Pro", action: "indicator" },
   { id: 4, name: "Course", icon: "fas fa-video", iconClass: "default", badge: "Enroll", action: "course" },
   { id: 5, name: "Classes", icon: "fas fa-chalkboard-user", iconClass: "default", badge: "Live", action: "classes" },
@@ -81,12 +110,12 @@ const getNextExpiryDate = (dayOfWeek: number) => {
 };
 
 const getExpiryIndexes = () => [
-  { name: "NIFTY",       fullName: "NIFTY 50",     shortCode: "N50",  expiry: getNextExpiryDate(4), lotSize: 65  },
-  { name: "BANKNIFTY",   fullName: "BANK NIFTY",   shortCode: "BNF",  expiry: getNextExpiryDate(3), lotSize: 30  },
-  { name: "FINNIFTY",    fullName: "FIN NIFTY",    shortCode: "FIN",  expiry: getNextExpiryDate(2), lotSize: 60  },
-  { name: "SENSEX",      fullName: "SENSEX",       shortCode: "SEN",  expiry: getNextExpiryDate(5), lotSize: 20  },
-  { name: "MIDCAP",      fullName: "MIDCAP NIFTY", shortCode: "MID",  expiry: getNextExpiryDate(1), lotSize: 120 },
-  { name: "BANKEX",      fullName: "BANKEX",       shortCode: "BKX",  expiry: getNextExpiryDate(5), lotSize: 30  },
+  { name: "NIFTY", fullName: "NIFTY 50", shortCode: "N50", expiry: getNextExpiryDate(4), lotSize: 65 },
+  { name: "BANKNIFTY", fullName: "BANK NIFTY", shortCode: "BNF", expiry: getNextExpiryDate(3), lotSize: 30 },
+  { name: "FINNIFTY", fullName: "FIN NIFTY", shortCode: "FIN", expiry: getNextExpiryDate(2), lotSize: 60 },
+  { name: "SENSEX", fullName: "SENSEX", shortCode: "SEN", expiry: getNextExpiryDate(5), lotSize: 20 },
+  { name: "MIDCAP", fullName: "MIDCAP NIFTY", shortCode: "MID", expiry: getNextExpiryDate(1), lotSize: 120 },
+  { name: "BANKEX", fullName: "BANKEX", shortCode: "BKX", expiry: getNextExpiryDate(5), lotSize: 30 },
 ];
 
 const playNotificationSound = () => {
@@ -95,7 +124,7 @@ const playNotificationSound = () => {
     if (!AudioContext) return;
     const ctx = new AudioContext();
     const now = ctx.currentTime;
-    
+
     // Play a gentle two-tone chime
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
@@ -106,7 +135,7 @@ const playNotificationSound = () => {
     gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
-    
+
     osc1.start(now);
     osc1.stop(now + 0.4);
   } catch (err) {
@@ -198,13 +227,13 @@ export default function Page() {
     const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const dayOfWeek = nowIST.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
+
     if (isWeekend) {
       return { status: 'closed', label: 'Closed (Weekend)' };
     }
-    
+
     const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
-    
+
     if (currentHHMM < seg.start_time) {
       return { status: 'closed', label: `Closed (Opens ${seg.start_time})` };
     } else if (currentHHMM >= seg.end_time) {
@@ -217,7 +246,7 @@ export default function Page() {
   const handleDismissPopup = async () => {
     if (!activePopupNotif) return;
     const dismissedId = activePopupNotif.id;
-    
+
     // Optimistically update notifications list to mark it read
     setNotifications(prev => prev.map(n => n.id === dismissedId ? { ...n, read: true } : n));
     setActivePopupNotif(null);
@@ -247,7 +276,7 @@ export default function Page() {
           if (result && result.notifications) {
             const list = result.notifications ?? [];
             setNotifications(list);
-            
+
             // Check if there is an unread notification to display as a popup
             const firstUnread = list.find((n: any) => !n.read);
             if (firstUnread) {
@@ -340,7 +369,7 @@ export default function Page() {
   return (
     <div className="desktop-layout home-isolated-layout">
       <Sidebar />
-      
+
       <main className="main-viewport home-isolated-viewport">
         <div className="app-container home-isolated-container">
           {/* Mobile Navigation Bar */}
@@ -421,7 +450,7 @@ export default function Page() {
                         <p>
                           {(() => {
                             const day = new Date().getDay();
-                            switch(day) {
+                            switch (day) {
                               case 1: return "MIDCPNIFTY";
                               case 2: return "FINNIFTY";
                               case 3: return "BANKNIFTY";
@@ -467,8 +496,8 @@ export default function Page() {
                                     {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <div className={`market-rect-change ${market.type}`}>
-                                    {market.change >= 0 
-                                      ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)` 
+                                    {market.change >= 0
+                                      ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)`
                                       : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
                                   </div>
                                 </div>
@@ -486,7 +515,9 @@ export default function Page() {
                     <div className="learning-grid">
                       {learningData.map((item, i) => (
                         <div className="learning-card" key={i} onClick={() => router.push(`/learning/${item.action}`)}>
-                          <div className={`learning-icon ${item.iconClass}`}><i className={item.icon}></i></div>
+                          <div className={`learning-icon ${item.iconClass}`}>
+                            {item.isSvg ? item.icon : <i className={item.icon as string}></i>}
+                          </div>
                           <div className="learning-title">{item.name}</div>
                           <div className="learning-badge">{item.badge}</div>
                         </div>
