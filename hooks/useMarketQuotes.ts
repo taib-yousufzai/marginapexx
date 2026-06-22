@@ -163,6 +163,31 @@ export function useMarketQuotes(symbols: string[]) {
     const currentSymbols = symbolsKey.split(',').filter(Boolean);
     if (currentSymbols.length === 0) return;
 
+    // Fetch initial REST snapshot to avoid empty values if WS doesn't push immediately
+    const fetchInitialQuotes = async () => {
+      try {
+        let baseUrl = process.env.NEXT_PUBLIC_TICKER_URL;
+        if (!baseUrl) {
+          if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            baseUrl = 'https://marginapexx-production.up.railway.app';
+          } else {
+            baseUrl = 'http://localhost:8080';
+          }
+        }
+        
+        const res = await fetch(`${baseUrl}/quotes?symbols=${currentSymbols.join(',')}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data && Object.keys(json.data).length > 0) {
+            onMessage('quotes', json.data);
+          }
+        }
+      } catch (err) {
+        console.warn('[MarketQuotes] Initial fetch failed:', err);
+      }
+    };
+    fetchInitialQuotes();
+
     const onMessage = (type: string, data: any) => {
       if (type === 'quotes') {
         const mapped: Record<string, QuoteData> = {};
