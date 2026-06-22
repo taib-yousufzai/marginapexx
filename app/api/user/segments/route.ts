@@ -26,21 +26,21 @@ export async function GET(request: NextRequest) {
 
   // Determine which settings table to use
   const queryMode = request.nextUrl.searchParams.get('mode');
-  const targetMode = (queryMode === 'normal' || queryMode === 'scalper') 
-    ? queryMode 
+  const targetMode = (queryMode === 'normal' || queryMode === 'scalper')
+    ? queryMode
     : (profile.trading_mode || 'normal');
   const settingsTable = targetMode === 'scalper' ? 'scalper_segment_settings' : 'segment_settings';
 
   // If segments is null or empty, it means the user is unrestricted and allowed to trade ALL segments!
-  const allowedSegments: string[] = profile.segments && profile.segments.length > 0 
-    ? profile.segments 
+  const allowedSegments: string[] = profile.segments && profile.segments.length > 0
+    ? profile.segments
     : ALL_SEGMENTS;
 
   // 2. Fetch current segment settings from DB
   const { data: currentSettings, error: queryErr } = await admin
     .from(settingsTable)
     .select(
-      'id, user_id, segment, side, commission_type, commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, created_at, updated_at'
+      'id, user_id, segment, side, commission_type, commission_value, carry_commission_type, carry_commission_value, gtt_commission_type, gtt_commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, created_at, updated_at'
     )
     .eq('user_id', user.id);
 
@@ -54,13 +54,13 @@ export async function GET(request: NextRequest) {
   // 3. Find which of the allowed segments are missing settings in the database and auto-initialize them
   const existingSegmentKeys = new Set(finalSettings.map(s => `${s.segment.toUpperCase()}-${s.side.toUpperCase()}`));
   const defaultSettingsRows = [];
-  
+
   for (const seg of allowedSegments) {
     const segUpper = seg.toUpperCase();
     let intraday_leverage = 50;
     let holding_leverage = 5;
     let commission_value = 4500;
-    
+
     if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
       intraday_leverage = 100;
       holding_leverage = 10;
