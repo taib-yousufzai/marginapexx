@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ConfirmDialog, SkeletonLine, Position, PositionItem, positionItemToPosition } from './AdminUtils';
 
-export default function PositionPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string }, onOpenUserPanel?: () => void }) {
+export default function PositionPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void }) {
   const [tab, setTab] = useState<'open' | 'active' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
@@ -263,7 +263,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">USER</div>
           <div className="adm-pos-stat-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {uid ? (uid.length > 12 ? uid.slice(0, 12) + '...' : uid) : 'None'}
+            {uid ? (selectedUser.client_id || (uid.length > 12 ? uid.slice(0, 12) + '...' : uid)) : 'None'}
             {onOpenUserPanel && (
               <button 
                 onClick={onOpenUserPanel} 

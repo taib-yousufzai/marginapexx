@@ -28,6 +28,7 @@ export type ActLogItem = {
 
 export type UserListItem = {
   id: string;
+  client_id?: string;
   email: string;
   full_name: string | null;
   role: string;

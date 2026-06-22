@@ -57,7 +57,7 @@ function exportToCsv(orders: Order[], filename = 'orders.csv') {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string }, onOpenUserPanel?: () => void }) {
+export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void }) {
   // Tab / view state
   const [tab, setTab] = useState<'executed' | 'limit' | 'rejected' | 'pending'>('executed');
   const [viewMode, setViewMode] = useState<ViewMode>('user');
@@ -217,7 +217,7 @@ export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selected
               onClick={() => { setViewMode('user'); setPage(1); }}
               style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {uid ? `User: ${uid.slice(0, 8)}…` : 'User View'}
+              {uid ? `User: ${selectedUser.client_id || uid.slice(0, 8)}…` : 'User View'}
               {viewMode === 'user' && onOpenUserPanel && (
                 <span
                   onClick={(e) => { e.stopPropagation(); onOpenUserPanel(); }}

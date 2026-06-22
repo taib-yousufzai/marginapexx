@@ -45,7 +45,7 @@ export default function AdminPage() {
   const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [activePage, setActivePage] = useState('marketwatch');
-  const [selectedUser, setSelectedUser] = useState<{ id: string; role: string }>({ id: '', role: '' });
+  const [selectedUser, setSelectedUser] = useState<AdminUserPayload>({ id: '', role: '' });
   const [userRole, setUserRole] = useState<string>('');
 
   // Route guard — Supabase session + admin role check
@@ -176,8 +176,8 @@ export default function AdminPage() {
 
 function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate }: {
   activePage: string;
-  selectedUser: { id: string; role: string };
-  onSelectUser: (u: { id: string; role: string }) => void;
+  selectedUser: AdminUserPayload;
+  onSelectUser: (u: AdminUserPayload) => void;
   onOpenUserPanel: () => void;
   onNavigate: (page: string) => void;
 }) {

@@ -5,7 +5,7 @@ import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, SkeletonLine, UserListItem, ConfirmDialog, downloadCSV } from './AdminUtils';
 
 type UserRow = {
-  id: string; fullName: string; role: string; active: boolean;
+  id: string; client_id?: string; fullName: string; role: string; active: boolean;
   ledgerBal: number; mAvailable: number; openPnl: number; m2m: number;
   weeklyPnl: number; alltimePnl: number; marginUsed: number; holdingMargin: number;
   broker: string; mobile: string; scheduled_delete_at: string | null;
@@ -17,6 +17,7 @@ type UserRow = {
 function mapUserListItem(u: UserListItem): UserRow {
   return {
     id: u.id,
+    client_id: u.client_id,
     fullName: u.full_name ?? u.email,
     role: u.role.toUpperCase(),
     active: u.active,
@@ -138,6 +139,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
 
   const filtered = users.filter(u =>
     u.id.toLowerCase().includes(search.toLowerCase()) ||
+    (u.client_id && u.client_id.toLowerCase().includes(search.toLowerCase())) ||
     u.fullName.toLowerCase().includes(search.toLowerCase()) ||
     u.broker.toLowerCase().includes(search.toLowerCase())
   );
@@ -234,7 +236,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
               <span className={`adm-users-status ${u.active ? 'active' : 'inactive'}`}>{u.active ? 'Active' : 'Inactive'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="adm-users-uid">{u.id}</div>
+              <div className="adm-users-uid">{u.client_id || u.id.slice(0, 8)} <span style={{ opacity: 0.5, fontSize: '0.7em' }}>{u.id.slice(0, 12)}</span></div>
               {u.broker !== 'DIRECT' && (
                 <div className="adm-acc-broker-tag" style={{ margin: 0 }}>Managed by: {u.broker}</div>
               )}

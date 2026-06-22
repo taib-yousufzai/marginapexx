@@ -26,7 +26,16 @@ export async function GET(request: Request): Promise<Response> {
     let targetUserIds: string[] | null = null;
     
     if (client_id) {
-      targetUserIds = [client_id];
+      if (client_id.length === 6) {
+        const { data: profile } = await adminClient.from('profiles').select('id').eq('client_id', client_id).single();
+        if (profile) {
+          targetUserIds = [profile.id];
+        } else {
+          targetUserIds = [client_id]; // Fallback to UUID if not found
+        }
+      } else {
+        targetUserIds = [client_id];
+      }
     } else if (broker_id || sub_broker_id) {
       const { data: profiles } = await adminClient.from('profiles').select('id, parent_id, role');
       if (profiles) {

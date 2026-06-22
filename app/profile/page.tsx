@@ -25,6 +25,7 @@ export default function ProfilePage() {
     // Profile data
     const [profileName, setProfileName] = useState<string>(() => pageCache.get<string>('profile:name') || '');
     const [profilePhone, setProfilePhone] = useState<string>(() => pageCache.get<string>('profile:phone') || '');
+    const [profileClientId, setProfileClientId] = useState<string>(() => pageCache.get<string>('profile:client_id') || '');
 
     const overlayRef = useRef<HTMLDivElement>(null);
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
@@ -45,8 +46,10 @@ export default function ProfilePage() {
                 const data = await profileRes.json();
                 pageCache.set('profile:name', data.full_name ?? '');
                 pageCache.set('profile:phone', data.phone ?? '');
+                pageCache.set('profile:client_id', data.client_id ?? '');
                 setProfileName(data.full_name ?? '');
                 setProfilePhone(data.phone ?? '');
+                setProfileClientId(data.client_id ?? '');
             }
 
             // Fetch balance
@@ -126,7 +129,7 @@ export default function ProfilePage() {
 
     const email = session?.user?.email ?? '';
     const userId = session?.user?.id ?? '';
-    const clientId = userId ? userId.replace(/-/g, '').slice(0, 8).toUpperCase() : '—';
+    const clientId = profileClientId || (userId ? userId.replace(/-/g, '').slice(0, 8).toUpperCase() : '—');
     const displayName = profileName
         || (email ? email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'User');
     const formattedBalance = balance !== null

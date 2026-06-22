@@ -26,7 +26,7 @@ export async function GET(request: Request): Promise<Response> {
     // 1. Fetch all profiles
     const { data: profiles, error: pError } = await adminClient
       .from('profiles')
-      .select('id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
+      .select('id, client_id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
 
     if (pError) throw pError;
 
@@ -144,6 +144,23 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
+    // Generate a unique 6-character uppercase alphanumeric client_id
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let client_id = '';
+    let isUnique = false;
+    while (!isUnique) {
+      client_id = '';
+      for (let i = 0; i < 6; i++) {
+        client_id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      // Check if it exists
+      const { data: existing } = await adminClient.from('profiles').select('id').eq('client_id', client_id).single();
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+    profileFields['client_id'] = client_id;
+
     // Step 5: Create auth user
     // Validates: Requirements 3.2, 3.4
     const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
@@ -254,9 +271,9 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    // Step 7: Return 201 with id and email
+    // Step 7: Return 201 with id, client_id, and email
     // Validates: Requirement 3.6
-    return Response.json({ id: newUser.id, email: newUser.email }, { status: 201 });
+    return Response.json({ id: newUser.id, client_id: client_id, email: newUser.email }, { status: 201 });
   } catch (err: any) {
     // Outer catch: unhandled exceptions
     // Validates: Requirement 6.1

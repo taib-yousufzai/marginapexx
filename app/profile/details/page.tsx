@@ -9,6 +9,7 @@ import '../page.css';
 import './page.css';
 
 interface ProfileData {
+    client_id?: string;
     full_name: string; email: string; phone: string;
     role: string; segments: string[]; created_at: string;
     date_of_birth: string; city: string; state: string;
@@ -127,7 +128,7 @@ export default function ProfileDetailsPage() {
     // Hero always shows saved profile data, not live form state
     const savedName = profile?.full_name || (email ? email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '');
     const avatarLetter = (savedName || 'U').charAt(0).toUpperCase();
-    const clientId = userId ? userId.replace(/-/g,'').slice(0,8).toUpperCase() : '—';
+    const clientId = profile?.client_id || (userId ? userId.replace(/-/g,'').slice(0,8).toUpperCase() : '—');
 
     const fmtDate = (iso: string) => {
         if (!iso) return '—';
