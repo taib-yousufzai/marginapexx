@@ -408,14 +408,7 @@ export default function Page() {
                     <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
                   </div>
 
-                  {/* Rules & Regulations */}
-                  <div className="margin-settings-row" onClick={() => router.push('/rules')} style={{ marginTop: '12px' }}>
-                    <div className="margin-settings-left">
-                      <div className="margin-settings-icon" style={{ background: 'rgba(234, 179, 8, 0.15)', color: '#eab308' }}><i className="fas fa-file-contract"></i></div>
-                      <div className="margin-settings-text"><h4>Rules &amp; Regulations</h4><p>Check the platform policies before trading</p></div>
-                    </div>
-                    <div className="margin-settings-arrow"><i className="fas fa-arrow-right"></i></div>
-                  </div>
+
 
                   {/* Option Chain */}
                   <div className="option-chain-section">

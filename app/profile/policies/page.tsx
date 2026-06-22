@@ -36,7 +36,7 @@ export default function PoliciesPage() {
                                         Please read these policies carefully. By accessing or using the Platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms of Use and Risk Disclosures.
                                     </p>
                                 </div>
-                                
+
                                 <h3 style={{ marginTop: '0', marginBottom: '12px', fontSize: '1.1rem', color: 'var(--text-color, #1e293b)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <i className="fas fa-graduation-cap" style={{ color: '#8b5cf6' }}></i> Educational Purpose &amp; Simulation
                                 </h3>
@@ -75,7 +75,7 @@ export default function PoliciesPage() {
                                         By using the Platform, you expressly acknowledge and agree that this Platform is intended solely for educational and simulation purposes; that no real currency, securities, or financial assets are involved; that all trades are based on Bid and Ask pricing; that losses or valuation differences arising from Bid-Ask spreads cannot be reclaimed from the Platform; that margin carry interest, financing costs, rollover charges, or holding charges may apply; that financial markets are subject to risk and volatility; that the Platform does not provide investment, legal, tax, or financial advice; that you voluntarily assume all risks associated with the use of the Platform; and that you release and discharge the Platform and its owner from liability to the fullest extent permitted by applicable law.
                                     </p>
                                     <strong style={{ fontSize: '1.05rem', display: 'block', paddingTop: '12px', borderTop: '1px dashed rgba(234, 179, 8, 0.3)' }}>
-                                        <i className="fas fa-bolt" style={{marginRight: '6px'}}></i> Trade Wisely. Markets Are Subject to Trading Risk.
+                                        <i className="fas fa-bolt" style={{ marginRight: '6px' }}></i> Trade Wisely. Markets Are Subject to Trading Risk.
                                     </strong>
                                 </div>
                             </div>
