@@ -1030,6 +1030,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (rpcErr) {
       throw new Error(rpcErr.message || 'Order execution failed. Please try again.');
     }
+
+    // Append margin, brokerage, and buffer info to the action log reason
+    const { data: actLog, error: actLogError } = await admin
+      .from('act_logs')
+      .select('id, reason')
+      .eq('user_id', user.id)
+      .eq('symbol', symbol)
+      .in('type', ['ORDER_EXECUTION', 'ORDER_PLACED'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (actLog && !actLogError) {
+      const marginStr = ` | Margin Req: ₹${requiredMargin.toFixed(2)} | Bkg: ₹${brokerage.toFixed(2)} | Buf: ₹${bufferFee.toFixed(2)}`;
+      await admin
+        .from('act_logs')
+        .update({ reason: actLog.reason + marginStr })
+        .eq('id', actLog.id);
+    }
+
     return oId as string;
   };
 

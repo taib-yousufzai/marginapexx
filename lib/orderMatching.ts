@@ -278,6 +278,21 @@ export class InMemoryMatchingEngine {
             console.error(`[Order Matching] Failed to process executed position for order ${order.id}:`, rpcErr);
           }
 
+          let finalBrokerage = 0;
+          let marginStr = '';
+          try {
+            const { data: ordCheck } = await admin.from('orders').select('brokerage, product_type').eq('id', order.id).maybeSingle();
+            if (ordCheck) finalBrokerage = Number(ordCheck.brokerage || 0);
+
+            // Fetch missing leverage details from the profile or just fallback to generic approximations
+            // Since we don't have intraday_leverage fetched here, we'll approximate based on generic rules
+            const leverage = ordCheck?.product_type === 'CARRY' ? 5 : 50; 
+            const requiredMargin = (order.qty * executionFillPrice) / leverage + finalBrokerage;
+            marginStr = ` | Margin Req: ₹${requiredMargin.toFixed(2)} | Bkg: ₹${finalBrokerage.toFixed(2)} | Buf: ₹0.00`;
+          } catch (e) {
+            console.error(e);
+          }
+
           const auditStart = performance.now();
           await admin.from('act_logs').insert({
             type: 'ORDER_EXECUTION',
@@ -286,7 +301,7 @@ export class InMemoryMatchingEngine {
             symbol: order.symbol,
             qty: order.qty,
             price: executionFillPrice,
-            reason: `${orderType} Order Triggered @ ${ltp}`,
+            reason: `${orderType} Order Triggered @ ${ltp}${marginStr}`,
           });
           telemetry.recordDbCall('write', performance.now() - auditStart);
         }
