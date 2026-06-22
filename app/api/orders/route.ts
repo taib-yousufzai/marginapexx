@@ -414,6 +414,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit } = body;
+fs.writeFileSync('C:/Users/Taib/Desktop/Personal/marginapexx/body.json', JSON.stringify(body, null, 2));
 
   // 3. Basic field validation
   if (!symbol || !side || !qty || !segment) {

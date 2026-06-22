@@ -414,10 +414,10 @@ function OptionChainContent() {
       lots: actualLots,
       order_type: orderType,
       product_type: productType,
-      client_price: orderType === 'LIMIT' ? parseFloat(limitPrice) : currentPrice,
-      trigger_price: parseFloat(triggerPrice) || undefined,
-      stop_loss: parseFloat(slPrice) || undefined,
-      target: parseFloat(tpPrice) || undefined,
+      client_price: (orderType === 'LIMIT' || orderType === 'GTT') ? parseFloat(limitPrice) : currentPrice,
+      trigger_price: (orderType === 'SL' || orderType === 'SLM' || orderType === 'GTT') ? parseFloat(triggerPrice) : undefined,
+      stop_loss: orderType === 'GTT' ? parseFloat(slPrice) : undefined,
+      target: orderType === 'GTT' ? parseFloat(tpPrice) : undefined,
       is_exit: isExitOrder
     });
     if (result.success) {
