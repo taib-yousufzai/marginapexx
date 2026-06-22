@@ -299,6 +299,56 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to close position. Please try again.' }, { status: 500 });
   }
 
+  // --- BROKERAGE CALCULATION & POST-PROCESSING ---
+  try {
+    const exposure = exitPrice * Number(pos.qty_open);
+    const commType = pos.product_type === 'CARRY' 
+      ? (segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore')
+      : (segSetting?.commission_type || 'Per Crore');
+    const commVal = Number(pos.product_type === 'CARRY'
+      ? (segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0)
+      : (segSetting?.commission_value ?? 0));
+    
+    let brokerage = 0;
+    if (commType === 'Per Crore') {
+      brokerage = (exposure * commVal) / 10000000;
+    } else if (commType === 'Per Lot') {
+      const { data: inst } = await admin.from('instruments').select('lot_size').eq('tradingsymbol', pos.symbol).single();
+      const symbolLotSize = inst?.lot_size || 1;
+      const lotsUsed = Number(pos.qty_open) / symbolLotSize;
+      brokerage = lotsUsed * commVal;
+    } else if (commType === 'Per Trade' || commType === 'Flat') {
+      brokerage = commVal;
+    } else {
+      brokerage = exposure * 0.001; // fallback
+    }
+
+    if (brokerage > 0) {
+      await admin.from('transactions').insert({
+        user_id: user.id,
+        type: 'BROKERAGE',
+        amount: brokerage,
+        status: 'APPROVED',
+        ref_id: positionId
+      });
+
+      const { data: latestOrder } = await admin.from('orders')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('symbol', pos.symbol)
+        .eq('is_exit', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (latestOrder) {
+        await admin.from('orders').update({ brokerage }).eq('id', latestOrder.id);
+      }
+    }
+  } catch (brokErr) {
+    console.error('[POST /api/positions/[id]/close] Brokerage error:', brokErr);
+  }
+
   const response: ClosePositionResponse = {
     pnl:        Number(pnl),
     exit_price: exitPrice,

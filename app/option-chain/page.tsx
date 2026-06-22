@@ -408,7 +408,7 @@ function OptionChainContent() {
     const result = await placeOrder({
       symbol: selectedContract.symbol,
       kite_instrument: kiteId || selectedContract.symbol,
-      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BFO' : 'NFO',
+      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
       side,
       qty: actualQty,
       lots: actualLots,
@@ -429,6 +429,8 @@ function OptionChainContent() {
   };
 
   const [priceMode, setPriceMode] = useState<'BA' | 'LTP'>('BA');
+
+  if (!mounted) return null;
 
   return (
     <div className={`oc-app-container${mounted && isDark ? ' dark' : ''}`}>

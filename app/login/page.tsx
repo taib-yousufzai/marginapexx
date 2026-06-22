@@ -69,22 +69,28 @@ export default function LoginPage() {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const result = await signIn('demo@gmail.com', 'demo123');
+    try {
+      const result = await signIn('demo@gmail.com', 'demo123');
 
-    if (!result.error) {
-      const role = getRole(result.user ?? null);
-      const isAdmin = role === 'admin' || role === 'super_admin';
-      const route = isAdmin ? '/admin' : '/';
-      
-      if (isAdmin || result.user?.email === 'demo@gmail.com') {
-        router.replace(route);
+      if (!result.error) {
+        const role = getRole(result.user ?? null);
+        const isAdmin = role === 'admin' || role === 'super_admin';
+        const route = isAdmin ? '/admin' : '/';
+        
+        if (isAdmin || result.user?.email === 'demo@gmail.com') {
+          router.replace(route);
+        } else {
+          setPendingRoute(route);
+          setShowPopups(true);
+        }
+        setIsLoading(false);
       } else {
-        setPendingRoute(route);
-        setShowPopups(true);
+        setFormError('Demo account unavailable. Please try again later.');
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    } else {
-      setFormError('Demo account unavailable. Please try again later.');
+    } catch (err: any) {
+      console.error('Demo login error:', err);
+      setFormError(err.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };
@@ -111,22 +117,28 @@ export default function LoginPage() {
     // Small async tick so the loading state renders before the credential check
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const result = await signIn(username, password);
+    try {
+      const result = await signIn(username, password);
 
-    if (!result.error) {
-      const role = getRole(result.user ?? null);
-      const isAdmin = role === 'admin' || role === 'super_admin';
-      const route = isAdmin ? '/admin' : '/';
-      
-      if (isAdmin || result.user?.email === 'demo@gmail.com') {
-        router.replace(route);
+      if (!result.error) {
+        const role = getRole(result.user ?? null);
+        const isAdmin = role === 'admin' || role === 'super_admin';
+        const route = isAdmin ? '/admin' : '/';
+        
+        if (isAdmin || result.user?.email === 'demo@gmail.com') {
+          router.replace(route);
+        } else {
+          setPendingRoute(route);
+          setShowPopups(true);
+        }
+        setIsLoading(false);
       } else {
-        setPendingRoute(route);
-        setShowPopups(true);
+        setFormError('Invalid credentials. Please try again.');
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    } else {
-      setFormError('Invalid credentials. Please try again.');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setFormError(err.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
     }
   };

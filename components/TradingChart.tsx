@@ -520,14 +520,9 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     let orderSegment = (isAddMoreFlow && addMoreSegment) ? addMoreSegment : segment;
 
     if (chainContract) {
+      orderSymbol = chainContract.name;
+      
       const underlying = symbol.toUpperCase().replace('_INDEX', '').replace('NSE:', '').replace('INDEX', '').trim();
-      const expiry = chainContract.expiry.replace(' ', '').toUpperCase();
-      const parts = chainContract.name.split(' ');
-      const strike = parts[0];
-      const optionType = parts[1]; // CE or PE
-      
-      orderSymbol = `${underlying}${expiry}${strike}${optionType}`;
-      
       let prefix = 'NFO';
       if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
       else if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(underlying)) prefix = 'MCX';

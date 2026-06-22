@@ -152,7 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const lookupId = profileResult.data?.parent_id ?? user.id;
 
     const { data: segSettings } = await admin.from(targetTable)
-      .select('segment, side, exit_buffer, profit_hold_sec, loss_hold_sec')
+      .select('segment, side, exit_buffer, profit_hold_sec, loss_hold_sec, entry_buffer, commission_type, commission_value, carry_commission_type, carry_commission_value')
       .eq('user_id', lookupId);
 
     const segSettingsMap = new Map<string, any>();
@@ -292,6 +292,56 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           if (rpcErr) {
             console.error(`[POST /api/positions/close] RPC error for position ${pos.id}:`, rpcErr);
             return { positionId: pos.id, success: false, error: 'Failed to close position via RPC' };
+          }
+
+          // --- BROKERAGE CALCULATION & POST-PROCESSING ---
+          try {
+            const exposure = exitPrice * Number(pos.qty_open);
+            const commType = pos.product_type === 'CARRY' 
+              ? (segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore')
+              : (segSetting?.commission_type || 'Per Crore');
+            const commVal = Number(pos.product_type === 'CARRY'
+              ? (segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0)
+              : (segSetting?.commission_value ?? 0));
+            
+            let brokerage = 0;
+            if (commType === 'Per Crore') {
+              brokerage = (exposure * commVal) / 10000000;
+            } else if (commType === 'Per Lot') {
+              const { data: inst } = await admin.from('instruments').select('lot_size').eq('tradingsymbol', pos.symbol).single();
+              const symbolLotSize = inst?.lot_size || 1;
+              const lotsUsed = Number(pos.qty_open) / symbolLotSize;
+              brokerage = lotsUsed * commVal;
+            } else if (commType === 'Per Trade' || commType === 'Flat') {
+              brokerage = commVal;
+            } else {
+              brokerage = exposure * 0.001; // fallback
+            }
+
+            if (brokerage > 0) {
+              await admin.from('transactions').insert({
+                user_id: user.id,
+                type: 'BROKERAGE',
+                amount: brokerage,
+                status: 'APPROVED',
+                ref_id: pos.id
+              });
+
+              const { data: latestOrder } = await admin.from('orders')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('symbol', pos.symbol)
+                .eq('is_exit', true)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+              
+              if (latestOrder) {
+                await admin.from('orders').update({ brokerage }).eq('id', latestOrder.id);
+              }
+            }
+          } catch (brokErr) {
+            console.error(`[POST /api/positions/close] Brokerage error for position ${pos.id}:`, brokErr);
           }
 
           return { positionId: pos.id, success: true, pnl: Number(pnl), exit_price: exitPrice };
