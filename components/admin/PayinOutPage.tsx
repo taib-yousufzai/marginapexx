@@ -424,7 +424,11 @@ export default function PayinOutPage() {
                     <i className={r.type === 'DEPOSIT' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'} />
                   </div>
                   <div>
-                    <div className="adm-pay-uid">{r.user_id}</div>
+                    <div className="adm-pay-uid">{(r as any).user_name || r.user_id}</div>
+                    <div className="adm-pay-time" style={{ marginTop: 2 }}>
+                      <i className="far fa-user" style={{ marginRight: 6, fontSize: '0.75rem' }} />
+                      {(r as any).user_client_id || r.user_id.slice(0, 8) + '…'}
+                    </div>
                     <div className="adm-pay-time">
                       <i className="far fa-clock" style={{ marginRight: 6, fontSize: '0.75rem' }} />
                       {new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}

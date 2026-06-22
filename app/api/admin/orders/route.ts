@@ -22,6 +22,11 @@ export async function GET(request: Request): Promise<Response> {
     const rows       = rowsParam ? Math.min(parseInt(rowsParam, 10), 500) : 50;
     const page       = Math.max(1, parseInt(pageParam, 10));
 
+    // Fetch all profiles for user name/client_id lookup
+    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id');
+    const profileMap: Record<string, { full_name: string; email: string; client_id: string }> = {};
+    (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
+
     let query = adminClient
       .from('orders')
       .select('id, user_id, symbol, side, status, qty, price, order_type, info, created_at', { count: 'exact' })
@@ -37,8 +42,27 @@ export async function GET(request: Request): Promise<Response> {
       query = query.eq('status', 'PENDING').eq('order_type', 'LIMIT');
     }
 
+    // If search looks like a user name or client_id (not a symbol), resolve matching user_ids first
+    let userIdFilter: string[] | null = null;
     if (search) {
-      query = query.ilike('symbol', `%${search}%`);
+      const q = search.toLowerCase();
+      // Check if any profile matches by name or client_id
+      const matchingUserIds = (profiles ?? [])
+        .filter((p: any) =>
+          (p.full_name && p.full_name.toLowerCase().includes(q)) ||
+          (p.client_id && p.client_id.toLowerCase().includes(q)) ||
+          (p.email && p.email.toLowerCase().includes(q))
+        )
+        .map((p: any) => p.id);
+
+      if (matchingUserIds.length > 0) {
+        // Search matches user profiles — filter by those user_ids OR by symbol
+        userIdFilter = matchingUserIds;
+        query = query.or(`symbol.ilike.%${search}%,user_id.in.(${matchingUserIds.join(',')})`);
+      } else {
+        // No profile match — just search by symbol as before
+        query = query.ilike('symbol', `%${search}%`);
+      }
     }
 
     if (dateFrom) {
@@ -61,7 +85,14 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    return Response.json({ orders: data ?? [], total: count ?? 0 }, { status: 200 });
+    // Merge profile info into each order
+    const merged = (data ?? []).map((r: any) => ({
+      ...r,
+      user_name: profileMap[r.user_id]?.full_name || profileMap[r.user_id]?.email || r.user_id,
+      user_client_id: profileMap[r.user_id]?.client_id || '',
+    }));
+
+    return Response.json({ orders: merged, total: count ?? 0 }, { status: 200 });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }

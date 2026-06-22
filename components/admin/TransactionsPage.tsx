@@ -4,7 +4,7 @@ import { signOut } from '@/lib/auth';
 import { apiCall, SkeletonCard } from './AdminUtils';
 import type { PayRequest } from '@/lib/csvExport';
 
-type TxRecord = PayRequest & { user_name: string };
+type TxRecord = PayRequest & { user_name: string; user_client_id?: string };
 
 export default function TransactionsPage() {
   const [requests, setRequests] = useState<TxRecord[]>([]);
@@ -32,7 +32,7 @@ export default function TransactionsPage() {
 
   // Filter and pagination
   const filtered = requests.filter(r => {
-    if (search && !r.user_name.toLowerCase().includes(search.toLowerCase()) && !r.user_id.toLowerCase().includes(search.toLowerCase()) && !r.id.toLowerCase().includes(search.toLowerCase())) {
+    if (search && !r.user_name.toLowerCase().includes(search.toLowerCase()) && !r.user_id.toLowerCase().includes(search.toLowerCase()) && !r.id.toLowerCase().includes(search.toLowerCase()) && !(r.user_client_id && r.user_client_id.toLowerCase().includes(search.toLowerCase()))) {
       return false;
     }
     
@@ -128,7 +128,7 @@ export default function TransactionsPage() {
                   <div style={{ minWidth: 0, overflow: 'hidden' }}>
                     <div className="adm-pay-uid" style={{ color: '#c9d1d9', fontSize: '1.1rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.user_name}</div>
                     <div className="adm-pay-time" style={{ marginTop: 2, whiteSpace: 'nowrap' }}>
-                      <i className="far fa-user" style={{ marginRight: 6, fontSize: '0.75rem' }} /> {r.user_id.slice(0, 13)}...
+                      <i className="far fa-user" style={{ marginRight: 6, fontSize: '0.75rem' }} /> {r.user_client_id || r.user_id.slice(0, 13) + '...'}
                     </div>
                   </div>
                 </div>

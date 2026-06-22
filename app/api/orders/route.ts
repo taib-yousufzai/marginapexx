@@ -746,7 +746,7 @@ fs.writeFileSync('C:/Users/Taib/Desktop/Personal/marginapexx/body.json', JSON.st
     }
   }
 
-  const requiredMargin = marginPortion + entryBufferCost + exitBufferCost + brokerage;
+  const requiredMargin = marginPortion + brokerage;
 
   if (balance < requiredMargin) {
     return NextResponse.json({

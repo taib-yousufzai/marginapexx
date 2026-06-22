@@ -8,6 +8,8 @@ import { apiCall, Toast, ToastState, ConfirmDialog } from './AdminUtils';
 export type Order = {
   id: string;
   user_id: string;
+  user_name?: string;
+  user_client_id?: string;
   symbol: string;
   side: 'BUY' | 'SELL';
   status: 'EXECUTED' | 'CANCELLED' | 'REJECTED' | 'PENDING';
@@ -108,11 +110,13 @@ export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selected
         const rawTotal  = (data as { orders: Record<string, unknown>[]; total: number }).total ?? rawOrders.length;
 
         const items = (rawOrders as {
-          id: string; user_id?: string; symbol: string; side: string; status: string;
+          id: string; user_id?: string; user_name?: string; user_client_id?: string; symbol: string; side: string; status: string;
           qty: number; price: number; order_type: string; info: string; created_at?: string; time?: string;
         }[]).map(r => ({
           id: r.id,
           user_id: r.user_id ?? uid,
+          user_name: r.user_name ?? '',
+          user_client_id: r.user_client_id ?? '',
           symbol: r.symbol,
           side: r.side as Order['side'],
           status: r.status as Order['status'],
@@ -386,8 +390,11 @@ export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selected
                 {isGlobal && (
                   <td>
                     <span className="adm-ord-user-badge" title={o.user_id}>
-                      {o.user_id.slice(0, 8)}…
+                      {o.user_name || o.user_id.slice(0, 8) + '…'}
                     </span>
+                    {o.user_client_id && (
+                      <div style={{ fontSize: '0.65rem', color: '#8b949e', marginTop: 2 }}>{o.user_client_id}</div>
+                    )}
                   </td>
                 )}
                 <td><span className={`adm-ord-side ${o.side.toLowerCase()}`}>{o.side}</span></td>
