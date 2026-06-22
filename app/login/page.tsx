@@ -73,8 +73,14 @@ export default function LoginPage() {
 
     if (!result.error) {
       const role = getRole(result.user ?? null);
-      setPendingRoute(role === 'admin' ? '/admin' : '/');
-      setShowPopups(true);
+      const route = role === 'admin' ? '/admin' : '/';
+      
+      if (role === 'admin' || result.user?.email === 'demo@gmail.com') {
+        router.replace(route);
+      } else {
+        setPendingRoute(route);
+        setShowPopups(true);
+      }
       setIsLoading(false);
     } else {
       setFormError('Demo account unavailable. Please try again later.');
@@ -108,8 +114,14 @@ export default function LoginPage() {
 
     if (!result.error) {
       const role = getRole(result.user ?? null);
-      setPendingRoute(role === 'admin' ? '/admin' : '/');
-      setShowPopups(true);
+      const route = role === 'admin' ? '/admin' : '/';
+      
+      if (role === 'admin' || result.user?.email === 'demo@gmail.com') {
+        router.replace(route);
+      } else {
+        setPendingRoute(route);
+        setShowPopups(true);
+      }
       setIsLoading(false);
     } else {
       setFormError('Invalid credentials. Please try again.');
