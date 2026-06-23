@@ -5,11 +5,15 @@
  * Logic:
  * 1. Fetch current profile.
  * 2. Insert APPROVED transaction — the transactions_balance_sync DB trigger updates profiles.balance.
- * 3. Log to act_logs.
+ * 3. Insert into ledger_entries table with the selected entry_type.
+ * 4. Log to act_logs.
  */
 
 import { requireAdmin } from '../../../_auth';
 import { getRole } from '../../../../../../lib/auth';
+import type { EntryType, Direction } from '../../../../../../lib/ledger';
+
+const VALID_ENTRY_TYPES: EntryType[] = ['DEPOSIT', 'WITHDRAWAL', 'ADJUSTMENT', 'CORRECTION', 'REFUND'];
 
 export async function POST(
   request: Request,
@@ -24,15 +28,17 @@ export async function POST(
     const userId = resolvedParams.id;
 
     const body = await request.json();
-    const { amount, type, remark, description } = body;
+    const { amount, type, remark, description, entry_type } = body;
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       return Response.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
-    if (!description || typeof description !== 'string' || !description.trim()) {
-      return Response.json({ error: 'Justification note is required' }, { status: 400 });
+    if (!entry_type || !VALID_ENTRY_TYPES.includes(entry_type as EntryType)) {
+      return Response.json({ error: 'Invalid entry_type' }, { status: 400 });
     }
+
+    // remarks (description) is optional — no validation error when absent
 
     // 1. Fetch current profile details
     const { data: profile, error: fError } = await adminClient
@@ -54,7 +60,30 @@ export async function POST(
     const adjustment = Number(amount);
     const newBalance = type === 'Credit' ? currentBalance + adjustment : currentBalance - adjustment;
 
-    // 2. Insert transaction record with status APPROVED.
+    // 2. Create pay_request if entry_type is DEPOSIT or WITHDRAWAL (for Deposit/Withdrawal History)
+    let payRequestId = null;
+    if (entry_type === 'DEPOSIT' || entry_type === 'WITHDRAWAL') {
+      const { data: pr, error: prError } = await adminClient
+        .from('pay_requests')
+        .insert({
+          user_id: userId,
+          type: entry_type,
+          amount: adjustment,
+          status: 'APPROVED',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (prError) {
+        console.error('[POST ledger] pay_requests insert error:', prError.message);
+        return Response.json({ error: 'Failed to record pay request' }, { status: 500 });
+      }
+      payRequestId = pr.id;
+    }
+
+    // 3. Insert transaction record with status APPROVED.
     // The transactions_balance_sync trigger will automatically update profiles.balance
     // when the APPROVED transaction is inserted — do NOT manually update balance here
     // or the amount will be applied twice.
@@ -66,7 +95,7 @@ export async function POST(
         type: transType,
         amount: adjustment,
         status: 'APPROVED',
-        ref_id: `${remark}: ${description || 'Manual Adjustment'}`,
+        ref_id: payRequestId ? payRequestId.toString() : `${remark}: ${description || 'Manual Adjustment'}`,
         created_at: new Date().toISOString(),
       });
 
@@ -75,7 +104,27 @@ export async function POST(
       return Response.json({ error: 'Failed to record transaction' }, { status: 500 });
     }
 
-    // Fetch user positions to compute snapshot metrics (brokerage, margin used, open pnl, m2m, etc.)
+    // 4. Insert into ledger_entries with the selected entry_type and direction.
+    const validEntryType = entry_type as EntryType;
+    const direction: Direction = type === 'Credit' ? 'CREDIT' : 'DEBIT';
+    const { error: leError } = await adminClient
+      .from('ledger_entries')
+      .insert({
+        user_id: userId,
+        entry_type: validEntryType,
+        direction,
+        amount: adjustment,
+        remarks: description || null,
+        pay_request_id: payRequestId,
+        created_at: new Date().toISOString(),
+      });
+
+    if (leError) {
+      console.error('[POST ledger] Ledger entry insert error:', leError.message);
+      return Response.json({ error: 'Failed to record ledger entry' }, { status: 500 });
+    }
+
+    // 4. Fetch user positions to compute snapshot metrics (brokerage, margin used, open pnl, m2m, etc.)
     const { data: positions, error: posError } = await adminClient
       .from('positions')
       .select('status, brokerage, settlement, pnl, entry_time, exit_time')
@@ -105,7 +154,7 @@ export async function POST(
       console.error('[POST ledger] Error fetching positions for stats:', posError.message);
     }
 
-    const logReason = `[${type} - ${remark}] Note: ${description.trim()} | Balance: ₹${newBalance.toFixed(2)} | Margin Used: ₹${marginUsed.toFixed(2)} | Brokerage: ₹${totalBrokerage.toFixed(2)} | Open PnL: ₹${openPnL.toFixed(2)} | M2M: ₹${m2m.toFixed(2)} | Demo: ${profile.demo_user ? 'Yes' : 'No'}`;
+    const logReason = `[${type} - ${remark}] Note: ${(description || '').trim()} | Balance: ₹${newBalance.toFixed(2)} | Margin Used: ₹${marginUsed.toFixed(2)} | Brokerage: ₹${totalBrokerage.toFixed(2)} | Open PnL: ₹${openPnL.toFixed(2)} | M2M: ₹${m2m.toFixed(2)} | Demo: ${profile.demo_user ? 'Yes' : 'No'}`;
 
     // 4. Log action to act_logs
     const { error: logError } = await adminClient.from('act_logs').insert({
