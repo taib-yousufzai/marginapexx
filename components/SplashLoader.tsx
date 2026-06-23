@@ -40,14 +40,12 @@ export default function SplashLoader() {
       }}
     >
       <img
-        src="/icon-512x512.png"
-        alt="Logo"
+        src="/loading-logo.jpg"
+        alt="Margin Apex Logo"
         style={{
-          width: '180px',
-          height: '180px',
-          objectFit: 'contain',
-          borderRadius: '32px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          width: '280px',
+          height: 'auto',
+          objectFit: 'contain'
         }}
       />
     </div>
