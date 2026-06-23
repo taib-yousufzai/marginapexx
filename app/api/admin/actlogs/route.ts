@@ -110,6 +110,8 @@ export async function GET(request: Request): Promise<Response> {
     const pageParam = url.searchParams.get('page') ?? null;
     const rowsParam = url.searchParams.get('rows') ?? null;
     const exportParam = url.searchParams.get('export') ?? null;
+    const demoParam = url.searchParams.get('demo');
+    const isDemo = demoParam === 'true';
 
     const page = pageParam ? parseInt(pageParam, 10) : 1;
     const rows = rowsParam ? parseInt(rowsParam, 10) : 50;
@@ -125,6 +127,27 @@ export async function GET(request: Request): Promise<Response> {
         { count: 'exact' },
       )
       .order('created_at', { ascending: false });
+
+    // Pre-fetch profiles to filter by demo mode
+    const { data: allowedProfiles, error: pError } = await adminClient
+      .from('profiles')
+      .select('id, email, full_name, client_id')
+      .eq('demo_user', isDemo);
+
+    const profileMap: Record<string, { email: string; full_name: string | null; client_id?: string }> = {};
+    const allowedUserIds: string[] = [];
+    if (!pError && allowedProfiles) {
+      allowedProfiles.forEach((p: any) => {
+        profileMap[p.id] = p;
+        allowedUserIds.push(p.id);
+      });
+    }
+
+    if (allowedUserIds.length > 0) {
+      query = query.in('target_user_id', allowedUserIds);
+    } else {
+      return Response.json({ data: [], total: 0 }, { status: 200 });
+    }
 
     // Step 4: Apply date range filter on created_at
     // Validates: Requirement 9.2
@@ -163,17 +186,7 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Step 7: Fetch profiles to resolve friendly names/IDs
-    const { data: profiles, error: pError } = await adminClient
-      .from('profiles')
-      .select('id, email, full_name, client_id');
-
-    const profileMap: Record<string, { email: string; full_name: string | null; client_id?: string }> = {};
-    if (!pError && profiles) {
-      profiles.forEach((p: any) => {
-        profileMap[p.id] = p;
-      });
-    }
+    // Profiles are already fetched above, we just use the existing profileMap
 
     const formatUser = (id: string | null) => {
       if (!id) return '';

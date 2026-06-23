@@ -320,9 +320,10 @@ function EditForm({ log, onSave, onCancel, saving }: EditFormProps) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ActLedgerPage({ selectedUser, onOpenUserPanel }: {
+export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMode }: {
   selectedUser?: { id: string; role: string; client_id?: string };
   onOpenUserPanel?: () => void;
+  isDemoMode: boolean;
 }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -356,6 +357,7 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel }: {
     if (viewMode === 'user' && uid) params.set('user_id', uid);
     params.set('rows', String(pageSize));
     params.set('page', String(page));
+    params.set('demo', String(isDemoMode));
 
     const query = params.toString() ? `?${params.toString()}` : '';
     apiCall(`/api/admin/actlogs${query}`, { method: 'GET' })
@@ -438,6 +440,7 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel }: {
     if (viewMode === 'user' && uid) params.set('user_id', uid);
     params.set('rows', dlRows);
     params.set('export', 'csv');
+    params.set('demo', String(isDemoMode));
 
     supabase.auth.getSession().then(({ data: sessionData }) => {
       const token = sessionData.session?.access_token ?? '';

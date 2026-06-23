@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ConfirmDialog, SkeletonLine, Position, PositionItem, positionItemToPosition } from './AdminUtils';
 
-export default function PositionPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void }) {
+export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void, isDemoMode: boolean }) {
   const [tab, setTab] = useState<'open' | 'active' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
@@ -23,13 +23,14 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
   const [editBrokerage, setEditBrokerage] = useState('');
   const [editSettlement, setEditSettlement] = useState('');
   const [editStatus, setEditStatus] = useState<'open' | 'active' | 'closed'>('open');
+  const [weeklyPnl, setWeeklyPnl] = useState<number>(0);
 
   const uid = selectedUser.id;
 
   const fetchPositions = useCallback((silent = false) => {
-    if (!uid) return;
+    const endpointId = uid || 'all';
     if (!silent) setPosLoading(true);
-    apiCall(`/api/admin/users/${uid}/positions?tab=${encodeURIComponent(tab)}&rows=100000`, { method: 'GET' })
+    apiCall(`/api/admin/users/${endpointId}/positions?tab=${encodeURIComponent(tab)}&rows=100000&demo=${isDemoMode}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
         if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
@@ -41,7 +42,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       })
       .finally(() => setPosLoading(false));
-  }, [uid, tab]);
+  }, [uid, tab, isDemoMode]);
 
   useEffect(() => {
     setTimeout(() => fetchPositions(), 0);
@@ -50,6 +51,22 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
     }, 1000);
     return () => clearInterval(interval);
   }, [fetchPositions]);
+
+  useEffect(() => {
+    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(({ ok, data }) => {
+      if (ok && Array.isArray(data)) {
+        if (!uid) {
+          const totalWeekly = data.reduce((sum, u) => sum + (u.weeklyPnl || 0), 0);
+          setWeeklyPnl(totalWeekly);
+        } else {
+          const u = data.find(x => x.id === uid);
+          if (u && typeof u.weeklyPnl === 'number') {
+            setWeeklyPnl(u.weeklyPnl);
+          }
+        }
+      }
+    });
+  }, [uid, isDemoMode]);
 
   const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
 
@@ -283,7 +300,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
         </div>
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">WEEKLY PNL</div>
-          <div className="adm-pos-stat-value">0</div>
+          <div className={`adm-pos-stat-value ${weeklyPnl >= 0 ? 'pos' : 'neg'}`}>{weeklyPnl.toFixed(2)}</div>
         </div>
       </div>
 
@@ -345,6 +362,11 @@ export default function PositionPage({ selectedUser, onOpenUserPanel }: { select
               <div className="adm-pos-card-title-group">
                 <span className="adm-pos-card-symbol">{p.symbol}</span>
                 <span className={`adm-pos-side-badge ${p.side === 'BUY' ? 'buy' : 'sell'}`}>{p.side}</span>
+                {!uid && (
+                  <span style={{ marginLeft: 8, fontSize: '11px', color: '#8b949e', background: '#21262d', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase' }}>
+                    {p.client_id || p.user_name || p.user_id?.slice(0, 8)}
+                  </span>
+                )}
               </div>
               <div className="adm-pos-card-pnl-group">
                 <span className={`adm-pos-pnl-badge ${p.pnl >= 0 ? 'pos' : 'neg'}`}>

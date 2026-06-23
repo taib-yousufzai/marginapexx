@@ -22,7 +22,7 @@ export interface AccountTemplate {
 
 type View = 'list' | 'create' | 'edit';
 
-export default function TemplatesPage() {
+export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) {
   const [view, setView] = useState<View>('list');
   const [templates, setTemplates] = useState<AccountTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +79,7 @@ export default function TemplatesPage() {
       <TemplateForm
         onBack={() => setView('list')}
         onSaved={() => { setView('list'); loadTemplates(); }}
+        isDemoMode={isDemoMode}
       />
     );
   }
@@ -89,6 +90,7 @@ export default function TemplatesPage() {
         template={selectedTemplate}
         onBack={() => setView('list')}
         onSaved={() => { setView('list'); loadTemplates(); }}
+        isDemoMode={isDemoMode}
       />
     );
   }
@@ -114,6 +116,7 @@ export default function TemplatesPage() {
             setApplyModalTemplate(null);
             setToast({ message: 'Template applied successfully', type: 'success' });
           }}
+          isDemoMode={isDemoMode || false}
         />
       )}
 

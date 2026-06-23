@@ -54,10 +54,11 @@ function DeletionBanner({ scheduledDeleteAt }: { scheduledDeleteAt: string }) {
   );
 }
 
-export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, onNavigate }: {
+export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, onNavigate, isDemoMode }: {
   selectedUser: { id: string; role: string };
   onSelectUser: (u: { id: string; role: string }) => void;
   onNavigate: (page: string) => void;
+  isDemoMode: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -72,7 +73,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
 
   const fetchUsers = useCallback((silent = false) => {
     if (!silent) setUsersLoading(true);
-    apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
+    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
         setUsers((data as UserListItem[]).map(mapUserListItem));
       } else if (status === 401) {
@@ -85,7 +86,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
       }
       setUsersLoading(false);
     });
-  }, [router]);
+  }, [router, isDemoMode]);
 
   useEffect(() => {
     setTimeout(() => fetchUsers(), 0);

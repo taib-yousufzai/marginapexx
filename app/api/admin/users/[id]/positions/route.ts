@@ -8,6 +8,7 @@
  */
 
 import { requireAdmin } from '../../../_auth';
+import { getRole } from '@/lib/auth';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -15,6 +16,8 @@ import { requireAdmin } from '../../../_auth';
 
 export type PositionItem = {
   id: string;
+  user_id: string;
+  profiles?: { email: string; client_id?: string; full_name?: string } | null;
   symbol: string;
   side: 'BUY' | 'SELL';
   status: 'open' | 'active' | 'closed';
@@ -60,6 +63,8 @@ export async function GET(
     const search = url.searchParams.get('search') ?? null;
     const rowsParam = url.searchParams.get('rows') ?? null;
     const pageParam = url.searchParams.get('page') ?? null;
+    const demoParam = url.searchParams.get('demo');
+    const isDemo = demoParam === 'true';
     const rows = rowsParam ? parseInt(rowsParam, 10) : 100;
     const page = pageParam ? parseInt(pageParam, 10) : 0;
 
@@ -68,9 +73,26 @@ export async function GET(
     let query = adminClient
       .from('positions')
       .select(
-        'id, symbol, side, status, pnl, qty_open, qty_total, avg_price, entry_price, ltp, exit_price, duration_seconds, brokerage, sl, tp, entry_time, exit_time, settlement',
-      )
-      .eq('user_id', id);
+        'id, user_id, symbol, side, status, pnl, qty_open, qty_total, avg_price, entry_price, ltp, exit_price, duration_seconds, brokerage, sl, tp, entry_time, exit_time, settlement, profiles(email, client_id, full_name)',
+      );
+
+    if (id !== 'all') {
+      query = query.eq('user_id', id);
+    } else {
+      const callerRole = getRole(authResult.callerUser);
+      let pQuery = adminClient.from('profiles').select('id').eq('demo_user', isDemo);
+      
+      if (callerRole === 'broker') {
+        pQuery = pQuery.eq('parent_id', authResult.callerUser.id);
+      }
+      
+      const { data: matchedUsers } = await pQuery;
+      const matchedIds = matchedUsers?.map((u: { id: string }) => u.id) || [];
+      if (matchedIds.length === 0) {
+         return Response.json([], { status: 200 });
+      }
+      query = query.in('user_id', matchedIds);
+    }
 
     // Step 5: Apply tab filter
     // Validates: Requirements 7.3, 7.4, 7.5
@@ -105,6 +127,8 @@ export async function GET(
     const positions: PositionItem[] = (data ?? []).map(
       (row: {
         id: string;
+        user_id: string;
+        profiles: { email: string; client_id: string; full_name: string } | null;
         symbol: string;
         side: string;
         status: string;
@@ -124,6 +148,8 @@ export async function GET(
         settlement: string | null;
       }) => ({
         id: row.id,
+        user_id: row.user_id,
+        profiles: row.profiles,
         symbol: row.symbol,
         side: row.side as 'BUY' | 'SELL',
         status: row.status as 'open' | 'active' | 'closed',

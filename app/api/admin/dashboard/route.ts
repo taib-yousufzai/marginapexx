@@ -21,6 +21,8 @@ export async function GET(request: Request): Promise<Response> {
     const broker_id = url.searchParams.get('broker_id');
     const sub_broker_id = url.searchParams.get('sub_broker_id');
     const client_id = url.searchParams.get('client_id');
+    const demoParam = url.searchParams.get('demo');
+    const isDemo = demoParam === 'true';
 
     // 1. Fetch profiles to resolve hierarchy if needed
     let targetUserIds: string[] | null = null;
@@ -51,6 +53,18 @@ export async function GET(request: Request): Promise<Response> {
           targetUserIds = [broker_id, ...getDescendants(broker_id)];
         }
       }
+    }
+
+    if (!targetUserIds) {
+      // If no specific hierarchy or client is requested, we still need to filter by demo_user globally
+      const { data: allProfiles } = await adminClient.from('profiles').select('id').eq('demo_user', isDemo);
+      if (allProfiles) {
+        targetUserIds = allProfiles.map(p => p.id);
+      }
+    } else {
+      // If targetUserIds exist, filter them to ensure they match the demo mode
+      const { data: matchingProfiles } = await adminClient.from('profiles').select('id').in('id', targetUserIds).eq('demo_user', isDemo);
+      targetUserIds = matchingProfiles ? matchingProfiles.map(p => p.id) : [];
     }
 
     // 2. Fetch transactions

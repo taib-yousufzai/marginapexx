@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [activePage, setActivePage] = useState('marketwatch');
   const [selectedUser, setSelectedUser] = useState<AdminUserPayload>({ id: '', role: '' });
   const [userRole, setUserRole] = useState<string>('');
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
     getSession().then((session) => {
@@ -162,7 +163,17 @@ export default function AdminPage() {
             </div>
           )}
         </nav>
-        <div style={{ padding: '16px', borderTop: '1px solid #21262d', marginTop: 'auto' }}>
+        <div style={{ padding: '16px', borderTop: '1px solid #21262d', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isDemoMode ? 'rgba(234, 179, 8, 0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '8px', border: `1px solid ${isDemoMode ? 'rgba(234, 179, 8, 0.3)' : 'rgba(255,255,255,0.1)'}` }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: isDemoMode ? '#eab308' : '#8b949e' }}>
+              <i className="fas fa-vial" style={{ marginRight: '6px' }}></i>
+              {isDemoMode ? 'DEMO ENVIRONMENT' : 'LIVE ENVIRONMENT'}
+            </span>
+            <label className="adm-switch" style={{ margin: 0 }}>
+              <input type="checkbox" checked={isDemoMode} onChange={e => setIsDemoMode(e.target.checked)} />
+              <span className="adm-slider round"></span>
+            </label>
+          </div>
           <KiteConnectButton />
         </div>
       </div>
@@ -173,6 +184,7 @@ export default function AdminPage() {
         onCreateUser={() => { setUserPanelOpen(false); setCreatingUser(true); }}
         selectedUser={selectedUser}
         onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
+        isDemoMode={isDemoMode}
       />
 
       <div className="adm-main-area">
@@ -195,6 +207,7 @@ export default function AdminPage() {
             onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
             onOpenUserPanel={() => setUserPanelOpen(true)}
             onNavigate={(page) => { window.location.hash = page; }}
+            isDemoMode={isDemoMode}
           />
         </div>
       </div>
@@ -202,26 +215,27 @@ export default function AdminPage() {
   );
 }
 
-function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate }: {
+function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate, isDemoMode }: {
   activePage: string;
   selectedUser: AdminUserPayload;
   onSelectUser: (u: AdminUserPayload) => void;
   onOpenUserPanel: () => void;
   onNavigate: (page: string) => void;
+  isDemoMode: boolean;
 }) {
   const show = (key: string) => ({ display: activePage === key ? undefined : 'none' } as React.CSSProperties);
 
   return (
     <>
-      <div style={show('telegram')}><TelegramPage /></div>
+      <div style={show('telegram')}><TelegramPage isDemoMode={isDemoMode} /></div>
       <div style={show('settings')}><SettingsPage /></div>
       <div style={show('marketwatch')}><MarketWatchPage /></div>
-      <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
-      <div style={show('orders')}><OrdersPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
-      <div style={show('position')}><PositionPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
+      <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
+      <div style={show('orders')}><OrdersPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
+      <div style={show('position')}><PositionPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
-      <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} /></div>
-      <div style={show('templates')}><TemplatesPage /></div>
+      <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} isDemoMode={isDemoMode} /></div>
+      <div style={show('templates')}><TemplatesPage isDemoMode={isDemoMode} /></div>
       <div style={show('create')}>
         <CreateUserForm
           onBack={() => onNavigate('users')}
@@ -229,12 +243,13 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
             onNavigate('users');
             onSelectUser({ id, role });
           }}
+          isDemoMode={isDemoMode}
         />
       </div>
-      <div style={show('actledger')}><ActLedgerPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
-      <div style={show('accounts')}><AccountsPage /></div>
-      <div style={show('payinout')}><PayinOutPage /></div>
-      <div style={show('transactions')}><TransactionsPage /></div>
+      <div style={show('actledger')}><ActLedgerPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
+      <div style={show('accounts')}><AccountsPage isDemoMode={isDemoMode} /></div>
+      <div style={show('payinout')}><PayinOutPage isDemoMode={isDemoMode} /></div>
+      <div style={show('transactions')}><TransactionsPage isDemoMode={isDemoMode} /></div>
       <div style={show('paymentaccounts')}><PayAccountsPage /></div>
     </>
   );

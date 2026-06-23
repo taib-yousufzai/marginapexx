@@ -64,7 +64,8 @@ export type UserListItem = {
 };
 
 export type PositionItem = {
-  id: string; symbol: string; side: 'BUY' | 'SELL'; pnl: number;
+  id: string; user_id: string; profiles?: { email: string; client_id?: string; full_name?: string } | null;
+  symbol: string; side: 'BUY' | 'SELL'; pnl: number;
   qty_open: number; qty_total: number; avg_price: number; entry_price: number;
   ltp: number | null; exit_price: number | null; duration_seconds: number;
   brokerage: number; sl: number | null; tp: number | null;
@@ -73,6 +74,9 @@ export type PositionItem = {
 
 export type Position = {
   id: string;
+  user_id: string;
+  client_id?: string;
+  user_name?: string;
   symbol: string;
   side: 'BUY' | 'SELL';
   pnl: number;
@@ -98,17 +102,32 @@ export function formatDuration(seconds: number): string {
 }
 
 export function positionItemToPosition(item: PositionItem): Position {
+  let currentPnl = item.pnl || 0;
+  if ((item.status === 'open' || item.status === 'active') && item.ltp != null) {
+      const unrealized = item.side === 'BUY' 
+          ? (item.ltp - item.avg_price) * item.qty_open 
+          : (item.avg_price - item.ltp) * item.qty_open;
+      currentPnl += unrealized;
+  }
+
+  const durationSec = (item.status === 'open' || item.status === 'active')
+    ? Math.max(0, Math.floor((Date.now() - new Date(item.entry_time).getTime()) / 1000))
+    : (item.duration_seconds || 0);
+
   return {
     id: item.id,
+    user_id: item.user_id,
+    client_id: item.profiles?.client_id || undefined,
+    user_name: item.profiles?.full_name || item.profiles?.email || undefined,
     symbol: item.symbol,
     side: item.side,
-    pnl: item.pnl,
+    pnl: currentPnl,
     qty: `${item.qty_open}/${item.qty_total}`,
     avgPrice: item.avg_price,
     entry: item.entry_price,
     ltp: item.ltp ?? undefined,
     exit: item.exit_price ?? undefined,
-    duration: formatDuration(item.duration_seconds),
+    duration: formatDuration(durationSec),
     brokerage: item.brokerage,
     slTp: `${item.sl ?? '–'} / ${item.tp ?? '–'}`,
     entryTime: item.entry_time,

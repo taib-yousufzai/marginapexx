@@ -19,11 +19,13 @@ export async function GET(request: Request): Promise<Response> {
     const dateTo     = url.searchParams.get('dateTo') ?? null;
     const rowsParam  = url.searchParams.get('rows') ?? null;
     const pageParam  = url.searchParams.get('page') ?? '1';
+    const demoParam  = url.searchParams.get('demo');
+    const isDemo     = demoParam === 'true';
     const rows       = rowsParam ? Math.min(parseInt(rowsParam, 10), 500) : 50;
     const page       = Math.max(1, parseInt(pageParam, 10));
 
     // Fetch all profiles for user name/client_id lookup
-    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id');
+    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id').eq('demo_user', isDemo);
     const profileMap: Record<string, { full_name: string; email: string; client_id: string }> = {};
     (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
 
@@ -60,8 +62,18 @@ export async function GET(request: Request): Promise<Response> {
         userIdFilter = matchingUserIds;
         query = query.or(`symbol.ilike.%${search}%,user_id.in.(${matchingUserIds.join(',')})`);
       } else {
-        // No profile match — just search by symbol as before
+        // No profile match — just search by symbol as before, but still restrict to demo/live users
         query = query.ilike('symbol', `%${search}%`);
+      }
+    }
+    
+    // Ensure we only fetch orders for users matching the demo environment
+    if (!userIdFilter) {
+      const allowedUserIds = (profiles ?? []).map((p: any) => p.id);
+      if (allowedUserIds.length > 0) {
+        query = query.in('user_id', allowedUserIds);
+      } else {
+        return Response.json({ orders: [], total: 0 }, { status: 200 });
       }
     }
 

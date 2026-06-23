@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import UpdateProfile from './update/UpdateProfile';
 import UpdateSegments from './update/UpdateSegments';
 import UpdateLedger from './update/UpdateLedger';
+import LedgerHistory from './update/LedgerHistory';
 import UpdateCopySettings from './update/UpdateCopySettings';
 import UpdateBlockScripts from './update/UpdateBlockScripts';
 import UpdateNotifications from './update/UpdateNotifications';
 import UpdateMultipleSettings from './update/UpdateMultipleSettings';
 
-type UpdateTab = 'profile' | 'segments' | 'ledger' | 'copy_settings' | 'block_scripts' | 'notifications' | 'multiple_settings';
+type UpdateTab = 'profile' | 'segments' | 'ledger' | 'ledger_history' | 'copy_settings' | 'block_scripts' | 'notifications' | 'multiple_settings';
 
 export type SegSettings = {
   commissionType: string; commissionValue: string;
@@ -59,6 +60,8 @@ export default function UpdatePage({
         return selectedUser?.id ? <UpdateSegments selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to configure their segments." onOpen={onOpenUserPanel} />;
       case 'ledger':
         return selectedUser?.id ? <UpdateLedger selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to update their ledger." onOpen={onOpenUserPanel} />;
+      case 'ledger_history':
+        return selectedUser?.id ? <LedgerHistory selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to view their ledger history." onOpen={onOpenUserPanel} />;
       case 'copy_settings':
         return <UpdateCopySettings selectedUser={selectedUser} />;
       case 'block_scripts':
@@ -77,11 +80,13 @@ export default function UpdatePage({
         { key: 'profile', label: 'Profile' },
         { key: 'segments', label: 'Segments' },
         { key: 'ledger', label: 'Ledger' },
+        { key: 'ledger_history', label: 'Ledger History' },
       ]
     : [
         { key: 'profile', label: 'Profile' },
         { key: 'segments', label: 'Segments' },
         { key: 'ledger', label: 'Ledger' },
+        { key: 'ledger_history', label: 'Ledger History' },
         { key: 'copy_settings', label: 'Copy' },
         { key: 'block_scripts', label: 'Block' },
         { key: 'notifications', label: 'Notify' },

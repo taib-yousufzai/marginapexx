@@ -116,6 +116,7 @@ export async function POST(
         amount: adjustment,
         remarks: description || null,
         pay_request_id: payRequestId,
+        balance_after: newBalance,
         created_at: new Date().toISOString(),
       });
 

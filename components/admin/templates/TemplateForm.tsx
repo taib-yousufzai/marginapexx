@@ -12,9 +12,10 @@ interface TemplateFormProps {
   template?: AccountTemplate;
   onBack: () => void;
   onSaved: () => void;
+  isDemoMode?: boolean;
 }
 
-export default function TemplateForm({ template, onBack, onSaved }: TemplateFormProps) {
+export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: TemplateFormProps) {
   const isEdit = !!template;
   const [activeTab, setActiveTab] = useState<FormTab>('profile');
   const [saving, setSaving] = useState(false);
@@ -26,7 +27,7 @@ export default function TemplateForm({ template, onBack, onSaved }: TemplateForm
   const [isDefault, setIsDefault] = useState(template?.is_default ?? false);
   const [segments, setSegments] = useState<string[]>(template?.segments ?? []);
   const [readOnly, setReadOnly] = useState(template?.read_only ?? false);
-  const [demoUser, setDemoUser] = useState(template?.demo_user ?? false);
+  const [demoUser, setDemoUser] = useState(template ? template.demo_user : (isDemoMode ?? false));
   const [intradaySqOff, setIntradaySqOff] = useState(template?.intraday_sq_off ?? false);
   const [autoSqoff, setAutoSqoff] = useState(String(template?.auto_sqoff ?? 90));
   const [sqoffMethod, setSqoffMethod] = useState(template?.sqoff_method ?? 'Credit');

@@ -14,12 +14,13 @@ export type UserListItem = {
 
 const PAGE_SIZE = 8;
 
-export default function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser }: {
+export default function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser, isDemoMode }: {
   open: boolean;
   onClose: () => void;
   onCreateUser: () => void;
   selectedUser: { id: string; role: string };
   onSelectUser: (u: UserListItem) => void;
+  isDemoMode: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -30,7 +31,7 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
 
   useEffect(() => {
     setTimeout(() => setUsersLoading(true), 0);
-    apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, status, data }) => {
+    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
         const items = (data as UserListItem[]).map(u => ({
           ...u,

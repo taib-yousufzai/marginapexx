@@ -59,7 +59,11 @@ function exportToCsv(orders: Order[], filename = 'orders.csv') {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void }) {
+export default function OrdersPage({ selectedUser, onOpenUserPanel, isDemoMode }: { 
+  selectedUser: { id: string; role: string; client_id?: string }, 
+  onOpenUserPanel?: () => void,
+  isDemoMode: boolean
+}) {
   // Tab / view state
   const [tab, setTab] = useState<'executed' | 'limit' | 'rejected' | 'pending'>('executed');
   const [viewMode, setViewMode] = useState<ViewMode>('user');
@@ -89,10 +93,12 @@ export default function OrdersPage({ selectedUser, onOpenUserPanel }: { selected
 
   const fetchOrders = useCallback(() => {
     const hasUser = uid && !isGlobal;
+    const query = `tab=${encodeURIComponent(tab)}&rows=${rows}&page=${page}${dateFrom ? `&dateFrom=${dateFrom}` : ''}${dateTo ? `&dateTo=${dateTo}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}&demo=${String(isDemoMode)}`;
+    
     const endpoint = isGlobal
-      ? `/api/admin/orders?tab=${encodeURIComponent(tab)}&rows=${rows}&page=${page}${dateFrom ? `&dateFrom=${dateFrom}` : ''}${dateTo ? `&dateTo=${dateTo}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`
+      ? `/api/admin/orders?${query}`
       : uid
-        ? `/api/admin/users/${uid}/orders?tab=${encodeURIComponent(tab)}&rows=${rows}&page=${page}${dateFrom ? `&dateFrom=${dateFrom}` : ''}${dateTo ? `&dateTo=${dateTo}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`
+        ? `/api/admin/users/${uid}/orders?${query}`
         : null;
 
     if (!endpoint) return;

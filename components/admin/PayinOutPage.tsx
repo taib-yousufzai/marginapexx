@@ -6,7 +6,7 @@ import { apiCall, Toast, ToastState, SkeletonLine, SkeletonCard } from './AdminU
 import { toCsvPayRequests } from '@/lib/csvExport';
 import type { PayRequest } from '@/lib/csvExport';
 
-export default function PayinOutPage() {
+export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
   const [tab, setTab] = useState<'deposit' | 'withdrawal' | 'rules'>('deposit');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -57,6 +57,7 @@ export default function PayinOutPage() {
     if (search) params.set('search', search);
     params.set('page', String(page));
     params.set('rows', rows);
+    params.set('demo', String(isDemoMode));
     apiCall(`/api/admin/payinout?${params.toString()}`, { method: 'GET' })
       .then(({ ok, status: httpStatus, data }) => {
         if (httpStatus === 401) { signOut(); return; }
@@ -74,7 +75,7 @@ export default function PayinOutPage() {
       })
       .finally(() => setLoading(false));
      
-  }, [tab, dateFrom, dateTo, status, search, page, rows, refreshKey]);
+  }, [tab, dateFrom, dateTo, status, search, page, rows, refreshKey, isDemoMode]);
 
   // Realtime subscription
   useEffect(() => {

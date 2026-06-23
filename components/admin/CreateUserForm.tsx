@@ -4,7 +4,7 @@ import { apiCall, Toast, ToastState } from './AdminUtils';
 
 const SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
-export default function CreateUserForm({ onBack, onCreated }: { onBack: () => void; onCreated: (id: string, role: string) => void }) {
+export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBack: () => void; onCreated: (id: string, role: string) => void; isDemoMode?: boolean }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -16,7 +16,7 @@ export default function CreateUserForm({ onBack, onCreated }: { onBack: () => vo
   const [copyFrom, setCopyFrom] = useState('');
   const [active, setActive] = useState(true);
   const [readOnly, setReadOnly] = useState(false);
-  const [demoUser, setDemoUser] = useState(false);
+  const [demoUser, setDemoUser] = useState(isDemoMode || false);
   const [intradaySqOff, setIntradaySqOff] = useState(false);
   const [autoSqoff, setAutoSqoff] = useState('90');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');

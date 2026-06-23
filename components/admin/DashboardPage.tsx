@@ -87,9 +87,10 @@ function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
   );
 }
 
-export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
+export default function DashboardPage({ selectedUser, onOpenUserPanel, isDemoMode }: {
   selectedUser?: { id: string; role: string };
   onOpenUserPanel?: () => void;
+  isDemoMode: boolean;
 }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -104,10 +105,10 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    apiCall('/api/admin/users', { method: 'GET' }).then(({ ok, data }) => {
+    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(({ ok, data }) => {
       if (ok) setUsersList(data as { id: string; role: string; parent_id: string }[]);
     });
-  }, []);
+  }, [isDemoMode]);
 
   useEffect(() => {
     if (selectedUser?.id) {
@@ -127,7 +128,7 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
         }
       }, 0);
     }
-  }, [selectedUser, usersList]);
+  }, [selectedUser, usersList, isDemoMode]);
 
   const fetchMetrics = useCallback((manual = false, silent = false) => {
     if (!silent) setLoading(true);
@@ -137,6 +138,7 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
     if (brokerId) params.set('broker_id', brokerId);
     if (subBrokerId) params.set('sub_broker_id', subBrokerId);
     if (clientId) params.set('client_id', clientId);
+    params.set('demo', String(isDemoMode));
     
     const query = params.toString() ? `?${params.toString()}` : '';
     apiCall(`/api/admin/dashboard${query}`, { method: 'GET' })
@@ -151,7 +153,7 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel }: {
         setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
       })
       .finally(() => setLoading(false));
-  }, [dateFrom, dateTo, brokerId, subBrokerId, clientId]);
+  }, [dateFrom, dateTo, brokerId, subBrokerId, clientId, isDemoMode]);
 
   useEffect(() => {
     setTimeout(() => fetchMetrics(), 0);

@@ -48,9 +48,11 @@ export async function GET(request: Request): Promise<Response> {
     const search = url.searchParams.get('search') ?? null;
     const pageParam = url.searchParams.get('page') ?? null;
     const rowsParam = url.searchParams.get('rows') ?? null;
+    const demoParam = url.searchParams.get('demo');
+    const isDemo = demoParam === 'true';
 
     // Fetch all profiles to build a lookup map for user names and client_ids
-    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id');
+    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id').eq('demo_user', isDemo);
     const profileMap: Record<string, { full_name: string; email: string; client_id: string }> = {};
     (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
 
@@ -59,6 +61,14 @@ export async function GET(request: Request): Promise<Response> {
       .from('pay_requests')
       .select('id, user_id, type, amount, status, account_name, account_no, ifsc, upi, utr, screenshot_url, payment_account_id, created_at, updated_at, reference_id')
       .order('created_at', { ascending: false });
+
+    // Apply allowed userIds
+    const allowedUserIds = (profiles ?? []).map((p: any) => p.id);
+    if (allowedUserIds.length > 0) {
+      query = query.in('user_id', allowedUserIds);
+    } else {
+      return Response.json([], { status: 200 });
+    }
 
     // Apply type filter
     if (type) {

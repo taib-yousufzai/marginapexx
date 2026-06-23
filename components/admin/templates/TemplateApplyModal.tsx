@@ -7,9 +7,10 @@ interface TemplateApplyModalProps {
   template: AccountTemplate;
   onClose: () => void;
   onApplied: () => void;
+  isDemoMode: boolean;
 }
 
-export default function TemplateApplyModal({ template, onClose, onApplied }: TemplateApplyModalProps) {
+export default function TemplateApplyModal({ template, onClose, onApplied, isDemoMode }: TemplateApplyModalProps) {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -18,7 +19,7 @@ export default function TemplateApplyModal({ template, onClose, onApplied }: Tem
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    apiCall('/api/admin/users', { method: 'GET' }).then(res => {
+    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(res => {
       setLoading(false);
       if (res.ok) {
         // Only show regular users (not admin/super_admin/broker)

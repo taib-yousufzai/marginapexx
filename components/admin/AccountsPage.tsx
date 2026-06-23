@@ -13,7 +13,7 @@ type AccountSummary = {
   totalBrokerage: number; sharingBkg: number; sharingPnl: number;
 };
 
-export default function AccountsPage() {
+export default function AccountsPage({ isDemoMode }: { isDemoMode: boolean }) {
   const [filter, setFilter] = useState<'all' | 'subbrokers' | 'brokers'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -32,6 +32,7 @@ export default function AccountsPage() {
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo) params.set('date_to', dateTo);
     if (search) params.set('search', search);
+    params.set('demo', String(isDemoMode));
     apiCall(`/api/admin/accounts?${params.toString()}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
@@ -51,7 +52,7 @@ export default function AccountsPage() {
       fetchAccounts(true); // silent refresh every second
     }, 1000);
     return () => clearInterval(interval);
-  }, [filter, dateFrom, dateTo, search]);
+  }, [filter, dateFrom, dateTo, search, isDemoMode]);
 
   const totalNetPnl = accounts.reduce((s, a) => s + a.net_pnl, 0);
   const totalBrokerage = accounts.reduce((s, a) => s + a.brokerage, 0);

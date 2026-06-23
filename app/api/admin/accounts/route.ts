@@ -76,12 +76,15 @@ export async function GET(request: Request): Promise<Response> {
     const dateTo = url.searchParams.get('date_to') ?? null;
     const filter = url.searchParams.get('filter') ?? 'all'; // all | subbrokers | brokers
     const search = url.searchParams.get('search') ?? null;
+    const demoParam = url.searchParams.get('demo');
+    const isDemo = demoParam === 'true';
 
     // Step 3: Query profiles with optional role filter and search
     // Validates: Requirements 10.5, 10.6
     let profilesQuery = adminClient
       .from('profiles')
-      .select('id, full_name, email, role, parent_id');
+      .select('id, full_name, email, role, parent_id')
+      .eq('demo_user', isDemo);
 
     if (filter === 'subbrokers') {
       profilesQuery = profilesQuery.eq('role', 'sub_broker');

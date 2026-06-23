@@ -88,7 +88,7 @@ export async function GET(
 
     let dataQuery = adminClient
       .from('ledger_entries')
-      .select('id, user_id, entry_type, direction, amount, remarks, pay_request_id, created_at')
+      .select('id, user_id, entry_type, direction, amount, remarks, pay_request_id, balance_after, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(from, to);

@@ -6,7 +6,7 @@ import type { PayRequest } from '@/lib/csvExport';
 
 type TxRecord = PayRequest & { user_name: string; user_client_id?: string };
 
-export default function TransactionsPage() {
+export default function TransactionsPage({ isDemoMode }: { isDemoMode: boolean }) {
   const [requests, setRequests] = useState<TxRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +20,7 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     setLoading(true);
-    apiCall('/api/admin/transactions/history', { method: 'GET' })
+    apiCall(`/api/admin/transactions/history?demo=${isDemoMode}`, { method: 'GET' })
       .then(({ ok, status, data }) => {
         if (status === 401) { signOut(); return; }
         if (!ok) { setError('Failed to fetch transactions'); return; }
@@ -28,7 +28,7 @@ export default function TransactionsPage() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isDemoMode]);
 
   // Filter and pagination
   const filtered = requests.filter(r => {
