@@ -291,6 +291,62 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
+    // Step 6.6: If no explicit segments were provided, check for a default template and apply it
+    const hasExplicitSegments = Array.isArray(body.segments) && (body.segments as unknown[]).length > 0;
+    if (!hasExplicitSegments) {
+      try {
+        // Fetch the default template (if one exists)
+        const { data: defaultTemplate } = await adminClient
+          .from('account_templates')
+          .select('id, segments, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, trading_mode')
+          .eq('is_default', true)
+          .single();
+
+        if (defaultTemplate) {
+          // Apply profile-level settings from default template
+          const templateProfileUpdate: Record<string, unknown> = {
+            read_only: defaultTemplate.read_only,
+            demo_user: defaultTemplate.demo_user,
+            intraday_sq_off: defaultTemplate.intraday_sq_off,
+            auto_sqoff: defaultTemplate.auto_sqoff,
+            sqoff_method: defaultTemplate.sqoff_method,
+            trading_mode: defaultTemplate.trading_mode,
+            template_id: defaultTemplate.id,
+          };
+          if (Array.isArray(defaultTemplate.segments) && defaultTemplate.segments.length > 0) {
+            templateProfileUpdate.segments = defaultTemplate.segments;
+          }
+
+          await adminClient.from('profiles').update(templateProfileUpdate).eq('id', newUser.id);
+
+          // Apply segment settings from default template
+          const [segRows, scalperRows] = await Promise.all([
+            adminClient.from('template_segment_settings').select('*').eq('template_id', defaultTemplate.id),
+            adminClient.from('template_scalper_segment_settings').select('*').eq('template_id', defaultTemplate.id),
+          ]);
+
+          if (segRows.data && segRows.data.length > 0) {
+            const rows = segRows.data.map((s: Record<string, unknown>) => {
+              const { id: _id, template_id: _tid, ...rest } = s;
+              return { ...rest, user_id: newUser.id };
+            });
+            await adminClient.from('segment_settings').insert(rows);
+          }
+
+          if (scalperRows.data && scalperRows.data.length > 0) {
+            const rows = scalperRows.data.map((s: Record<string, unknown>) => {
+              const { id: _id, template_id: _tid, ...rest } = s;
+              return { ...rest, user_id: newUser.id };
+            });
+            await adminClient.from('scalper_segment_settings').insert(rows);
+          }
+        }
+      } catch (templateErr) {
+        // Non-fatal: log but don't fail user creation
+        console.warn('[POST /api/admin/users] Default template application failed:', templateErr);
+      }
+    }
+
     // Step 7: Return 201 with id, client_id, and email
     // Validates: Requirement 3.6
     return Response.json({ id: newUser.id, client_id: client_id, email: newUser.email }, { status: 201 });

@@ -26,6 +26,7 @@ import PayinOutPage from '@/components/admin/PayinOutPage';
 import PayAccountsPage from '@/components/admin/PayAccountsPage';
 import TransactionsPage from '@/components/admin/TransactionsPage';
 import UserPanel from '@/components/admin/UserPanel';
+import TemplatesPage from '@/components/admin/TemplatesPage';
 
 const navItems = [
   { key: 'telegram', label: 'TELEGRAM' },
@@ -36,6 +37,7 @@ const navItems = [
   { key: 'position', label: 'POSITION' },
   { key: 'update', label: 'UPDATE' },
   { key: 'users', label: 'USERS' },
+  { key: 'templates', label: 'TEMPLATES' },
   { key: 'actledger', label: 'ACT LEDGER' },
   { key: 'accounts', label: 'ACCOUNTS' },
   { key: 'payinout', label: 'PAYIN-OUT' },
@@ -53,7 +55,6 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUserPayload>({ id: '', role: '' });
   const [userRole, setUserRole] = useState<string>('');
 
-  // Route guard — Supabase session + admin role check
   useEffect(() => {
     getSession().then((session) => {
       if (!session) {
@@ -70,9 +71,32 @@ export default function AdminPage() {
     });
   }, [router]);
 
+  // Handle hash-based navigation for browser back button support
   useEffect(() => {
-    const savedPage = sessionStorage.getItem('adminActivePage');
-    if (savedPage) setActivePage(savedPage);
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        setActivePage(hash);
+        sessionStorage.setItem('adminActivePage', hash);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    const initialHash = window.location.hash.replace('#', '');
+    if (initialHash) {
+      handleHashChange();
+    } else {
+      const savedPage = sessionStorage.getItem('adminActivePage');
+      if (savedPage) {
+        setActivePage(savedPage);
+        window.history.replaceState(null, '', `#${savedPage}`);
+      } else {
+        window.history.replaceState(null, '', `#marketwatch`);
+      }
+    }
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   if (isChecking) return null;
@@ -84,8 +108,7 @@ export default function AdminPage() {
 
   const handleNav = (key: string) => {
     if (key === 'logout') { handleLogout(); return; }
-    setActivePage(key);
-    sessionStorage.setItem('adminActivePage', key);
+    window.location.hash = key;
     setDrawerOpen(false);
   };
 
@@ -171,7 +194,7 @@ export default function AdminPage() {
             selectedUser={selectedUser}
             onSelectUser={(u) => { setSelectedUser(u); setUserPanelOpen(false); }}
             onOpenUserPanel={() => setUserPanelOpen(true)}
-            onNavigate={(page) => { setActivePage(page); }}
+            onNavigate={(page) => { window.location.hash = page; }}
           />
         </div>
       </div>
@@ -198,6 +221,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
       <div style={show('position')}><PositionPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} /></div>
+      <div style={show('templates')}><TemplatesPage /></div>
       <div style={show('create')}>
         <CreateUserForm
           onBack={() => onNavigate('users')}
