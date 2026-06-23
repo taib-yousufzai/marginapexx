@@ -160,7 +160,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const [postOrderSegment, setPostOrderSegment] = useState<'chain' | 'orders' | 'positions' | 'main' | null>(null);
   const [orderBlockTitle, setOrderBlockTitle] = useState<string>(symbol);
   const [modifyOrderId, setModifyOrderId] = useState<string | null>(null);
-  const [showCharges, setShowCharges] = useState(true);
+  const [showCharges, setShowCharges] = useState(false);
 
   const underlyingSym = getUnderlyingSymbol(symbol);
   const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX');

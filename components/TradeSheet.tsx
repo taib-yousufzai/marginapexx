@@ -82,7 +82,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [toast, setToast] = useState<string | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
-  const [showCharges, setShowCharges] = useState(true);
+  const [showCharges, setShowCharges] = useState(false);
   
   const { positions: activePositions, refreshPositions } = useActivePositions();
 

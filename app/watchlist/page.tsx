@@ -599,7 +599,7 @@ function WatchlistContent() {
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
-  const [showCharges, setShowCharges] = useState(true);
+  const [showCharges, setShowCharges] = useState(false);
 
   // --- Global Modal History Manager ---
   useEffect(() => {
