@@ -43,10 +43,11 @@ export default function SplashLoader() {
         src="/icon-512x512.png"
         alt="Logo"
         style={{
-          width: '200px',
-          height: 'auto',
-          maxWidth: '85%',
+          width: '180px',
+          height: '180px',
           objectFit: 'contain',
+          borderRadius: '32px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         }}
       />
     </div>
