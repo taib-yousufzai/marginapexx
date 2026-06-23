@@ -3,71 +3,39 @@ const sharp = require('sharp');
 async function fixIcon() {
   const input = 'app/icon.jpeg';
   
-  const metadata = await sharp(input).metadata();
-  console.log(`Original: ${metadata.width}x${metadata.height}`);
-
-  // Less aggressive trim - threshold 10 instead of 30
-  // This keeps the subtle dark green border visible
+  console.log('Reading and trimming image...');
+  // Trim the white background aggressively to get just the green square
   const trimmedBuffer = await sharp(input)
-    .trim({ threshold: 10 })
+    .trim({ threshold: 40 })
     .toBuffer();
   
-  const trimmedMeta = await sharp(trimmedBuffer).metadata();
-  console.log(`After gentle trim: ${trimmedMeta.width}x${trimmedMeta.height}`);
+  console.log('Generating 512x512 icon...');
+  // Resize to exactly 512x512, covering the whole area. NO PADDING.
+  // fit: 'fill' ensures it stretches exactly to the borders.
+  await sharp(trimmedBuffer)
+    .resize(512, 512, { fit: 'fill' })
+    .png()
+    .toFile('public/icon-512x512.png');
 
-  // Add a tiny bit of padding (8px each side) so the border isn't cut at edges
-  // Use the green color from the logo background
-  const r = 48, g = 141, b = 96; // The green from the logo
+  console.log('Generating 192x192 icon...');
+  await sharp(trimmedBuffer)
+    .resize(192, 192, { fit: 'fill' })
+    .png()
+    .toFile('public/icon-192x192.png');
 
-  await sharp({
-    create: {
-      width: 528, // 512 + 8+8 padding
-      height: 528,
-      channels: 4,
-      background: { r, g, b, alpha: 1 }
-    }
-  })
-  .composite([{
-    input: await sharp(trimmedBuffer).resize(512, 512, { fit: 'contain' }).toBuffer(),
-    gravity: 'center'
-  }])
-  .resize(512, 512)
-  .png()
-  .toFile('public/icon-512x512.png');
+  console.log('Generating splash icon...');
+  await sharp(trimmedBuffer)
+    .resize(512, 512, { fit: 'fill' })
+    .jpeg({ quality: 100 })
+    .toFile('public/splash-icon.jpg');
 
-  await sharp({
-    create: {
-      width: 208,
-      height: 208,
-      channels: 4,
-      background: { r, g, b, alpha: 1 }
-    }
-  })
-  .composite([{
-    input: await sharp(trimmedBuffer).resize(192, 192, { fit: 'contain' }).toBuffer(),
-    gravity: 'center'
-  }])
-  .resize(192, 192)
-  .png()
-  .toFile('public/icon-192x192.png');
+  console.log('Generating favicon...');
+  await sharp(trimmedBuffer)
+    .resize(32, 32, { fit: 'fill' })
+    .png()
+    .toFile('public/favicon-32.png');
 
-  await sharp({
-    create: {
-      width: 528,
-      height: 528,
-      channels: 4,
-      background: { r, g, b, alpha: 1 }
-    }
-  })
-  .composite([{
-    input: await sharp(trimmedBuffer).resize(512, 512, { fit: 'contain' }).toBuffer(),
-    gravity: 'center'
-  }])
-  .resize(512, 512)
-  .jpeg({ quality: 95 })
-  .toFile('public/splash-icon.jpg');
-
-  console.log('Icons created with subtle border preserved!');
+  console.log('All icons generated! Perfect fit up to the borders, no padding added.');
 }
 
 fixIcon().catch(console.error);

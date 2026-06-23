@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Margin Apex',
   description: 'Clean Icons & Trading App UI',
-  manifest: '/manifest.webmanifest?v=8',
+  manifest: '/manifest.webmanifest?v=9',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
