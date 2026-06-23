@@ -134,13 +134,13 @@ export function SegmentBlock({
         <>
           <div className="adm-upd-grid2" style={{ marginTop: 15 }}>
             <div className="adm-upd-field">
-              <label className="adm-upd-label">Commission Type</label>
+              <label className="adm-upd-label">Intraday Commission Type</label>
               <select className="adm-upd-input adm-upd-select" value={value.commissionType} onChange={e => upd('commissionType', e.target.value)}>
                 <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
               </select>
             </div>
             <div className="adm-upd-field">
-              <label className="adm-upd-label">Commission Value</label>
+              <label className="adm-upd-label">Intraday Commission Value</label>
               <input className="adm-upd-input" type="number" value={value.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
             </div>
           </div>

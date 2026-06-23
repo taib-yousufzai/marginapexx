@@ -108,13 +108,13 @@ export default function UpdateMultipleSettings({ selectedUser: _selectedUser }: 
       <div className="adm-upd-seg-block" style={{ marginTop: 0 }}>
         <div className="adm-upd-grid2">
           <div className="adm-upd-field">
-            <label className="adm-upd-label">Commission Type</label>
+            <label className="adm-upd-label">Intraday Commission Type</label>
             <select className="adm-upd-input adm-upd-select" value={config.commissionType} onChange={e => upd('commissionType', e.target.value)}>
               <option>Per Crore</option><option>Per Lot</option><option>Per Trade</option>
             </select>
           </div>
           <div className="adm-upd-field">
-            <label className="adm-upd-label">Commission Value</label>
+            <label className="adm-upd-label">Intraday Commission Value</label>
             <input className="adm-upd-input" type="number" value={config.commissionValue} onChange={e => upd('commissionValue', e.target.value)} />
           </div>
         </div>
