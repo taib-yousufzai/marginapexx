@@ -40,7 +40,7 @@ export default function SplashLoader() {
       }}
     >
       <img
-        src="/logonew.jpg"
+        src="/icon-512x512.png"
         alt="Logo"
         style={{
           width: '200px',
