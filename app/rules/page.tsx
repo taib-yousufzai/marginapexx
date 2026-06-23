@@ -106,7 +106,7 @@ export default function RulesPage() {
                   </div>
                 ))}
               </div>
-              
+
               <div className="rules-footer">
                 <p>For more details on your specific limits, please visit your <span style={{ color: 'var(--footer-active, #1475e1)', cursor: 'pointer', fontWeight: 600 }} onClick={() => router.push('/margin-settings')}>Margin Settings</span>.</p>
               </div>
