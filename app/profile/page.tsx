@@ -163,7 +163,7 @@ export default function ProfilePage() {
             <Sidebar />
             <main className="main-viewport">
                 <div className="mobile-app profile-app">
-                    
+
                     {/* Header Gradient Area */}
                     <div className="profile-gradient-header" style={{ paddingTop: '24px' }}>
                         {/* Top Action Row */}
@@ -171,10 +171,10 @@ export default function ProfilePage() {
                             <Link href="/" className="pg-back-btn">
                                 <i className="fas fa-arrow-left"></i>
                             </Link>
-                            
-                            <div style={{ 
-                                backgroundColor: 'rgba(255,255,255,0.08)', 
-                                padding: '6px 14px', 
+
+                            <div style={{
+                                backgroundColor: 'rgba(255,255,255,0.08)',
+                                padding: '6px 14px',
                                 borderRadius: '12px',
                                 display: 'flex', alignItems: 'center', gap: '8px',
                                 fontSize: '1rem', fontWeight: 700, color: '#FFFFFF',
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                             <div className="margin-text">
                                 <span className="margin-label">Available Margin</span>
                                 <span className="margin-amount">
-                                    {balance === null ? <span style={{opacity:0.5,fontSize:'1.4rem'}}>Loading…</span> : formattedBalance}
+                                    {balance === null ? <span style={{ opacity: 0.5, fontSize: '1.4rem' }}>Loading…</span> : formattedBalance}
                                 </span>
                             </div>
                         </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
                         <div className="quick-actions-row">
                             <Link href="/funds" className="quick-action-btn">
                                 <div className="qa-icon add"><i className="fas fa-plus"></i></div>
-                                <span className="qa-text">Add<br/>Funds</span>
+                                <span className="qa-text">Add<br />Funds</span>
                             </Link>
                             <Link href="/funds?tab=withdraw" className="quick-action-btn">
                                 <div className="qa-icon withdraw"><i className="fas fa-arrow-down"></i></div>
@@ -217,7 +217,7 @@ export default function ProfilePage() {
                             </Link>
                             <Link href="/profile/reports" className="quick-action-btn">
                                 <div className="qa-icon reports"><i className="fas fa-file-invoice"></i></div>
-                                <span className="qa-text">Reports<br/>&amp; P&amp;L</span>
+                                <span className="qa-text">Reports<br />&amp; P&amp;L</span>
                             </Link>
                             <Link href="/profile/security" className="quick-action-btn">
                                 <div className="qa-icon security"><i className="fas fa-shield-alt"></i></div>
@@ -232,7 +232,7 @@ export default function ProfilePage() {
                                 <div className="us-text">Profile Details</div>
                                 <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
                             </Link>
-                            
+
                             <div className="us-item theme-dropdown-wrapper" ref={themeDropdownRef} onClick={() => setThemeDropdownOpen(v => !v)}>
                                 <div className="us-icon"><i className={`fas ${themeName !== 'light' ? 'fa-moon' : 'fa-sun'}`}></i></div>
                                 <div className="us-text">Appearance</div>
@@ -240,26 +240,26 @@ export default function ProfilePage() {
                                     {themeName === 'blue' ? 'Blue' : themeName === 'black' ? 'Black' : themeName === 'dark' ? 'Dark' : 'Light'}
                                     <i className={`fas fa-chevron-down`} style={{ marginLeft: '4px', fontSize: '0.6rem', transition: '0.2s', transform: themeDropdownOpen ? 'rotate(180deg)' : 'none' }}></i>
                                 </div>
-                                
+
                                 {themeDropdownOpen && (
                                     <div className="theme-dropdown" onClick={e => e.stopPropagation()}>
                                         <button className={`theme-option ${themeName === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>
-                                            <i className="fas fa-sun" style={{width:'18px'}}></i>
+                                            <i className="fas fa-sun" style={{ width: '18px' }}></i>
                                             <span>Light</span>
                                             {themeName === 'light' && <i className="fas fa-check theme-check"></i>}
                                         </button>
                                         <button className={`theme-option ${themeName === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>
-                                            <i className="fas fa-moon" style={{width:'18px'}}></i>
+                                            <i className="fas fa-moon" style={{ width: '18px' }}></i>
                                             <span>Dark</span>
                                             {themeName === 'dark' && <i className="fas fa-check theme-check"></i>}
                                         </button>
                                         <button className={`theme-option ${themeName === 'black' ? 'active' : ''}`} onClick={() => setTheme('black')}>
-                                            <i className="fas fa-circle" style={{width:'18px'}}></i>
+                                            <i className="fas fa-circle" style={{ width: '18px' }}></i>
                                             <span>Black</span>
                                             {themeName === 'black' && <i className="fas fa-check theme-check"></i>}
                                         </button>
                                         <button className={`theme-option ${themeName === 'blue' ? 'active' : ''}`} onClick={() => setTheme('blue')}>
-                                            <i className="fas fa-tint" style={{width:'18px'}}></i>
+                                            <i className="fas fa-tint" style={{ width: '18px' }}></i>
                                             <span>Blue</span>
                                             {themeName === 'blue' && <i className="fas fa-check theme-check"></i>}
                                         </button>
@@ -307,7 +307,7 @@ export default function ProfilePage() {
                                 <div className="us-icon"><i className="fas fa-bell"></i></div>
                                 <div className="us-text">Notifications</div>
                                 {unreadCount > 0 && (
-                                    <span style={{background:'#DC2626',color:'white',fontSize:'0.65rem',fontWeight:800,padding:'2px 8px',borderRadius:'20px',marginRight:'4px'}}>
+                                    <span style={{ background: '#DC2626', color: 'white', fontSize: '0.65rem', fontWeight: 800, padding: '2px 8px', borderRadius: '20px', marginRight: '4px' }}>
                                         {unreadCount > 99 ? '99+' : unreadCount}
                                     </span>
                                 )}
