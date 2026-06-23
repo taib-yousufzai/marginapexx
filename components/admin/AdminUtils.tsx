@@ -24,6 +24,16 @@ export type ActLogItem = {
   id: string; type: string; time: string; by: string; target: string;
   symbol: string | null; qty: number | null; price: number | null;
   reason: string | null; ip: string;
+  // New fields
+  original_price: number | null;
+  margin_used: number | null;
+  buffer: number | null;
+  brokerage_value: number | null;
+  brokerage_mode: 'per_crore' | 'per_lot' | null;
+  trade_mode: 'carry' | 'intraday' | null;
+  edited_by: string | null;
+  edited_at: string | null;
+  edit_remark: string | null;
 };
 
 export type UserListItem = {

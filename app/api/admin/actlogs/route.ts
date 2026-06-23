@@ -24,6 +24,16 @@ export type ActLogItem = {
   price: number | null;
   reason: string | null;
   ip: string;
+  // New fields
+  original_price: number | null;
+  margin_used: number | null;
+  buffer: number | null;
+  brokerage_value: number | null;
+  brokerage_mode: 'per_crore' | 'per_lot' | null;
+  trade_mode: 'carry' | 'intraday' | null;
+  edited_by: string | null;
+  edited_at: string | null;
+  edit_remark: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -47,7 +57,11 @@ function csvEscape(value: string | number | null | undefined): string {
  * Converts an array of ActLogItem to a CSV string with headers.
  */
 function toCsv(items: ActLogItem[]): string {
-  const headers = ['id', 'type', 'time', 'by', 'target', 'symbol', 'qty', 'price', 'reason', 'ip'];
+  const headers = [
+    'id', 'type', 'time', 'by', 'target', 'symbol', 'qty', 'price', 'reason', 'ip',
+    'original_price', 'margin_used', 'buffer', 'brokerage_value', 'brokerage_mode',
+    'trade_mode', 'edited_by', 'edited_at', 'edit_remark',
+  ];
   const rows = items.map((item) =>
     [
       csvEscape(item.id),
@@ -60,6 +74,15 @@ function toCsv(items: ActLogItem[]): string {
       csvEscape(item.price),
       csvEscape(item.reason),
       csvEscape(item.ip),
+      csvEscape(item.original_price),
+      csvEscape(item.margin_used),
+      csvEscape(item.buffer),
+      csvEscape(item.brokerage_value),
+      csvEscape(item.brokerage_mode),
+      csvEscape(item.trade_mode),
+      csvEscape(item.edited_by),
+      csvEscape(item.edited_at),
+      csvEscape(item.edit_remark),
     ].join(','),
   );
   return [headers.join(','), ...rows].join('\n');
@@ -95,7 +118,12 @@ export async function GET(request: Request): Promise<Response> {
     // Validates: Requirements 9.3
     let query = adminClient
       .from('act_logs')
-      .select('id, type, user_id, target_user_id, symbol, qty, price, reason, ip, created_at')
+      .select(
+        'id, type, user_id, target_user_id, symbol, qty, price, reason, ip, created_at, ' +
+        'original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode, ' +
+        'edited_by, edited_at, edit_remark',
+        { count: 'exact' },
+      )
       .order('created_at', { ascending: false });
 
     // Step 4: Apply date range filter on created_at
@@ -129,7 +157,7 @@ export async function GET(request: Request): Promise<Response> {
       query = query.range(from, to);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
@@ -170,6 +198,15 @@ export async function GET(request: Request): Promise<Response> {
         reason: string | null;
         ip: string | null;
         created_at: string;
+        original_price: number | null;
+        margin_used: number | null;
+        buffer: number | null;
+        brokerage_value: number | null;
+        brokerage_mode: 'per_crore' | 'per_lot' | null;
+        trade_mode: 'carry' | 'intraday' | null;
+        edited_by: string | null;
+        edited_at: string | null;
+        edit_remark: string | null;
       }) => ({
         id: row.id,
         type: row.type,
@@ -181,6 +218,15 @@ export async function GET(request: Request): Promise<Response> {
         price: row.price,
         reason: row.reason,
         ip: row.ip ?? '',
+        original_price: row.original_price ?? null,
+        margin_used: row.margin_used ?? null,
+        buffer: row.buffer ?? null,
+        brokerage_value: row.brokerage_value ?? null,
+        brokerage_mode: row.brokerage_mode ?? null,
+        trade_mode: row.trade_mode ?? null,
+        edited_by: row.edited_by ? formatUser(row.edited_by) : null,
+        edited_at: row.edited_at ?? null,
+        edit_remark: row.edit_remark ?? null,
       }),
     );
 
@@ -197,7 +243,7 @@ export async function GET(request: Request): Promise<Response> {
       });
     }
 
-    return Response.json(logs, { status: 200 });
+    return Response.json({ data: logs, total: count ?? 0 }, { status: 200 });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }

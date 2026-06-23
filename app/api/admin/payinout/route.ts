@@ -25,6 +25,7 @@ export type PayRequest = {
   upi: string | null;
   created_at: string;
   updated_at: string;
+  reference_id: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -56,7 +57,7 @@ export async function GET(request: Request): Promise<Response> {
     // Step 3: Build Supabase query ordered by created_at descending
     let query = adminClient
       .from('pay_requests')
-      .select('*')
+      .select('id, user_id, type, amount, status, account_name, account_no, ifsc, upi, utr, screenshot_url, payment_account_id, created_at, updated_at, reference_id')
       .order('created_at', { ascending: false });
 
     // Apply type filter

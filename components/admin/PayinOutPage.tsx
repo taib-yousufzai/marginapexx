@@ -443,9 +443,16 @@ export default function PayinOutPage() {
               <div className="adm-pay-grid">
                 <div className="adm-pay-item">
                   <span className="adm-pay-dl">Type</span>
-                  <span className="adm-pay-dv bold" style={{ color: r.type === 'DEPOSIT' ? '#2ea043' : '#f85149' }}>
-                    {r.type}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="adm-pay-dv bold" style={{ color: r.type === 'DEPOSIT' ? '#2ea043' : '#f85149' }}>
+                      {r.type}
+                    </span>
+                    {r.reference_id && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                        System Adjustment
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="adm-pay-item">
                   <span className="adm-pay-dl">Amount</span>
@@ -455,6 +462,18 @@ export default function PayinOutPage() {
                   <span className="adm-pay-dl">Request ID</span>
                   <span className="adm-pay-refid" style={{ marginTop: 0 }}>{r.id.slice(0, 8)}...</span>
                 </div>
+                {r.reference_id && (
+                  <div className="adm-pay-item">
+                    <span className="adm-pay-dl">Source Log</span>
+                    <span
+                      className="adm-pay-refid"
+                      style={{ marginTop: 0, color: '#a78bfa', cursor: 'default' }}
+                      title={r.reference_id}
+                    >
+                      {r.reference_id.slice(0, 8)}…
+                    </span>
+                  </div>
+                )}
               </div>
 
               {r.type === 'WITHDRAWAL' && r.account_name && (

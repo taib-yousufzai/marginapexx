@@ -17,6 +17,7 @@ export type PayRequest = {
   screenshot_url: string | null;
   created_at: string;
   updated_at: string;
+  reference_id: string | null;
 };
 
 /**
@@ -57,7 +58,7 @@ export function csvEscape(value: string | number | null | undefined): string {
  * Validates: Requirements 17.2, 17.4
  */
 export function toCsvPayRequests(items: PayRequest[]): string {
-  const header = 'id,user_id,type,amount,status,account_name,account_no,ifsc,upi,utr,screenshot_url,created_at,updated_at';
+  const header = 'id,user_id,type,amount,status,account_name,account_no,ifsc,upi,utr,screenshot_url,created_at,updated_at,reference_id';
 
   const rows = items.map((item) =>
     [
@@ -74,6 +75,7 @@ export function toCsvPayRequests(items: PayRequest[]): string {
       csvEscape(item.screenshot_url),
       csvEscape(item.created_at),
       csvEscape(item.updated_at),
+      csvEscape(item.reference_id),
     ].join(',')
   );
 

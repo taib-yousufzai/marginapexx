@@ -683,13 +683,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -782,13 +789,20 @@ BEGIN
 
   -- 4. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN p_closed_by = 'AUTO_SQOFF' THEN 'AUTO_SQUARE_OFF' ELSE 'ORDER_EXECUTION' END,
     p_user_id, p_user_id,
     v_pos.symbol, v_pos.qty_open, p_exit_price,
-    p_closed_by
+    p_closed_by,
+    p_exit_price,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
   );
 
   RETURN v_pnl;
@@ -1227,13 +1241,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -1334,13 +1355,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -1908,13 +1936,20 @@ BEGIN
 
   -- 2. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -2576,13 +2611,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -2869,13 +2911,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
@@ -2962,13 +3011,20 @@ BEGIN
 
   -- 4. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN p_closed_by = 'AUTO_SQOFF' THEN 'AUTO_SQUARE_OFF' ELSE 'ORDER_EXECUTION' END,
     p_user_id, p_user_id,
     v_pos.symbol, v_pos.qty_open, p_exit_price,
-    p_closed_by
+    p_closed_by,
+    p_exit_price,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
   );
 
   RETURN v_pnl;
@@ -4628,13 +4684,20 @@ BEGIN
 
   -- 3. Audit log
   INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
+    type, user_id, target_user_id, symbol, qty, price, reason,
+    original_price, margin_used, buffer, brokerage_value, brokerage_mode, trade_mode
   )
   VALUES (
     CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
     p_user_id, p_user_id,
     p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
+    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger'),
+    CASE WHEN v_status = 'EXECUTED' THEN p_fill_price ELSE NULL END,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    CASE WHEN v_status = 'EXECUTED' THEN lower(p_product_type) ELSE NULL END
   );
 
   RETURN v_order_id;
