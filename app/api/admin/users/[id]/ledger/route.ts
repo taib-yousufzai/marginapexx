@@ -3,9 +3,9 @@
  * 
  * Manually adjust user balance (Credit/Debit).
  * Logic:
- * 1. Fetch current balance.
- * 2. Update balance in profiles.
- * 3. Insert transaction record.
+ * 1. Fetch current profile.
+ * 2. Insert APPROVED transaction — the transactions_balance_sync DB trigger updates profiles.balance.
+ * 3. Log to act_logs.
  */
 
 import { requireAdmin } from '../../../_auth';
@@ -54,19 +54,10 @@ export async function POST(
     const adjustment = Number(amount);
     const newBalance = type === 'Credit' ? currentBalance + adjustment : currentBalance - adjustment;
 
-    // 2. Update balance in profiles
-    const { error: uError } = await adminClient
-      .from('profiles')
-      .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', userId);
-
-    if (uError) {
-      console.error('[POST ledger] Balance update error:', uError.message);
-      return Response.json({ error: 'Failed to update balance' }, { status: 500 });
-    }
-
-    // 3. Insert transaction record
-    // We use DEPOSIT for Credit and WITHDRAWAL for Debit to match the check constraint
+    // 2. Insert transaction record with status APPROVED.
+    // The transactions_balance_sync trigger will automatically update profiles.balance
+    // when the APPROVED transaction is inserted — do NOT manually update balance here
+    // or the amount will be applied twice.
     const transType = type === 'Credit' ? 'DEPOSIT' : 'WITHDRAWAL';
     const { error: tError } = await adminClient
       .from('transactions')
@@ -81,8 +72,7 @@ export async function POST(
 
     if (tError) {
       console.error('[POST ledger] Transaction insert error:', tError.message);
-      // We don't rollback balance here as it's not atomic anyway without RPC, 
-      // but in a real app we should use a transaction or RPC.
+      return Response.json({ error: 'Failed to record transaction' }, { status: 500 });
     }
 
     // Fetch user positions to compute snapshot metrics (brokerage, margin used, open pnl, m2m, etc.)
