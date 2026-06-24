@@ -117,6 +117,21 @@ export async function POST(req: NextRequest) {
       'NSE-EQ', 'MCX-FUT', 'MCX-OPT', 'CRYPTO', 'FOREX', 'COMEX',
     ];
 
+    // Generate a unique 6-character uppercase alphanumeric client_id
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let client_id = '';
+    let isUnique = false;
+    while (!isUnique) {
+      client_id = '';
+      for (let i = 0; i < 6; i++) {
+        client_id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const { data: existing } = await admin.from('profiles').select('id').eq('client_id', client_id).single();
+      if (!existing) {
+        isUnique = true;
+      }
+    }
+
     const { error: profileError } = await admin.from('profiles').upsert(
       {
         id: userId,
@@ -127,6 +142,7 @@ export async function POST(req: NextRequest) {
         parent_id: record.broker_ref ?? null,
         active: true,
         segments: DEFAULT_SEGMENTS,
+        client_id,
       },
       { onConflict: 'id' },
     );
