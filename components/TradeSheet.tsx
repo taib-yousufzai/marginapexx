@@ -194,6 +194,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   let marginPortion = 0;
   if (leverageType === '%') {
     marginPortion = baseExposure * (leverage / 100);
+  } else if (leverageType === 'Fixed') {
+    marginPortion = (totalQty / lotSize) * leverage;
   } else {
     marginPortion = baseExposure / leverage;
   }

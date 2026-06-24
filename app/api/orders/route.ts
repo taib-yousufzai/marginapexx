@@ -713,6 +713,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let marginPortion = 0;
   if (leverageType === '%') {
     marginPortion = exposure * (leverageVal / 100);
+  } else if (leverageType === 'Fixed') {
+    const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
+    marginPortion = lotsUsed * leverageVal;
   } else {
     marginPortion = exposure / leverageVal;
   }

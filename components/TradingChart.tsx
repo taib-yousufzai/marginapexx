@@ -826,7 +826,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   ) : 0;
 
   const totalBrokerage = (intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0)) * 2;
-  const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (executionPrice * orderQty) / leverage;
+  const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (leverageType === 'Fixed' ? (orderQty / lotSize) * leverage : (executionPrice * orderQty) / leverage);
   const reqMargin = Math.round(marginPortion + totalBrokerage);
 
   // Render collapsible panel tabs content

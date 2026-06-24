@@ -1419,7 +1419,9 @@ function WatchlistContent() {
   const leverageType = productType === 'CARRY' ? holdingType : intradayType;
 
   const calcMarginPortion = (price: number, qty: number) => {
-    return leverageType === '%' ? (qty * price) * (leverage / 100) : (qty * price) / leverage;
+    if (leverageType === '%') return (qty * price) * (leverage / 100);
+    if (leverageType === 'Fixed') return (qty / lotSize) * leverage;
+    return (qty * price) / leverage;
   };
 
   const calculatedRequiredMargin = Math.round(calcMarginPortion(

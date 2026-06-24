@@ -1005,7 +1005,7 @@ function OptionChainContent() {
           const leverageType = productType === 'CARRY' ? holdingType : intradayType;
           
           const totalBrokerage = (orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge)) * 2;
-          const marginPortion = leverageType === '%' ? (priceToUse * totalQty) * (leverage / 100) : (priceToUse * totalQty) / leverage;
+          const marginPortion = leverageType === '%' ? (priceToUse * totalQty) * (leverage / 100) : (leverageType === 'Fixed' ? (totalQty / lotSize) * leverage : (priceToUse * totalQty) / leverage);
           const calculatedRequiredMargin = Math.round(marginPortion) + totalBrokerage;
 
           return (
