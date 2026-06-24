@@ -562,30 +562,7 @@ function WatchlistContent() {
     fetchAllowedSegments();
   }, []);
 
-  // ── Mobile Back Button Interception ──
-  useMobileBack(isFolderDrawerOpen, () => setIsFolderDrawerOpen(false), 'segments');
-  useMobileBack(!!selectedItem, () => {
-    const sheet = document.getElementById('detailSheet');
-    const overlay = document.getElementById('detailSheetOverlay');
-    if (sheet) sheet.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
-    setSelectedItem(null);
-  }, 'details');
-  useMobileBack(isTradeSheetOpen, () => {
-    const sheet = document.getElementById('tradeSheet');
-    const overlay = document.getElementById('tradeSheetOverlay');
-    if (sheet) sheet.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
-    setIsTradeSheetOpen(false);
-  }, 'trade');
-  useMobileBack(!!chartItem, () => {
-    const sheet = document.getElementById('chartSheet');
-    const overlay = document.getElementById('chartSheetOverlay');
-    if (sheet) sheet.classList.remove('open');
-    if (overlay) overlay.classList.remove('active');
-    setChartItem(null);
-    setIsBenchmarkChart(false);
-  }, 'chart');
+
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({
@@ -638,6 +615,31 @@ function WatchlistContent() {
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
   const [showCharges, setShowCharges] = useState(false);
+
+  // ── Mobile Back Button Interception ──
+  useMobileBack(isFolderDrawerOpen, () => setIsFolderDrawerOpen(false), 'segments');
+  useMobileBack(!!selectedItem, () => {
+    const sheet = document.getElementById('detailSheet');
+    const overlay = document.getElementById('detailSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setSelectedItem(null);
+  }, 'details');
+  useMobileBack(isTradeSheetOpen, () => {
+    const sheet = document.getElementById('tradeSheet');
+    const overlay = document.getElementById('tradeSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setIsTradeSheetOpen(false);
+  }, 'trade');
+  useMobileBack(!!chartItem, () => {
+    const sheet = document.getElementById('chartSheet');
+    const overlay = document.getElementById('chartSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setChartItem(null);
+    setIsBenchmarkChart(false);
+  }, 'chart');
 
   // --- Global Modal History Manager ---
   useEffect(() => {
