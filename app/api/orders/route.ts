@@ -691,9 +691,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 8. Balance check — use server-fetched LTP for accurate margin calculation
   const balance = Number(profile.balance ?? 0);
   const targetProductType = product_type ?? 'INTRADAY';
-  const leverage = targetProductType === 'CARRY'
+  const leverageVal = targetProductType === 'CARRY'
     ? (segSetting.holding_leverage ?? 1)
     : (segSetting.intraday_leverage ?? 1);
+  const leverageType = targetProductType === 'CARRY'
+    ? (segSetting.holding_type ?? 'Multiplier')
+    : (segSetting.intraday_type ?? 'Multiplier');
 
   // 9. Base LTP from server
   if (!kiteLtp || kiteLtp <= 0) {
@@ -706,7 +709,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ? client_price   // pending orders: use the user's specified price
     : baseLtp;       // MARKET/SLM: use live server price
   const exposure      = qty * marginPrice;
-  const marginPortion = exposure / leverage;
+  
+  let marginPortion = 0;
+  if (leverageType === '%') {
+    marginPortion = exposure * (leverageVal / 100);
+  } else {
+    marginPortion = exposure / leverageVal;
+  }
 
   const entryBufferRatio = (side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0;
   const exitBufferRatio = (side === 'SELL' ? sellSetting.exit_buffer : buySetting.exit_buffer) ?? 0;

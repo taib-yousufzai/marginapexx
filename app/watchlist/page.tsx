@@ -512,7 +512,8 @@ function WatchlistContent() {
         (window as any).__accessToken = session.access_token;
         
         const res = await fetch('/api/user/profile', {
-          headers: { Authorization: `Bearer ${session.access_token}` }
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: AbortSignal.timeout(5000)
         });
         if (res.ok) {
           const profile = await res.json();
@@ -523,10 +524,12 @@ function WatchlistContent() {
           const mode = profile?.trading_mode || 'normal';
           const [resSettings, resScript] = await Promise.all([
             fetch(`/api/user/segments?mode=${mode}`, {
-              headers: { Authorization: `Bearer ${session.access_token}` }
+              headers: { Authorization: `Bearer ${session.access_token}` },
+              signal: AbortSignal.timeout(5000)
             }),
             fetch('/api/user/script-settings', {
-              headers: { Authorization: `Bearer ${session.access_token}` }
+              headers: { Authorization: `Bearer ${session.access_token}` },
+              signal: AbortSignal.timeout(5000)
             }),
           ]);
           if (resSettings.ok) {
@@ -887,13 +890,24 @@ function WatchlistContent() {
     if (allowedSegments === null) return; // Wait until session/allowedSegments are resolved to avoid premature loading/defaulting
 
     const userKey = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
-    const rawUser = localStorage.getItem(userKey);
+    let rawUser = null;
+    try {
+      rawUser = localStorage.getItem(userKey);
+    } catch (e) {
+      console.warn("localStorage.getItem userKey failed", e);
+    }
 
     let itemsToLoad: WatchlistItem[];
 
     if (rawUser === null) {
       // User-specific key doesn't exist yet. Check if we should migrate from the legacy global key
-      const rawLegacy = localStorage.getItem(WATCHLIST_KEY);
+      let rawLegacy = null;
+      try {
+        rawLegacy = localStorage.getItem(WATCHLIST_KEY);
+      } catch (e) {
+        console.warn("localStorage.getItem legacy failed", e);
+      }
+      
       if (rawLegacy !== null) {
         try {
           itemsToLoad = JSON.parse(rawLegacy) as WatchlistItem[];

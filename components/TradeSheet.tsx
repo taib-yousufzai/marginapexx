@@ -183,11 +183,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const calculatedBrokerage = intradayCharge + (productType === 'CARRY' ? carryCharge : 0) + (orderType === 'GTT' ? gttCharge : 0);
 
+  const intradayType = segSetting?.intraday_type ?? 'Multiplier';
+  const holdingType = segSetting?.holding_type ?? 'Multiplier';
+  const leverageType = productType === 'CARRY' ? holdingType : intradayType;
+
   const baseExposure = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
     ? (totalQty * parseFloat(limitPrice))
     : (totalQty * (priceOfScript > 0 ? priceOfScript : 0));
 
-  const marginPortion = baseExposure / leverage;
+  let marginPortion = 0;
+  if (leverageType === '%') {
+    marginPortion = baseExposure * (leverage / 100);
+  } else {
+    marginPortion = baseExposure / leverage;
+  }
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
   const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);
 
