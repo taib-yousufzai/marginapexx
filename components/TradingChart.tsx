@@ -517,7 +517,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const holdingType = segSetting?.holding_type ?? 'Multiplier';
     const levType = orderCarry === 'carry' ? holdingType : intradayType;
 
-    const reqMargin = Math.round(levType === '%' ? (finalPrice * finalQty) * (leverage / 100) : (finalPrice * finalQty) / leverage);
+    const reqMargin = Math.round(levType === '%' ? (finalPrice * finalQty) * (leverage / 100) : (levType === 'Fixed' ? (finalQty / lotSize) * leverage : (finalPrice * finalQty) / leverage));
     if (reqMargin > balance) {
       showToast('Insufficient margin', true);
       return;
@@ -698,7 +698,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === side);
     const intradayLeverage = segSetting?.intraday_leverage ?? 10;
     const intradayType = segSetting?.intraday_type ?? 'Multiplier';
-    const required = Math.round(intradayType === '%' ? (currentPrice * finalQty) * (intradayLeverage / 100) : (currentPrice * finalQty) / intradayLeverage);
+    const required = Math.round(intradayType === '%' ? (currentPrice * finalQty) * (intradayLeverage / 100) : (intradayType === 'Fixed' ? (finalQty / lotSize) * intradayLeverage : (currentPrice * finalQty) / intradayLeverage));
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
@@ -742,7 +742,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === pos.side);
     const leverage = pos.product_type === 'CARRY' ? (segSetting?.holding_leverage ?? 10) : (segSetting?.intraday_leverage ?? 10);
     const levType = pos.product_type === 'CARRY' ? (segSetting?.holding_type ?? 'Multiplier') : (segSetting?.intraday_type ?? 'Multiplier');
-    const required = Math.round(levType === '%' ? (currentPrice * addQty) * (leverage / 100) : (currentPrice * addQty) / leverage);
+    const required = Math.round(levType === '%' ? (currentPrice * addQty) * (leverage / 100) : (levType === 'Fixed' ? (addQty / lotSize) * leverage : (currentPrice * addQty) / leverage));
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
