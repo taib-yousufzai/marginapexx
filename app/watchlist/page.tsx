@@ -666,10 +666,11 @@ function WatchlistContent() {
     };
     window.addEventListener('popstate', handlePopState);
 
+    const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer'];
+
     const observer = new MutationObserver(() => {
       if (isPopping) return;
       
-      const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer'];
       const isAnyModalOpen = ids.some(id => {
         const el = document.getElementById(id);
         return el && el.classList.contains('open');
@@ -679,12 +680,22 @@ function WatchlistContent() {
         window.history.pushState(null, '', window.location.pathname + window.location.search + '#modal');
       } else if (!isAnyModalOpen && window.location.hash === '#modal') {
         isPopping = true;
-        window.history.back();
+        // Check if there is history to go back to, otherwise just replace state to remove hash
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
         setTimeout(() => { isPopping = false; }, 50);
       }
     });
 
-    observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
