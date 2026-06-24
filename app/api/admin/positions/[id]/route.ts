@@ -2,13 +2,23 @@
  * PATCH /api/admin/positions/[id]
  * DELETE /api/admin/positions/[id]
  *
- * PATCH: Update editable fields on a position row, recalculate closed PnL, and sync ledger transactions.
- * DELETE: Remove a position row and clean up associated ledger transactions.
+ * PATCH: Update editable fields on a position row, recalculate closed PnL, sync ledger
+ *        transactions, and — if entry price / qty changed on an open position — trigger
+ *        a full account-level liquidation check to handle the updated floating PnL.
+ *
+ * DELETE: Remove a position row and reverse ALL associated accounting impacts so the
+ *         trade is treated as if it never existed:
+ *           - PnL transaction (ref_id = position_id)
+ *           - Brokerage transaction (ref_id = BKG_<posId> or BKG_<orderId>)
+ *           - Margin adjustment transaction (ref_id = MADJ_<posId>)
+ *         The sync_profile_balance trigger fires on each DELETE and automatically
+ *         reverses the wallet balance.
  *
  * Validates: Requirements 7.8–7.9, 12.1–12.6
  */
 
 import { requireAdmin } from '../../_auth';
+import { checkAndExecuteAccountLiquidation } from '@/lib/liquidationEngine';
 
 // Editable position fields allowed via PATCH
 const EDITABLE_FIELDS = [
@@ -275,7 +285,84 @@ export async function PATCH(
       reason: `Admin updated position ${id}. Status: ${updatedPosition.status}, PnL: ${updatedPosition.pnl}, Brokerage: ${updatedPosition.brokerage}${adjInfo}`,
     });
 
-    // Step 11: Return the updated position row
+    // Step 11: Risk check — if the position is still open and entry_price / qty changed,
+    // the floating PnL has shifted. Run a full account-level liquidation check so that
+    // a margin-breaching admin edit triggers an immediate auto-square-off.
+    const entryPriceChanged = 'avg_price' in updateFields || 'qty_open' in updateFields || 'qty_total' in updateFields;
+    if (updatedPosition.status === 'open' && entryPriceChanged) {
+      try {
+        // Fetch current profile balance and auto_sqoff setting
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('balance, auto_sqoff, parent_id, trading_mode')
+          .eq('id', updatedPosition.user_id)
+          .single();
+
+        if (profile) {
+          const balance = Number(profile.balance ?? 0);
+          const autoSqoffPercent = Number(profile.auto_sqoff ?? 90);
+
+          // Fetch ALL open positions for this user to compute account-level floating PnL
+          const { data: openPositions } = await adminClient
+            .from('positions')
+            .select('*')
+            .eq('user_id', updatedPosition.user_id)
+            .eq('status', 'open');
+
+          if (openPositions && openPositions.length > 0) {
+            // Fetch exit buffers from segment_settings
+            const isScalper = profile.trading_mode === 'scalper';
+            const settingsTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
+            const lookupId = profile.parent_id ?? updatedPosition.user_id;
+
+            const { data: settingsRows } = await adminClient
+              .from(settingsTable)
+              .select('segment, side, exit_buffer')
+              .eq('user_id', lookupId);
+
+            const exitBuffers = new Map<string, { exit_buffer: number }>();
+            for (const row of settingsRows ?? []) {
+              const key = `${updatedPosition.user_id}|${row.segment}|${row.side}`;
+              exitBuffers.set(key, { exit_buffer: Number(row.exit_buffer ?? 0.0017) });
+            }
+
+            // Compute total floating PnL across all open positions using stored ltp
+            let totalFloatingPnl = 0;
+            const positionsForLiquidation = openPositions.map((pos) => {
+              const ltp = Number(pos.ltp ?? pos.entry_price);
+              const entryPrice = Number(pos.entry_price ?? pos.avg_price);
+              const qty = Number(pos.qty_open ?? 0);
+              const bufKey = `${updatedPosition.user_id}|${pos.settlement}|${pos.side}`;
+              const buf = exitBuffers.get(bufKey)?.exit_buffer ?? 0.0017;
+
+              const pnl =
+                pos.side === 'BUY'
+                  ? (ltp * (1 - buf) - entryPrice) * qty
+                  : (entryPrice - ltp * (1 + buf)) * qty;
+
+              totalFloatingPnl += pnl;
+              return { ...pos, ltp, qty_open: qty, entry_price: entryPrice };
+            });
+
+            // Run the liquidation check — will auto-square-off if threshold is breached
+            await checkAndExecuteAccountLiquidation(
+              updatedPosition.user_id,
+              balance,
+              autoSqoffPercent,
+              positionsForLiquidation,
+              totalFloatingPnl,
+              exitBuffers,
+              adminClient,
+            );
+          }
+        }
+      } catch (riskErr) {
+        // Non-fatal: log the error but still return the successful PATCH response
+        console.error('[PATCH /api/admin/positions/[id]] Risk check error after admin edit:', riskErr);
+      }
+    }
+
+    // Step 12: Return the updated position row
     return Response.json(updatedPosition, { status: 200 });
   } catch (error) {
     console.error('[PATCH /api/admin/positions/[id]] Error:', error);
@@ -308,11 +395,18 @@ export async function DELETE(
       return Response.json({ error: 'Not found' }, { status: 404 });
     }
 
-    // Step 4: Delete associated PnL transaction
+    // Step 4: Delete associated PnL transaction (ref_id = position_id)
     await adminClient
       .from('transactions')
       .delete()
       .eq('ref_id', id);
+
+    // Step 4b: Delete margin adjustment transaction if one was ever created by PATCH
+    // (ref_id = 'MADJ_<positionId>' — these are NOT caught by the plain ref_id=id query above)
+    await adminClient
+      .from('transactions')
+      .delete()
+      .eq('ref_id', `MADJ_${id}`);
 
     // Step 5: Delete associated Brokerage transaction(s)
     const { data: relatedOrders } = await adminClient
@@ -330,6 +424,17 @@ export async function DELETE(
       .eq('user_id', position.user_id)
       .eq('type', 'BROKERAGE_DEBIT')
       .in('ref_id', candidateRefIds);
+
+    // Step 5b: Delete buffer fee transactions related to the position's entry orders
+    const bufferFeeRefIds = orderIds.map((oId: any) => `BUF_${oId}`);
+    if (bufferFeeRefIds.length > 0) {
+      await adminClient
+        .from('transactions')
+        .delete()
+        .eq('user_id', position.user_id)
+        .eq('type', 'BUFFER_FEE_DEBIT')
+        .in('ref_id', bufferFeeRefIds);
+    }
 
     // Step 6: Delete the position row
     const { error: deleteError, count } = await adminClient

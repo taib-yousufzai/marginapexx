@@ -1,8 +1,17 @@
 /**
  * POST /api/admin/positions/[id]/sqoff
  *
- * Square-off a position: sets status='closed', exit_time=now(),
- * and computes duration_seconds from entry_time to now().
+ * Admin-initiated square-off for a single open position.
+ *
+ * Uses the same close_position() RPC as user-initiated and auto-liquidation
+ * closes to ensure full accounting consistency:
+ *   - Closes the position at current LTP (with exit buffer from segment_settings)
+ *   - Inserts a PNL_CREDIT or PNL_DEBIT transaction → updates wallet via trigger
+ *   - Records the exit order row (is_exit = true)
+ *   - Writes to act_logs
+ *
+ * Intentionally does NOT charge brokerage on admin-forced square-offs
+ * (same convention as AUTO_LIQUIDATION and AUTO_SL paths).
  *
  * Validates: Requirements 7.10, 12.1–12.6
  */
@@ -15,7 +24,6 @@ export async function POST(
 ): Promise<Response> {
   try {
     // Step 1: Authenticate and authorize the caller
-    // Validates: Requirements 12.1–12.6
     const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
@@ -24,42 +32,72 @@ export async function POST(
     const resolvedParams = await Promise.resolve(params);
     const id = resolvedParams.id;
 
-    // Step 3: Fetch the position row to get entry_time
-    // Validates: Requirement 7.10
+    // Step 3: Fetch the open position row (must be open to square off)
     const { data: position, error: fetchError } = await adminClient
       .from('positions')
-      .select('id, entry_time')
+      .select('id, user_id, symbol, side, settlement, qty_open, entry_price, ltp, product_type')
       .eq('id', id)
+      .eq('status', 'open')
       .single();
 
     if (fetchError || position === null) {
-      return Response.json({ error: 'Not found' }, { status: 404 });
+      return Response.json({ error: 'Position not found or already closed' }, { status: 404 });
     }
 
-    // Step 4: Compute duration_seconds as difference between entry_time and now()
-    const now = new Date();
-    const entryTime = new Date(position.entry_time);
-    const duration_seconds = Math.floor((now.getTime() - entryTime.getTime()) / 1000);
+    // Step 4: Resolve LTP — use stored ltp, fall back to entry_price
+    const baseLtp = Number(position.ltp ?? position.entry_price);
 
-    // Step 5: Update the position: status='closed', exit_time=now(), duration_seconds=computed
-    const { data: updated, error: updateError } = await adminClient
-      .from('positions')
-      .update({
-        status: 'closed',
-        exit_time: now.toISOString(),
-        duration_seconds,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    // Step 5: Fetch exit buffer from segment_settings (user's own settings first)
+    const { data: segSetting } = await adminClient
+      .from('segment_settings')
+      .select('exit_buffer')
+      .eq('user_id', position.user_id)
+      .eq('segment', position.settlement ?? '')
+      .eq('side', position.side)
+      .maybeSingle();
 
-    if (updateError || updated === null) {
-      return Response.json({ error: 'Internal server error' }, { status: 500 });
+    const exitBuffer = Number(segSetting?.exit_buffer ?? 0.0017);
+
+    // Step 6: Compute exit price (same formula as user-close and liquidation engine)
+    let exitPrice: number;
+    if (position.side === 'BUY') {
+      exitPrice = baseLtp * (1 - exitBuffer);
+    } else {
+      exitPrice = baseLtp * (1 + exitBuffer);
+    }
+    exitPrice = Math.round(exitPrice * 100) / 100;
+
+    // Step 7: Call the atomic close_position RPC — this handles:
+    //   - Setting position status = 'closed', exit_price, exit_time, pnl, qty_open = 0
+    //   - Inserting PNL_CREDIT / PNL_DEBIT transaction (wallet updated via trigger)
+    //   - Inserting exit order row
+    //   - Writing to act_logs
+    const { data: pnl, error: rpcErr } = await adminClient.rpc('close_position', {
+      p_position_id: id,
+      p_user_id: position.user_id,
+      p_ltp: baseLtp,
+      p_exit_price: exitPrice,
+      p_closed_by: 'ADMIN',
+      p_brokerage: 0, // no brokerage on admin-forced close
+    });
+
+    if (rpcErr) {
+      console.error('[POST /api/admin/positions/[id]/sqoff] RPC error:', rpcErr);
+      return Response.json({ error: 'Failed to close position' }, { status: 500 });
     }
 
-    // Step 6: Return the updated position row
-    return Response.json(updated, { status: 200 });
-  } catch {
+    // Step 8: Return result
+    return Response.json(
+      {
+        success: true,
+        pnl: Number(pnl),
+        exit_price: exitPrice,
+        message: `Position squared off at ₹${exitPrice}. PnL: ₹${Number(pnl).toFixed(2)}`,
+      },
+      { status: 200 },
+    );
+  } catch (err) {
+    console.error('[POST /api/admin/positions/[id]/sqoff] Error:', err);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

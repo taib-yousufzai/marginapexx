@@ -77,12 +77,13 @@ BEGIN
   );
 
   -- 4. Brokerage transaction
+  -- Use BROKERAGE_DEBIT (consistent with process_executed_position and admin PATCH sync logic)
   IF p_brokerage > 0 THEN
     INSERT INTO public.transactions (
       user_id, type, amount, status, ref_id
     )
     VALUES (
-      p_user_id, 'BROKERAGE', p_brokerage, 'APPROVED',
+      p_user_id, 'BROKERAGE_DEBIT', p_brokerage, 'APPROVED',
       p_position_id::text
     );
   END IF;

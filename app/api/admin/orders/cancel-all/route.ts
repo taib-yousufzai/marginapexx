@@ -23,11 +23,11 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: 'Failed to cancel orders' }, { status: 500 });
     }
 
-    // Log the admin action
-    await adminClient.from('actlogs').insert({
-      type: 'CANCEL_ALL',
-      by: callerUser.id,
-      target: 'ALL',
+    // Log the admin action (correct table: act_logs)
+    await adminClient.from('act_logs').insert({
+      type: 'ADMIN_CANCEL_ALL',
+      user_id: callerUser.id,
+      target_user_id: callerUser.id,
       reason: 'Admin emergency cancel all pending orders',
     });
 
