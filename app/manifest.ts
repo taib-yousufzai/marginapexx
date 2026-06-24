@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     orientation: 'portrait',
     background_color: '#FFFFFF',
-    theme_color: '#006400',
+    theme_color: '#FFFFFF',
     icons: [
       {
         src: '/favicon-32.png?v=10',
@@ -17,16 +17,16 @@ export default function manifest(): MetadataRoute.Manifest {
         type: 'image/png',
       },
       {
-        src: '/icon-192x192.png?v=10',
+        src: '/icon-192x192.png?v=12',
         sizes: '192x192',
         type: 'image/png',
-        purpose: 'maskable',
+        purpose: 'any',
       },
       {
-        src: '/icon-512x512.png?v=10',
+        src: '/icon-512x512.png?v=12',
         sizes: '512x512',
         type: 'image/png',
-        purpose: 'maskable',
+        purpose: 'any',
       },
       {
         src: '/splash-icon.jpg?v=6',
