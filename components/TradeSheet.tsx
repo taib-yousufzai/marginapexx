@@ -1264,7 +1264,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Required Margin</span>
-                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                   </div>
                 </div>
 
