@@ -797,8 +797,12 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     ? (orderSide === 'SELL' ? chainContract.bid : chainContract.ask)
     : underlyingPriceOfScript;
 
-  const orderQty = useLots ? Number(qtyValue) * lotSize : Number(qtyValue);
-  const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || priceOfScript) : priceOfScript;
+  const orderQty = useLots ? (parseFloat(String(qtyValue)) || 0) * lotSize : (parseFloat(String(qtyValue)) || 0);
+  // Fall back to currentPrice if liveQuote bid/ask is missing or zero
+  const resolvedPrice = priceOfScript > 0 ? priceOfScript : currentPrice;
+  const executionPrice = orderType === 'limit'
+    ? (parseFloat(limitPrice) > 0 ? parseFloat(limitPrice) : resolvedPrice)
+    : resolvedPrice;
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
@@ -825,8 +829,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
   const leverageType = orderCarry === 'carry' ? holdingType : intradayType;
 
-  const chargePrice = orderType === 'limit' && limitPrice && !isNaN(parseFloat(limitPrice))
-    ? parseFloat(limitPrice) : (priceOfScript > 0 ? priceOfScript : 0);
+  const chargePrice = orderType === 'limit' && limitPrice && parseFloat(limitPrice) > 0
+    ? parseFloat(limitPrice) : resolvedPrice;
   const chargeQty = orderQty;
   const chargeExposure = chargeQty * chargePrice;
 
@@ -1463,20 +1467,20 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
-                        <span style={orderCarry === 'normal' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'normal' && orderType !== 'gtt' ? intradayCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={orderCarry === 'carry' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'carry' && orderType !== 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
-                        <span style={orderType === 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>

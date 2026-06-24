@@ -741,6 +741,8 @@ function WatchlistContent() {
     return allowedSegments.includes(dbSeg);
   });
   const scriptMountedRef = useRef(false);
+  const deepLinkHandledRef = useRef(false);
+  const watchlistItemsRef = useRef<WatchlistItem[]>([]);
 
   // Available Balance State
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
@@ -826,6 +828,10 @@ function WatchlistContent() {
   const deepLinkSymbol = searchParams.get('symbol');
   useEffect(() => {
     if (!deepLinkSymbol || !hasLoaded) return;
+    // Only process the deep-link once — re-running on every watchlistItems change
+    // would re-open the deep-linked chart whenever a new item is added from the library.
+    if (deepLinkHandledRef.current) return;
+    deepLinkHandledRef.current = true;
     const query = deepLinkSymbol.toUpperCase();
 
     const tryOpen = (items: WatchlistItem[]) => {
@@ -906,8 +912,8 @@ function WatchlistContent() {
       return () => clearTimeout(timer);
     };
 
-    return tryOpen(watchlistItems);
-  }, [deepLinkSymbol, watchlistItems]);
+    return tryOpen(watchlistItemsRef.current);
+  }, [deepLinkSymbol, hasLoaded]);
 
   useEffect(() => {
     if (allowedSegments === null) return; // Wait until session/allowedSegments are resolved to avoid premature loading/defaulting
@@ -1026,6 +1032,7 @@ function WatchlistContent() {
     window.__binanceQuotes = marketQuotes;
     window.__comexQuotes = comexQuotes;
     window.__watchlistItems = watchlistItems;
+    watchlistItemsRef.current = watchlistItems;
     if (scriptMountedRef.current && typeof (window as any).attachSwipeHandlers === 'function') {
       (window as any).attachSwipeHandlers();
     }
@@ -1386,9 +1393,17 @@ function WatchlistContent() {
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
   const priceOfScript = tradeSide === 'SELL' ? rawBid : rawAsk;
+  // Best available price for margin: limit price if set, else live bid/ask, else lastPrice
+  const effectiveMarginPrice = (() => {
+    if ((orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && parseFloat(limitPrice) > 0) {
+      return parseFloat(limitPrice);
+    }
+    // Use live bid/ask when available (already falls back to lastPrice inside rawBid/rawAsk)
+    const livePrice = tradeSide === 'SELL' ? rawBid : rawAsk;
+    return livePrice > 0 ? livePrice : currentLtp;
+  })();
 
-  const chargePrice = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
-    ? parseFloat(limitPrice) : (currentLtp > 0 ? priceOfScript : 0);
+  const chargePrice = effectiveMarginPrice;
   const chargeQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
   const chargeExposure = chargeQty * chargePrice;
 
@@ -1425,7 +1440,7 @@ function WatchlistContent() {
   };
 
   const calculatedRequiredMargin = Math.round(calcMarginPortion(
-    (orderType === 'LIMIT' && limitPrice) ? parseFloat(limitPrice) : (currentLtp > 0 ? priceOfScript : 0),
+    effectiveMarginPrice,
     orderUnit === 'lot' ? orderQty * lotSize : orderQty
   ) + ((orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge) * 2));
 
@@ -1868,20 +1883,20 @@ function WatchlistContent() {
                 <>
                   <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
                     <span className="ts-ml">Intraday Brokerage</span>
-                    <span className="ts-mv carry" style={productType === 'INTRADAY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                      ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
+                      ₹ {(productType === 'INTRADAY' && orderType !== 'GTT' ? intradayCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="ts-margin-row">
                     <span className="ts-ml">Carry Charges</span>
-                    <span className="ts-mv carry" style={productType === 'CARRY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                      ₹ {carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
+                      ₹ {(productType === 'CARRY' && orderType !== 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="ts-margin-row">
                     <span className="ts-ml">GTT Charges</span>
-                    <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                      ₹ {gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
+                      ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </>
