@@ -63,18 +63,19 @@ function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: n
 }
 
 function mapSegmentToDbSegment(s: string): string {
-  if (!s) return 'NSE-EQ';
-  const u = s.toUpperCase();
-  if (u.includes('NFO') || u.includes('OPTIDX')) return 'INDEX-OPT';
-  if (u.includes('OPTSTK')) return 'STOCK-OPT';
-  if (u.includes('FUTIDX')) return 'INDEX-FUT';
-  if (u.includes('FUTSTK')) return 'STOCK-FUT';
-  if (u.includes('MCX') && u.includes('OPT')) return 'MCX-OPT';
-  if (u.includes('MCX')) return 'MCX-FUT';
-  if (u.includes('COMEX')) return 'COMEX';
-  if (u.includes('CRYPTO')) return 'CRYPTO';
-  if (u.includes('NSE') || u.includes('EQ')) return 'NSE-EQ';
-  return 'NSE-EQ';
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
+  if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
+  if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
+  if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
 }
 
 export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {

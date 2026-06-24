@@ -294,16 +294,20 @@ export async function GET(request: NextRequest) {
     // Map to watchlist-compatible shape
     const results = rows.map((inst: any) => {
       let segmentLabel = '';
-      if (inst.instrument_type === 'OPTSTK') {
-        segmentLabel = `${inst.exchange} - Stock Options`;
-      } else if (inst.instrument_type === 'OPTIDX' || inst.instrument_type === 'CE' || inst.instrument_type === 'PE') {
-        segmentLabel = `${inst.exchange} - Options`;
-      } else if (inst.instrument_type === 'FUTSTK') {
-        segmentLabel = `${inst.exchange} - Stock Futures`;
-      } else if (['FUT', 'MAPPED_FUT', 'FUTIDX', 'FUTCOM', 'FUTCUR'].includes(inst.instrument_type)) {
-        segmentLabel = `${inst.exchange} - Futures`;
-      } else if (inst.instrument_type === 'EQ') {
-        segmentLabel = `${inst.exchange} - Equity`;
+      const exch = inst.exchange === 'NFO' ? 'NSE' : inst.exchange === 'BFO' ? 'BSE' : inst.exchange;
+      const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(inst.name);
+      const type = inst.instrument_type;
+
+      if (type === 'OPTSTK' || (!isIndex && (type === 'CE' || type === 'PE' || type === 'OPT'))) {
+        segmentLabel = `${exch} - Stock Options`;
+      } else if (type === 'OPTIDX' || (isIndex && (type === 'CE' || type === 'PE' || type === 'OPT'))) {
+        segmentLabel = `${exch} - Options`;
+      } else if (type === 'FUTSTK' || (!isIndex && ['FUT', 'MAPPED_FUT'].includes(type) && ['NSE', 'BSE'].includes(exch))) {
+        segmentLabel = `${exch} - Stock Futures`;
+      } else if (['FUT', 'MAPPED_FUT', 'FUTIDX', 'FUTCOM', 'FUTCUR'].includes(type)) {
+        segmentLabel = `${exch} - Futures`;
+      } else if (type === 'EQ') {
+        segmentLabel = `${exch} - Equity`;
       } else {
         segmentLabel = inst.segment || inst.exchange || '';
       }
@@ -338,13 +342,13 @@ export async function GET(request: NextRequest) {
     function mapSegmentToDbSegment(s: string): string {
       if (!s) return '';
       const trimmed = s.trim();
-      if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
-      if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
-      if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
-      if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+      if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
+      if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
+      if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
+      if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
       if (trimmed === 'MCX - Futures') return 'MCX-FUT';
       if (trimmed === 'MCX - Options') return 'MCX-OPT';
-      if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+      if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
       if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
       if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
       if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
