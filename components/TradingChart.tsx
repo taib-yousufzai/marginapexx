@@ -513,8 +513,11 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const intradayLeverage = segSetting?.intraday_leverage ?? 10;
     const holdingLeverage  = segSetting?.holding_leverage ?? 10;
     const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
+    const intradayType = segSetting?.intraday_type ?? 'Multiplier';
+    const holdingType = segSetting?.holding_type ?? 'Multiplier';
+    const levType = orderCarry === 'carry' ? holdingType : intradayType;
 
-    const reqMargin = Math.round((finalPrice * finalQty) / leverage);
+    const reqMargin = Math.round(levType === '%' ? (finalPrice * finalQty) * (leverage / 100) : (finalPrice * finalQty) / leverage);
     if (reqMargin > balance) {
       showToast('Insufficient margin', true);
       return;
@@ -694,7 +697,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const dbSeg = mapSegmentToDbSegment(segment);
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === side);
     const intradayLeverage = segSetting?.intraday_leverage ?? 10;
-    const required = Math.round((currentPrice * finalQty) / intradayLeverage);
+    const intradayType = segSetting?.intraday_type ?? 'Multiplier';
+    const required = Math.round(intradayType === '%' ? (currentPrice * finalQty) * (intradayLeverage / 100) : (currentPrice * finalQty) / intradayLeverage);
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
@@ -737,7 +741,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const dbSeg = mapSegmentToDbSegment(segment);
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === pos.side);
     const leverage = pos.product_type === 'CARRY' ? (segSetting?.holding_leverage ?? 10) : (segSetting?.intraday_leverage ?? 10);
-    const required = Math.round((currentPrice * addQty) / leverage);
+    const levType = pos.product_type === 'CARRY' ? (segSetting?.holding_type ?? 'Multiplier') : (segSetting?.intraday_type ?? 'Multiplier');
+    const required = Math.round(levType === '%' ? (currentPrice * addQty) * (leverage / 100) : (currentPrice * addQty) / leverage);
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
@@ -789,6 +794,9 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   const intradayLeverage = segSetting?.intraday_leverage ?? 10;
   const holdingLeverage  = segSetting?.holding_leverage ?? 10;
   const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
+  const intradayType = segSetting?.intraday_type ?? 'Multiplier';
+  const holdingType = segSetting?.holding_type ?? 'Multiplier';
+  const leverageType = orderCarry === 'carry' ? holdingType : intradayType;
 
   const chargePrice = orderType === 'limit' && limitPrice && !isNaN(parseFloat(limitPrice))
     ? parseFloat(limitPrice) : (priceOfScript > 0 ? priceOfScript : 0);
@@ -817,8 +825,9 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const totalBrokerage = intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0);
-  const reqMargin = Math.round(((executionPrice * orderQty) / leverage) + totalBrokerage);
+  const totalBrokerage = (intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0)) * 2;
+  const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (executionPrice * orderQty) / leverage;
+  const reqMargin = Math.round(marginPortion + totalBrokerage);
 
   // Render collapsible panel tabs content
   const renderPanelContent = () => {

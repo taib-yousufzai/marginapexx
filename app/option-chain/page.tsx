@@ -1000,9 +1000,13 @@ function OptionChainContent() {
           const intradayLeverage = matchingSetting?.intraday_leverage ?? 10;
           const holdingLeverage = matchingSetting?.holding_leverage ?? 10;
           const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
+          const intradayType = matchingSetting?.intraday_type ?? 'Multiplier';
+          const holdingType = matchingSetting?.holding_type ?? 'Multiplier';
+          const leverageType = productType === 'CARRY' ? holdingType : intradayType;
           
-          const totalBrokerage = orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge);
-          const calculatedRequiredMargin = Math.round((priceToUse * totalQty) / leverage) + totalBrokerage;
+          const totalBrokerage = (orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge)) * 2;
+          const marginPortion = leverageType === '%' ? (priceToUse * totalQty) * (leverage / 100) : (priceToUse * totalQty) / leverage;
+          const calculatedRequiredMargin = Math.round(marginPortion) + totalBrokerage;
 
           return (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

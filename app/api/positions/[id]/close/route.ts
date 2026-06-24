@@ -322,6 +322,7 @@ export async function POST(
     } else {
       brokerage = exposure * 0.001; // fallback
     }
+    brokerage = brokerage * 2;
 
     if (brokerage > 0) {
       await admin.from('transactions').insert({

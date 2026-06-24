@@ -147,7 +147,7 @@ BEGIN
     END IF;
   END IF;
 
-  v_brokerage := v_raw_brokerage + v_carry_brokerage + v_gtt_brokerage;
+  v_brokerage := (v_raw_brokerage + v_carry_brokerage + v_gtt_brokerage) * 2;
 
   -- Save brokerage and lots to the order
   UPDATE public.orders

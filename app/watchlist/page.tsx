@@ -43,6 +43,7 @@ declare global {
     __selectionModeActive?: boolean;
     __watchlistEventsAttached?: boolean;
     __isBasketModeActive?: boolean;
+    __lastProcessedQuery?: string;
   }
 }
 
@@ -1402,9 +1403,18 @@ function WatchlistContent() {
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const calculatedRequiredMargin = Math.round((orderType === 'LIMIT' && limitPrice
-    ? ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * parseFloat(limitPrice)) / leverage
-    : ((orderUnit === 'lot' ? orderQty * lotSize : orderQty) * (currentLtp > 0 ? priceOfScript : 0)) / leverage) + (orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge));
+  const intradayType = segSetting?.intraday_type ?? 'Multiplier';
+  const holdingType = segSetting?.holding_type ?? 'Multiplier';
+  const leverageType = productType === 'CARRY' ? holdingType : intradayType;
+
+  const calcMarginPortion = (price: number, qty: number) => {
+    return leverageType === '%' ? (qty * price) * (leverage / 100) : (qty * price) / leverage;
+  };
+
+  const calculatedRequiredMargin = Math.round(calcMarginPortion(
+    (orderType === 'LIMIT' && limitPrice) ? parseFloat(limitPrice) : (currentLtp > 0 ? priceOfScript : 0),
+    orderUnit === 'lot' ? orderQty * lotSize : orderQty
+  ) + ((orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge) * 2));
 
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
@@ -1414,10 +1424,21 @@ function WatchlistContent() {
     window.__watchlistItems = window.__watchlistItems || [];
     (window as any).__reactSetSelectionActive = setIsSelectionActive;
 
+    // Reset search state so it doesn't get stuck from previous mount
+    (window as any).__lastProcessedQuery = '';
+
     const script = document.createElement('script');
     script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
     document.body.appendChild(script);
     scriptMountedRef.current = true;
+
+    // Re-attach swipe handlers after script mounts (items may already be rendered)
+    requestAnimationFrame(() => {
+      if (typeof (window as any).attachSwipeHandlers === 'function') {
+        (window as any).attachSwipeHandlers();
+      }
+    });
+
     return () => {
       if (document.body.contains(script)) document.body.removeChild(script);
       scriptMountedRef.current = false;
@@ -2615,7 +2636,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       }
 
       var searchDebounceTimer = null;
-      var lastProcessedQuery = '';
+      var lastProcessedQuery = window.__lastProcessedQuery || '';
 
       function renderSearchResults(results) {
         var searchResultsArea = document.getElementById('searchResultsArea');
@@ -2684,11 +2705,13 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           .catch(function() {});
       }
 
-      if (searchInput) {
-        searchInput.oninput = function() {
-          var query = searchInput.value.trim();
+      document.addEventListener('input', function(e) {
+        if (e.target && e.target.id === 'globalSearchInput') {
+          var inputElement = e.target;
+          var query = inputElement.value.trim();
           if (query === lastProcessedQuery) return;
           lastProcessedQuery = query;
+          window.__lastProcessedQuery = query;
           if (query.length === 0) {
             var area = document.getElementById('searchResultsArea');
             if (area) area.style.display = 'none';
@@ -2760,7 +2783,8 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
                 var hardcodedExtra = localResults.filter(function(s) { return !liveSymbols.has(s.symbol); });
                 var merged = liveResults.concat(hardcodedExtra);
                 // Sirf tab update karo jab query abhi bhi same ho
-                if (searchInput.value.trim() === query) {
+                var currentInput = document.getElementById('globalSearchInput');
+                if (currentInput && currentInput.value.trim() === query) {
                   var activeTabLive = window.__activeTab || 'All';
                   if (activeTabLive !== 'All') {
                     merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
@@ -2770,18 +2794,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               })
               .catch(function() { /* error pe local results hi rehne do */ });
           }, 300);
-        };
-      }
+        }
+      });
 
-      if (clearSearchBtn) {
-        clearSearchBtn.onclick = function() {
-          searchInput.value = '';
-          lastProcessedQuery = '';
-          var area = document.getElementById('searchResultsArea');
-          if (area) area.style.display = 'none';
-          clearSearchBtn.style.display = 'none';
-        };
-      }
+
 
       var openFolderBtn = document.getElementById('openFolderMobileBtn');
       if (openFolderBtn) {

@@ -181,7 +181,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const calculatedBrokerage = intradayCharge + (productType === 'CARRY' ? carryCharge : 0) + (orderType === 'GTT' ? gttCharge : 0);
+  const calculatedBrokerage = (intradayCharge + (productType === 'CARRY' ? carryCharge : 0) + (orderType === 'GTT' ? gttCharge : 0)) * 2;
 
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';

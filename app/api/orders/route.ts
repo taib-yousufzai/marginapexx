@@ -755,7 +755,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     else if (gttCommType === 'Per Trade' || gttCommType === 'Flat') gttCharge = gttCommVal;
   }
 
-  const brokerage = intradayCharge + carryCharge + gttCharge;
+  const brokerage = (intradayCharge + carryCharge + gttCharge) * 2;
 
   const requiredMargin = marginPortion + brokerage;
 
