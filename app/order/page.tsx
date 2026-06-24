@@ -52,16 +52,19 @@ export default function OrderPage() {
   }, 'ordertrade');
 
   const openChart = (order: any) => {
-    setChartItem({
-      symbol: order.symbol,
-      kiteSymbol: order.kite_instrument || order.symbol,
-      segment: order.segment
-    });
     setIsSheetOpen(false);
-    const chartSheet = document.getElementById('chartSheet');
-    const chartOverlay = document.getElementById('chartSheetOverlay');
-    if (chartSheet) chartSheet.classList.add('open');
-    if (chartOverlay) chartOverlay.classList.add('active');
+    setSelectedOrder(null);
+    setTimeout(() => {
+      setChartItem({
+        symbol: order.symbol,
+        kiteSymbol: order.kite_instrument || order.symbol,
+        segment: order.segment
+      });
+      const chartSheet = document.getElementById('chartSheet');
+      const chartOverlay = document.getElementById('chartSheetOverlay');
+      if (chartSheet) chartSheet.classList.add('open');
+      if (chartOverlay) chartOverlay.classList.add('active');
+    }, 80);
   };
 
   const { orders, loading: ordersLoading, error, cancelOrder, refresh } = useMyOrders();
@@ -104,19 +107,22 @@ export default function OrderPage() {
 
   const handleTradeAgain = (order: any) => {
     setIsSheetOpen(false);
-    setTradeSheetSide('BOTH');
-    setTradeSheetItem({
-      name: order.symbol,
-      symbol: order.symbol,
-      kiteSymbol: order.kite_instrument,
-      segment: order.segment,
-      price: order.fill_price || 0,
-    });
-    setTradeSheetInitialOrder({
-      qty: order.qty,
-      order_type: order.order_type,
-      product_type: order.product_type,
-    });
+    setSelectedOrder(null);
+    setTimeout(() => {
+      setTradeSheetSide('BOTH');
+      setTradeSheetItem({
+        name: order.symbol,
+        symbol: order.symbol,
+        kiteSymbol: order.kite_instrument,
+        segment: order.segment,
+        price: order.fill_price || 0,
+      });
+      setTradeSheetInitialOrder({
+        qty: order.qty,
+        order_type: order.order_type,
+        product_type: order.product_type,
+      });
+    }, 80);
   };
 
   const openOrders = orders.filter(o => o.status === 'PENDING');

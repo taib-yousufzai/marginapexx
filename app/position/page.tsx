@@ -78,17 +78,20 @@ export default function PositionPage() {
       seg = pos.settlement;
     }
 
-    setChartItem({
-      name: pos.symbol,
-      symbol: pos.symbol,
-      kiteSymbol: pos.symbol,
-      price: pos.current_ltp,
-      segment: seg,
-    });
-    const chartSheet = document.getElementById('chartSheet');
-    const chartOverlay = document.getElementById('chartSheetOverlay');
-    if (chartSheet) chartSheet.classList.add('open');
-    if (chartOverlay) chartOverlay.classList.add('active');
+    closeSheet();
+    setTimeout(() => {
+      setChartItem({
+        name: pos.symbol,
+        symbol: pos.symbol,
+        kiteSymbol: pos.symbol,
+        price: pos.current_ltp,
+        segment: seg,
+      });
+      const chartSheet = document.getElementById('chartSheet');
+      const chartOverlay = document.getElementById('chartSheetOverlay');
+      if (chartSheet) chartSheet.classList.add('open');
+      if (chartOverlay) chartOverlay.classList.add('active');
+    }, 80);
   };
 
 
@@ -151,17 +154,19 @@ export default function PositionPage() {
 
   const openTradeAgain = (pos: EnrichedPosition) => {
     closeSheet();
-    setTradeSheetItem({
-      name: pos.symbol,
-      symbol: pos.symbol,
-      kiteSymbol: pos.symbol,
-      segment: pos.settlement || 'INR',
-      price: pos.current_ltp,
-      change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
-    });
-    setTradeSheetSide('BOTH');
-    setTradeSheetExitMode(false);
-    setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
+    setTimeout(() => {
+      setTradeSheetItem({
+        name: pos.symbol,
+        symbol: pos.symbol,
+        kiteSymbol: pos.symbol,
+        segment: pos.settlement || 'INR',
+        price: pos.current_ltp,
+        change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
+      });
+      setTradeSheetSide('BOTH');
+      setTradeSheetExitMode(false);
+      setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
+    }, 80);
   };
 
   const openExitSheet = (pos: EnrichedPosition) => {

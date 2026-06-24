@@ -558,6 +558,29 @@
   line-height: 1;
 }
 
+/* ── Exit Position buttons (shown when chart instrument has an open position) ── */
+.tc-wrapper .exit-position-chart-btn {
+  background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+  flex: 1;
+}
+.tc-wrapper .exit-position-chart-btn:hover {
+  filter: brightness(1.06);
+}
+.tc-wrapper .exit-quick-chart-btn {
+  background: var(--red);
+  flex: 0 0 54px;
+  max-width: 54px;
+}
+.tc-wrapper .exit-quick-chart-btn:hover {
+  filter: brightness(1.06);
+}
+.dark .tc-wrapper .exit-position-chart-btn {
+  background: linear-gradient(135deg, #EA580C 0%, #C2410C 100%);
+}
+.dark .tc-wrapper .exit-quick-chart-btn {
+  background: #dc2626;
+}
+
 /* ── Order block ── */
 .tc-wrapper .order-block {
   margin: 4px 12px 6px;
