@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth';
 import { pageCache } from '@/lib/pageCache';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
+import { useMobileBack } from '@/hooks/useMobileBack';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
@@ -103,6 +104,32 @@ export default function PositionPage() {
 
   // Inline expand for open positions
   const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
+
+  // ── Mobile Back Button Interception ──
+  useMobileBack(isSheetOpen, () => {
+    setIsSheetOpen(false);
+    const sheet = document.getElementById('positionSheet');
+    const overlay = document.getElementById('positionSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setTimeout(() => setSelectedPos(null), 300);
+  }, 'posdetail');
+  
+  useMobileBack(!!chartItem, () => {
+    setChartItem(null);
+    const chartSheet = document.getElementById('chartSheet');
+    const chartOverlay = document.getElementById('chartSheetOverlay');
+    if (chartSheet) chartSheet.classList.remove('open');
+    if (chartOverlay) chartOverlay.classList.remove('active');
+  }, 'poschart');
+  
+  useMobileBack(!!tradeSheetItem, () => {
+    setTradeSheetItem(null);
+  }, 'postrade');
+  
+  useMobileBack(isExitAllModalOpen, () => {
+    setIsExitAllModalOpen(false);
+  }, 'posexitall');
 
   const toggleExpand = (posId: string) => {
     setExpandedPosId(prev => prev === posId ? null : posId);

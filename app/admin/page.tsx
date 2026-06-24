@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, getRole, signOut } from '@/lib/auth';
 import KiteConnectButton from '@/components/KiteConnectButton';
+import { useMobileBack } from '@/hooks/useMobileBack';
 import '../admin-layout.css';
 
 export type AdminUserPayload = {
@@ -41,7 +42,6 @@ const navItems = [
   { key: 'actledger', label: 'ACT LEDGER' },
   { key: 'accounts', label: 'ACCOUNTS' },
   { key: 'payinout', label: 'PAYIN-OUT' },
-  { key: 'transactions', label: 'TRANSACTIONS' },
   { key: 'logout', label: 'LOGOUT' },
 ];
 
@@ -71,6 +71,9 @@ export default function AdminPage() {
       setIsChecking(false);
     });
   }, [router]);
+
+  useMobileBack(drawerOpen, () => setDrawerOpen(false), 'nav');
+  useMobileBack(userPanelOpen, () => setUserPanelOpen(false), 'user');
 
   // Handle hash-based navigation for browser back button support
   useEffect(() => {
@@ -246,10 +249,16 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
           isDemoMode={isDemoMode}
         />
       </div>
-      <div style={show('actledger')}><ActLedgerPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
+      <div style={{ display: (activePage === 'actledger' || activePage === 'transactions') ? undefined : 'none' }}>
+        <ActLedgerPage 
+          selectedUser={selectedUser} 
+          onOpenUserPanel={onOpenUserPanel} 
+          isDemoMode={isDemoMode} 
+          forcedTab={activePage === 'transactions' ? 'transactions' : 'trade_logs'} 
+        />
+      </div>
       <div style={show('accounts')}><AccountsPage isDemoMode={isDemoMode} /></div>
       <div style={show('payinout')}><PayinOutPage isDemoMode={isDemoMode} /></div>
-      <div style={show('transactions')}><TransactionsPage isDemoMode={isDemoMode} /></div>
       <div style={show('paymentaccounts')}><PayAccountsPage /></div>
     </>
   );

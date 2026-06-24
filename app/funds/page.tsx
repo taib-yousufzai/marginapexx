@@ -34,6 +34,7 @@ type SavedAccount = {
 export default function FundsPage() {
   const router = useRouter();
   useAuth();
+  const [isDemo, setIsDemo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [depositStep, setDepositStep] = useState<1 | 2 | 3>(1);
@@ -109,6 +110,11 @@ export default function FundsPage() {
       if (session) {
         fetchBalance(session.access_token);
         fetchSavedAccounts(session.access_token);
+        fetch('/api/user/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        }).then(res => res.ok ? res.json() : null).then(data => {
+          if (!cancelled && data) setIsDemo(data.demo_user === true);
+        }).catch(() => {});
       }
     });
     return () => { cancelled = true; };
@@ -370,7 +376,15 @@ export default function FundsPage() {
                   <div className="balance-chip"><i className="fas fa-shield-check"></i> 100% Encrypted & Secure</div>
                 </div>
 
-                <div className="funds-toggle-wrapper" style={{ marginBottom: '24px' }}>
+                {isDemo ? (
+                  <div className="adm-dashed-box" style={{ marginTop: 40, textAlign: 'center', padding: '40px 20px', borderRadius: 16, background: 'var(--card-bg)' }}>
+                    <i className="fas fa-ban" style={{ fontSize: '2rem', color: '#8b949e', marginBottom: 16 }}></i>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Not Available</h3>
+                    <p style={{ color: 'var(--text-muted)', marginTop: 8 }}>Funds management is disabled for demo accounts.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="funds-toggle-wrapper" style={{ marginBottom: '24px' }}>
                   <div className={`funds-toggle-slider ${activeTab === 'withdraw' ? 'slide-right' : ''}`}></div>
                   <div className={`funds-cat-btn ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => handleTabChange('deposit')}>DEPOSIT</div>
                   <div className={`funds-cat-btn ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => handleTabChange('withdraw')}>WITHDRAW</div>
@@ -566,6 +580,8 @@ export default function FundsPage() {
                     </div>
                   )}
                 </div>
+                  </>
+                )}
 
                 <div className="whatsapp-community" onClick={handleWhatsAppSupport} style={{ marginTop: '24px' }}>
                   <div className="whatsapp-inner">

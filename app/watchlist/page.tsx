@@ -8,6 +8,7 @@ import { useMarketQuotes, QuoteData } from '@/hooks/useMarketQuotes';
 import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
+import { useMobileBack } from '@/hooks/useMobileBack';
 import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import './page.css';
@@ -548,6 +549,31 @@ function WatchlistContent() {
     }
     fetchAllowedSegments();
   }, []);
+
+  // ── Mobile Back Button Interception ──
+  useMobileBack(isFolderDrawerOpen, () => setIsFolderDrawerOpen(false), 'segments');
+  useMobileBack(!!selectedItem, () => {
+    const sheet = document.getElementById('detailSheet');
+    const overlay = document.getElementById('detailSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setSelectedItem(null);
+  }, 'details');
+  useMobileBack(isTradeSheetOpen, () => {
+    const sheet = document.getElementById('tradeSheet');
+    const overlay = document.getElementById('tradeSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setIsTradeSheetOpen(false);
+  }, 'trade');
+  useMobileBack(!!chartItem, () => {
+    const sheet = document.getElementById('chartSheet');
+    const overlay = document.getElementById('chartSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setChartItem(null);
+    setIsBenchmarkChart(false);
+  }, 'chart');
 
   // Toast State
   const [toast, setToast] = useState<{ msg: string; isError: boolean; visible: boolean }>({

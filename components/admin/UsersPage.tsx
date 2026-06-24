@@ -273,6 +273,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
               <button className="adm-users-btn pos-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('position'); }}>Positions</button>
               <button className="adm-users-btn orders-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('orders'); }} style={{ backgroundColor: '#2f74e5', color: '#fff' }}>Orders</button>
               <button className="adm-users-btn ledger-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('actledger'); }}>Ledger</button>
+              <button className="adm-users-btn" style={{ backgroundColor: '#1f6feb', color: '#fff' }} onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('transactions'); }}>Transactions</button>
               <button className="adm-users-btn update-btn" onClick={() => { onSelectUser({ id: u.id, role: u.role }); onNavigate('update'); }}>Update</button>
               <button className="adm-users-btn delete-btn" onClick={() => setConfirmDialog({ userId: u.id })}>Delete</button>
             </div>

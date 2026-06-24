@@ -10,6 +10,7 @@ import './page.css';
 
 export default function ProfilePage() {
     useAuth();
+    const [isDemo, setIsDemo] = useState(false);
     const [themeName, setThemeName] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
     const [session, setSession] = useState<Session | null>(null);
     const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('profile:balance'));
@@ -50,6 +51,7 @@ export default function ProfilePage() {
                 setProfileName(data.full_name ?? '');
                 setProfilePhone(data.phone ?? '');
                 setProfileClientId(data.client_id ?? '');
+                setIsDemo(data.demo_user === true);
             }
 
             // Fetch balance
@@ -207,14 +209,18 @@ export default function ProfilePage() {
 
                         {/* Horizontal Quick Actions Row */}
                         <div className="quick-actions-row">
-                            <Link href="/funds" className="quick-action-btn">
-                                <div className="qa-icon add"><i className="fas fa-plus"></i></div>
-                                <span className="qa-text">Add<br />Funds</span>
-                            </Link>
-                            <Link href="/funds?tab=withdraw" className="quick-action-btn">
-                                <div className="qa-icon withdraw"><i className="fas fa-arrow-down"></i></div>
-                                <span className="qa-text">Withdraw</span>
-                            </Link>
+                            {!isDemo && (
+                                <>
+                                    <Link href="/funds" className="quick-action-btn">
+                                        <div className="qa-icon add"><i className="fas fa-plus"></i></div>
+                                        <span className="qa-text">Add<br />Funds</span>
+                                    </Link>
+                                    <Link href="/funds?tab=withdraw" className="quick-action-btn">
+                                        <div className="qa-icon withdraw"><i className="fas fa-arrow-down"></i></div>
+                                        <span className="qa-text">Withdraw</span>
+                                    </Link>
+                                </>
+                            )}
                             <Link href="/profile/reports" className="quick-action-btn">
                                 <div className="qa-icon reports"><i className="fas fa-file-invoice"></i></div>
                                 <span className="qa-text">Reports<br />&amp; P&amp;L</span>

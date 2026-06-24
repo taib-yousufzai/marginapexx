@@ -11,9 +11,7 @@ export type UserListItem = {
   balance: number; created_at: string; scheduled_delete_at: string | null;
   client_id?: string;
 };
-
-const PAGE_SIZE = 8;
-
+const PAGE_SIZE = 100;
 export default function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser, isDemoMode }: {
   open: boolean;
   onClose: () => void;

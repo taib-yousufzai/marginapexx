@@ -408,143 +408,136 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
         </div>
 
         {/* Request cards */}
-        <div className="adm-pay-list">
-          {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} rows={5} />)}
-            </div>
-          ) : error ? (
-            <div className="adm-dashed-box" style={{ borderColor: '#f85149', color: '#f85149' }}>{error}</div>
-          ) : displayed.length === 0 ? (
-            <div className="adm-dashed-box">No {tab} requests matching your criteria.</div>
-          ) : displayed.map((r) => (
-            <div className="adm-pay-card" key={r.id}>
-              <div className="adm-pay-card-top">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(88, 166, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#58a6ff', fontSize: '1.2rem' }}>
-                    <i className={r.type === 'DEPOSIT' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'} />
-                  </div>
-                  <div>
-                    <div className="adm-pay-uid">{(r as any).user_name || r.user_id}</div>
-                    <div className="adm-pay-time" style={{ marginTop: 2 }}>
-                      <i className="far fa-user" style={{ marginRight: 6, fontSize: '0.75rem' }} />
-                      {(r as any).user_client_id || r.user_id.slice(0, 8) + '…'}
+        {/* Request Table */}
+        <div className="adm-card" style={{ padding: 0, overflowX: 'auto', marginBottom: 20 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap' }}>
+            <thead>
+              <tr style={{ background: '#161b22', borderBottom: '1px solid #30363d', color: '#8b949e', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Date</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Username</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Broker</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Sub-Broker</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Type</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Amount</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Remark</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Screenshot</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '16px', fontWeight: 600 }}>Updated</th>
+                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Accept</th>
+                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Reject</th>
+                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Pos</th>
+                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Ledger</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={14} style={{ padding: 20 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {Array.from({ length: 3 }).map((_, i) => <SkeletonLine key={i} height={40} />)}
                     </div>
-                    <div className="adm-pay-time">
-                      <i className="far fa-clock" style={{ marginRight: 6, fontSize: '0.75rem' }} />
-                      {new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </div>
-                  </div>
-                </div>
-                <span className="adm-pay-status" style={{ background: statusColor(r.status) + '15', color: statusColor(r.status), border: `1px solid ${statusColor(r.status)}40` }}>
-                  {statusLabel(r.status)}
-                </span>
-              </div>
-
-              <div className="adm-pay-grid">
-                <div className="adm-pay-item">
-                  <span className="adm-pay-dl">Type</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="adm-pay-dv bold" style={{ color: r.type === 'DEPOSIT' ? '#2ea043' : '#f85149' }}>
-                      {r.type}
-                    </span>
-                    {r.reference_id && (
-                      <span style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                        System Adjustment
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={14} style={{ padding: 20 }}>
+                    <div className="adm-dashed-box" style={{ borderColor: '#f85149', color: '#f85149' }}>{error}</div>
+                  </td>
+                </tr>
+              ) : displayed.length === 0 ? (
+                <tr>
+                  <td colSpan={14} style={{ padding: 20 }}>
+                    <div className="adm-dashed-box">No {tab} requests matching your criteria.</div>
+                  </td>
+                </tr>
+              ) : displayed.map((r) => {
+                const isPending = r.status === 'PENDING';
+                return (
+                  <tr key={r.id} style={{ borderBottom: '1px solid #21262d', fontSize: '0.85rem' }}>
+                    <td style={{ padding: '16px', color: '#8b949e' }}>
+                      {new Date(r.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td style={{ padding: '16px', color: '#58a6ff', fontWeight: 500 }}>
+                      {(r as any).user_name || (r as any).user_client_id || r.user_id.slice(0, 6)}
+                    </td>
+                    <td style={{ padding: '16px', color: '#c9d1d9' }}>—</td>
+                    <td style={{ padding: '16px', color: '#c9d1d9' }}>—</td>
+                    <td style={{ padding: '16px', color: '#c9d1d9', fontWeight: 600 }}>{r.type}</td>
+                    <td style={{ padding: '16px', color: '#c9d1d9', fontWeight: 600 }}>₹{r.amount}</td>
+                    <td style={{ padding: '16px', color: '#8b949e' }}>{r.reference_id ? 'System' : '—'}</td>
+                    <td style={{ padding: '16px' }}>
+                      {r.screenshot_url ? (
+                        <span style={{ color: '#58a6ff', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setLightboxImg(r.screenshot_url!)}>View</span>
+                      ) : (
+                        <span style={{ color: '#8b949e' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px' }}>
+                      <span style={{ 
+                        padding: '4px 10px', 
+                        borderRadius: '4px', 
+                        fontSize: '0.75rem', 
+                        fontWeight: 600,
+                        background: r.status === 'APPROVED' ? '#238636' : r.status === 'REJECTED' ? '#da3633' : '#b08800',
+                        color: '#fff'
+                      }}>
+                        {r.status}
                       </span>
-                    )}
-                  </div>
-                </div>
-                <div className="adm-pay-item">
-                  <span className="adm-pay-dl">Amount</span>
-                  <span className="adm-pay-dv bold" style={{ fontSize: '1.15rem' }}>₹{r.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="adm-pay-item">
-                  <span className="adm-pay-dl">Request ID</span>
-                  <span className="adm-pay-refid" style={{ marginTop: 0 }}>{r.id.slice(0, 8)}...</span>
-                </div>
-                {r.reference_id && (
-                  <div className="adm-pay-item">
-                    <span className="adm-pay-dl">Source Log</span>
-                    <span
-                      className="adm-pay-refid"
-                      style={{ marginTop: 0, color: '#a78bfa', cursor: 'default' }}
-                      title={r.reference_id}
-                    >
-                      {r.reference_id.slice(0, 8)}…
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {r.type === 'WITHDRAWAL' && r.account_name && (
-                <div className="adm-pay-account-box">
-                  <div className="adm-pay-account-title">Target Bank Account</div>
-                  <div className="adm-pay-account-grid">
-                    <span className="adm-pay-dl">Beneficiary</span><span className="adm-pay-dv bold">{r.account_name}</span>
-                    <span className="adm-pay-dl">Account No</span><span className="adm-pay-dv" style={{ letterSpacing: '0.5px' }}>{r.account_no}</span>
-                    <span className="adm-pay-dl">IFSC / UPI</span><span className="adm-pay-dv">{r.ifsc} / {r.upi}</span>
-                  </div>
-                </div>
-              )}
-
-              {r.type === 'DEPOSIT' && (r.utr || r.screenshot_url) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {r.utr && (
-                    <div className="adm-pay-utr-box">
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span className="adm-pay-utr-label">UTR Number</span>
-                        <span className="adm-pay-utr-value">{r.utr}</span>
-                      </div>
-                      <i className="fas fa-shield-alt" style={{ color: '#58a6ff', fontSize: '1.4rem', opacity: 0.6 }} />
-                    </div>
-                  )}
-                  {r.screenshot_url && (
-                    <div className="adm-pay-account-box" style={{ borderLeftColor: '#2ea043', cursor: 'pointer' }} onClick={() => setLightboxImg(r.screenshot_url!)}>
-                      <div className="adm-pay-account-title">Payment Proof (Click to view)</div>
-                      <div style={{ position: 'relative', width: 'fit-content' }}>
-                        <img
-                          src={r.screenshot_url}
-                          alt="Proof"
-                          style={{ maxWidth: '120px', borderRadius: '8px', border: '1px solid #30363d' }}
-                        />
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                          <i className="fas fa-expand" />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="adm-pay-actions" style={{ borderTop: '1px solid #21262d', paddingTop: 16, marginTop: 4 }}>
-                <button
-                  className="adm-pay-btn accept"
-                  disabled={!!actionLoading[r.id] || r.status !== 'PENDING'}
-                  onClick={() => handleAccept(r)}
-                  style={{ opacity: r.status !== 'PENDING' ? 0.4 : 1 }}
-                >
-                  {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : <><i className="fas fa-check-circle" /> Approve</>}
-                </button>
-                <button
-                  className="adm-pay-btn reject"
-                  disabled={!!actionLoading[r.id] || r.status !== 'PENDING'}
-                  onClick={() => handleReject(r)}
-                  style={{ opacity: r.status !== 'PENDING' ? 0.4 : 1 }}
-                >
-                  {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : <><i className="fas fa-times-circle" /> Reject</>}
-                </button>
-                <button className="adm-pay-btn position"><i className="fas fa-external-link-alt" /> User Details</button>
-                <button
-                  className="adm-pay-btn delete"
-                  disabled={!!actionLoading[r.id]}
-                  onClick={() => handleDelete(r)}
-                >
-                  {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-trash-alt" />}
-                </button>
-              </div>
-            </div>
-          ))}
+                    </td>
+                    <td style={{ padding: '16px', color: '#8b949e' }}>
+                      {new Date(r.updated_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => handleAccept(r)}
+                        disabled={!isPending || !!actionLoading[r.id]}
+                        style={{ 
+                          width: 28, height: 28, borderRadius: 4, border: 'none',
+                          background: 'rgba(35, 134, 54, 0.15)', color: '#2ea043', 
+                          fontWeight: 'bold', cursor: isPending ? 'pointer' : 'not-allowed',
+                          opacity: isPending ? 1 : 0.4
+                        }}>
+                        {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : 'A'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => handleReject(r)}
+                        disabled={!isPending || !!actionLoading[r.id]}
+                        style={{ 
+                          width: 28, height: 28, borderRadius: 4, border: 'none',
+                          background: 'rgba(218, 54, 51, 0.15)', color: '#f85149', 
+                          fontWeight: 'bold', cursor: isPending ? 'pointer' : 'not-allowed',
+                          opacity: isPending ? 1 : 0.4
+                        }}>
+                        {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : 'R'}
+                      </button>
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <button 
+                        style={{ 
+                          width: 28, height: 28, borderRadius: 4, border: 'none',
+                          background: 'rgba(88, 166, 255, 0.15)', color: '#58a6ff', 
+                          fontWeight: 'bold', cursor: 'pointer'
+                        }}>
+                        P
+                      </button>
+                    </td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <button 
+                        style={{ 
+                          width: 28, height: 28, borderRadius: 4, border: 'none',
+                          background: 'rgba(163, 113, 247, 0.15)', color: '#a371f7', 
+                          fontWeight: 'bold', cursor: 'pointer'
+                        }}>
+                        L
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Pagination */}

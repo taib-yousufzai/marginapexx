@@ -21,7 +21,7 @@ export const LOG_ROWS = 10;
 export type ToastState = { message: string; type: 'success' | 'error' } | null;
 export type WatchlistItem = { id: string; symbol: string; tab: string };
 export type ActLogItem = {
-  id: string; type: string; time: string; by: string; target: string;
+  id: string; type: string; time: string; by: string; by_id: string | null; by_client_id: string | null; target: string; target_id: string | null; target_client_id: string | null;
   symbol: string | null; qty: number | null; price: number | null;
   reason: string | null; ip: string;
   // New fields

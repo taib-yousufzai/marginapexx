@@ -1,0 +1,45 @@
+import { useEffect, useRef } from 'react';
+
+/**
+ * A hook to intercept the mobile hardware back button and use it to close modals/overlays.
+ * 
+ * @param isOpen Whether the modal/overlay is currently open.
+ * @param onClose Callback to fire when the user presses the hardware back button.
+ * @param hash A unique hash string to identify this modal in the URL (e.g. 'chart', 'trade').
+ */
+export function useMobileBack(isOpen: boolean, onClose: () => void, hash: string) {
+  const closedByPopState = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      closedByPopState.current = false;
+      
+      // Push a fake state to the history stack so the back button has something to pop
+      const targetUrl = window.location.pathname + window.location.search + '#' + hash;
+      
+      // If we're already at this hash (e.g., opened twice quickly), don't push again
+      if (window.location.hash !== '#' + hash) {
+        window.history.pushState({ modal: hash }, '', targetUrl);
+      }
+
+      const handlePopState = (e: PopStateEvent) => {
+        // The user pressed the hardware back button
+        closedByPopState.current = true;
+        onClose();
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+        
+        // If the modal is closing, but NOT because the user pressed the back button
+        // (e.g., they clicked an "X" button or a backdrop), we need to clean up
+        // the history stack so the fake state doesn't stay there.
+        if (!closedByPopState.current && window.location.hash === '#' + hash) {
+          window.history.back();
+        }
+      };
+    }
+  }, [isOpen, onClose, hash]);
+}

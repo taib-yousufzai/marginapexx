@@ -816,7 +816,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage) + (orderType === 'gtt' ? gttCharge : orderCarry === 'carry' ? carryCharge : intradayCharge);
+  const totalBrokerage = intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0);
+  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage) + totalBrokerage;
 
   // Render collapsible panel tabs content
   const renderPanelContent = () => {

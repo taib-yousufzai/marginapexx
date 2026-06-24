@@ -243,32 +243,31 @@ BEGIN
 
   v_lots := COALESCE(NULLIF(v_order.lots, 0), v_order.qty / v_lot_size);
 
-  -- 1. Standard Commission (INTRADAY / non-CARRY, non-GTT orders use main commission)
-  IF v_order.product_type = 'CARRY' THEN
-    -- Use carry-specific commission rate
-    IF v_carry_comm_type = 'Per Crore' THEN
-      v_raw_brokerage := (v_order.qty * v_order.fill_price * v_carry_comm_val) / 10000000;
-    ELSIF v_carry_comm_type = 'Per Lot' THEN
-      v_raw_brokerage := v_lots * v_carry_comm_val;
-    ELSIF v_carry_comm_type = 'Per Trade' THEN
-      v_raw_brokerage := v_carry_comm_val;
-    ELSE
-      v_raw_brokerage := (v_order.qty * v_order.fill_price * 0.001); -- 0.1% fallback
-    END IF;
+  -- 1. Intraday Commission (ALWAYS applied)
+  IF v_comm_type = 'Per Crore' THEN
+    v_raw_brokerage := (v_order.qty * v_order.fill_price * v_comm_val) / 10000000;
+  ELSIF v_comm_type = 'Per Lot' THEN
+    v_raw_brokerage := v_lots * v_comm_val;
+  ELSIF v_comm_type = 'Per Trade' THEN
+    v_raw_brokerage := v_comm_val;
   ELSE
-    -- Use standard commission rate for INTRADAY orders
-    IF v_comm_type = 'Per Crore' THEN
-      v_raw_brokerage := (v_order.qty * v_order.fill_price * v_comm_val) / 10000000;
-    ELSIF v_comm_type = 'Per Lot' THEN
-      v_raw_brokerage := v_lots * v_comm_val;
-    ELSIF v_comm_type = 'Per Trade' THEN
-      v_raw_brokerage := v_comm_val;
+    v_raw_brokerage := (v_order.qty * v_order.fill_price * 0.001); -- 0.1% fallback
+  END IF;
+
+  -- 2. Carry Commission (only if CARRY order, stacked on top)
+  IF v_order.product_type = 'CARRY' THEN
+    IF v_carry_comm_type = 'Per Crore' THEN
+      v_carry_brokerage := (v_order.qty * v_order.fill_price * v_carry_comm_val) / 10000000;
+    ELSIF v_carry_comm_type = 'Per Lot' THEN
+      v_carry_brokerage := v_lots * v_carry_comm_val;
+    ELSIF v_carry_comm_type = 'Per Trade' THEN
+      v_carry_brokerage := v_carry_comm_val;
     ELSE
-      v_raw_brokerage := (v_order.qty * v_order.fill_price * 0.001); -- 0.1% fallback
+      v_carry_brokerage := (v_order.qty * v_order.fill_price * 0.001); -- 0.1% fallback
     END IF;
   END IF;
 
-  -- 2. GTT Commission (only if GTT order, stacked on top)
+  -- 3. GTT Commission (only if GTT order, stacked on top)
   IF v_order.order_type = 'GTT' THEN
     IF v_gtt_comm_type = 'Per Crore' THEN
       v_gtt_brokerage := (v_order.qty * v_order.fill_price * v_gtt_comm_val) / 10000000;
@@ -281,7 +280,7 @@ BEGIN
     END IF;
   END IF;
 
-  v_brokerage := v_raw_brokerage + v_gtt_brokerage;
+  v_brokerage := v_raw_brokerage + v_carry_brokerage + v_gtt_brokerage;
 
   -- Save brokerage and lots to the order
   UPDATE public.orders

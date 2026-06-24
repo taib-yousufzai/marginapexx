@@ -153,34 +153,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
   const effectivePrice = side === 'SELL' ? bidPrice : askPrice;
-  const calculatedBrokerage = segSetting ? (() => {
-    const qtyForComm = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-    const priceForComm = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
-      ? parseFloat(limitPrice)
-      : (currentLtp > 0 ? currentLtp : 0);
-      
-    if (orderType === 'GTT') {
-      const commType = segSetting.gtt_commission_type || 'Per Trade';
-      const commVal = segSetting.gtt_commission_value ?? 10;
-      if (commType === 'Per Crore') return (qtyForComm * priceForComm * commVal) / 10000000;
-      if (commType === 'Per Lot') return (qtyForComm / lotSize) * commVal;
-      if (commType === 'Per Trade' || commType === 'Flat') return commVal;
-      return 0;
-    } else {
-      const isCarry = productType === 'CARRY';
-      const commType = isCarry 
-        ? (segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore')
-        : (segSetting.commission_type || 'Per Crore');
-      const commVal = isCarry
-        ? (segSetting.carry_commission_value ?? segSetting.commission_value ?? 0)
-        : (segSetting.commission_value ?? 0);
-      if (commType === 'Per Crore') return (qtyForComm * priceForComm * commVal) / 10000000;
-      if (commType === 'Per Lot') return (qtyForComm / lotSize) * commVal;
-      if (commType === 'Per Trade' || commType === 'Flat') return commVal;
-      return qtyForComm * priceForComm * 0.001;
-    }
-  })() : 0;
-
   // Compute individual charge amounts for display
   const chargePrice = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
     ? parseFloat(limitPrice) : (currentLtp > 0 ? currentLtp : 0);
@@ -208,6 +180,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
   ) : 0;
+
+  const calculatedBrokerage = intradayCharge + (productType === 'CARRY' ? carryCharge : 0) + (orderType === 'GTT' ? gttCharge : 0);
 
   const baseExposure = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
     ? (totalQty * parseFloat(limitPrice))
@@ -1298,20 +1272,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       Charges Breakdown {showCharges ? '▲' : '▼'}
                     </span>
                     <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 800 }}>
-                      ₹ {(orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹ {calculatedBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   {showCharges && (
                     <>
                       <div className="ts2-margin-row" style={{ borderTop: '1px solid var(--border-light, #F1F5F9)' }}>
                         <span className="ts2-ml">Intraday Brokerage</span>
-                        <span className="ts2-mv" style={productType === 'INTRADAY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                        <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 700 }}>
                           ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
-                        <span className="ts2-mv" style={productType === 'CARRY' && orderType !== 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                        <span className="ts2-mv" style={productType === 'CARRY' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
                           ₹ {carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>

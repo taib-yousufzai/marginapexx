@@ -713,37 +713,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const entryBufferCost = exposure * entryBufferRatio;
   const exitBufferCost = exposure * exitBufferRatio;
 
-  let brokerage = 0;
-  if (order_type === 'GTT') {
-    const commType = segSetting.gtt_commission_type || 'Per Trade';
-    const commVal = Number(segSetting.gtt_commission_value ?? 10);
-    if (commType === 'Per Crore') {
-      brokerage = (exposure * commVal) / 10000000;
-    } else if (commType === 'Per Lot') {
-      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
-      brokerage = lotsUsed * commVal;
-    } else if (commType === 'Per Trade' || commType === 'Flat') {
-      brokerage = commVal;
-    }
-  } else {
-    const commType = targetProductType === 'CARRY' 
-      ? (segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore')
-      : (segSetting.commission_type || 'Per Crore');
-    const commVal = Number(targetProductType === 'CARRY'
-      ? (segSetting.carry_commission_value ?? segSetting.commission_value ?? 0)
-      : (segSetting.commission_value ?? 0));
-      
-    if (commType === 'Per Crore') {
-      brokerage = (exposure * commVal) / 10000000;
-    } else if (commType === 'Per Lot') {
-      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
-      brokerage = lotsUsed * commVal;
-    } else if (commType === 'Per Trade' || commType === 'Flat') {
-      brokerage = commVal;
-    } else {
-      brokerage = exposure * 0.001; // fallback
-    }
+  let intradayCharge = 0;
+  let carryCharge = 0;
+  let gttCharge = 0;
+
+  const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
+
+  // Intraday (Always applied)
+  const intradayCommType = segSetting.commission_type || 'Per Crore';
+  const intradayCommVal = Number(segSetting.commission_value ?? 0);
+  if (intradayCommType === 'Per Crore') intradayCharge = (exposure * intradayCommVal) / 10000000;
+  else if (intradayCommType === 'Per Lot') intradayCharge = lotsUsed * intradayCommVal;
+  else if (intradayCommType === 'Per Trade' || intradayCommType === 'Flat') intradayCharge = intradayCommVal;
+  else intradayCharge = exposure * 0.001;
+
+  // Carry
+  if (targetProductType === 'CARRY') {
+    const carryCommType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
+    const carryCommVal = Number(segSetting.carry_commission_value ?? segSetting.commission_value ?? 0);
+    if (carryCommType === 'Per Crore') carryCharge = (exposure * carryCommVal) / 10000000;
+    else if (carryCommType === 'Per Lot') carryCharge = lotsUsed * carryCommVal;
+    else if (carryCommType === 'Per Trade' || carryCommType === 'Flat') carryCharge = carryCommVal;
+    else carryCharge = exposure * 0.001;
   }
+
+  // GTT
+  if (order_type === 'GTT') {
+    const gttCommType = segSetting.gtt_commission_type || 'Per Trade';
+    const gttCommVal = Number(segSetting.gtt_commission_value ?? 10);
+    if (gttCommType === 'Per Crore') gttCharge = (exposure * gttCommVal) / 10000000;
+    else if (gttCommType === 'Per Lot') gttCharge = lotsUsed * gttCommVal;
+    else if (gttCommType === 'Per Trade' || gttCommType === 'Flat') gttCharge = gttCommVal;
+  }
+
+  const brokerage = intradayCharge + carryCharge + gttCharge;
 
   const requiredMargin = marginPortion + brokerage;
 

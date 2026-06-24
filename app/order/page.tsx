@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyOrders } from '@/hooks/useMyOrders';
 import { useKitePositions } from '@/hooks/useKitePositions';
+import { useMobileBack } from '@/hooks/useMobileBack';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 
@@ -27,6 +28,28 @@ export default function OrderPage() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [chartItem, setChartItem] = useState<any>(null);
+
+  // ── Mobile Back Button Interception ──
+  useMobileBack(isSheetOpen, () => {
+    setIsSheetOpen(false);
+    const sheet = document.getElementById('orderSheet');
+    const overlay = document.getElementById('orderSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setTimeout(() => setSelectedOrder(null), 300);
+  }, 'orderdetail');
+  
+  useMobileBack(!!chartItem, () => {
+    setChartItem(null);
+    const chartSheet = document.getElementById('chartSheet');
+    const chartOverlay = document.getElementById('chartSheetOverlay');
+    if (chartSheet) chartSheet.classList.remove('open');
+    if (chartOverlay) chartOverlay.classList.remove('active');
+  }, 'orderchart');
+  
+  useMobileBack(!!tradeSheetItem, () => {
+    setTradeSheetItem(null);
+  }, 'ordertrade');
 
   const openChart = (order: any) => {
     setChartItem({

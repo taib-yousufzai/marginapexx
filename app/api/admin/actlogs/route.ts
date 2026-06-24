@@ -18,7 +18,11 @@ export type ActLogItem = {
   type: string;
   time: string; // mapped from created_at
   by: string; // mapped from user_id
+  by_id: string | null;
+  by_client_id: string | null;
   target: string; // mapped from target_user_id
+  target_id: string | null;
+  target_client_id: string | null;
   symbol: string | null;
   qty: number | null;
   price: number | null;
@@ -225,7 +229,11 @@ export async function GET(request: Request): Promise<Response> {
         type: row.type,
         time: row.created_at,
         by: formatUser(row.user_id),
+        by_id: row.user_id,
+        by_client_id: row.user_id && profileMap[row.user_id] ? (profileMap[row.user_id].client_id || row.user_id.slice(0, 8).toUpperCase()) : null,
         target: formatUser(row.target_user_id),
+        target_id: row.target_user_id,
+        target_client_id: row.target_user_id && profileMap[row.target_user_id] ? (profileMap[row.target_user_id].client_id || row.target_user_id.slice(0, 8).toUpperCase()) : null,
         symbol: row.symbol,
         qty: row.qty,
         price: row.price,

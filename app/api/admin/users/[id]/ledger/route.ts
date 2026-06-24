@@ -60,28 +60,28 @@ export async function POST(
     const adjustment = Number(amount);
     const newBalance = type === 'Credit' ? currentBalance + adjustment : currentBalance - adjustment;
 
-    // 2. Create pay_request if entry_type is DEPOSIT or WITHDRAWAL (for Deposit/Withdrawal History)
+    // 2. Create pay_request (always, for Deposit/Withdrawal History)
     let payRequestId = null;
-    if (entry_type === 'DEPOSIT' || entry_type === 'WITHDRAWAL') {
-      const { data: pr, error: prError } = await adminClient
-        .from('pay_requests')
-        .insert({
-          user_id: userId,
-          type: entry_type,
-          amount: adjustment,
-          status: 'APPROVED',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
+    const prType = type === 'Credit' ? 'DEPOSIT' : 'WITHDRAWAL';
+    
+    const { data: pr, error: prError } = await adminClient
+      .from('pay_requests')
+      .insert({
+        user_id: userId,
+        type: prType,
+        amount: adjustment,
+        status: 'APPROVED',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single();
 
-      if (prError) {
-        console.error('[POST ledger] pay_requests insert error:', prError.message);
-        return Response.json({ error: 'Failed to record pay request' }, { status: 500 });
-      }
-      payRequestId = pr.id;
+    if (prError) {
+      console.error('[POST ledger] pay_requests insert error:', prError.message);
+      return Response.json({ error: 'Failed to record pay request' }, { status: 500 });
     }
+    payRequestId = pr.id;
 
     // 3. Insert transaction record with status APPROVED.
     // The transactions_balance_sync trigger will automatically update profiles.balance

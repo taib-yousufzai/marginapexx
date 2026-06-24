@@ -6,13 +6,16 @@ import type { PayRequest } from '@/lib/csvExport';
 
 type TxRecord = PayRequest & { user_name: string; user_client_id?: string };
 
-export default function TransactionsPage({ isDemoMode }: { isDemoMode: boolean }) {
+export default function TransactionsPage({ isDemoMode, initialSearch }: { 
+  isDemoMode: boolean;
+  initialSearch?: string;
+}) {
   const [requests, setRequests] = useState<TxRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const [dateFilter, setDateFilter] = useState<'1' | '7' | '30' | 'ALL'>('ALL');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch || '');
   const [page, setPage] = useState(1);
   const rowsNum = 20;
 
@@ -29,6 +32,12 @@ export default function TransactionsPage({ isDemoMode }: { isDemoMode: boolean }
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [isDemoMode]);
+
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setSearch(initialSearch);
+    }
+  }, [initialSearch]);
 
   // Filter and pagination
   const filtered = requests.filter(r => {
@@ -54,9 +63,6 @@ export default function TransactionsPage({ isDemoMode }: { isDemoMode: boolean }
 
   return (
     <div className="adm-pay-root">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 className="adm-page-title" style={{ margin: 0 }}>Transaction History</h2>
-      </div>
 
       <div className="adm-card" style={{ padding: '16px 20px', marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ActLogItem, LOG_ROWS } from './AdminUtils';
+import TransactionsPage from './TransactionsPage';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ function TypeBadge({ type }: { type: string }) {
 }
 
 /** Compact single-line card for non-ORDER_EXECUTION entries. */
-function CompactRow({ log }: { log: ActLogItem }) {
+function CompactRow({ log, onViewTransactions }: { log: ActLogItem, onViewTransactions: (id: string) => void }) {
   return (
     <div
       className="adm-al-card"
@@ -85,6 +86,16 @@ function CompactRow({ log }: { log: ActLogItem }) {
       <span style={{ color: '#e6edf3', fontSize: '12px' }}>
         <span style={{ color: '#8b949e' }}>→ </span>{fmtStr(log.target)}
       </span>
+      {log.target_id && (
+        <button 
+          className="adm-btn-ghost" 
+          style={{ padding: '2px 6px', fontSize: '10px', marginLeft: 'auto' }}
+          onClick={() => onViewTransactions(log.target_client_id || log.target_id!)}
+          title="View Transactions"
+        >
+          <i className="fas fa-list" /> Txs
+        </button>
+      )}
     </div>
   );
 }
@@ -103,9 +114,11 @@ function GridField({ label, value }: { label: string; value: React.ReactNode }) 
 function OrderExecutionCard({
   log,
   onEdit,
+  onViewTransactions,
 }: {
   log: ActLogItem;
   onEdit: () => void;
+  onViewTransactions: (id: string) => void;
 }) {
   const brokerageDisplay =
     log.brokerage_value !== null
@@ -120,13 +133,24 @@ function OrderExecutionCard({
           <TypeBadge type={log.type} />
           <span style={{ color: '#8b949e', fontSize: '12px' }}>{formatTimestamp(log.time)}</span>
         </div>
-        <button
-          className="adm-al-details-btn"
-          onClick={onEdit}
-          style={{ fontSize: '11px', padding: '3px 10px' }}
-        >
-          Edit
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {log.target_id && (
+            <button
+              className="adm-al-details-btn"
+              onClick={() => onViewTransactions(log.target_client_id || log.target_id!)}
+              style={{ fontSize: '11px', padding: '3px 10px', background: 'transparent', border: '1px solid #30363d', color: '#8b949e' }}
+            >
+              Txs
+            </button>
+          )}
+          <button
+            className="adm-al-details-btn"
+            onClick={onEdit}
+            style={{ fontSize: '11px', padding: '3px 10px' }}
+          >
+            Edit
+          </button>
+        </div>
       </div>
 
       {/* ── 9-field trade grid ── */}
@@ -320,10 +344,11 @@ function EditForm({ log, onSave, onCancel, saving }: EditFormProps) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMode }: {
+export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMode, forcedTab }: {
   selectedUser?: { id: string; role: string; client_id?: string };
   onOpenUserPanel?: () => void;
   isDemoMode: boolean;
+  forcedTab?: 'trade_logs' | 'transactions';
 }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -336,8 +361,22 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMod
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'user' | 'global'>('global');
+  const [activeTab, setActiveTab] = useState<'trade_logs' | 'transactions'>(forcedTab || 'trade_logs');
+  const [targetTxId, setTargetTxId] = useState<string | undefined>(undefined);
 
   const uid = selectedUser?.id;
+
+  useEffect(() => {
+    if (forcedTab) {
+      setActiveTab(forcedTab);
+      if (forcedTab === 'trade_logs') setTargetTxId(undefined);
+    }
+  }, [forcedTab]);
+
+  const handleViewTransactions = (id: string) => {
+    setTargetTxId(id);
+    setActiveTab('transactions');
+  };
 
   // Derive total pages from server-side total count
   const pageSize = parseInt(dlRows, 10) || LOG_ROWS;
@@ -470,38 +509,50 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMod
 
       {/* ── Header bar ── */}
       <div className="adm-ord-header" style={{ marginBottom: 20 }}>
-        <div className="adm-ord-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <h2 className="adm-page-title" style={{ margin: 0 }}>Action Logs</h2>
-          <div className="adm-ord-view-toggle">
-            <button
-              className={`adm-ord-vtab ${viewMode === 'user' ? 'active' : ''}`}
-              onClick={() => { setViewMode('user'); setPage(1); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              {uid ? `User: ${(selectedUser?.client_id || uid.slice(0, 8)).toUpperCase()}…` : 'User View'}
-              {viewMode === 'user' && onOpenUserPanel && (
-                <span
-                  onClick={e => { e.stopPropagation(); onOpenUserPanel(); }}
-                  style={{
-                    background: '#161b22', border: '1px solid #30363d', color: '#4493f8',
-                    fontSize: '11px', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px',
-                  }}
-                >
-                  Change
-                </span>
-              )}
-            </button>
-            <button
-              className={`adm-ord-vtab ${viewMode === 'global' ? 'active' : ''}`}
-              onClick={() => { setViewMode('global'); setPage(1); }}
-            >
-              All Platform
-            </button>
+        <div className="adm-ord-header-left" style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', width: '100%', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <h2 className="adm-page-title" style={{ margin: 0 }}>Ledger &amp; Transactions</h2>
+            <div className="adm-ord-view-toggle">
+              <button className={`adm-ord-vtab ${activeTab === 'trade_logs' ? 'active' : ''}`} onClick={() => setActiveTab('trade_logs')}>Trade Logs</button>
+              <button className={`adm-ord-vtab ${activeTab === 'transactions' ? 'active' : ''}`} onClick={() => setActiveTab('transactions')}>Transactions</button>
+            </div>
           </div>
+          {activeTab === 'trade_logs' && (
+            <div className="adm-ord-view-toggle">
+              <button
+                className={`adm-ord-vtab ${viewMode === 'user' ? 'active' : ''}`}
+                onClick={() => { setViewMode('user'); setPage(1); }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                {uid ? `User: ${(selectedUser?.client_id || uid.slice(0, 8)).toUpperCase()}…` : 'User View'}
+                {viewMode === 'user' && onOpenUserPanel && (
+                  <span
+                    onClick={e => { e.stopPropagation(); onOpenUserPanel(); }}
+                    style={{
+                      background: '#161b22', border: '1px solid #30363d', color: '#4493f8',
+                      fontSize: '11px', cursor: 'pointer', padding: '2px 6px', borderRadius: '4px',
+                    }}
+                  >
+                    Change
+                  </span>
+                )}
+              </button>
+              <button
+                className={`adm-ord-vtab ${viewMode === 'global' ? 'active' : ''}`}
+                onClick={() => { setViewMode('global'); setPage(1); }}
+              >
+                All Platform
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Date filters ── */}
+      {activeTab === 'transactions' ? (
+        <TransactionsPage isDemoMode={isDemoMode} initialSearch={targetTxId || selectedUser?.client_id || selectedUser?.id} />
+      ) : (
+        <>
+          {/* ── Date filters ── */}
       <div className="adm-al-dates">
         <div className="adm-al-date-field">
           <label className="adm-al-label">From</label>
@@ -544,7 +595,7 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMod
           const isEditing = editingId === log.id;
 
           if (!isOE) {
-            return <CompactRow key={log.id} log={log} />;
+            return <CompactRow key={log.id} log={log} onViewTransactions={handleViewTransactions} />;
           }
 
           // Rich ORDER_EXECUTION card
@@ -552,6 +603,7 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMod
             <div key={log.id}>
               <OrderExecutionCard
                 log={log}
+                onViewTransactions={handleViewTransactions}
                 onEdit={() => {
                   if (isEditing) {
                     setEditingId(null);
@@ -603,6 +655,8 @@ export default function ActLedgerPage({ selectedUser, onOpenUserPanel, isDemoMod
       </div>
 
       <div style={{ height: 24 }} />
+        </>
+      )}
     </div>
   );
 }
