@@ -200,7 +200,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
   const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);
 
-  const requiredMargin = marginPortion + calculatedBrokerage;
+  const requiredMargin = Math.round(marginPortion + calculatedBrokerage);
 
   const userHasEditedQty = useRef(false);
   const activePositionsRef = useRef(activePositions);
@@ -1264,7 +1264,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Required Margin</span>
-                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
