@@ -212,12 +212,13 @@ export async function POST(request: Request): Promise<Response> {
       user_metadata: { role: body.role, username: body.username }
     });
 
-    // Step 6: Update profile row (already created by auth trigger)
+    // Step 6: Upsert profile row
+    // The handle_new_user trigger may fail silently (e.g. client_id NOT NULL),
+    // so we use upsert to guarantee the profile row exists.
     // Validates: Requirements 3.3, 3.5
     const { error: insertError } = await adminClient
       .from('profiles')
-      .update({ email: email as string, ...profileFields })
-      .eq('id', newUser.id);
+      .upsert({ id: newUser.id, email: email as string, ...profileFields }, { onConflict: 'id' });
 
     if (insertError) {
       console.error('[POST /api/admin/users] Insert error:', insertError);
