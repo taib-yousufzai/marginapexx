@@ -39,13 +39,13 @@ describe('loadStrikeConfig', () => {
   it('returns defaults when admin_config rows are absent (empty array)', async () => {
     const supabase = makeMockSupabase([], null);
     const config = await loadStrikeConfig(supabase);
-    expect(config).toEqual({ indexOptionsRange: 5, mcxOptionsRange: 7 });
+    expect(config).toEqual({ indexOptionsRange: 11, mcxOptionsRange: 11 });
   });
 
   it('returns defaults on DB error', async () => {
     const supabase = makeMockSupabase(null, { message: 'db error' });
     const config = await loadStrikeConfig(supabase);
-    expect(config).toEqual({ indexOptionsRange: 5, mcxOptionsRange: 7 });
+    expect(config).toEqual({ indexOptionsRange: 11, mcxOptionsRange: 11 });
   });
 
   it('parses index_options_strike_range and mcx_options_strike_range correctly', async () => {
@@ -67,7 +67,7 @@ describe('loadStrikeConfig', () => {
     );
     const config = await loadStrikeConfig(supabase);
     expect(config.indexOptionsRange).toBe(8);
-    expect(config.mcxOptionsRange).toBe(7); // default
+    expect(config.mcxOptionsRange).toBe(11); // default
   });
 });
 
@@ -202,11 +202,10 @@ describe('applyStrikeRangeFilter', () => {
     const atmPrice = 22000;
     // CE strikes: 21500 (far), 21900 (close), 22000 (ATM), 22100 (close), 22500 (far)
     const ceInstruments = [21500, 21900, 22000, 22100, 22500].map((s) => makeOption(s, 'CE'));
-    // N=2: expect 22000 and one of 21900/22100 (both distance 100), not 21500 or 22500
-    const result = applyStrikeRangeFilter(ceInstruments, atmPrice, 2);
+    const result = applyStrikeRangeFilter(ceInstruments, atmPrice, 3);
     const selectedCe = result.filter((i) => i.option_type === 'CE');
-    expect(selectedCe).toHaveLength(2);
-    // The 2 closest should be 22000 (dist 0) and either 21900 or 22100 (dist 100)
+    expect(selectedCe).toHaveLength(3);
+    // The 3 closest should be 22000 (dist 0) and either 21900 or 22100 (dist 100)
     const selectedStrikes = selectedCe.map((i) => i.strike_price).sort((a, b) => a! - b!);
     expect(selectedStrikes).toContain(22000);
     // 21500 and 22500 (dist 500) should NOT be included

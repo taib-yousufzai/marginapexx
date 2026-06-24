@@ -88,6 +88,20 @@ class TickerDaemon {
     const server = http.createServer((req, res) => {
       const urlObj = new URL(req.url || '', `http://${req.headers.host}`);
 
+      const corsHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      };
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, corsHeaders);
+        res.end();
+        return;
+      }
+
+      const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
+
       // GET /health — structured health check for Railway and monitoring
       if (urlObj.pathname === '/health' || urlObj.pathname === '/') {
         const sessionStatus = this.sessionMonitor.getStatus();
@@ -109,7 +123,7 @@ class TickerDaemon {
           timestamp: new Date().toISOString(),
           ...redisHealth
         });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, jsonHeaders);
         res.end(payload);
         return;
       }
@@ -117,7 +131,7 @@ class TickerDaemon {
       // GET /metrics — live telemetry from this process
       if (urlObj.pathname === '/metrics') {
         const summary = telemetry.getSummary();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, jsonHeaders);
         res.end(JSON.stringify(summary));
         return;
       }
@@ -128,16 +142,16 @@ class TickerDaemon {
         if (symbolsParam) {
           const symbols = symbolsParam.split(',').filter(Boolean);
           const quotes = this.gateway.getQuotes(symbols);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.writeHead(200, jsonHeaders);
           res.end(JSON.stringify({ success: true, data: quotes }));
         } else {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.writeHead(400, jsonHeaders);
           res.end(JSON.stringify({ success: false, error: 'Missing symbols query param' }));
         }
         return;
       }
 
-      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.writeHead(404, jsonHeaders);
       res.end(JSON.stringify({ error: 'Not found' }));
     });
 

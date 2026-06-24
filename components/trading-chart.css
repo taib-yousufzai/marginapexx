@@ -194,6 +194,7 @@
 /* --- Main Area (Left Toolbar + Chart) --- */
 .tc-main-area {
   display: flex;
+  flex-direction: column;
   flex: 1;
   overflow: visible;
   height: calc(100% - 150px);
@@ -244,13 +245,12 @@
   background-color: #213743;
 }
 
-/* --- Chart Container --- */
 .tc-chart-container {
   flex: 1;
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
 }
 
 /* --- Legend Overlay --- */

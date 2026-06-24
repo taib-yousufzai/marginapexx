@@ -99,16 +99,23 @@ export default function ChartContainer({
       controllerRef.current = null;
     }
 
-    const controller = new ChartController({
-      container: containerRef.current,
-      symbol,
-      segment,
-      isDarkMode: isDark
-    });
-    controllerRef.current = controller;
+    try {
+      const controller = new ChartController({
+        container: containerRef.current,
+        symbol,
+        segment,
+        isDarkMode: isDark
+      });
+      controllerRef.current = controller;
+    } catch (e) {
+      console.error('Failed to initialize ChartController:', e);
+      return;
+    }
 
     // Apply indicators according to active state
-    applyActiveIndicators(controller);
+    if (controllerRef.current) {
+      applyActiveIndicators(controllerRef.current);
+    }
 
     // Set up ResizeObserver to handle container resizing
     const resizeObserver = new ResizeObserver(entries => {
@@ -218,7 +225,7 @@ export default function ChartContainer({
   };
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div style={{ flex: 1, width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column' }}>
       
       {/* Indicator overlay buttons inside top toolbar area */}
       <div style={{
@@ -254,8 +261,20 @@ export default function ChartContainer({
         </button>
       </div>
 
+      {loading && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(7, 24, 36, 0.5)' : 'rgba(255, 255, 255, 0.5)' }}>
+          <div style={{ color: isDark ? '#D1D4DC' : '#131722', fontSize: '13px', fontWeight: 600 }}>Loading chart data...</div>
+        </div>
+      )}
+
+      {error && !loading && candles.length === 0 && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#F23645', fontSize: '13px', fontWeight: 600, maxWidth: '80%', textAlign: 'center' }}>{error}</div>
+        </div>
+      )}
+
       {/* Main Chart container target */}
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div ref={containerRef} style={{ flex: 1, width: '100%' }} />
 
       {/* Modern Settings Modal */}
       {showSettingsModal && (

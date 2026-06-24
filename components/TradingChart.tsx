@@ -83,6 +83,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const hasLoadedData = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [historicalCandles, setHistoricalCandles] = useState<Candle[]>([]);
 
@@ -400,6 +401,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
           uniqueData.sort((a, b) => a.timestamp - b.timestamp);
           
           setHistoricalCandles(uniqueData);
+          if (uniqueData.length > 0) hasLoadedData.current = true;
           setLoading(false);
 
           if (uniqueData.length > 0) {
@@ -1163,7 +1165,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
             chartType={chartType}
             candles={historicalCandles}
             liveQuote={liveQuote}
-            loading={loading}
+            loading={loading && !hasLoadedData.current}
             error={error}
             activeIndicators={activeIndicators}
             setActiveIndicators={setActiveIndicators}

@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getAdminClient } from './adminClient.ts';
 import { telemetry } from './metrics.ts';
+import { checkAndExecuteAccountLiquidation } from './liquidationEngine.ts';
 
 export interface Quote {
   id: string; // e.g. "NSE:INFY"
@@ -13,19 +14,27 @@ export class InMemoryMatchingEngine {
   public activePositions = new Map<string, any>();
   public userProfiles = new Map<string, any>();
   public segmentSettings = new Map<string, any>();
+  public tradingHours = new Map<string, any>();
 
   public async initialize() {
     const admin = getAdminClient();
 
     const dbStart = performance.now();
-    // 1. Fetch pending orders and open positions
-    const [ordersRes, positionsRes] = await Promise.all([
+    // 1. Fetch pending orders, open positions, and trading hours
+    const [ordersRes, positionsRes, tradingHoursRes] = await Promise.all([
       admin.from('orders').select('*').eq('status', 'PENDING'),
-      admin.from('positions').select('*').eq('status', 'open')
+      admin.from('positions').select('*').eq('status', 'open'),
+      admin.from('trading_hours').select('*').eq('is_active', true)
     ]);
 
     const pendingOrders = ordersRes.data ?? [];
     const openPositions = positionsRes.data ?? [];
+    const tradingHoursData = tradingHoursRes.data ?? [];
+
+    this.tradingHours.clear();
+    for (const th of tradingHoursData) {
+      this.tradingHours.set(th.id, th);
+    }
 
     this.activeOrders.clear();
     for (const order of pendingOrders) {
@@ -123,6 +132,14 @@ export class InMemoryMatchingEngine {
           });
         }
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trading_hours' }, (payload) => {
+        const row = payload.new as any;
+        if (row && row.id && row.is_active) {
+          this.tradingHours.set(row.id, row);
+        } else if (row && row.id && !row.is_active) {
+          this.tradingHours.delete(row.id);
+        }
+      })
       .subscribe();
   }
 
@@ -138,6 +155,19 @@ export class InMemoryMatchingEngine {
 
     const pendingOrders = Array.from(this.activeOrders.values());
     const openPositions = Array.from(this.activePositions.values());
+
+    // Compute current IST time in HH:mm for EOD square-off
+    const now = new Date();
+    const istTimeStr = now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' });
+
+    const mapSegmentToTradingHoursId = (segment: string) => {
+      const seg = (segment || '').toUpperCase();
+      if (seg.includes('MCX')) return 'mcx';
+      if (seg.includes('CDS') || seg.includes('FOREX')) return 'forex';
+      if (seg.includes('COMEX') || seg.includes('COI')) return 'comex';
+      if (seg.includes('BSE')) return 'bse';
+      return 'nse'; // Default for NSE-EQ, INDEX-OPT, NFO, etc.
+    };
 
     // 1. PROCESS PENDING ORDERS
     if (pendingOrders.length > 0) {
@@ -308,7 +338,7 @@ export class InMemoryMatchingEngine {
       }
     }
 
-    // 2. PROCESS OPEN POSITIONS
+    // 2. PROCESS OPEN POSITIONS — ACCOUNT-LEVEL LIQUIDATION
     if (openPositions.length > 0) {
       const userOpenPositions: Record<string, any[]> = {};
       for (const pos of openPositions) {
@@ -326,12 +356,11 @@ export class InMemoryMatchingEngine {
 
         const balance = Number(profile.balance || 0);
         const autoSqoffPercent = Number(profile.auto_sqoff ?? 90);
+        if (autoSqoffPercent <= 0) continue;
 
-        if (balance <= 0 || autoSqoffPercent <= 0) continue;
-
-        const drawdownLimit = - (autoSqoffPercent / 100.0) * balance;
-        let totalUnrealised = 0;
-        const resolvedPositions = [];
+        // Resolve LTP for each position and compute total floating PnL (account-level)
+        let totalFloatingPnl = 0;
+        const positionsWithLtp: any[] = [];
 
         for (const pos of userPositions) {
           let ltp = pricesMap.get(pos.symbol);
@@ -358,45 +387,28 @@ export class InMemoryMatchingEngine {
             ? ((ltp * (1 - buyExitBuffer)) - entryPrice) * qty 
             : (entryPrice - (ltp * (1 + sellExitBuffer))) * qty;
 
-          totalUnrealised += pnl;
-
-          resolvedPositions.push({ pos, ltp, pnl });
+          totalFloatingPnl += pnl;
+          positionsWithLtp.push({ ...pos, ltp, qty_open: qty, entry_price: entryPrice });
         }
 
-        if (totalUnrealised <= drawdownLimit && userPositions.length > 0) {
-          for (const item of resolvedPositions) {
-            const pos = item.pos;
-            const ltp = item.ltp;
+        // Account-level liquidation: check total PnL against -(balance × auto_sqoff%)
+        const liquidationResult = await checkAndExecuteAccountLiquidation(
+          userId,
+          balance,
+          autoSqoffPercent,
+          positionsWithLtp,
+          totalFloatingPnl,
+          this.segmentSettings,
+          admin,
+        );
 
-            let exitPrice = ltp;
-            if (pos.side === 'BUY') {
-              const exitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
-              exitPrice = ltp * (1 - exitBuffer);
-            } else {
-              const exitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
-              exitPrice = ltp * (1 + exitBuffer);
-            }
-            exitPrice = Math.round(exitPrice * 10000) / 10000;
-
-            const dbStart = performance.now();
-            const { error: closeRpcErr } = await admin.rpc('close_position', {
-              p_position_id: pos.id,
-              p_user_id: pos.user_id,
-              p_ltp: ltp,
-              p_exit_price: exitPrice,
-              p_closed_by: 'AUTO_SQOFF',
-            });
-
-            telemetry.recordDbCall('write', performance.now() - dbStart);
-            telemetry.recordTriggerExecution(performance.now() - dbStart);
-
-            if (closeRpcErr) {
-              console.error(`[Order Matching] Failed to close position ${pos.id} via close_position RPC during drawdown:`, closeRpcErr);
-            } else {
-              closedPositionIds.add(pos.id);
-              this.activePositions.delete(pos.id);
-            }
+        if (liquidationResult.liquidated) {
+          // Mark all user positions as closed for downstream SL/TP/EOD processing
+          for (const pos of userPositions) {
+            closedPositionIds.add(pos.id);
+            this.activePositions.delete(pos.id);
           }
+          telemetry.recordTriggerExecution(0);
         }
       }
 
@@ -443,6 +455,16 @@ export class InMemoryMatchingEngine {
           } else if (side === 'SELL' && ltp <= target) {
             shouldClose = true;
             closeReason = 'AUTO_TARGET';
+          }
+        }
+
+        // 6. EOD INTRADAY SQUARE-OFF CHECK
+        if (!shouldClose && pos.product_type === 'INTRADAY') {
+          const thId = mapSegmentToTradingHoursId(pos.settlement);
+          const th = this.tradingHours.get(thId);
+          if (th && th.end_time && istTimeStr >= th.end_time) {
+            shouldClose = true;
+            closeReason = 'SYSTEM_EOD';
           }
         }
 

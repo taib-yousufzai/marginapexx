@@ -1,4 +1,4 @@
-import { createChart, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, AreaSeries, BaselineSeries, Time } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CandlestickSeries, LineSeries, AreaSeries, BaselineSeries, Time, ColorType } from 'lightweight-charts';
 import { Candle, Timeframe } from '../types';
 import { IndicatorManager } from '../indicators/IndicatorManager';
 import { PaneManager } from './PaneManager';
@@ -39,7 +39,7 @@ export class ChartController {
       width: config.container.clientWidth,
       height: config.container.clientHeight,
       layout: {
-        background: { color: colors.backgroundColor },
+        background: { type: ColorType.Solid, color: colors.backgroundColor },
         textColor: colors.textColor,
         fontSize: 11,
         fontFamily: 'Inter, sans-serif',
@@ -294,7 +294,7 @@ export class ChartController {
 
     this.chart.applyOptions({
       layout: {
-        background: { color: colors.backgroundColor },
+        background: { type: ColorType.Solid, color: colors.backgroundColor },
         textColor: colors.textColor,
       },
       grid: {

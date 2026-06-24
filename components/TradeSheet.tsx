@@ -96,20 +96,35 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   if (bSymbol && !bSymbol.endsWith('USDT')) {
     bSymbol = bSymbol + 'USDT';
   }
+  const computedKiteSymbol = useMemo(() => {
+    let k = item?.kiteSymbol;
+    if (k && item?.symbol) {
+      const isOption = item.symbol.endsWith('CE') || item.symbol.endsWith('PE');
+      if (isOption && !k.endsWith('CE') && !k.endsWith('PE')) {
+        const underlying = item.symbol.replace(/_INDEX|NSE:|INDEX/g, '').trim();
+        let prefix = 'NFO';
+        if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
+        else if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].some(x => underlying.includes(x))) prefix = 'MCX';
+        k = `${prefix}:${item.symbol}`;
+      }
+    }
+    return k;
+  }, [item?.kiteSymbol, item?.symbol]);
+
   const marketSymbols = useMemo(() => {
     const list: string[] = [];
-    if (item?.kiteSymbol) list.push(item.kiteSymbol);
+    if (computedKiteSymbol) list.push(computedKiteSymbol);
     if (bSymbol) list.push(bSymbol);
     return list;
-  }, [item?.kiteSymbol, bSymbol]);
+  }, [computedKiteSymbol, bSymbol]);
 
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
 
   let currentLtp = item?.price ?? 0;
   if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
     currentLtp = marketQuotes[bSymbol].lastPrice;
-  } else if (item?.kiteSymbol && marketQuotes[item.kiteSymbol]) {
-    currentLtp = marketQuotes[item.kiteSymbol].lastPrice;
+  } else if (computedKiteSymbol && marketQuotes[computedKiteSymbol]) {
+    currentLtp = marketQuotes[computedKiteSymbol].lastPrice;
   }
 
   const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
@@ -131,9 +146,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
       rawBid = marketQuotes[bSymbol].bid || currentLtp;
       rawAsk = marketQuotes[bSymbol].ask || currentLtp;
-    } else if (item?.kiteSymbol && marketQuotes[item.kiteSymbol]) {
-      rawBid = marketQuotes[item.kiteSymbol].bid || currentLtp;
-      rawAsk = marketQuotes[item.kiteSymbol].ask || currentLtp;
+    } else if (computedKiteSymbol && marketQuotes[computedKiteSymbol]) {
+      rawBid = marketQuotes[computedKiteSymbol].bid || currentLtp;
+      rawAsk = marketQuotes[computedKiteSymbol].ask || currentLtp;
     }
 
     if (exitMode) {
@@ -709,7 +724,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
     const res = await placeOrder({
       symbol: item.symbol,
-      kite_instrument: item.kiteSymbol || item.symbol,
+      kite_instrument: computedKiteSymbol || item.symbol,
       segment: item.segment,
       side: placeSide,
       qty: orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty,
@@ -1011,7 +1026,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               <div className="ts2-name-block">
                 <div className="ts2-instr-name">{item.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span className="ts2-segment-badge">{item.segment}</span>
+                  <span className="ts2-segment-badge">{computedKiteSymbol || item?.symbol}</span>
                   {exitMode && (
                     <span className="ts2-status-badge neg">Exit Position</span>
                   )}

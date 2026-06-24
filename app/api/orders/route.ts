@@ -700,7 +700,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 8. Balance check — use server-fetched LTP for accurate margin calculation
+  // 8. Balance check — use FREE MARGIN (balance - sum of locked margins)
   const balance = Number(profile.balance ?? 0);
   const targetProductType = product_type ?? 'INTRADAY';
   const leverageVal = targetProductType === 'CARRY'
@@ -774,11 +774,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const requiredMargin = marginPortion + brokerage;
 
-  if (balance < requiredMargin) {
+  // Free Margin = Balance - Sum(locked_margins from all open positions)
+  // locked_margin is frozen at trade entry and does not change with market conditions
+  const totalLockedMargin = openPositions.reduce(
+    (sum: number, p: any) => sum + Number(p.locked_margin || p.margin_required || 0), 0
+  );
+  const freeMargin = balance - totalLockedMargin;
+
+  if (freeMargin < requiredMargin) {
     return NextResponse.json({
-      error: `Insufficient margin. Available: ₹${balance.toFixed(2)}, Required: ₹${requiredMargin.toFixed(2)}`,
+      error: `Insufficient margin. Free Margin: ₹${freeMargin.toFixed(2)}, Required: ₹${requiredMargin.toFixed(2)} (Balance: ₹${balance.toFixed(2)}, Used: ₹${totalLockedMargin.toFixed(2)})`,
     }, { status: 400 });
   }
+
 
   // Validate Limit price constraints relative to LTP
   if (order_type === 'LIMIT') {

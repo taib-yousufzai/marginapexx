@@ -2340,6 +2340,7 @@ function WatchlistContent() {
         <div style={{ flex: 1, position: 'relative', width: '100%', overflow: 'hidden' }}>
           {chartItem && (
             <TradingChart
+              key={`${chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}-${chartItem.segment}`}
               symbol={chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}
               segment={chartItem.binanceSymbol ? 'CRYPTO' : chartItem.segment}
               liveQuote={chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol]}

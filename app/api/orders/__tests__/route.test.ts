@@ -66,16 +66,24 @@ describe('POST /api/orders', () => {
           }),
         };
       }
-      if (table === 'positions' || table === 'market_quotes') {
+      if (table === 'positions' || table === 'market_quotes' || table === 'user_blocked_scripts' || table === 'script_settings') {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: [], error: null }),
-          single: vi.fn().mockResolvedValue({ data: [], error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
       }
-      return { select: vi.fn() };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null })
+      };
     });
 
     // Stub the positionStore getPosition response
@@ -130,16 +138,24 @@ describe('POST /api/orders', () => {
           }),
         };
       }
-      if (table === 'positions' || table === 'market_quotes') {
+      if (table === 'positions' || table === 'market_quotes' || table === 'user_blocked_scripts' || table === 'script_settings') {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: [], error: null }),
-          single: vi.fn().mockResolvedValue({ data: [], error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          single: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
       }
-      return { select: vi.fn() };
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        single: vi.fn().mockResolvedValue({ data: null, error: null })
+      };
     });
 
     // Mock empty/null position in the store

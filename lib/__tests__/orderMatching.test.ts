@@ -62,12 +62,13 @@ describe('orderMatching', () => {
       }
     ];
 
-    // Mock fetching pending orders, positions, pre-fetch, and existing positions
+    // Mock fetching pending orders, positions, trading_hours, segment_settings, profiles
     mockSelect
-      .mockReturnValueOnce(mockQueryResult(orders)) // orders
-      .mockReturnValueOnce(mockQueryResult([]))     // positions
-      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult([]));    // positions existing check
+      .mockReturnValueOnce(mockQueryResult(orders)) // 1. orders
+      .mockReturnValueOnce(mockQueryResult([]))     // 2. positions
+      .mockReturnValueOnce(mockQueryResult([]))     // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))     // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([]));    // 5. profiles
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1495 }];
     await processPendingOrdersAndPositions(quotes);
@@ -77,7 +78,8 @@ describe('orderMatching', () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'EXECUTED',
-        fill_price: 1500
+        fill_price: 1499.49,
+        buffer_fee: 0
       })
     );
 
@@ -105,9 +107,11 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult(orders)) // orders
-      .mockReturnValueOnce(mockQueryResult([]))     // positions
-      .mockReturnValueOnce(mockQueryResult([]));    // segment_settings pre-fetch
+      .mockReturnValueOnce(mockQueryResult(orders)) // 1. orders
+      .mockReturnValueOnce(mockQueryResult([]))     // 2. positions
+      .mockReturnValueOnce(mockQueryResult([]))     // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))     // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([]));    // 5. profiles
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1505 }];
     await processPendingOrdersAndPositions(quotes);
@@ -135,10 +139,11 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult(orders)) // orders
-      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open', symbol: 'NSE:TCS', user_id: 'usr-1' }])) // positions
-      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult({ id: 'usr-1', balance: 100000, auto_sqoff: 90 })); // profile
+      .mockReturnValueOnce(mockQueryResult(orders)) // 1. orders
+      .mockReturnValueOnce(mockQueryResult([{ id: 'pos-abc', side: 'BUY', status: 'open', symbol: 'TCS', user_id: 'usr-1' }])) // 2. positions
+      .mockReturnValueOnce(mockQueryResult([]))     // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))     // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([{ id: 'usr-1', balance: 100000, auto_sqoff: 90 }])); // 5. profile
 
     const quotes = [{ id: 'NSE:TCS', last_price: 3405 }];
     await processPendingOrdersAndPositions(quotes);
@@ -146,7 +151,8 @@ describe('orderMatching', () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'EXECUTED',
-        fill_price: 3400
+        fill_price: 3399.21,
+        buffer_fee: 0
       })
     );
   });
@@ -169,10 +175,11 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult(orders)) // orders
-      .mockReturnValueOnce(mockQueryResult([]))     // positions
-      .mockReturnValueOnce(mockQueryResult([]))     // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult([]));    // positions existing check
+      .mockReturnValueOnce(mockQueryResult(orders)) // 1. orders
+      .mockReturnValueOnce(mockQueryResult([]))     // 2. positions
+      .mockReturnValueOnce(mockQueryResult([]))     // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))     // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([]));    // 5. profiles
 
     const quotes = [{ id: 'NSE:RELIANCE', last_price: 2502 }];
     await processPendingOrdersAndPositions(quotes);
@@ -181,7 +188,8 @@ describe('orderMatching', () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'EXECUTED',
-        fill_price: 2502
+        fill_price: 2509.51,
+        buffer_fee: 0
       })
     );
   });
@@ -205,10 +213,11 @@ describe('orderMatching', () => {
 
     // Select chain mocking
     mockSelect
-      .mockReturnValueOnce(mockQueryResult([]))        // pending orders
-      .mockReturnValueOnce(mockQueryResult(positions)) // open positions
-      .mockReturnValueOnce(mockQueryResult([]))        // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })); // profile
+      .mockReturnValueOnce(mockQueryResult([]))        // 1. pending orders
+      .mockReturnValueOnce(mockQueryResult(positions)) // 2. open positions
+      .mockReturnValueOnce(mockQueryResult([]))        // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))        // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([{ id: 'usr-1', balance: 10000, auto_sqoff: 90 }])); // 5. profiles
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1475 }];
     await processPendingOrdersAndPositions(quotes);
@@ -218,7 +227,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-1',
       p_user_id: 'usr-1',
       p_ltp: 1475,
-      p_exit_price: 1471.02,
+      p_exit_price: 1472.4925,
       p_closed_by: 'AUTO_SL'
     });
   });
@@ -240,10 +249,11 @@ describe('orderMatching', () => {
     ];
 
     mockSelect
-      .mockReturnValueOnce(mockQueryResult([]))        // pending orders
-      .mockReturnValueOnce(mockQueryResult(positions)) // open positions
-      .mockReturnValueOnce(mockQueryResult([]))        // segment_settings pre-fetch
-      .mockReturnValueOnce(mockQueryResult({ balance: 10000, auto_sqoff: 90 })); // profile
+      .mockReturnValueOnce(mockQueryResult([]))        // 1. pending orders
+      .mockReturnValueOnce(mockQueryResult(positions)) // 2. open positions
+      .mockReturnValueOnce(mockQueryResult([]))        // 3. trading_hours
+      .mockReturnValueOnce(mockQueryResult([]))        // 4. segment_settings
+      .mockReturnValueOnce(mockQueryResult([{ id: 'usr-1', balance: 10000, auto_sqoff: 90 }])); // 5. profiles
 
     const quotes = [{ id: 'NSE:INFY', last_price: 1605 }];
     await processPendingOrdersAndPositions(quotes);
@@ -253,7 +263,7 @@ describe('orderMatching', () => {
       p_position_id: 'pos-2',
       p_user_id: 'usr-1',
       p_ltp: 1605,
-      p_exit_price: 1600.6692,
+      p_exit_price: 1602.2715,
       p_closed_by: 'AUTO_TARGET'
     });
   });

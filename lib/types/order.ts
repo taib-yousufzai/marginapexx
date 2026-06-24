@@ -92,6 +92,7 @@ export interface MyPosition {
   entry_brokerage?: number;
   exit_brokerage?: number;
   margin_required?: number;
+  locked_margin?: number;
   created_at: string;
 }
 

@@ -8,7 +8,7 @@
  */
 
 import { requireAdmin } from '../../../_auth';
-import { getRole } from '@/lib/auth';
+import { getRole } from '../../../../../../lib/auth';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -39,53 +39,36 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
     const userSettingsMap = new Map(userSettings?.map(s => [`${s.segment}_${s.side}`, s]));
     const parentSettingsMap = new Map(parentSettings?.map(s => [`${s.segment}_${s.side}`, s]));
 
-    // 4. Calculate new required margin for each open position
-    const positionsWithNewMargin = [];
-    let totalNewUsedMargin = 0;
+    // 4. Use frozen locked_margin for each open position (set at trade entry, never recalculated)
+    const positionsWithMargin = [];
+    let totalLockedMargin = 0;
     let totalFloatingPnl = 0;
 
     for (const pos of positions) {
-      // Find leverage
+      // Find exit buffer from settings
       const key = `${pos.settlement}_${pos.side}`;
       const setting = userSettingsMap.get(key) || parentSettingsMap.get(key);
-      
-      let leverage = setting 
-        ? (pos.product_type === 'CARRY' ? Number(setting.holding_leverage) : Number(setting.intraday_leverage))
-        : null;
 
-      // Fallbacks
-      if (!leverage || leverage <= 0) {
-        if (pos.settlement?.includes('FOREX') || pos.settlement?.includes('CDS')) {
-          leverage = pos.product_type === 'CARRY' ? 10 : 100;
-        } else if (pos.settlement?.includes('CRYPTO')) {
-          leverage = pos.product_type === 'CARRY' ? 1 : 10;
-        } else {
-          leverage = pos.product_type === 'CARRY' ? 5 : 50;
-        }
-      }
-
-      const entryPrice = Number(pos.entry_price || 0);
-      const qtyOpen = Number(pos.qty_open || 0);
-      const newMargin = (qtyOpen * entryPrice) / leverage;
+      // Use frozen locked_margin (fallback to margin_required for backward compat)
+      const lockedMargin = Number(pos.locked_margin || pos.margin_required || 0);
       
-      totalNewUsedMargin += newMargin;
+      totalLockedMargin += lockedMargin;
       totalFloatingPnl += Number(pos.pnl || 0);
 
-      positionsWithNewMargin.push({
+      positionsWithMargin.push({
         ...pos,
-        newMargin,
+        lockedMargin,
         exitBuffer: setting?.exit_buffer ?? 0.0017
       });
     }
 
     // 5. Check if total available margin is negative
-    const freeMargin = (balance + totalFloatingPnl) - totalNewUsedMargin;
+    const freeMargin = (balance + totalFloatingPnl) - totalLockedMargin;
     
     if (freeMargin < 0) {
       // User has insufficient margin now!
       // We will square off the open carry positions in the segments that are over margin
-      // Let's sort the positions by how much margin they consume (descending)
-      const positionsToClose = positionsWithNewMargin.filter(p => p.product_type === 'CARRY');
+      const positionsToClose = positionsWithMargin.filter(p => p.product_type === 'CARRY');
       
       for (const pos of positionsToClose) {
         // Compute exit price using exit buffer

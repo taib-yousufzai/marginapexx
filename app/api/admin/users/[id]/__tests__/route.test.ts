@@ -39,6 +39,7 @@ vi.mock('@supabase/supabase-js', () => ({
     },
     from: vi.fn(() => ({
       insert: mockInsert,
+      upsert: mockInsert,
       update: mockUpdate,
       select: mockSelect,
       eq: mockEq,
@@ -402,11 +403,10 @@ describe('POST /api/admin/users', () => {
         data: { user: { id: 'new-user-uuid', email: 'test@example.com' } },
         error: null,
       });
-      mockEq.mockResolvedValue({
+      mockInsert.mockResolvedValue({
         data: null,
         error: { message: 'insert failed' },
       });
-      mockUpdate.mockReturnValue({ eq: mockEq });
 
       const req = makePostRequest(
         { email: 'test@example.com', password: 'securepass', role: 'user' },

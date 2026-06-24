@@ -41,6 +41,7 @@ vi.mock('@supabase/supabase-js', () => ({
     },
     from: vi.fn(() => ({
       insert: mockInsert,
+      upsert: mockInsert,
       update: mockUpdate,
       select: mockSelect,
     })),
@@ -161,7 +162,7 @@ beforeEach(() => {
 
 const nonEmptyStringArb = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
 const emailArb = fc.emailAddress();
-const validPasswordArb = fc.string({ minLength: 8 });
+const validPasswordArb = fc.string({ minLength: 8 }).filter((s) => s.trim().length >= 8);
 
 // ---------------------------------------------------------------------------
 // Property 1: Missing/malformed Authorization header returns 401

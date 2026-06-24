@@ -116,29 +116,7 @@ export async function GET(request: Request) {
           s => s.user_id === lookupId && s.segment === pos.settlement && s.side === pos.side
         );
 
-        if (pos.product_type !== 'CARRY') {
-          // --- AUTO SQUARE OFF INTRADAY ---
-          const ltp = await fetchLtp(pos.symbol, pos.settlement);
-          const baseLtp = ltp ?? Number(pos.ltp ?? pos.entry_price);
-
-          const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
-          let exitPrice = pos.side === 'BUY' ? baseLtp * (1 - exitBuffer) : baseLtp * (1 + exitBuffer);
-          exitPrice = Math.round(exitPrice * 100) / 100;
-
-          const { error: rpcErr } = await admin.rpc('close_position', {
-            p_position_id: pos.id,
-            p_user_id: pos.user_id,
-            p_ltp: baseLtp,
-            p_exit_price: exitPrice,
-            p_closed_by: 'SYSTEM_EOD',
-          });
-
-          if (rpcErr) {
-            results.errors.push(`Failed to close pos ${pos.id}: ${rpcErr.message}`);
-          } else {
-            results.intradayClosed++;
-          }
-        } else {
+        if (pos.product_type === 'CARRY') {
           // --- APPLY CARRY CHARGES ---
           const commType = segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore';
           const commVal = segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0;

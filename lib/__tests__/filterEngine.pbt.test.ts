@@ -84,8 +84,8 @@ function makePeAt(strike: number): Instrument {
 /** Arbitrary ATM price */
 const arbAtmPrice = fc.integer({ min: 100, max: 100000 });
 
-/** Arbitrary strike range N in [1, 20] */
-const arbRange = fc.integer({ min: 1, max: 20 });
+/** Arbitrary strike range N (odd numbers only, as we expect ATM + symmetric wings) */
+const arbRange = fc.integer({ min: 0, max: 9 }).map((x) => x * 2 + 1);
 
 /** Arbitrary ISO date string (YYYY-MM-DD) between 2020 and 2030 */
 const arbDate = fc

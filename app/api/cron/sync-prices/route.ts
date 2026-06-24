@@ -36,27 +36,76 @@ export async function GET(request: Request) {
     }
 
     // 3. Fetch list of instruments to sync from database (NSE equities + mapped futures)
-    const { data: instruments, error: instError } = await supabaseAdmin
+    const { data: dbInstruments, error: instError } = await supabaseAdmin
       .from('instruments')
       .select('id, tradingsymbol, exchange')
       .or('and(segment.eq.NSE,instrument_type.eq.EQ),instrument_type.eq.MAPPED_FUT');
 
-    if (instError) throw instError;
-    if (!instruments || instruments.length === 0) {
-      return NextResponse.json({ error: 'No instruments found in database' }, { status: 404 });
+    // Also fetch symbols from pending orders and open positions so their SL/TP/MTM triggers correctly
+    const [ordersRes, positionsRes] = await Promise.all([
+      supabaseAdmin.from('orders').select('kite_instrument, symbol, segment').eq('status', 'PENDING'),
+      supabaseAdmin.from('positions').select('symbol, settlement').eq('status', 'open')
+    ]);
+
+    const activeSymbols = new Set<string>();
+    
+    // Add default db instruments
+    if (dbInstruments) {
+      dbInstruments.forEach(inst => activeSymbols.add(`${inst.exchange || 'NSE'}:${inst.tradingsymbol}`));
+    }
+    
+    // Add pending order instruments
+    if (ordersRes.data) {
+      ordersRes.data.forEach((o: any) => {
+        const inst = o.kite_instrument || o.symbol;
+        if (inst && inst.includes(':')) {
+           activeSymbols.add(inst);
+        } else if (inst) {
+           activeSymbols.add(`NSE:${inst}`);
+        }
+      });
     }
 
-    console.log(`[Sync Prices] Found ${instruments.length} instruments to sync.`);
+    // Add open position instruments
+    if (positionsRes.data) {
+      positionsRes.data.forEach((p: any) => {
+         const sym = p.symbol;
+         if (!sym) return;
+         if (sym.includes(':')) {
+           activeSymbols.add(sym);
+         } else {
+           let exch = 'NSE';
+           const seg = p.settlement || '';
+           if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) {
+             if (sym.startsWith('BANKEX') || sym.startsWith('SENSEX')) exch = 'BFO';
+             else exch = 'NFO';
+           } else if (seg.includes('MCX')) {
+             exch = 'MCX';
+           } else if (seg.includes('CDS') || seg.includes('FOREX')) {
+             exch = 'CDS';
+           }
+           activeSymbols.add(`${exch}:${sym}`);
+         }
+      });
+    }
+
+    const instrumentsToFetch = Array.from(activeSymbols);
+
+    if (instrumentsToFetch.length === 0) {
+      return NextResponse.json({ error: 'No instruments found to sync' }, { status: 404 });
+    }
+
+    console.log(`[Sync Prices] Found ${instrumentsToFetch.length} instruments to sync.`);
 
     // 4. Chunk into groups of 500 (Kite's max limit per quote request)
     const chunkSize = 500;
     const allQuotes: any[] = [];
     
-    for (let i = 0; i < instruments.length; i += chunkSize) {
-      const chunk = instruments.slice(i, i + chunkSize);
+    for (let i = 0; i < instrumentsToFetch.length; i += chunkSize) {
+      const chunk = instrumentsToFetch.slice(i, i + chunkSize);
       // Format: i=NSE:INFY&i=MCX:CRUDEOIL24NOVFUT
       const queryParams = chunk
-        .map((inst) => `i=${encodeURIComponent(`${inst.exchange || 'NSE'}:${inst.tradingsymbol}`)}`)
+        .map((inst) => `i=${encodeURIComponent(inst)}`)
         .join('&');
 
       const url = `https://api.kite.trade/quote?${queryParams}`;

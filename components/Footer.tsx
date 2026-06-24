@@ -106,10 +106,10 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
 
-  // Live P&L, Used Margin and Equity calculations — update on every tick
-  const { floatingPnl, usedMargin, positionValue } = useMemo(() => {
+  // Live P&L, Used Margin (frozen) and Equity calculations — update on every tick
+  const { floatingPnl, usedMargin, positionValue, liquidationLevel } = useMemo(() => {
     let totalUnrealised = 0;
-    let totalUsedMargin = 0;
+    let totalLockedMargin = 0;
     let totalPositionValue = 0;
 
     rawPositions.forEach(p => {
@@ -136,26 +136,31 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
         }
         totalUnrealised += unrealised;
 
-        // Used Margin = entry_price * qty_open / leverage (from segment settings or DB)
-        const posLeverage = Number(p.intraday_leverage || p.leverage || 1);
-        const posMargin = (p.entry_price * Math.abs(p.qty_open)) / (posLeverage > 0 ? posLeverage : 1);
-        totalUsedMargin += posMargin;
+        // Used Margin: read frozen locked_margin from DB (set at trade entry, never recalculated)
+        // Fallback to margin_required if locked_margin not yet backfilled
+        const posMargin = Number(p.locked_margin || p.margin_required || 0);
+        totalLockedMargin += posMargin;
 
         totalPositionValue += Math.abs(p.qty_open) * ltp;
       }
     });
 
+    // Liquidation threshold = -(balance × auto_sqoff%)
+    // auto_sqoff defaults to 90 if not available; balance is already post-brokerage
+    const liqLevel = -(balance * 0.9);
+
     return {
       floatingPnl: totalUnrealised,
-      usedMargin: totalUsedMargin,
-      positionValue: totalPositionValue
+      usedMargin: totalLockedMargin,
+      positionValue: totalPositionValue,
+      liquidationLevel: liqLevel,
     };
-  }, [rawPositions, marketQuotes, comexQuotes]);
+  }, [rawPositions, marketQuotes, comexQuotes, balance]);
 
   // Equity = Balance + Floating P/L (reflects the true account value)
   const equity = balance + floatingPnl;
-  // Free Margin = Equity - Used Margin
-  const freeMargin = equity - usedMargin;
+  // Free Margin = Balance - Used Margin (locked margins, no floating PnL)
+  const freeMargin = balance - usedMargin;
   const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const [openHeight, setOpenHeight] = useState(0);
@@ -283,8 +288,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Liquidation</span>
-                  <span className={`summary-value ${equity > 0 ? '' : 'negative'}`}>
-                    ₹<TickFlash value={-equity}>{fmt(-equity)}</TickFlash>
+                  <span className={`summary-value negative`}>
+                    ₹<TickFlash value={liquidationLevel}>{fmt(liquidationLevel)}</TickFlash>
                   </span>
                 </div>
               </div>
