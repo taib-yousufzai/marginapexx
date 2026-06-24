@@ -130,8 +130,8 @@ export function positionItemToPosition(item: PositionItem): Position {
     duration: formatDuration(durationSec),
     brokerage: item.brokerage,
     slTp: `${item.sl ?? '–'} / ${item.tp ?? '–'}`,
-    entryTime: item.entry_time,
-    exitTime: item.exit_time ?? undefined,
+    entryTime: item.entry_time ? new Date(item.entry_time).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '',
+    exitTime: item.exit_time ? new Date(item.exit_time).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : undefined,
     settlement: item.settlement ?? undefined,
     status: item.qty_open > 0 ? 'open' : 'closed',
   };
