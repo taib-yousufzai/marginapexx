@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
 
   for (const seg of allowedSegments) {
     const segUpper = seg.toUpperCase();
-    let intraday_leverage = 50;
-    let holding_leverage = 5;
+    let intraday_leverage = 10;
+    let holding_leverage = 10;
     let commission_value = 4500;
 
     if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
       holding_leverage = 10;
       commission_value = 2000;
     } else if (segUpper.includes('COMEX')) {
-      intraday_leverage = 50;
-      holding_leverage = 5;
+      intraday_leverage = 10;
+      holding_leverage = 10;
       commission_value = 4500;
     } else if (segUpper.includes('CRYPTO')) {
       intraday_leverage = 10;

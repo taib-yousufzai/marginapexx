@@ -579,8 +579,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // If there are still no settings in database, construct safety fallback defaults based on segment
   const segUpper = dbSegment.toUpperCase();
-  let intraday_leverage = 50;
-  let holding_leverage = 5;
+  let intraday_leverage = 10;
+  let holding_leverage = 10;
   if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
     intraday_leverage = 100;
     holding_leverage = 10;
@@ -692,8 +692,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const balance = Number(profile.balance ?? 0);
   const targetProductType = product_type ?? 'INTRADAY';
   const leverageVal = targetProductType === 'CARRY'
-    ? (segSetting.holding_leverage ?? 1)
-    : (segSetting.intraday_leverage ?? 1);
+    ? (segSetting.holding_leverage ?? 10)
+    : (segSetting.intraday_leverage ?? 10);
   const leverageType = targetProductType === 'CARRY'
     ? (segSetting.holding_type ?? 'Multiplier')
     : (segSetting.intraday_type ?? 'Multiplier');

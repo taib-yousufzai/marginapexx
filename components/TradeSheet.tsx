@@ -147,8 +147,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const priceOfScript = activeSide === 'SELL' ? rawBid : rawAsk;
 
-  const intradayLeverage = segSetting?.intraday_leverage ?? 1;
-  const holdingLeverage  = segSetting?.holding_leverage  ?? 1;
+  const intradayLeverage = segSetting?.intraday_leverage ?? 10;
+  const holdingLeverage  = segSetting?.holding_leverage  ?? 10;
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
