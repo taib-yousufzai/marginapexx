@@ -47,34 +47,6 @@ export async function GET(request: Request) {
 
     let usedFallback = false;
 
-    // 1. Parallelize Auth check
-    const authPromise = (async () => {
-      const authHeader = request.headers.get('Authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.slice(7).trim();
-        if (token) {
-          try {
-            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-            const userId = payload.sub;
-            if (userId) {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('segments')
-                .eq('id', userId)
-                .single();
-              if (profile?.segments && profile.segments.length > 0) {
-                const dbSeg = getOptionChainSegment(symbol);
-                if (!profile.segments.includes(dbSeg)) {
-                  return { error: `Access denied to segment: ${dbSeg}` };
-                }
-              }
-            }
-          } catch (e) {}
-        }
-      }
-      return null;
-    })();
-
     // 2. Parallelize Expiries query (Removed failing RPC to speed up fallback)
     const expiriesPromise = supabase
       .from('instruments')
@@ -97,15 +69,10 @@ export async function GET(request: Request) {
     }
 
     // Wait for initial batch
-    const [authRes, expiriesRes, optionsRes] = await Promise.all([
-      authPromise,
+    const [expiriesRes, optionsRes] = await Promise.all([
       expiriesPromise,
       optionsPromise || Promise.resolve({ data: null, error: null })
     ]);
-
-    if (authRes?.error) {
-      return NextResponse.json({ error: authRes.error }, { status: 403 });
-    }
 
     if (expiriesRes.error) throw expiriesRes.error;
 

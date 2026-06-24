@@ -355,36 +355,7 @@ export async function GET(request: NextRequest) {
       return trimmed;
     }
 
-    // Enforce allowed segments if user is authenticated
-    const authHeader = request.headers.get('Authorization');
-    let allowedSegments: string[] = [];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.slice(7).trim();
-      if (token) {
-        const { data: userData } = await supabase.auth.getUser(token);
-        if (userData?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('segments')
-            .eq('id', userData.user.id)
-            .single();
-          if (profile?.segments && profile.segments.length > 0) {
-            allowedSegments = profile.segments;
-          }
-        }
-      }
-    }
-
-    let filteredResults = results;
-    if (allowedSegments.length > 0) {
-      const allowedUpper = allowedSegments.map(s => s.toUpperCase());
-      filteredResults = results.filter((item: any) => {
-        const dbSeg = mapSegmentToDbSegment(item.segment);
-        return allowedUpper.includes(dbSeg.toUpperCase());
-      });
-    }
-
-    return NextResponse.json(filteredResults);
+    return NextResponse.json(results);
   } catch (err: any) {
     console.error('[GET /api/market/instruments/search] Unexpected error:', err);
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });

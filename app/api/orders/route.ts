@@ -483,7 +483,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
   // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingsResult, scalperSegSettingsResult, positionsResult, quotesMap, scriptSettingsResult] = await Promise.all([
+  const [profileResult, segSettingsResult, scalperSegSettingsResult, positionsResult, quotesMap, scriptSettingsResult, blockedScriptsResult] = await Promise.all([
     // Profile
     admin.from('profiles')
       .select('id, active, read_only, segments, parent_id, balance, trading_mode')
@@ -521,12 +521,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Fetch script settings for dynamic lot size
     admin.from('script_settings')
       .select('symbol, lot_size'),
+
+    // Fetch user blocked scripts
+    admin.from('user_blocked_scripts')
+      .select('symbol')
+      .eq('user_id', user.id)
+      .eq('symbol', symbol)
+      .maybeSingle(),
   ]);
 
   const profile = profileResult.data;
   const profileErr = profileResult.error;
   const openPositions = positionsResult?.data ?? [];
   const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
+  const blockedScript = blockedScriptsResult?.data;
 
   // 4. Profile checks
   if (profileErr || !profile) {
@@ -551,10 +559,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // 5. Segment permission check
+  // 5. Segment and Script permission check
   const allowedSegments: string[] = profile.segments ?? [];
   if (allowedSegments.length > 0 && !allowedSegments.includes(dbSegment)) {
-    return NextResponse.json({ error: `Trading not allowed in segment: ${segment}` }, { status: 403 });
+    return NextResponse.json({ error: 'Trading Not Allowed In This Script. Please Contact Admin.' }, { status: 403 });
+  }
+
+  if (blockedScript) {
+    return NextResponse.json({ error: 'Trading Not Allowed In This Script. Please Contact Admin.' }, { status: 403 });
   }
 
   // 6. Segment settings — choose based on active trading mode
@@ -642,7 +654,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // 7. Validate lot / qty limits & Strike Range
   if (!segSetting.trade_allowed) {
-    return NextResponse.json({ error: `${side} orders not allowed in ${segment}` }, { status: 403 });
+    return NextResponse.json({ error: 'Trading Not Allowed In This Script. Please Contact Admin.' }, { status: 403 });
   }
 
   const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol, dbScriptSettings);
