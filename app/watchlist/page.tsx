@@ -511,10 +511,14 @@ function WatchlistContent() {
         // Also save to window for easy inline script access
         (window as any).__accessToken = session.access_token;
         
+        const controller1 = new AbortController();
+        const t1 = setTimeout(() => controller1.abort(), 5000);
         const res = await fetch('/api/user/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
-          signal: AbortSignal.timeout(5000)
+          signal: controller1.signal
         });
+        clearTimeout(t1);
+
         if (res.ok) {
           const profile = await res.json();
           // Use profile.segments if set, otherwise empty array means all allowed
@@ -522,16 +526,21 @@ function WatchlistContent() {
 
           // Fetch segment settings and script settings in parallel
           const mode = profile?.trading_mode || 'normal';
+          const controller2 = new AbortController();
+          const t2 = setTimeout(() => controller2.abort(), 5000);
+          
           const [resSettings, resScript] = await Promise.all([
             fetch(`/api/user/segments?mode=${mode}`, {
               headers: { Authorization: `Bearer ${session.access_token}` },
-              signal: AbortSignal.timeout(5000)
+              signal: controller2.signal
             }),
             fetch('/api/user/script-settings', {
               headers: { Authorization: `Bearer ${session.access_token}` },
-              signal: AbortSignal.timeout(5000)
+              signal: controller2.signal
             }),
           ]);
+          clearTimeout(t2);
+          
           if (resSettings.ok) {
             const settingsData = await resSettings.json();
             setSegmentSettings(settingsData || []);
@@ -908,9 +917,10 @@ function WatchlistContent() {
         console.warn("localStorage.getItem legacy failed", e);
       }
       
-      if (rawLegacy !== null) {
+      if (rawLegacy !== null && rawLegacy !== "null") {
         try {
           itemsToLoad = JSON.parse(rawLegacy) as WatchlistItem[];
+          if (!Array.isArray(itemsToLoad)) itemsToLoad = getDefaultWatchlistItems();
         } catch {
           itemsToLoad = getDefaultWatchlistItems();
         }
@@ -926,6 +936,7 @@ function WatchlistContent() {
     } else {
       try {
         itemsToLoad = JSON.parse(rawUser) as WatchlistItem[];
+        if (!Array.isArray(itemsToLoad)) itemsToLoad = [];
       } catch {
         itemsToLoad = [];
       }
