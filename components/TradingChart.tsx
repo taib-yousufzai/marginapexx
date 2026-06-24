@@ -491,7 +491,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     
     // Determine the base execution price
     // For add-more flow on a different instrument, use that position's LTP not the chart price
-    const basePrice = (isAddMoreFlow && addMoreLtp) ? addMoreLtp : currentPrice;
+    // For chain contract orders, use the option contract's LTP not the underlying index price
+    const basePrice = (isAddMoreFlow && addMoreLtp) ? addMoreLtp : (chainContract ? chainContract.ltp : currentPrice);
     let finalPrice = basePrice;
     if (orderType === 'limit' || orderType === 'gtt') {
       finalPrice = parseFloat(limitPrice);
@@ -507,9 +508,18 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
       }
     }
 
-    const dbSeg = mapSegmentToDbSegment(segment);
-    const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-    const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+    // Use the option segment for lookup when placing a chain contract order,
+    // not the chart's underlying segment which may be "NSE - Equity" etc.
+    const submitDbSeg = (() => {
+      if (chainContract) {
+        const name = chainContract.name.toUpperCase();
+        const indexOptSymbols = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+        return indexOptSymbols.some(s => name.includes(s)) ? 'INDEX-OPT' : 'STOCK-OPT';
+      }
+      return mapSegmentToDbSegment(segment);
+    })();
+    const buySetting = segmentSettings.find(s => s.segment === submitDbSeg && s.side === 'BUY');
+    const sellSetting = segmentSettings.find(s => s.segment === submitDbSeg && s.side === 'SELL');
     const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
 
     const intradayLeverage = segSetting?.intraday_leverage ?? 10;
@@ -783,12 +793,33 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   // Calculated Required Margin for current order block state
   const rawBid = liveQuote ? (liveQuote.bid || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
   const rawAsk = liveQuote ? (liveQuote.ask || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
-  const priceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
+  const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
+  // When a chain contract is open, use the option's bid/ask price, not the underlying index price
+  const priceOfScript = chainContract
+    ? (orderSide === 'SELL' ? chainContract.bid : chainContract.ask)
+    : underlyingPriceOfScript;
 
-  const orderQty = useLots ? Number(qtyValue) * lotSize : Number(qtyValue);
-  const executionPrice = orderType === 'limit' ? (parseFloat(limitPrice) || priceOfScript) : priceOfScript;
-  
-  const dbSeg = mapSegmentToDbSegment(segment);
+  const orderQty = useLots ? (parseFloat(String(qtyValue)) || 0) * lotSize : (parseFloat(String(qtyValue)) || 0);
+  // Fall back to currentPrice if liveQuote bid/ask is missing or zero
+  const resolvedPrice = priceOfScript > 0 ? priceOfScript : currentPrice;
+  const executionPrice = orderType === 'limit'
+    ? (parseFloat(limitPrice) > 0 ? parseFloat(limitPrice) : resolvedPrice)
+    : resolvedPrice;
+
+  // When a chain contract is open, the option segment must be used for settings lookup,
+  // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
+  const effectiveDbSeg = (() => {
+    if (chainContract) {
+      const name = chainContract.name.toUpperCase();
+      const stockOptSymbols = ['SENSEX', 'BANKEX'];
+      const indexOptSymbols = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'];
+      const isIndexOpt = indexOptSymbols.some(s => name.includes(s)) || !stockOptSymbols.some(s => name.includes(s));
+      return isIndexOpt ? 'INDEX-OPT' : 'STOCK-OPT';
+    }
+    return mapSegmentToDbSegment(segment);
+  })();
+
+  const dbSeg = effectiveDbSeg;
   const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
   const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
   const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
@@ -800,8 +831,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
   const leverageType = orderCarry === 'carry' ? holdingType : intradayType;
 
-  const chargePrice = orderType === 'limit' && limitPrice && !isNaN(parseFloat(limitPrice))
-    ? parseFloat(limitPrice) : (priceOfScript > 0 ? priceOfScript : 0);
+  const chargePrice = orderType === 'limit' && limitPrice && parseFloat(limitPrice) > 0
+    ? parseFloat(limitPrice) : resolvedPrice;
   const chargeQty = orderQty;
   const chargeExposure = chargeQty * chargePrice;
 
@@ -1438,20 +1469,20 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
-                        <span style={orderCarry === 'normal' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'normal' && orderType !== 'gtt' ? intradayCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={orderCarry === 'carry' && orderType !== 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'carry' && orderType !== 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
-                        <span style={orderType === 'gtt' ? { color: 'var(--green)', fontWeight: 700 } : { opacity: 0.5 }}>
-                          ₹{gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                          ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
