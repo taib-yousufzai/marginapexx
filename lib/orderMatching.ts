@@ -112,6 +112,24 @@ export class InMemoryMatchingEngine {
         if (!row || !row.id) return;
         if (row.status === 'open') {
           this.activePositions.set(row.id, row);
+          // If this user's profile isn't cached yet, fetch it immediately so the
+          // liquidation check isn't silently skipped on the next price tick.
+          // This happens when a user opens their first position after the engine
+          // initialized (userProfiles is only seeded at startup for known users).
+          if (row.user_id && !this.userProfiles.has(row.user_id)) {
+            const admin = getAdminClient();
+            admin
+              .from('profiles')
+              .select('id, balance, auto_sqoff')
+              .eq('id', row.user_id)
+              .single()
+              .then(({ data }) => {
+                if (data && data.id) {
+                  this.userProfiles.set(data.id, data);
+                }
+              })
+              .catch(() => {}); // non-fatal — will be populated on next profiles change
+          }
         } else {
           this.activePositions.delete(row.id);
         }
@@ -351,7 +369,24 @@ export class InMemoryMatchingEngine {
       const closedPositionIds = new Set<string>();
 
       for (const [userId, userPositions] of Object.entries(userOpenPositions)) {
-        const profile = this.userProfiles.get(userId);
+        let profile = this.userProfiles.get(userId);
+
+        // If the profile isn't cached (user placed a position after engine initialized,
+        // or the realtime event was missed), fetch it live from DB rather than skipping
+        // the liquidation check entirely — a missed check could leave a blown account open.
+        if (!profile) {
+          const admin = getAdminClient();
+          const { data } = await admin
+            .from('profiles')
+            .select('id, balance, auto_sqoff')
+            .eq('id', userId)
+            .single();
+          if (data && data.id) {
+            this.userProfiles.set(data.id, data);
+            profile = data;
+          }
+        }
+
         if (!profile) continue;
 
         const balance = Number(profile.balance || 0);

@@ -3,8 +3,8 @@
  * DELETE /api/admin/positions/[id]
  *
  * PATCH: Update editable fields on a position row, recalculate closed PnL, sync ledger
- *        transactions, and — if entry price / qty changed on an open position — trigger
- *        a full account-level liquidation check to handle the updated floating PnL.
+ *        transactions, and — if entry price / qty / ltp changed on an open position —
+ *        trigger a full account-level liquidation check to handle the updated floating PnL.
  *
  * DELETE: Remove a position row and reverse ALL associated accounting impacts so the
  *         trade is treated as if it never existed:
@@ -19,6 +19,11 @@
 
 import { requireAdmin } from '../../_auth';
 import { checkAndExecuteAccountLiquidation } from '@/lib/liquidationEngine';
+import {
+  calculateClosedPnl,
+  pnlAffectingFieldsChanged,
+  isStatusExplicitlyReopened,
+} from '@/lib/positionAccountingHelpers';
 
 // Editable position fields allowed via PATCH
 const EDITABLE_FIELDS = [
@@ -96,15 +101,21 @@ export async function PATCH(
       const entryPrice = Number(mergedPosition.entry_price || 0);
       const exitPrice = Number(mergedPosition.exit_price || 0);
       const side = mergedPosition.side;
-      const calculatedPnl = side === 'BUY'
-        ? (exitPrice - entryPrice) * qty
-        : (entryPrice - exitPrice) * qty;
+      const calculatedPnl = calculateClosedPnl(side, entryPrice, exitPrice, qty);
       mergedPosition.pnl = calculatedPnl;
       updateFields['pnl'] = calculatedPnl;
     } else {
-      // Open / active positions have 0 settled PnL
-      updateFields['pnl'] = 0;
-      mergedPosition.pnl = 0;
+      // Open positions: do NOT write pnl=0 here.
+      // positions.pnl for an open position is the running (floating) PnL stored
+      // by the matching engine / ticker updates — it must not be zeroed out by
+      // admin edits that do not close the position. Deleting it would make the
+      // UI show ₹0 PnL and, more critically, the Step-8 else-branch below would
+      // delete the existing PNL_CREDIT/DEBIT transaction that was already settled
+      // (e.g. after a partial close), reversing realized losses from the wallet.
+      //
+      // We intentionally do NOT touch mergedPosition.pnl / updateFields['pnl']
+      // for open positions — the field is managed by the matching engine and the
+      // close_position RPC, not admin PATCH.
     }
 
     // Step 7: Update the position row
@@ -200,11 +211,25 @@ export async function PATCH(
           });
       }
     } else {
-      // If status changed to open/active, remove any PnL transaction
-      await adminClient
-        .from('transactions')
-        .delete()
-        .eq('ref_id', id);
+      // Position is open — only remove the PnL transaction if the admin explicitly
+      // changed the status field FROM 'closed' back to 'open'. In all other cases
+      // (editing ltp, sl, tp, qty, etc. while the position stays open) we must NOT
+      // touch any existing PNL_CREDIT/DEBIT transaction, because:
+      //   a) close_position() stores the settled PnL transaction with ref_id = position_id
+      //   b) Deleting it here would reverse the realized loss from the user's wallet
+      //      — the exact "losses getting reset after square-off" bug.
+      const statusExplicitlyReopened = isStatusExplicitlyReopened(
+        updateFields,
+        existingPosition.status,
+        updatedPosition.status,
+      );
+
+      if (statusExplicitlyReopened) {
+        await adminClient
+          .from('transactions')
+          .delete()
+          .eq('ref_id', id);
+      }
     }
 
     // Step 9: Sync Brokerage transaction
@@ -285,11 +310,16 @@ export async function PATCH(
       reason: `Admin updated position ${id}. Status: ${updatedPosition.status}, PnL: ${updatedPosition.pnl}, Brokerage: ${updatedPosition.brokerage}${adjInfo}`,
     });
 
-    // Step 11: Risk check — if the position is still open and entry_price / qty changed,
-    // the floating PnL has shifted. Run a full account-level liquidation check so that
-    // a margin-breaching admin edit triggers an immediate auto-square-off.
-    const entryPriceChanged = 'avg_price' in updateFields || 'qty_open' in updateFields || 'qty_total' in updateFields;
-    if (updatedPosition.status === 'open' && entryPriceChanged) {
+    // Step 11: Risk check — if the position is still open and any field that affects
+    // floating PnL has changed (entry_price / qty / ltp), run a full account-level
+    // liquidation check so that a margin-breaching admin edit triggers an immediate
+    // auto-square-off.
+    //
+    // Previously this only checked for avg_price / qty changes, MISSING the ltp field.
+    // An admin changing ltp (the current mark price) directly changes floating PnL and
+    // MUST also trigger the risk check — fixed here.
+    const pnlAffectingFieldChanged = pnlAffectingFieldsChanged(updateFields);
+    if (updatedPosition.status === 'open' && pnlAffectingFieldChanged) {
       try {
         // Fetch current profile balance and auto_sqoff setting
         const { data: profile } = await adminClient
