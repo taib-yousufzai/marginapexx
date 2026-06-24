@@ -78,7 +78,7 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradingChart({ symbol, segment, liveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol, segment = '', liveQuote }: TradingChartProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
@@ -510,11 +510,11 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
     const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
 
-    const intradayLeverage = segSetting?.intraday_leverage ?? 1;
-    const holdingLeverage  = segSetting?.holding_leverage ?? 1;
+    const intradayLeverage = segSetting?.intraday_leverage ?? 10;
+    const holdingLeverage  = segSetting?.holding_leverage ?? 10;
     const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
 
-    const reqMargin = Math.ceil((finalPrice * finalQty) / leverage);
+    const reqMargin = Math.round((finalPrice * finalQty) / leverage);
     if (reqMargin > balance) {
       showToast('Insufficient margin', true);
       return;
@@ -693,8 +693,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
 
     const dbSeg = mapSegmentToDbSegment(segment);
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === side);
-    const intradayLeverage = segSetting?.intraday_leverage ?? 1;
-    const required = Math.ceil((currentPrice * finalQty) / intradayLeverage);
+    const intradayLeverage = segSetting?.intraday_leverage ?? 10;
+    const required = Math.round((currentPrice * finalQty) / intradayLeverage);
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
@@ -736,8 +736,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
     const addQty = pos.qty_open;
     const dbSeg = mapSegmentToDbSegment(segment);
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === pos.side);
-    const leverage = pos.product_type === 'CARRY' ? (segSetting?.holding_leverage ?? 1) : (segSetting?.intraday_leverage ?? 1);
-    const required = Math.ceil((currentPrice * addQty) / leverage);
+    const leverage = pos.product_type === 'CARRY' ? (segSetting?.holding_leverage ?? 10) : (segSetting?.intraday_leverage ?? 10);
+    const required = Math.round((currentPrice * addQty) / leverage);
 
     if (required > balance) {
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
@@ -786,8 +786,8 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
   const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
 
-  const intradayLeverage = segSetting?.intraday_leverage ?? 1;
-  const holdingLeverage  = segSetting?.holding_leverage ?? 1;
+  const intradayLeverage = segSetting?.intraday_leverage ?? 10;
+  const holdingLeverage  = segSetting?.holding_leverage ?? 10;
   const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
 
   const chargePrice = orderType === 'limit' && limitPrice && !isNaN(parseFloat(limitPrice))
@@ -818,7 +818,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
   ) : 0;
 
   const totalBrokerage = intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0);
-  const reqMargin = Math.ceil((executionPrice * orderQty) / leverage) + totalBrokerage;
+  const reqMargin = Math.round(((executionPrice * orderQty) / leverage) + totalBrokerage);
 
   // Render collapsible panel tabs content
   const renderPanelContent = () => {
@@ -1392,7 +1392,7 @@ export default function TradingChart({ symbol, segment, liveQuote }: TradingChar
                   <div className="margin-line">
                     <span className="margin-line-label">Required Margin:</span>
                     <span className={`margin-line-value ${reqMargin > balance ? 'negative' : ''}`}>
-                      ₹{reqMargin.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      ₹{reqMargin.toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>

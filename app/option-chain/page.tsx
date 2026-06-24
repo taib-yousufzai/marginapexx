@@ -962,29 +962,47 @@ function OptionChainContent() {
 
           // ORDER / TRADE SHEET VIEW
           const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-          const calculatedRequiredMargin = (ltp || 10) * totalQty;
-
           const isIndexOption = symbol === 'NIFTY' || symbol === 'BANKNIFTY' || symbol === 'FINNIFTY' || symbol === 'SENSEX' || symbol === 'BANKEX' || symbol === 'MIDCPNIFTY';
           const dbSeg = isIndexOption ? 'INDEX-OPT' : 'STOCK-OPT';
           const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
 
+          const priceToUse = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
+            ? parseFloat(limitPrice)
+            : (ltp || 0);
+
+          const commType = matchingSetting?.commission_type || 'Per Crore';
+          const commVal = matchingSetting?.commission_value ?? 0;
+          const calculatedIntradayCharge = (() => {
+            if (commType === 'Per Crore') return (totalQty * priceToUse * commVal) / 10000000;
+            if (commType === 'Per Lot') return (totalQty / lotSize) * commVal;
+            if (commType === 'Per Trade' || commType === 'Flat') return commVal;
+            return totalQty * priceToUse * 0.001;
+          })();
+
           const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
-            const price = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
-              ? parseFloat(limitPrice)
-              : (ltp || 0);
-            const commType = matchingSetting.commission_type || 'Per Crore';
-            const commVal = matchingSetting.commission_value ?? 0;
-            if (commType === 'Per Crore') {
-              return (totalQty * price * commVal) / 10000000;
-            } else if (commType === 'Per Lot') {
-              const lots = totalQty / lotSize;
-              return lots * commVal;
-            } else if (commType === 'Per Trade' || commType === 'Flat') {
-              return commVal;
-            } else {
-              return totalQty * price * 0.001;
-            }
+            const carryCommType = matchingSetting.carry_commission_type || commType;
+            const carryCommVal = matchingSetting.carry_commission_value ?? commVal;
+            if (carryCommType === 'Per Crore') return (totalQty * priceToUse * carryCommVal) / 10000000;
+            if (carryCommType === 'Per Lot') return (totalQty / lotSize) * carryCommVal;
+            if (carryCommType === 'Per Trade' || carryCommType === 'Flat') return carryCommVal;
+            return totalQty * priceToUse * 0.001;
           })() : 0;
+
+          const gttCharge = orderType === 'GTT' && matchingSetting ? (() => {
+            const gttCommType = matchingSetting.gtt_commission_type || 'Per Trade';
+            const gttCommVal = matchingSetting.gtt_commission_value ?? 10;
+            if (gttCommType === 'Per Crore') return (totalQty * priceToUse * gttCommVal) / 10000000;
+            if (gttCommType === 'Per Lot') return (totalQty / lotSize) * gttCommVal;
+            if (gttCommType === 'Per Trade' || gttCommType === 'Flat') return gttCommVal;
+            return totalQty * priceToUse * 0.001;
+          })() : 0;
+
+          const intradayLeverage = matchingSetting?.intraday_leverage ?? 10;
+          const holdingLeverage = matchingSetting?.holding_leverage ?? 10;
+          const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
+          
+          const totalBrokerage = orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge);
+          const calculatedRequiredMargin = Math.round((priceToUse * totalQty) / leverage) + totalBrokerage;
 
           return (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1180,7 +1198,7 @@ function OptionChainContent() {
                     </div>
                     <div className="ts-margin-row">
                       <span className="ts-ml">Required Margin</span>
-                      <span className="ts-mv required">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      <span className="ts-mv required">₹ {calculatedRequiredMargin.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="ts-margin-row">
                       <span className="ts-ml">Carry Charges</span>
