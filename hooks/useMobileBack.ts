@@ -9,6 +9,12 @@ import { useEffect, useRef } from 'react';
  */
 export function useMobileBack(isOpen: boolean, onClose: () => void, hash: string) {
   const closedByPopState = useRef(false);
+  const onCloseRef = useRef(onClose);
+
+  // Keep the latest callback without re-running the effect
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -25,7 +31,7 @@ export function useMobileBack(isOpen: boolean, onClose: () => void, hash: string
       const handlePopState = (e: PopStateEvent) => {
         // The user pressed the hardware back button
         closedByPopState.current = true;
-        onClose();
+        onCloseRef.current();
       };
 
       window.addEventListener('popstate', handlePopState);
@@ -41,5 +47,5 @@ export function useMobileBack(isOpen: boolean, onClose: () => void, hash: string
         }
       };
     }
-  }, [isOpen, onClose, hash]);
+  }, [isOpen, hash]);
 }
