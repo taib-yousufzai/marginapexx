@@ -213,14 +213,18 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       const avgPrice = p.avg_price || p.entry_price;
 
+      // Retrieve segment-specific exit buffer (fallback to 0.0017)
+      const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
+      const exitBuffer = sideSetting ? Number(sideSetting.exit_buffer ?? 0.0017) : 0.0017;
+
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
         if (p.side === 'BUY') {
-          // BUY (Long): Profit when market price increases above avg_price
-          unrealised = (ltp - avgPrice) * p.qty_open;
+          // BUY (Long) exits at bid: ltp * (1 - exitBuffer)
+          unrealised = ((ltp * (1 - exitBuffer)) - avgPrice) * p.qty_open;
         } else {
-          // SELL (Short): Profit when market price decreases below avg_price
-          unrealised = (avgPrice - ltp) * p.qty_open;
+          // SELL (Short) exits at ask: ltp * (1 + exitBuffer)
+          unrealised = (avgPrice - (ltp * (1 + exitBuffer))) * p.qty_open;
         }
       }
 

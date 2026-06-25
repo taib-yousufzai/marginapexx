@@ -7,6 +7,22 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { useComexQuotes } from '@/hooks/useComexQuotes';
 import './Footer.css';
 
+const mapSegmentToDbSegment = (s: string): string => {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+};
+
 interface FooterProps {
   activeTab: 'home' | 'watchlist' | 'order' | 'position' | 'history' | 'profile';
   hideDrawer?: boolean;
@@ -31,6 +47,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
   const [balance, setBalance] = useState(0);
   const [rawPositions, setRawPositions] = useState<any[]>([]);
+  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
 
   const fetchSummary = async () => {
     try {
@@ -46,6 +63,25 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       if (balRes.ok) {
         const { balance } = await balRes.json();
         setBalance(balance);
+      }
+
+      // Fetch segment settings
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('trading_mode')
+          .eq('id', session.user.id)
+          .single();
+        const mode = profile?.trading_mode || 'normal';
+        const segRes = await fetch(`/api/user/segments?mode=${mode}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (segRes.ok) {
+          const sData = await segRes.json();
+          setSegmentSettings(sData || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch segment settings in Footer', err);
       }
 
       // Fetch positions
@@ -112,8 +148,12 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     let totalLockedMargin = 0;
     let totalPositionValue = 0;
 
-    // Default exit buffer — same fallback the backend matching engine uses
-    // when no segment_settings entry exists for the user/segment/side combo.
+    // Pre-build settings map to avoid O(n²) finds per tick
+    const settingsMap = new Map<string, any>();
+    for (const s of segmentSettings) {
+      settingsMap.set(`${s.segment}|${s.side}`, s);
+    }
+
     const DEFAULT_EXIT_BUFFER = 0.0017;
 
     rawPositions.forEach(p => {
@@ -130,16 +170,20 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
           ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
         }
 
+        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
+        const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
+        const exitBuffer = sideSetting ? Number(sideSetting.exit_buffer ?? DEFAULT_EXIT_BUFFER) : DEFAULT_EXIT_BUFFER;
+
         // Apply exit buffer to match the backend's liquidation PnL formula
         // (orderMatching.ts computes PnL using exit-adjusted LTP, not raw LTP)
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
             // BUY exits at bid: ltp × (1 - exitBuffer)
-            unrealised = ((ltp * (1 - DEFAULT_EXIT_BUFFER)) - p.entry_price) * p.qty_open;
+            unrealised = ((ltp * (1 - exitBuffer)) - p.entry_price) * p.qty_open;
           } else {
             // SELL exits at ask: ltp × (1 + exitBuffer)
-            unrealised = (p.entry_price - (ltp * (1 + DEFAULT_EXIT_BUFFER))) * p.qty_open;
+            unrealised = (p.entry_price - (ltp * (1 + exitBuffer))) * p.qty_open;
           }
         }
         totalUnrealised += unrealised;
@@ -163,7 +207,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       positionValue: totalPositionValue,
       liquidationLevel: liqLevel,
     };
-  }, [rawPositions, marketQuotes, comexQuotes, balance]);
+  }, [rawPositions, marketQuotes, comexQuotes, balance, segmentSettings]);
 
 
   // Equity = Balance + Floating P/L (reflects the true account value)
