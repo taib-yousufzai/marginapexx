@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { getSession } from '@/lib/auth';
@@ -287,14 +287,27 @@ export default function PositionPage() {
     setSelectedPos(null);
   };
 
+  // Track which position IDs are currently being closed to prevent double-submit
+  const exitingPosIds = useRef<Set<string>>(new Set());
+  const [exitingSet, setExitingSet] = useState<Set<string>>(new Set());
+
   const handleExit = async (posId: string) => {
-    const res = await closePosition(posId);
-    if (res.success) {
-      showToast('Position closed successfully');
-      closeSheet();
-      refresh();
-    } else {
-      showToast(`Error: ${res.error}`);
+    if (exitingPosIds.current.has(posId)) return; // already in flight
+    exitingPosIds.current.add(posId);
+    setExitingSet(new Set(exitingPosIds.current));
+    try {
+      const res = await closePosition(posId);
+      if (res.success) {
+        showToast('Position closed successfully');
+        closeSheet();
+        refresh();
+        window.dispatchEvent(new CustomEvent('position-closed'));
+      } else {
+        showToast(`Error: ${res.error}`);
+      }
+    } finally {
+      exitingPosIds.current.delete(posId);
+      setExitingSet(new Set(exitingPosIds.current));
     }
   };
 
@@ -1107,11 +1120,11 @@ export default function PositionPage() {
                           </div>
                         </div>
                         <button
-                          className={`ps-btn-exit${selectedPos.hold_lock_active ? ' disabled-lock' : ''}`}
-                          onClick={() => { if (!selectedPos.hold_lock_active) handleExit(selectedPos.id); }}
-                          disabled={selectedPos.hold_lock_active}
+                          className={`ps-btn-exit${(selectedPos.hold_lock_active || exitingSet.has(selectedPos.id)) ? ' disabled-lock' : ''}`}
+                          onClick={() => { if (!selectedPos.hold_lock_active && !exitingSet.has(selectedPos.id)) handleExit(selectedPos.id); }}
+                          disabled={selectedPos.hold_lock_active || exitingSet.has(selectedPos.id)}
                         >
-                          Exit All
+                          {exitingSet.has(selectedPos.id) ? <><i className="fas fa-circle-notch fa-spin" style={{ marginRight: 6 }} />Closing…</> : 'Exit All'}
                         </button>
                       </div>
  
@@ -1119,9 +1132,9 @@ export default function PositionPage() {
                       <div className="ps-action-row">
                         <button className="ps-btn-add" onClick={() => openAddMore(selectedPos)}>Add More</button>
                         <button
-                          className={`ps-btn-partial${selectedPos.hold_lock_active ? ' disabled-lock' : ''}`}
-                          onClick={() => { if (!selectedPos.hold_lock_active) handleExit(selectedPos.id); }}
-                          disabled={selectedPos.hold_lock_active}
+                          className={`ps-btn-partial${(selectedPos.hold_lock_active || exitingSet.has(selectedPos.id)) ? ' disabled-lock' : ''}`}
+                          onClick={() => { if (!selectedPos.hold_lock_active && !exitingSet.has(selectedPos.id)) handleExit(selectedPos.id); }}
+                          disabled={selectedPos.hold_lock_active || exitingSet.has(selectedPos.id)}
                         >
                           Partial Exit
                         </button>
