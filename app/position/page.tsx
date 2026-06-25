@@ -29,6 +29,14 @@ export default function PositionPage() {
   const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(5000);
   const { closePosition, closePositionsBatch, loading: closingPos } = useOrderEntry();
 
+  // Listen for position-closed events fired by TradingChart so we immediately
+  // refresh without waiting for the next 5-second poll cycle
+  useEffect(() => {
+    const handler = () => refresh();
+    window.addEventListener('position-closed', handler);
+    return () => window.removeEventListener('position-closed', handler);
+  }, [refresh]);
+
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
   const [settlementAmount, setSettlementAmount] = useState<number>(0);
   const [rawOrders, setRawOrders] = useState<any[]>([]);

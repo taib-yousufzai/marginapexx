@@ -606,6 +606,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       refreshOrders();
       refreshPositions();
       fetchBalance();
+      window.dispatchEvent(new CustomEvent('position-closed'));
 
       // Post-order navigation: return to originating segment
       const returnTo = postOrderSegment;
@@ -682,6 +683,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       showToast('Position closed');
       refreshPositions();
       fetchBalance();
+      window.dispatchEvent(new CustomEvent('position-closed'));
     } else {
       showToast(res.error || 'Exit failed', true);
     }

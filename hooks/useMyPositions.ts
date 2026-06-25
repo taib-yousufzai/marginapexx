@@ -148,15 +148,13 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     fetchPositions();
     const timer = setInterval(fetchPositions, 5000); // DB fetch fallback
 
-    // Remove any stale channel with the same name before subscribing (handles
-    // React strict-mode double-invocation and hot-reload re-runs where the
-    // channel already exists in a subscribed state and calling .on() on it
-    // throws "cannot add postgres_changes callbacks after subscribe()").
-    const stale = supabase.getChannels().find(c => c.topic === 'realtime:my-positions-realtime');
-    if (stale) supabase.removeChannel(stale);
+    // Use a unique channel name per hook instance so multiple consumers
+    // (e.g. position page + chart) can each have their own realtime subscription
+    // without the stale-channel cleanup killing each other's subscriptions.
+    const channelName = `my-positions-realtime-${Math.random().toString(36).slice(2)}`;
 
     const channel = supabase
-      .channel('my-positions-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'positions' },
