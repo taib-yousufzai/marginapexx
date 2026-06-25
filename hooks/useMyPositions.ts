@@ -233,7 +233,6 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
       // Anti-Scalping calculations
-      const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
       const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
 
