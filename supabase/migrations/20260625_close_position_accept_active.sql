@@ -1,3 +1,12 @@
+-- ==============================================================================
+-- MIGRATION: close_position accepts status = 'active' as well as 'open'
+-- Date: 2026-06-25
+-- ==============================================================================
+-- Positions can have status 'open' OR 'active' while still tradeable.
+-- The old RPC only matched status = 'open', causing "Position not found or
+-- already closed" errors for positions with status = 'active'.
+-- ==============================================================================
+
 CREATE OR REPLACE FUNCTION public.close_position(
   p_position_id   uuid,
   p_user_id       uuid,
@@ -58,7 +67,7 @@ BEGIN
     order_type, product_type, info, is_exit, brokerage
   )
   VALUES (
-    p_user_id, v_pos.symbol, v_pos.settlement, 
+    p_user_id, v_pos.symbol, v_pos.settlement,
     CASE WHEN v_pos.side = 'BUY' THEN 'SELL' ELSE 'BUY' END,
     'EXECUTED',
     v_pos.qty_open, p_exit_price, p_exit_price, p_ltp,
@@ -79,7 +88,6 @@ BEGIN
   );
 
   -- 4. Brokerage transaction
-  -- Use BROKERAGE_DEBIT (consistent with process_executed_position and admin PATCH sync logic)
   IF p_brokerage > 0 THEN
     INSERT INTO public.transactions (
       user_id, type, amount, status, ref_id
@@ -104,3 +112,6 @@ BEGIN
   RETURN v_pnl;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.close_position(uuid, uuid, numeric, numeric, text, numeric) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.close_position(uuid, uuid, numeric, numeric, text, numeric) TO service_role;
