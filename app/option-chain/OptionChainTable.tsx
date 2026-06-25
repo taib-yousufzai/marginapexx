@@ -90,13 +90,13 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
     if (!id && !token) return null;
     if (id && quotes[id]) return quotes[id];
     if (token && quotes[String(token)]) return quotes[String(token)];
-    
+
     if (id) {
       const parts = id.split(':');
       const symbolOnly = parts.length > 1 ? parts[1] : id;
       if (quotes[symbolOnly]) return quotes[symbolOnly];
     }
-    
+
     return null;
   };
 

@@ -23,12 +23,12 @@ const getUnderlyingSymbol = (sym: string) => {
   if (sym.includes('NIFTY MID SELECT')) return 'MIDCPNIFTY';
   if (sym.includes('SENSEX')) return 'SENSEX';
   if (sym.includes('BANKEX')) return 'BANKEX';
-  
+
   const parsed = parseOptionSymbol(sym);
   if (parsed) {
     return parsed.underlying;
   }
-  
+
   if (sym.includes(':')) return sym.split(':')[1];
   return sym;
 };
@@ -78,7 +78,15 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradingChart({ symbol, segment = '', liveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
+  const [symbol, setSymbol] = useState(propSymbol);
+  const [segment, setSegment] = useState(propSegment);
+
+  useEffect(() => {
+    setSymbol(propSymbol);
+    setSegment(propSegment);
+  }, [propSymbol, propSegment]);
+
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
@@ -337,7 +345,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         let data: Candle[] = [];
 
@@ -361,7 +369,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         } else {
           const toDate = new Date();
           let fromDate = new Date();
-          
+
           if (timeframe === 'day') {
             fromDate.setFullYear(fromDate.getFullYear() - 1);
           } else if (timeframe === '60m') {
@@ -378,7 +386,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
 
           const res = await fetch(`/api/market/historical?symbol=${encodeURIComponent(symbol)}&interval=${interval}&from=${from}&to=${to}`);
           const json = await res.json();
-          
+
           if (res.ok && json.candles) {
             data = json.candles.map((c: any) => {
               const dt = new Date(c[0]);
@@ -399,7 +407,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         if (isMounted) {
           const uniqueData = Array.from(new Map(data.map(item => [item.timestamp, item])).values());
           uniqueData.sort((a, b) => a.timestamp - b.timestamp);
-          
+
           setHistoricalCandles(uniqueData);
           if (uniqueData.length > 0) hasLoadedData.current = true;
           setLoading(false);
@@ -432,13 +440,13 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   // Update with live quote
   useEffect(() => {
     if (!liveQuote || loading) return;
-    
+
     const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
     if (!lastPrice) return;
 
     setCurrentPrice(lastPrice);
     if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
-    
+
     const lastCandle = historicalCandles.length > 0 ? historicalCandles[historicalCandles.length - 1] : null;
     setPriceChange(liveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
     setPriceChangePct(liveQuote.changePercent || 0);
@@ -488,7 +496,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
       return;
     }
     const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
-    
+
     // Determine the base execution price
     // For add-more flow on a different instrument, use that position's LTP not the chart price
     // For chain contract orders, use the option contract's LTP not the underlying index price
@@ -523,7 +531,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
     const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
 
     const intradayLeverage = segSetting?.intraday_leverage ?? 10;
-    const holdingLeverage  = segSetting?.holding_leverage ?? 10;
+    const holdingLeverage = segSetting?.holding_leverage ?? 10;
     const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
     const intradayType = segSetting?.intraday_type ?? 'Multiplier';
     const holdingType = segSetting?.holding_type ?? 'Multiplier';
@@ -542,12 +550,12 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
 
     if (chainContract) {
       orderSymbol = chainContract.name;
-      
+
       const underlying = symbol.toUpperCase().replace('_INDEX', '').replace('NSE:', '').replace('INDEX', '').trim();
       let prefix = 'NFO';
       if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
       else if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(underlying)) prefix = 'MCX';
-      
+
       orderKiteInstrument = chainContract.kiteId || `${prefix}:${orderSymbol}`;
       orderSegment = 'INDEX-OPT';
     }
@@ -716,7 +724,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
       showToast(`Insufficient margin! Need ₹${required.toLocaleString('en-IN')}`, true);
       return;
     }
-    
+
     showToast(`Placing quick ${side} order...`);
     const res = await placeOrder({
       symbol: symbol,
@@ -833,7 +841,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
   const segSetting = orderSide === 'SELL' ? sellSetting : buySetting;
 
   const intradayLeverage = segSetting?.intraday_leverage ?? 10;
-  const holdingLeverage  = segSetting?.holding_leverage ?? 10;
+  const holdingLeverage = segSetting?.holding_leverage ?? 10;
   const leverage = orderCarry === 'carry' ? holdingLeverage : intradayLeverage;
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
@@ -879,7 +887,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
       if (chainLoading) {
         return <div className="empty-state">Loading chain...</div>;
       }
-      
+
       const handleTableTrade = (tradeSymbol: string, defaultAction: 'BUY' | 'SELL') => {
         // tradeSymbol = "NIFTY26JUN24000CE|221.45|0|NFO:NIFTY26JUN24000CE"
         const parts = tradeSymbol.split('|');
@@ -896,7 +904,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         const peQuote = r.pe?.id ? marketQuotes[r.pe.id] : null;
         const ceLtp = ceQuote ? ceQuote.lastPrice : (r.ce?.price || 0);
         const peLtp = peQuote ? peQuote.lastPrice : (r.pe?.price || 0);
-        
+
         return {
           strike: r.strike,
           ce: { ...r.ce, symbol: r.ce ? `${r.ce.symbol}|${ceLtp}|0|${r.ce.id}` : '' },
@@ -906,18 +914,18 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
 
       return (
         <div className="tc-chain-container" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <OptionChainTable 
-            strikes={mappedStrikes} 
-            quotes={marketQuotes} 
-            spotPrice={currentPrice || 71.00} 
-            onTrade={handleTableTrade} 
-            priceMode="LTP" 
+          <OptionChainTable
+            strikes={mappedStrikes}
+            quotes={marketQuotes}
+            spotPrice={currentPrice || 71.00}
+            onTrade={handleTableTrade}
+            priceMode="LTP"
             stickyTop={0}
           />
         </div>
       );
     }
-    
+
     if (activeSegment === 'orders') {
       const openOrders = orders.filter(o => o.status === 'PENDING');
 
@@ -976,7 +984,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         </>
       );
     }
-    
+
     // Positions — Rich Layout matching CHARTINH.html exactly
     if (currentSymbolPositions.length === 0) {
       return <div className="empty-state">No active positions.</div>;
@@ -1029,7 +1037,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M10 3L5 8l5 5"/>
+            <path d="M10 3L5 8l5 5" />
           </svg>
         </button>
 
@@ -1037,7 +1045,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         <div className="tc-symbol-btn">
           <span className="tc-symbol-exchange">{displayExchange}</span>
           <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z"/></svg>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
         </div>
 
         <div className="tc-divider"></div>
@@ -1045,11 +1053,11 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         {/* ── Interval flyout ── */}
         {(() => {
           const intervals: { label: string; tf: Timeframe }[] = [
-            { label: '1m',  tf: '1m'  },
-            { label: '5m',  tf: '5m'  },
+            { label: '1m', tf: '1m' },
+            { label: '5m', tf: '5m' },
             { label: '15m', tf: '15m' },
-            { label: '1H',  tf: '60m' },
-            { label: 'D',   tf: 'day' },
+            { label: '1H', tf: '60m' },
+            { label: 'D', tf: 'day' },
           ];
           const current = intervals.find(i => i.tf === timeframe) || intervals[1];
           return (
@@ -1061,7 +1069,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                 title="Interval"
               >
                 <span style={{ fontWeight: 700, fontSize: '13px' }}>{current.label}</span>
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z" /></svg>
               </div>
               {openTopFlyout === 'interval' && (
                 <div className="tc-top-flyout" style={{ minWidth: '110px' }}>
@@ -1085,10 +1093,10 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
         {/* ── Chart Type flyout ── */}
         {(() => {
           const types: { key: 'candle' | 'area' | 'bar' | 'baseline'; label: string; icon: React.ReactNode }[] = [
-            { key: 'candle',   label: 'Candles',   icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="4" width="3" height="6" fill="currentColor"/><line x1="4.5" y1="1" x2="4.5" y2="4"/><line x1="4.5" y1="10" x2="4.5" y2="13"/><rect x="8" y="3" width="3" height="5" fill="none"/><line x1="9.5" y1="1" x2="9.5" y2="3"/><line x1="9.5" y1="8" x2="9.5" y2="13"/></svg> },
-            { key: 'bar',      label: 'Bars',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" y1="2" x2="4" y2="12"/><line x1="1" y1="5" x2="4" y2="5"/><line x1="4" y1="9" x2="7" y2="9"/><line x1="10" y1="3" x2="10" y2="11"/><line x1="7" y1="6" x2="10" y2="6"/><line x1="10" y1="8" x2="13" y2="8"/></svg> },
-            { key: 'area',     label: 'Area',      icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 11 Q4 4 7 6 Q10 8 13 3" /><path d="M1 11 Q4 4 7 6 Q10 8 13 3 V11 Z" fill="currentColor" opacity="0.2" stroke="none"/></svg> },
-            { key: 'baseline', label: 'Baseline',  icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="7" x2="13" y2="7" strokeDasharray="2 1"/><path d="M1 7 Q4 3 7 5 Q10 7 13 4" /><path d="M1 7 Q4 11 7 9 Q10 7 13 10" /></svg> },
+            { key: 'candle', label: 'Candles', icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="4" width="3" height="6" fill="currentColor" /><line x1="4.5" y1="1" x2="4.5" y2="4" /><line x1="4.5" y1="10" x2="4.5" y2="13" /><rect x="8" y="3" width="3" height="5" fill="none" /><line x1="9.5" y1="1" x2="9.5" y2="3" /><line x1="9.5" y1="8" x2="9.5" y2="13" /></svg> },
+            { key: 'bar', label: 'Bars', icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="4" y1="2" x2="4" y2="12" /><line x1="1" y1="5" x2="4" y2="5" /><line x1="4" y1="9" x2="7" y2="9" /><line x1="10" y1="3" x2="10" y2="11" /><line x1="7" y1="6" x2="10" y2="6" /><line x1="10" y1="8" x2="13" y2="8" /></svg> },
+            { key: 'area', label: 'Area', icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 11 Q4 4 7 6 Q10 8 13 3" /><path d="M1 11 Q4 4 7 6 Q10 8 13 3 V11 Z" fill="currentColor" opacity="0.2" stroke="none" /></svg> },
+            { key: 'baseline', label: 'Baseline', icon: <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4"><line x1="1" y1="7" x2="13" y2="7" strokeDasharray="2 1" /><path d="M1 7 Q4 3 7 5 Q10 7 13 4" /><path d="M1 7 Q4 11 7 9 Q10 7 13 10" /></svg> },
           ];
           const cur = types.find(t => t.key === chartType) || types[0];
           return (
@@ -1100,7 +1108,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                 title="Chart Type"
               >
                 {cur.icon}
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z"/></svg>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M1 2l3 4 3-4z" /></svg>
               </div>
               {openTopFlyout === 'charttype' && (
                 <div className="tc-top-flyout" style={{ minWidth: '140px' }}>
@@ -1135,8 +1143,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
           style={{ display: 'none' }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <path d="M1 10 L4 6 L7 8 L10 3 L13 5"/>
-            <line x1="1" y1="12" x2="13" y2="12" strokeDasharray="2 1" opacity="0.5"/>
+            <path d="M1 10 L4 6 L7 8 L10 3 L13 5" />
+            <line x1="1" y1="12" x2="13" y2="12" strokeDasharray="2 1" opacity="0.5" />
           </svg>
           <span style={{ fontSize: '12px', fontWeight: 600 }}>Indicators</span>
         </div>
@@ -1150,8 +1158,8 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
           {/* Settings */}
           <div className="tc-tb-icon" title="Chart Settings" onClick={() => showToast('Settings coming soon')} style={{ display: 'none' }}>
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="7.5" cy="7.5" r="2"/>
-              <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12"/>
+              <circle cx="7.5" cy="7.5" r="2" />
+              <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12" />
             </svg>
           </div>
 
@@ -1161,12 +1169,12 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
             if (el) el.requestFullscreen?.();
           }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/>
+              <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" />
             </svg>
           </div>
         </div>
       </div>
-      
+
       {/* Main Area */}
       <div className="tc-main-area">
 
@@ -1240,7 +1248,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
               <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
                 <span className="btn-label">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                    <path d="M10 1l3 3-3 3"/><path d="M13 4H5"/><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5"/>
+                    <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
                   </svg>
                   EXIT {currentInstrumentPosition.side === 'BUY' ? 'LONG' : 'SHORT'}
                 </span>
@@ -1248,7 +1256,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
               <button className="trade-btn exit-quick-chart-btn" onClick={() => handleQuickExit(currentInstrumentPosition.id)} title="Quick Market Exit">
                 <span className="btn-label">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ verticalAlign: 'middle' }}>
-                    <path d="M13 1L1 13M1 1l12 12"/>
+                    <path d="M13 1L1 13M1 1l12 12" />
                   </svg>
                 </span>
               </button>
@@ -1304,20 +1312,39 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                     <span style={{ background: orderSide === 'BUY' ? '#e8faf0' : '#fde8e8', color: orderSide === 'BUY' ? '#1db954' : '#e53935', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
                       {orderSide === 'BUY' ? 'Ask' : 'Bid'} ₹{orderSide === 'BUY' ? chainContract.ask : chainContract.bid}
                     </span>
-                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                      {chainContract.expiry}
-                    </span>
+                    {chainContract.expiry && (
+                      <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                        {chainContract.expiry}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
-              <div className="close-order-block" onClick={() => { 
-                setIsOrderBlockVisible(false); 
-                setChainContract(null); 
+
+              {chainContract && (
+                <div
+                  style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => {
+                    setSymbol(chainContract.name);
+                    setSegment('NFO-OPT');
+                    setIsPanelExpanded(false);
+                    setIsOrderBlockVisible(false);
+                    setChainContract(null);
+                  }}
+                  title="Open Chart"
+                >
+                  <i className="ti ti-chart-line" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}></i>
+                </div>
+              )}
+
+              <div className="close-order-block" onClick={() => {
+                setIsOrderBlockVisible(false);
+                setChainContract(null);
                 if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
-                setIsExitFlow(false); 
-                setIsAddMoreFlow(false); 
-                setExitPositionId(null); 
-                setOrderBlockTitle(symbol); 
+                setIsExitFlow(false);
+                setIsAddMoreFlow(false);
+                setExitPositionId(null);
+                setOrderBlockTitle(symbol);
               }}>
                 <i className="ti ti-x"></i>
               </div>
@@ -1393,7 +1420,7 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
                   <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
                 </div>
               </div>
-              
+
               <div className="bottom-row">
                 <div className="market-limit-box" id="orderTypeGroup" style={{ flex: 6 }}>
                   <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
@@ -1469,20 +1496,20 @@ export default function TradingChart({ symbol, segment = '', liveQuote }: Tradin
 
                 <div style={{ height: '4px' }} />
 
-                <div 
-                  style={{ 
-                    background: 'var(--bg)', 
-                    border: '1px solid var(--border)', 
-                    borderRadius: '8px', 
-                    padding: '8px 10px', 
-                    display: 'flex', 
+                <div
+                  style={{
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    display: 'flex',
                     flexDirection: 'column',
                     gap: '6px',
                     width: '100%',
                     boxSizing: 'border-box'
                   }}
                 >
-                  <div 
+                  <div
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
                     onClick={() => setShowCharges(!showCharges)}
                   >
