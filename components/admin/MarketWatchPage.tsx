@@ -178,7 +178,7 @@ export default function MarketWatchPage() {
                 <div className="adm-mw-dd-empty">No results found</div>
               ) : (
                 suggestions.map((item, idx) => {
-                  const sym = (item.id || item.tradingsymbol || `unknown-${idx}`) as string;
+                  const sym = (item.tradingsymbol || item.id || `unknown-${idx}`) as string;
                   const added = instruments.includes(sym);
                   return (
                     <div

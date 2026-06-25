@@ -761,10 +761,16 @@ function WatchlistContent() {
       return;
     }
 
-    area.style.display = 'flex';
-    const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
-    if (input) {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+    // Use the exposed search function directly — avoids the fragile synthetic
+    // input event that could fire before the inline script has attached its listener
+    if (typeof (window as any).__triggerSearch === 'function') {
+      (window as any).__triggerSearch(searchText.trim());
+    } else {
+      // Script not mounted yet — dispatch input event as fallback
+      const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
+      if (input) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
   }, [searchText]);
 
@@ -1452,8 +1458,10 @@ function WatchlistContent() {
     window.__watchlistItems = window.__watchlistItems || [];
     (window as any).__reactSetSelectionActive = setIsSelectionActive;
 
-    // Reset search state so it doesn't get stuck from previous mount
-    (window as any).__lastProcessedQuery = '';
+    // Reset any stale search state from previous mount
+    if (typeof (window as any).__triggerSearch === 'function') {
+      (window as any).__triggerSearch = null;
+    }
 
     const script = document.createElement('script');
     script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
@@ -2665,7 +2673,35 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       }
 
       var searchDebounceTimer = null;
-      var lastProcessedQuery = window.__lastProcessedQuery || '';
+      var currentSearchController = null; // AbortController for in-flight fetch
+
+      function getTabForSearchItem(seg, cat) {
+        if (cat) {
+          var c = cat.toUpperCase();
+          if (c.indexOf('INDEX - FUTURE') >= 0) return 'INDEX-FUT';
+          if (c.indexOf('INDEX - OPTIONS') >= 0) return 'INDEX-OPT';
+          if (c.indexOf('STOCKS - FUTURE') >= 0) return 'STOCK-FUT';
+          if (c.indexOf('MCX - FUTURE') >= 0) return 'MCX-FUT';
+          if (c.indexOf('MCX - OPTIONS') >= 0) return 'MCX-OPT';
+          if (c.indexOf('CRYPTO') >= 0) return 'CRYPTO';
+          if (c.indexOf('FOREX') >= 0) return 'FOREX';
+          if (c.indexOf('COMEX') >= 0) return 'COMEX';
+        }
+        if (!seg) return 'INDEX-FUT';
+        var m = {
+          'NSE - Futures': 'INDEX-FUT', 'BSE - Futures': 'INDEX-FUT',
+          'NSE - Options': 'INDEX-OPT', 'BSE - Options': 'INDEX-OPT',
+          'NSE - Stock Futures': 'STOCK-FUT', 'BSE - Stock Futures': 'STOCK-FUT',
+          'NSE - Stock Options': 'STOCK-OPT', 'BSE - Stock Options': 'STOCK-OPT',
+          'MCX - Futures': 'MCX-FUT', 'MCX - Options': 'MCX-OPT',
+          'NSE - Equity': 'NSE-EQ', 'BSE - Equity': 'NSE-EQ',
+          'Crypto': 'CRYPTO', 'CRYPTO': 'CRYPTO',
+          'Forex': 'FOREX', 'FOREX': 'FOREX',
+          'CDS - Futures': 'FOREX', 'CDS - Options': 'FOREX',
+          'COMEX - Futures': 'COMEX', 'COMEX - Options': 'COMEX', 'COMEX': 'COMEX', 'COI': 'COMEX'
+        };
+        return m[seg] || 'INDEX-FUT';
+      }
 
       function renderSearchResults(results) {
         var searchResultsArea = document.getElementById('searchResultsArea');
@@ -2734,98 +2770,85 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           .catch(function() {});
       }
 
-      document.addEventListener('input', function(e) {
-        if (e.target && e.target.id === 'globalSearchInput') {
-          var inputElement = e.target;
-          var query = inputElement.value.trim();
-          if (query === lastProcessedQuery) return;
-          lastProcessedQuery = query;
-          window.__lastProcessedQuery = query;
-          if (query.length === 0) {
-            var area = document.getElementById('searchResultsArea');
-            if (area) area.style.display = 'none';
-            var btn = document.getElementById('clearSearchBtn');
-            if (btn) btn.style.display = 'none';
-            if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-            return;
-          }
+      function runSearch(query) {
+        if (query.length === 0) {
+          var area = document.getElementById('searchResultsArea');
+          if (area) area.style.display = 'none';
           var btn = document.getElementById('clearSearchBtn');
-          if (btn) btn.style.display = 'block';
-
-          // Hardcoded results turant dikhao
-          var activeTab = window.__activeTab || 'All';
-          function getTabForSearchItem(seg, cat) {
-            if (cat) {
-              var c = cat.toUpperCase();
-              if (c.indexOf('INDEX - FUTURE') >= 0) return 'INDEX-FUT';
-              if (c.indexOf('INDEX - OPTIONS') >= 0) return 'INDEX-OPT';
-              if (c.indexOf('STOCKS - FUTURE') >= 0) return 'STOCK-FUT';
-              if (c.indexOf('MCX - FUTURE') >= 0) return 'MCX-FUT';
-              if (c.indexOf('MCX - OPTIONS') >= 0) return 'MCX-OPT';
-              if (c.indexOf('CRYPTO') >= 0) return 'CRYPTO';
-              if (c.indexOf('FOREX') >= 0) return 'FOREX';
-              if (c.indexOf('COMEX') >= 0) return 'COMEX';
-            }
-            if (!seg) return 'INDEX-FUT';
-            var m = {
-              'NSE - Futures': 'INDEX-FUT', 'BSE - Futures': 'INDEX-FUT',
-              'NSE - Options': 'INDEX-OPT', 'BSE - Options': 'INDEX-OPT',
-              'NSE - Stock Futures': 'STOCK-FUT', 'BSE - Stock Futures': 'STOCK-FUT',
-              'NSE - Stock Options': 'STOCK-OPT', 'BSE - Stock Options': 'STOCK-OPT',
-              'MCX - Futures': 'MCX-FUT', 'MCX - Options': 'MCX-OPT',
-              'NSE - Equity': 'NSE-EQ', 'BSE - Equity': 'NSE-EQ',
-              'Crypto': 'CRYPTO', 'CRYPTO': 'CRYPTO',
-              'Forex': 'FOREX', 'FOREX': 'FOREX',
-              'CDS - Futures': 'FOREX', 'CDS - Options': 'FOREX',
-              'COMEX - Futures': 'COMEX', 'COMEX - Options': 'COMEX', 'COMEX': 'COMEX', 'COI': 'COMEX'
-            };
-            return m[seg] || 'INDEX-FUT';
-          }
-
-          var localResults = allScriptsDB.filter(function(s) {
-            var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
-            if (!match) return false;
-            if (activeTab === 'All') return true;
-            return getTabForSearchItem(s.segment, s.category) === activeTab;
-          });
-          renderSearchResults(localResults);
-
-          // Live DB results 300ms debounce ke saath fetch karo
-          if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-          searchDebounceTimer = setTimeout(function() {
-            fetch('/api/market/instruments/search?q=' + encodeURIComponent(query), {
-              headers: {
-                'Authorization': 'Bearer ' + (window.__accessToken || '')
-              }
-            })
-              .then(function(res) {
-                var ct = res.headers.get('content-type');
-                if (res.ok && ct && ct.indexOf('application/json') !== -1) {
-                  return res.json();
-                }
-                return [];
-              })
-              .then(function(liveResults) {
-                if (!liveResults || !Array.isArray(liveResults)) return;
-                // Live results pehle, phir hardcoded jo live mein nahi hain
-                var liveSymbols = new Set(liveResults.map(function(r) { return r.symbol; }));
-                var hardcodedExtra = localResults.filter(function(s) { return !liveSymbols.has(s.symbol); });
-                var merged = liveResults.concat(hardcodedExtra);
-                // Sirf tab update karo jab query abhi bhi same ho
-                var currentInput = document.getElementById('globalSearchInput');
-                if (currentInput && currentInput.value.trim() === query) {
-                  var activeTabLive = window.__activeTab || 'All';
-                  if (activeTabLive !== 'All') {
-                    merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
-                  }
-                  renderSearchResults(merged);
-                }
-              })
-              .catch(function() { /* error pe local results hi rehne do */ });
-          }, 300);
+          if (btn) btn.style.display = 'none';
+          return;
         }
-      });
 
+        var btn = document.getElementById('clearSearchBtn');
+        if (btn) btn.style.display = 'block';
+
+        var activeTab = window.__activeTab || 'All';
+
+        // Show local results immediately (zero-latency feedback)
+        var localResults = allScriptsDB.filter(function(s) {
+          var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+          if (!match) return false;
+          if (activeTab === 'All') return true;
+          return getTabForSearchItem(s.segment, s.category) === activeTab;
+        });
+        renderSearchResults(localResults);
+
+        // Cancel any previous in-flight request
+        if (currentSearchController) {
+          try { currentSearchController.abort(); } catch(e) {}
+        }
+        currentSearchController = new AbortController();
+        var signal = currentSearchController.signal;
+
+        // Debounced live DB fetch
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(function() {
+          fetch('/api/market/instruments/search?q=' + encodeURIComponent(query), {
+            headers: { 'Authorization': 'Bearer ' + (window.__accessToken || '') },
+            signal: signal
+          })
+            .then(function(res) {
+              var ct = res.headers.get('content-type');
+              if (res.ok && ct && ct.indexOf('application/json') !== -1) {
+                return res.json();
+              }
+              return [];
+            })
+            .then(function(liveResults) {
+              if (!liveResults || !Array.isArray(liveResults)) return;
+              // Check query is still current (guard against tab changes mid-flight)
+              var currentInput = document.getElementById('globalSearchInput');
+              if (!currentInput || currentInput.value.trim() !== query) return;
+              // Live results first, then any local-only extras not in live set
+              var liveSymbols = new Set(liveResults.map(function(r) { return r.symbol; }));
+              var hardcodedExtra = localResults.filter(function(s) { return !liveSymbols.has(s.symbol); });
+              var merged = liveResults.concat(hardcodedExtra);
+              var activeTabLive = window.__activeTab || 'All';
+              if (activeTabLive !== 'All') {
+                merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
+              }
+              renderSearchResults(merged);
+            })
+            .catch(function(err) {
+              // AbortError is expected when a new search supersedes this one — ignore silently
+              if (err && err.name === 'AbortError') return;
+            });
+        }, 300);
+      }
+
+      // Use a named function so it can be exposed globally for the React useEffect bridge
+      function handleSearchInput(e) {
+        if (e.target && e.target.id === 'globalSearchInput') {
+          runSearch(e.target.value.trim());
+        }
+      }
+
+      document.addEventListener('input', handleSearchInput);
+      // Expose so React's searchText useEffect can trigger it directly
+      window.__triggerSearch = function(query) {
+        var input = document.getElementById('globalSearchInput');
+        if (input) runSearch(input.value.trim());
+      };
 
 
       var openFolderBtn = document.getElementById('openFolderMobileBtn');
