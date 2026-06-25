@@ -949,6 +949,30 @@ export default function PositionPage() {
                         </div>
                       </div>
 
+                      {/* Settlement Debt (if any) */}
+                      {settlementAmount > 0 && (
+                        <div style={{
+                          background: 'rgba(231, 76, 60, 0.08)',
+                          border: '1.5px solid rgba(231, 76, 60, 0.2)',
+                          padding: '10px 14px',
+                          borderRadius: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          marginBottom: '8px',
+                          boxSizing: 'border-box' as const,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="fas fa-exclamation-triangle" style={{ color: '#e74c3c', fontSize: '0.9rem' }} />
+                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#e74c3c', textTransform: 'uppercase' as const, letterSpacing: '0.3px' }}>Settlement Debt</div>
+                          </div>
+                          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#DC2626' }}>
+                            -₹{settlementAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Trade Again button */}
                       <button
                         style={{
