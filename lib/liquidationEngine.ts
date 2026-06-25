@@ -144,7 +144,21 @@ export async function checkAndExecuteAccountLiquidation(
   const previousBalance = confirmedBalance;
   let positionsClosed = 0;
 
-  // ── Step 3: Close ALL open positions as fast as possible ────────────────
+  // ── Step 3: Cancel ALL pending orders for this user ────────────────────
+  // Pending LIMIT/SL/GTT orders must be cancelled at the same time as positions
+  // are closed — otherwise they could execute after liquidation and re-open
+  // the account into a position it can no longer afford.
+  const { error: cancelErr } = await admin
+    .from('orders')
+    .update({ status: 'CANCELLED', info: 'AUTO_LIQUIDATION' })
+    .eq('user_id', userId)
+    .eq('status', 'PENDING');
+
+  if (cancelErr) {
+    console.error(`[LiquidationEngine] Failed to cancel pending orders for user ${userId}:`, cancelErr.message);
+  }
+
+  // ── Step 4: Close ALL open positions as fast as possible ────────────────
   // Sequential RPCs ensure each position gets its own PnL transaction and the
   // balance trigger fires correctly.  Parallel would risk racing the trigger.
   for (const pos of positions) {
