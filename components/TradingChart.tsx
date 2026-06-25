@@ -141,6 +141,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // --- Dashboard States ---
   const [isOrderBlockVisible, setIsOrderBlockVisible] = useState<boolean>(false);
+  const [isTradeOnChartActive, setIsTradeOnChartActive] = useState<boolean>(false);
   const [orderSide, setOrderSide] = useState<'BUY' | 'SELL'>('BUY');
   const [qtyValue, setQtyValue] = useState<number | string>(() => getLotSize(symbol));
   const [useLots, setUseLots] = useState<boolean>(false);
@@ -1224,11 +1225,57 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             showSettingsModal={showSettingsModal}
             setShowSettingsModal={setShowSettingsModal}
           />
+
+          {/* Trade On Chart Button (Bottom Right, opposite to TV logo) */}
+          <div
+            title="Trade On Chart"
+            onClick={() => {
+              setIsTradeOnChartActive(!isTradeOnChartActive);
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '26px', // Adjusted to align vertically with TradingView logo (above time axis)
+              right: '64px', // Moved slightly left from the very right edge
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              background: 'var(--green-bg, #e8f5e9)',
+              color: 'var(--green, #1db954)',
+              cursor: 'pointer',
+              border: '1px solid var(--green, #1db954)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="M18 9l-5 5-4-4-5 5" />
+            </svg>
+            <span style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>Trade On Chart</span>
+          </div>
         </div>
       </div>
 
-      {/* P&L Card — hide when order block or panel is expanded */}
-      {!isOrderBlockVisible && !isPanelExpanded && (
+      {/* Trade On Chart Slide */}
+      {isTradeOnChartActive && (
+        <div style={{ display: 'flex', gap: '12px', padding: '12px', background: 'var(--bg, #0b0e14)', borderTop: '1px solid var(--border)', zIndex: 10, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}></div>
+          <button className="trade-btn sell" onClick={() => showToast('SL mode activated')} style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--red, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <span className="btn-label" style={{ color: 'var(--red, #e53935)', fontSize: '13px', fontWeight: 600 }}>SL</span>
+          </button>
+          <button className="trade-btn buy" onClick={() => showToast('Target mode activated')} style={{ width: '42px', height: '42px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--green, #1db954)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <span className="btn-label" style={{ color: 'var(--green, #1db954)', fontSize: '13px', fontWeight: 600 }}>TP</span>
+          </button>
+          <button className="trade-btn" onClick={() => setIsTradeOnChartActive(false)} style={{ width: '42px', height: '42px', borderRadius: '50%', flex: 'none', background: 'var(--pill-bg, #1a2432)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+            <span className="btn-label" style={{ fontSize: '16px', color: 'var(--text-primary)' }}>✕</span>
+          </button>
+        </div>
+      )}
+
+      {/* P&L Card — hide when order block, panel is expanded, or TradeOnChart is active */}
+      {!isOrderBlockVisible && !isPanelExpanded && !isTradeOnChartActive && (
         <div className="pnl-card" id="pnlCard">
           <div>
             <span className="pnl-text">P/L: </span>
@@ -1245,7 +1292,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       {/* Bottom Section */}
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
-        {!isUnderlyingIndex && !isOrderBlockVisible && (
+        {!isUnderlyingIndex && !isOrderBlockVisible && !isTradeOnChartActive && (
           currentInstrumentPosition ? (
             <div className="trade-buttons" id="tradeButtons">
               {currentInstrumentPosition.side === 'BUY' ? (
@@ -1365,7 +1412,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
 
               <div
-                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}
+                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1px solid var(--green, #1db954)' }}
                 onClick={() => {
                   const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
                   setSymbol(targetSymbol);
