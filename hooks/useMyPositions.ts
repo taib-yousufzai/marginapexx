@@ -267,7 +267,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         ? (ltp - rawEntryLtp) * p.qty_open
         : (rawEntryLtp - ltp) * p.qty_open;
 
-      const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
+      // Anti-scalping hold lock — only applies when segment settings exist.
+      // Without settings there is no configured hold time, so never lock.
+      const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 0;
       const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
 
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
