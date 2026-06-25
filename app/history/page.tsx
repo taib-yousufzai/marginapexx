@@ -21,6 +21,8 @@ interface HistoryItem {
   exitDate?: string;
   status: string;
   brokerage: number;
+  closedBy?: string;
+  productType?: string;
 }
 
 declare global {
@@ -58,7 +60,7 @@ export default function HistoryPage() {
       setHistoryData(window.__historyCache);
       setLoading(false);
     }
-    
+
     async function fetchHistory() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -94,7 +96,7 @@ export default function HistoryPage() {
           id: p.id,
           scriptName: p.symbol,
           type: p.side,
-          orderType: 'INTRADAY',
+          orderType: p.product_type || 'INTRADAY',
           qty: p.qty_total,
           price: p.exit_price || 0,
           entryPrice: p.entry_price,
@@ -103,7 +105,9 @@ export default function HistoryPage() {
           date: new Date(p.created_at).toLocaleString(),
           exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
           status: 'closed',
-          brokerage: p.brokerage || 0
+          brokerage: p.brokerage || 0,
+          closedBy: p.closed_by || 'USER',
+          productType: p.product_type || 'INTRADAY',
         }));
 
         const merged = [...formattedOrders, ...formattedPos];
@@ -143,7 +147,7 @@ export default function HistoryPage() {
   return (
     <div className="desktop-layout">
       <Sidebar />
-      
+
       <main className="main-viewport">
         <div className="app-container">
           <div className="history-root">
@@ -315,6 +319,24 @@ export default function HistoryPage() {
                           <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
                         </div>
+                        {item.closedBy === 'AUTO_LIQUIDATION' && (
+                          <div style={{
+                            marginTop: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(198,46,46,0.08)',
+                            border: '1px solid rgba(198,46,46,0.2)',
+                            borderRadius: '8px',
+                            padding: '5px 10px',
+                          }}>
+                            <i className="fas fa-triangle-exclamation" style={{ color: '#C62E2E', fontSize: '0.7rem' }}></i>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#C62E2E' }}>Settlement</span>
+                            <span style={{ fontSize: '0.7rem', color: '#C62E2E', marginLeft: 'auto', fontWeight: 600 }}>
+                              -{formatPrice(Math.abs(item.pnl))}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -346,7 +368,8 @@ export default function HistoryPage() {
           </span>
         </div>
       </div>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .history-root .history-card-header {
             display: flex !important;
             justify-content: space-between !important;

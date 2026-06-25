@@ -26,9 +26,10 @@ interface OptionChainTableProps {
   onTrade: (symbol: string, side: 'BUY' | 'SELL') => void;
   priceMode?: 'BA' | 'LTP';
   stickyTop?: number;
+  hideMainHeader?: boolean;
 }
 
-export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, priceMode = 'LTP', stickyTop = 58 }: OptionChainTableProps) {
+export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, priceMode = 'LTP', stickyTop = 58, hideMainHeader = false }: OptionChainTableProps) {
   const atmRef = React.useRef<HTMLDivElement>(null);
   const tableHeaderRef = React.useRef<HTMLDivElement>(null);
   const [subheadFloating, setSubheadFloating] = React.useState(false);
@@ -105,12 +106,14 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
       {/* Single outer container */}
       <div className="oct-table">
 
-        {/* â”€â”€ Header row (scrolls away) â”€â”€ */}
-        <div className="oct-head" ref={tableHeaderRef}>
-          <div className="oct-head-calls">{priceMode === 'LTP' ? 'CALL LTP' : 'CALLS'}</div>
-          <div className="oct-head-strike">STRIKE</div>
-          <div className="oct-head-puts">{priceMode === 'LTP' ? 'PUT LTP' : 'PUTS'}</div>
-        </div>
+        {/* ── Header row (scrolls away) ── */}
+        {!hideMainHeader && (
+          <div className="oct-head" ref={tableHeaderRef}>
+            <div className="oct-head-calls">{priceMode === 'LTP' ? 'CALL LTP' : 'CALLS'}</div>
+            <div className="oct-head-strike">STRIKE</div>
+            <div className="oct-head-puts">{priceMode === 'LTP' ? 'PUT LTP' : 'PUTS'}</div>
+          </div>
+        )}
 
         {/* â”€â”€ Sub-header: sticky â”€â”€ */}
         <div className={`oct-subhead${subheadFloating ? ' floating' : ''}`}>

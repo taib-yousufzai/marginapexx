@@ -921,6 +921,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             onTrade={handleTableTrade}
             priceMode="LTP"
             stickyTop={0}
+            hideMainHeader={true}
           />
         </div>
       );
