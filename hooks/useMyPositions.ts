@@ -252,26 +252,29 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const investment = avgPrice * p.qty_open;
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
-      // Anti-scalping hold lock
-      // The hold period is determined ONCE based on entry-time PnL direction,
-      // not re-evaluated on every tick. Re-evaluating on every tick causes the
-      // button to flicker when LTP oscillates around avg price.
+      // Anti-scalping hold lock — only on profitable positions.
       //
-      // Logic: at entry the user filled at avg_price. The entry buffer baked into
-      // avg_price means a BUY fill is always slightly above raw LTP (and a SELL
-      // fill slightly below). So at the very moment of entry the position is
-      // always technically at a small "loss" vs raw LTP — meaning lossHoldSec
-      // would always apply if we used live LTP. Instead we compare avg_price to
-      // entry_price (the original order price) to decide the intent direction,
-      // and simply use profitHoldSec as the required hold for all new positions
-      // (the conservative, intended behaviour of anti-scalping).
+      // PROFIT/LOSS determination uses a margin above entry_price (not avg_price
+      // which includes fill buffer, causing flicker when LTP hovers near avg).
+      // A position is considered "in profit" only when LTP has moved meaningfully
+      // above entry_price — we use a small dead-band (0.1% of entry price) so
+      // minor noise doesn't flip the lock state.
       //
-      // Once elapsedSec >= profitHoldSec the position is permanently unlocked
-      // regardless of subsequent LTP movement.
-      const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 0;
+      // Once elapsedSec >= profitHoldSec the lock is permanently off.
+      const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
 
-      const elapsedSec   = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
-      const isLocked     = (p.status === 'open' || p.status === 'active') && elapsedSec < profitHoldSec;
+      const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
+
+      // Dead-band: require LTP to be at least 0.1% above/below entry_price
+      // before calling it a profit. Eliminates flicker at breakeven.
+      const deadBand = p.entry_price * 0.001;
+      const isInProfit = p.side === 'BUY'
+        ? ltp > p.entry_price + deadBand
+        : ltp < p.entry_price - deadBand;
+
+      const isLocked     = (p.status === 'open' || p.status === 'active')
+                          && isInProfit
+                          && elapsedSec < profitHoldSec;
       const remainingSec = isLocked ? (profitHoldSec - elapsedSec) : 0;
 
       return {

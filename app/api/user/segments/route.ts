@@ -76,8 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     const isScalper = targetMode === 'scalper';
-    // Hold lock is disabled — new rows always get 0 so no position is ever locked
-    const profit_hold_sec = 0;
+    const profit_hold_sec = isScalper ? 15 : 120;
     const commission_val = isScalper ? 8500 : commission_value;
 
     for (const side of ['BUY', 'SELL'] as const) {
