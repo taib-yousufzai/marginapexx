@@ -214,7 +214,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const equity = balance + floatingPnl;
   // Free Margin = Balance - Used Margin (locked margins, no floating PnL)
   const freeMargin = balance - usedMargin;
-  const fmt = (n: number) => n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const fmt = (n: number) => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const [openHeight, setOpenHeight] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -313,36 +313,36 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
               <div className="summary-grid">
                 <div className="summary-item">
                   <span className="summary-label">Balance</span>
-                  <span className="summary-value">₹<TickFlash value={balance}>{fmt(balance)}</TickFlash></span>
+                  <span className="summary-value"><TickFlash value={balance}>{balance < 0 ? '-' : ''}₹{fmt(balance)}</TickFlash></span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Free Margin</span>
                   <span className={`summary-value ${freeMargin >= 0 ? '' : 'negative'}`}>
-                    ₹<TickFlash value={freeMargin}>{fmt(freeMargin)}</TickFlash>
+                    <TickFlash value={freeMargin}>{freeMargin < 0 ? '-' : ''}₹{fmt(freeMargin)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Floating P/L</span>
                   <span className={`summary-value ${floatingPnl >= 0 ? 'positive' : 'negative'}`}>
-                    ₹<TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : ''}{fmt(floatingPnl)}</TickFlash>
+                    <TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : '-'}₹{fmt(floatingPnl)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Equity</span>
                   <span className="summary-value highlight">
-                    ₹<TickFlash value={equity}>{fmt(equity)}</TickFlash>
+                    <TickFlash value={equity}>{equity < 0 ? '-' : ''}₹{fmt(equity)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Used Margin</span>
                   <span className="summary-value">
-                    ₹<TickFlash value={usedMargin}>{fmt(usedMargin)}</TickFlash>
+                    <TickFlash value={usedMargin}>{usedMargin < 0 ? '-' : ''}₹{fmt(usedMargin)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Liquidation</span>
                   <span className={`summary-value negative`}>
-                    ₹<TickFlash value={liquidationLevel}>{fmt(liquidationLevel)}</TickFlash>
+                    <TickFlash value={liquidationLevel}>{liquidationLevel < 0 ? '-' : ''}₹{fmt(liquidationLevel)}</TickFlash>
                   </span>
                 </div>
               </div>
