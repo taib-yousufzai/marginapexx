@@ -152,7 +152,8 @@ export default function HistoryPage() {
     const gp = posHistory.filter(h => h.pnl > 0).reduce((acc, h) => acc + h.pnl, 0);
     const gl = posHistory.filter(h => h.pnl < 0).reduce((acc, h) => acc + Math.abs(h.pnl), 0);
     const b = historyData.reduce((acc, h) => acc + h.brokerage, 0);
-    return { gp, gl, b, n: gp - gl - b };
+    const s = posHistory.reduce((acc, h) => acc + (h.settlementAmount ?? 0), 0);
+    return { gp, gl, b, s, n: gp - gl - b - s };
   }, [historyData]);
 
   const formatPrice = (val: number) => {
@@ -333,29 +334,13 @@ export default function HistoryPage() {
                         </div>
                         <div className="history-card-details" style={{ marginTop: '4px' }}>
                           <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
-                          {currentTab === 'position' && item.settlement && (
-                            <span className="detail-item"><i className="fas fa-tag"></i> {item.settlement}</span>
+                          {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
+                            <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>
+                              <i className="fas fa-handshake"></i> Settled: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                           )}
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
                         </div>
-                        {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
-                          <div style={{
-                            marginTop: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: 'rgba(198,46,46,0.08)',
-                            border: '1px solid rgba(198,46,46,0.2)',
-                            borderRadius: '8px',
-                            padding: '5px 10px',
-                          }}>
-                            <i className="fas fa-triangle-exclamation" style={{ color: '#C62E2E', fontSize: '0.7rem' }}></i>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#C62E2E' }}>Settlement</span>
-                            <span style={{ fontSize: '0.7rem', color: '#C62E2E', marginLeft: 'auto', fontWeight: 600 }}>
-                              -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     );
                   })
@@ -379,6 +364,12 @@ export default function HistoryPage() {
         <div className="footer-row">
           <span className="footer-label"><i className="fas fa-receipt"></i> Brokerage</span>
           <span className="footer-value">{formatPrice(summary.b)}</span>
+        </div>
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
+          <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
+            {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
+          </span>
         </div>
         <div className="footer-row">
           <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>

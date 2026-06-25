@@ -439,14 +439,6 @@ export default function PositionPage() {
                 </div>
               </div>
 
-              {settlementAmount > 0 && (
-                <div style={{ margin: '12px 24px 0 24px', padding: '12px 16px', background: 'rgba(231, 76, 60, 0.1)', border: '1.5px solid rgba(231, 76, 60, 0.2)', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px', color: '#e74c3c', fontSize: '0.8rem' }}>
-                  <i className="fas fa-exclamation-triangle" style={{ fontSize: '1.2rem' }} />
-                  <div>
-                    <strong style={{ fontWeight: 800 }}>Settlement Debt Warning:</strong> You have an outstanding settlement debt of <strong style={{ fontWeight: 800 }}>-₹{settlementAmount.toFixed(2)}</strong>. Please deposit funds to clear this debt.
-                  </div>
-                </div>
-              )}
 
               {/* ── Main Tabs ── */}
               <div className="pos-main-tabs">
