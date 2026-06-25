@@ -440,7 +440,7 @@ function WatchlistContent() {
     }
 
     fetch('/api/market/instruments/library')
-      .then(res => res.json())
+      .then(res => res.ok ? res.json() : Promise.reject('fetch failed'))
       .then(data => {
         if (data.segments) {
           setTradingSegments(data.segments);
@@ -513,7 +513,7 @@ function WatchlistContent() {
         (window as any).__accessToken = session.access_token;
         
         const controller1 = new AbortController();
-        const t1 = setTimeout(() => controller1.abort(), 5000);
+        const t1 = setTimeout(() => controller1.abort('Timeout'), 5000);
         const res = await fetch('/api/user/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
           signal: controller1.signal
@@ -528,7 +528,7 @@ function WatchlistContent() {
           // Fetch segment settings and script settings in parallel
           const mode = profile?.trading_mode || 'normal';
           const controller2 = new AbortController();
-          const t2 = setTimeout(() => controller2.abort(), 5000);
+          const t2 = setTimeout(() => controller2.abort('Timeout'), 5000);
           
           const [resSettings, resScript] = await Promise.all([
             fetch(`/api/user/segments?mode=${mode}`, {
@@ -555,7 +555,9 @@ function WatchlistContent() {
           setAllowedSegments([]);
         }
       } catch (err) {
-        console.error('Failed to fetch allowed segments', err);
+        if (err !== 'Timeout' && (err as Error)?.name !== 'AbortError') {
+          console.warn('Failed to fetch allowed segments', err);
+        }
         // On error, fall back to allowing all
         setAllowedSegments([]);
       }

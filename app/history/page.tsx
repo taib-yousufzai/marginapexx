@@ -78,6 +78,7 @@ export default function HistoryPage() {
           })
         ]);
 
+        if (!ordersRes.ok || !posRes.ok) throw new Error('fetch failed');
         const ordersData = await ordersRes.json();
         const posData = await posRes.json();
 
