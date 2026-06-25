@@ -35,6 +35,7 @@ class TickerDaemon {
   private candleAggregator!: CandleAggregator;
 
   private subscriptionTimer: NodeJS.Timeout | null = null;
+  private matchingEngineSyncTimer: NodeJS.Timeout | null = null;
   private telemetryTimer: NodeJS.Timeout | null = null;
   private subscriptionDebounce: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
@@ -262,6 +263,15 @@ class TickerDaemon {
       await this.syncSubscriptions();
     }, 60000);
 
+    // Setup periodic matching engine cache sync (every 15 seconds) to self-heal state if Supabase Realtime drops
+    this.matchingEngineSyncTimer = setInterval(async () => {
+      try {
+        await matchingEngine.initialize();
+      } catch (err) {
+        logger.error({ err }, 'Periodic matching engine cache sync failed');
+      }
+    }, 15000);
+
     // Setup realtime listener for instant subscription sync on DB change events
     this.subscriptionManager.setupRealtime(() => {
       this.syncSubscriptions();
@@ -449,10 +459,11 @@ class TickerDaemon {
 
       logger.info({ signal }, 'Graceful shutdown initiated...');
 
-      if (this.subscriptionTimer) clearInterval(this.subscriptionTimer);
-      if (this.telemetryTimer)    clearInterval(this.telemetryTimer);
-      if (this.subscriptionDebounce) clearTimeout(this.subscriptionDebounce);
-      if (this.reconnectTimer)    clearTimeout(this.reconnectTimer);
+      if (this.subscriptionTimer)       clearInterval(this.subscriptionTimer);
+      if (this.matchingEngineSyncTimer) clearInterval(this.matchingEngineSyncTimer);
+      if (this.telemetryTimer)          clearInterval(this.telemetryTimer);
+      if (this.subscriptionDebounce)    clearTimeout(this.subscriptionDebounce);
+      if (this.reconnectTimer)          clearTimeout(this.reconnectTimer);
 
       // Stop the session monitor so it doesn't attempt login during shutdown
       this.sessionMonitor.stop();
