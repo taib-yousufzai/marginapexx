@@ -232,12 +232,24 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const investment = avgPrice * p.qty_open;
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
-      // Anti-Scalping calculations
+      // Anti-Scalping calculations based on LTP (reconstructing raw entry price)
+      const entryBuffer = sideSetting ? Number(sideSetting.entry_buffer ?? 0.003) : 0.003;
+      let rawEntryLtp = avgPrice;
+      if (p.side === 'BUY') {
+        rawEntryLtp = rawEntryLtp / (1 + entryBuffer);
+      } else {
+        rawEntryLtp = rawEntryLtp / (1 - entryBuffer);
+      }
+
+      const rawPnlLtp = p.side === 'BUY'
+        ? (ltp - rawEntryLtp) * p.qty_open
+        : (rawEntryLtp - ltp) * p.qty_open;
+
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
       const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
 
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
-      const requiredHold = total_pnl >= 0 ? profitHoldSec : lossHoldSec;
+      const requiredHold = rawPnlLtp >= 0 ? profitHoldSec : lossHoldSec;
       const isLocked = (p.status === 'open' || p.status === 'active') && elapsedSec < requiredHold;
       const remainingSec = isLocked ? (requiredHold - elapsedSec) : 0;
 
