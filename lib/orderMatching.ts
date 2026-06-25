@@ -188,6 +188,7 @@ export class InMemoryMatchingEngine {
       if (seg.includes('MCX')) return 'mcx';
       if (seg.includes('CDS') || seg.includes('FOREX')) return 'forex';
       if (seg.includes('COMEX') || seg.includes('COI')) return 'comex';
+      if (seg.includes('CRYPTO') || seg === 'USDT') return 'crypto';
       if (seg.includes('BSE')) return 'bse';
       return 'nse'; // Default for NSE-EQ, INDEX-OPT, NFO, etc.
     };
