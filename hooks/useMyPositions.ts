@@ -255,19 +255,26 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
       // Anti-scalping hold lock
-      // Use the actual unrealised PnL (what the user sees) to decide profit/loss routing.
-      // The rawPnlLtp reconstruction via entry_buffer is unreliable — if entry_buffer in
-      // the DB doesn't exactly match what was applied at fill time, rawPnlLtp can disagree
-      // with what the user sees, causing a loss position to be locked under profitHoldSec.
+      // The hold period is determined ONCE based on entry-time PnL direction,
+      // not re-evaluated on every tick. Re-evaluating on every tick causes the
+      // button to flicker when LTP oscillates around avg price.
+      //
+      // Logic: at entry the user filled at avg_price. The entry buffer baked into
+      // avg_price means a BUY fill is always slightly above raw LTP (and a SELL
+      // fill slightly below). So at the very moment of entry the position is
+      // always technically at a small "loss" vs raw LTP — meaning lossHoldSec
+      // would always apply if we used live LTP. Instead we compare avg_price to
+      // entry_price (the original order price) to decide the intent direction,
+      // and simply use profitHoldSec as the required hold for all new positions
+      // (the conservative, intended behaviour of anti-scalping).
+      //
+      // Once elapsedSec >= profitHoldSec the position is permanently unlocked
+      // regardless of subsequent LTP movement.
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 0;
-      const lossHoldSec   = sideSetting ? Number(sideSetting.loss_hold_sec)   : 0;
 
       const elapsedSec   = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
-      // Route based on the unrealised PnL the user actually sees on screen
-      const isInProfit   = unrealised >= 0;
-      const requiredHold = isInProfit ? profitHoldSec : lossHoldSec;
-      const isLocked     = (p.status === 'open' || p.status === 'active') && elapsedSec < requiredHold;
-      const remainingSec = isLocked ? (requiredHold - elapsedSec) : 0;
+      const isLocked     = (p.status === 'open' || p.status === 'active') && elapsedSec < profitHoldSec;
+      const remainingSec = isLocked ? (profitHoldSec - elapsedSec) : 0;
 
       return {
         ...p,
@@ -278,7 +285,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         pnl_percent: parseFloat(pnl_percent.toFixed(2)),
         hold_lock_active: isLocked,
         remaining_hold_seconds: remainingSec,
-        required_hold_seconds: requiredHold
+        required_hold_seconds: profitHoldSec
       } as EnrichedPosition;
     });
   }, [rawPositions, marketQuotes, comexQuotes, inFlightConversions, segmentSettings]);
