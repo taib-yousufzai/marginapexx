@@ -98,10 +98,11 @@ async function runManualCheck() {
         continue;
       }
 
-      // Floating PnL is calculated based on raw LTP (per requirements)
+      // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
+      const exitBuffer = segmentSettingsMap.get(`${userId}|${pos.settlement}|${pos.side}`) ?? 0.0017;
       const pnl = pos.side === 'BUY'
-        ? (ltp - entryPrice) * qty
-        : (entryPrice - ltp) * qty;
+        ? ((ltp * (1 - exitBuffer)) - entryPrice) * qty
+        : (entryPrice - (ltp * (1 + exitBuffer))) * qty;
 
       totalFloatingPnl += pnl;
       posDetails.push({

@@ -484,10 +484,13 @@ export class InMemoryMatchingEngine {
             continue;
           }
 
-          // Floating PnL is calculated based on raw LTP (per requirements)
-          const pnl = pos.side === 'BUY' 
-            ? (ltp - entryPrice) * qty 
-            : (entryPrice - ltp) * qty;
+          const buyExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
+          const sellExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
+
+          // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
+          const pnl = pos.side === 'BUY'
+            ? ((ltp * (1 - buyExitBuffer)) - entryPrice) * qty
+            : (entryPrice - (ltp * (1 + sellExitBuffer))) * qty;
 
           totalFloatingPnl += pnl;
           positionsWithLtp.push({ ...pos, ltp, qty_open: qty, entry_price: entryPrice });
