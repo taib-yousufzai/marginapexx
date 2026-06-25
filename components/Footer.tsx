@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import TickFlash from '@/components/TickFlash';
-import { useMarketQuotes } from '@/hooks/useMarketQuotes';
-import { useComexQuotes } from '@/hooks/useComexQuotes';
+import { useMyPositions } from '@/hooks/useMyPositions';
 import './Footer.css';
 
 const mapSegmentToDbSegment = (s: string): string => {
@@ -46,101 +45,73 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   }, []);
 
   const [balance, setBalance] = useState(0);
-  const [rawPositions, setRawPositions] = useState<any[]>([]);
-  const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
-
-  const fetchSummary = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const token = session.access_token;
-
-      // Fetch balance
-      const balRes = await fetch('/api/pay/balance', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (balRes.ok) {
-        const { balance } = await balRes.json();
-        setBalance(balance);
-      }
-
-      // Fetch segment settings
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('trading_mode')
-          .eq('id', session.user.id)
-          .single();
-        const mode = profile?.trading_mode || 'normal';
-        const segRes = await fetch(`/api/user/segments?mode=${mode}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (segRes.ok) {
-          const sData = await segRes.json();
-          setSegmentSettings(sData || []);
-        }
-      } catch (err) {
-        console.error('Failed to fetch segment settings in Footer', err);
-      }
-
-      // Fetch positions
-      const posRes = await fetch('/api/positions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (posRes.ok) {
-        const { positions } = await posRes.json();
-        setRawPositions(positions || []);
-      }
-    } catch (err) {
-      if (err instanceof TypeError) return;
-      console.warn('Footer fetchSummary failed', err);
-    }
-  };
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [autoSqoffPercent, setAutoSqoffPercent] = useState(90);
 
   useEffect(() => {
     let cancelled = false;
-    let timerId: ReturnType<typeof setTimeout> | null = null;
+    let channel: any = null;
 
-    const poll = async () => {
-      if (cancelled) return;
-      await fetchSummary();
-      if (!cancelled) {
-        timerId = setTimeout(poll, 3000);
+    const initProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || cancelled) return;
+
+      // Initial fetch of balance and settlement_amount
+      try {
+        const res = await fetch('/api/pay/balance', {
+          headers: { 'Authorization': `Bearer ${session.access_token}` }
+        });
+        if (res.ok && !cancelled) {
+          const { balance, settlementAmount } = await res.json();
+          setBalance(balance);
+          setSettlementAmount(settlementAmount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch balance in Footer', err);
       }
+
+      // Initial fetch of auto_sqoff
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('auto_sqoff')
+          .eq('id', session.user.id)
+          .single();
+        if (profile && !cancelled) {
+          setAutoSqoffPercent(Number(profile.auto_sqoff ?? 90));
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile settings in Footer', err);
+      }
+
+      // Subscribe to realtime profile changes for user balance and settlement_amount
+      channel = supabase
+        .channel(`profile-realtime-footer`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
+          (payload) => {
+            if (cancelled) return;
+            const updated = payload.new as any;
+            if (updated) {
+              setBalance(Number(updated.balance ?? 0));
+              setSettlementAmount(Math.abs(Number(updated.settlement_amount ?? 0)));
+              setAutoSqoffPercent(Number(updated.auto_sqoff ?? 90));
+            }
+          }
+        )
+        .subscribe();
     };
 
-    poll();
+    initProfile();
+
     return () => {
       cancelled = true;
-      if (timerId) clearTimeout(timerId);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
-  // Group instrument keys by segment for active positions
-  const { kiteKeys, binanceKeys, comexKeys } = useMemo(() => {
-    const kite: string[] = [];
-    const binance: string[] = [];
-    const comex: string[] = [];
-
-    rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
-      const seg = (p.settlement || '').toUpperCase();
-      if (seg.includes('CRYPTO')) {
-        binance.push(p.symbol.replace('/', ''));
-      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
-        comex.push(p.symbol);
-      } else {
-        kite.push(p.symbol);
-      }
-    });
-
-    return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
-  }, [rawPositions]);
-
-  // Combine Kite and Binance symbols for the unified hook
-  const marketSymbols = useMemo(() => [...kiteKeys, ...binanceKeys], [kiteKeys, binanceKeys]);
-  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
-  const { quotes: comexQuotes } = useComexQuotes(comexKeys, 1000);
+  const { positions: enrichedPositions } = useMyPositions();
 
   // Live P&L, Used Margin (frozen) and Equity calculations — update on every tick
   const { floatingPnl, usedMargin, positionValue, liquidationLevel } = useMemo(() => {
@@ -148,58 +119,13 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     let totalLockedMargin = 0;
     let totalPositionValue = 0;
 
-    // Pre-build settings map to avoid O(n²) finds per tick
-    const settingsMap = new Map<string, any>();
-    for (const s of segmentSettings) {
-      settingsMap.set(`${s.segment}|${s.side}`, s);
-    }
-
-    const DEFAULT_EXIT_BUFFER = 0.0017;
-
-    rawPositions.forEach(p => {
-      if (p.status === 'open' || p.status === 'active') {
-        const seg = (p.settlement || '').toUpperCase();
-        let ltp = p.ltp || p.entry_price;
-        
-        if (seg.includes('CRYPTO')) {
-          const binanceKey = p.symbol.replace('/', '');
-          ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
-        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
-          ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
-        } else {
-          ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
-        }
-
-        const dbSeg = mapSegmentToDbSegment(p.settlement || '');
-        const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
-        const exitBuffer = sideSetting ? Number(sideSetting.exit_buffer ?? DEFAULT_EXIT_BUFFER) : DEFAULT_EXIT_BUFFER;
-
-        // Apply exit buffer to match the backend's liquidation PnL formula
-        // (orderMatching.ts computes PnL using exit-adjusted LTP, not raw LTP)
-        let unrealised = 0;
-        if (p.qty_open !== 0) {
-          if (p.side === 'BUY') {
-            // BUY exits at bid: ltp × (1 - exitBuffer)
-            unrealised = ((ltp * (1 - exitBuffer)) - p.entry_price) * p.qty_open;
-          } else {
-            // SELL exits at ask: ltp × (1 + exitBuffer)
-            unrealised = (p.entry_price - (ltp * (1 + exitBuffer))) * p.qty_open;
-          }
-        }
-        totalUnrealised += unrealised;
-
-        // Used Margin: read frozen locked_margin from DB (set at trade entry, never recalculated)
-        // Fallback to margin_required if locked_margin not yet backfilled
-        const posMargin = Number(p.locked_margin || p.margin_required || 0);
-        totalLockedMargin += posMargin;
-
-        totalPositionValue += Math.abs(p.qty_open) * ltp;
-      }
+    enrichedPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
+      totalUnrealised += (p.total_pnl ?? 0);
+      totalLockedMargin += Number(p.locked_margin || p.margin_required || 0);
+      totalPositionValue += Math.abs(p.qty_open) * p.current_ltp;
     });
 
-    // Liquidation threshold = -(balance × auto_sqoff%)
-    // auto_sqoff defaults to 90 if not available; balance is already post-brokerage
-    const liqLevel = -(balance * 0.9);
+    const liqLevel = -(balance * (autoSqoffPercent / 100));
 
     return {
       floatingPnl: totalUnrealised,
@@ -207,8 +133,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       positionValue: totalPositionValue,
       liquidationLevel: liqLevel,
     };
-  }, [rawPositions, marketQuotes, comexQuotes, balance, segmentSettings]);
-
+  }, [enrichedPositions, balance, autoSqoffPercent]);
 
   // Equity = Balance + Floating P/L (reflects the true account value)
   const equity = balance + floatingPnl;
@@ -345,6 +270,14 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                     <TickFlash value={liquidationLevel}>{liquidationLevel < 0 ? '-' : ''}₹{fmt(liquidationLevel)}</TickFlash>
                   </span>
                 </div>
+                {settlementAmount > 0 && (
+                  <div className="summary-item">
+                    <span className="summary-label">Settlement Debt</span>
+                    <span className="summary-value negative">
+                      <TickFlash value={settlementAmount}>-₹{fmt(settlementAmount)}</TickFlash>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

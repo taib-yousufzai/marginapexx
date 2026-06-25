@@ -98,11 +98,10 @@ async function runManualCheck() {
         continue;
       }
 
-      const exitBuffer = segmentSettingsMap.get(`${userId}|${pos.settlement}|${pos.side}`) ?? 0.0017;
-
+      // Floating PnL is calculated based on raw LTP (per requirements)
       const pnl = pos.side === 'BUY'
-        ? ((ltp * (1 - exitBuffer)) - entryPrice) * qty
-        : (entryPrice - (ltp * (1 + exitBuffer))) * qty;
+        ? (ltp - entryPrice) * qty
+        : (entryPrice - ltp) * qty;
 
       totalFloatingPnl += pnl;
       posDetails.push({

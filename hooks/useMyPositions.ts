@@ -146,8 +146,23 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
   useEffect(() => {
     fetchPositions();
-    const timer = setInterval(fetchPositions, 5000); // DB fetch every 5s
-    return () => clearInterval(timer);
+    const timer = setInterval(fetchPositions, 5000); // DB fetch fallback
+
+    const channel = supabase
+      .channel('my-positions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'positions' },
+        () => {
+          fetchPositions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
   }, [fetchPositions]);
 
   // Group instrument keys by segment
@@ -220,11 +235,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {
         if (p.side === 'BUY') {
-          // BUY (Long) exits at bid: ltp * (1 - exitBuffer)
-          unrealised = ((ltp * (1 - exitBuffer)) - avgPrice) * p.qty_open;
+          // BUY (Long) exits at raw LTP
+          unrealised = (ltp - avgPrice) * p.qty_open;
         } else {
-          // SELL (Short) exits at ask: ltp * (1 + exitBuffer)
-          unrealised = (avgPrice - (ltp * (1 + exitBuffer))) * p.qty_open;
+          // SELL (Short) exits at raw LTP
+          unrealised = (avgPrice - ltp) * p.qty_open;
         }
       }
 

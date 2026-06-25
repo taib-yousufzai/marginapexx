@@ -72,9 +72,21 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
 
     init();
 
+    const channel = supabase
+      .channel('my-orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
+      supabase.removeChannel(channel);
     };
   }, [fetchOrders, refreshInterval]);
 

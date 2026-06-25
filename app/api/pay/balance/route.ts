@@ -62,10 +62,10 @@ export async function GET(request: Request): Promise<Response> {
     }
     const user = userData.user;
 
-    // Fetch balance directly from profiles table
+    // Fetch balance and settlement_amount directly from profiles table
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
-      .select('balance')
+      .select('balance, settlement_amount')
       .eq('id', user.id)
       .single();
 
@@ -75,10 +75,11 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     const balance = Number(profile?.balance || 0);
+    const settlementAmount = Math.abs(Number(profile?.settlement_amount || 0));
 
-    // Step 4: Return 200 with the computed balance
+    // Step 4: Return 200 with the computed balance and settlement amount
     // Validates: Requirements 4.4, 4.5
-    return Response.json({ balance }, { status: 200 });
+    return Response.json({ balance, settlementAmount }, { status: 200 });
   } catch {
     // Validates: Requirements 4.6
     return Response.json({ error: 'Internal server error' }, { status: 500 });

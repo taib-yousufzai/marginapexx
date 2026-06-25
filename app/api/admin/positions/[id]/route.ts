@@ -362,13 +362,12 @@ export async function PATCH(
               const ltp = Number(pos.ltp ?? pos.entry_price);
               const entryPrice = Number(pos.entry_price ?? pos.avg_price);
               const qty = Number(pos.qty_open ?? 0);
-              const bufKey = `${updatedPosition.user_id}|${pos.settlement}|${pos.side}`;
-              const buf = exitBuffers.get(bufKey)?.exit_buffer ?? 0.0017;
 
+              // Floating PnL is calculated based on raw LTP (per requirements)
               const pnl =
                 pos.side === 'BUY'
-                  ? (ltp * (1 - buf) - entryPrice) * qty
-                  : (entryPrice - ltp * (1 + buf)) * qty;
+                  ? (ltp - entryPrice) * qty
+                  : (entryPrice - ltp) * qty;
 
               totalFloatingPnl += pnl;
               return { ...pos, ltp, qty_open: qty, entry_price: entryPrice };
