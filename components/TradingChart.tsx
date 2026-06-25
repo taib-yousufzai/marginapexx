@@ -1321,21 +1321,20 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 )}
               </div>
 
-              {chainContract && (
-                <div
-                  style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => {
-                    setSymbol(chainContract.name);
-                    setSegment('NFO-OPT');
-                    setIsPanelExpanded(false);
-                    setIsOrderBlockVisible(false);
-                    setChainContract(null);
-                  }}
-                  title="Open Chart"
-                >
-                  <i className="ti ti-chart-line" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}></i>
-                </div>
-              )}
+              <div
+                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => {
+                  const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
+                  setSymbol(targetSymbol);
+                  setSegment(targetSymbol.includes('CE') || targetSymbol.includes('PE') ? 'NFO-OPT' : segment);
+                  setIsPanelExpanded(false);
+                  setIsOrderBlockVisible(false);
+                  setChainContract(null);
+                }}
+                title="Open Chart"
+              >
+                <i className="fas fa-chart-simple" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}></i>
+              </div>
 
               <div className="close-order-block" onClick={() => {
                 setIsOrderBlockVisible(false);
