@@ -16,6 +16,11 @@ export class InMemoryMatchingEngine {
   public segmentSettings = new Map<string, any>();
   public tradingHours = new Map<string, any>();
 
+  // Per-user liquidation guard: prevents a second liquidation attempt from
+  // starting while the first one is still closing positions.  The Set stores
+  // user IDs that are currently being liquidated.
+  private liquidationInProgress = new Set<string>();
+
   public async initialize() {
     const admin = getAdminClient();
 
@@ -369,28 +374,42 @@ export class InMemoryMatchingEngine {
       const closedPositionIds = new Set<string>();
 
       for (const [userId, userPositions] of Object.entries(userOpenPositions)) {
-        let profile = this.userProfiles.get(userId);
+        // ── In-flight guard ──────────────────────────────────────────────────
+        // If we're already in the middle of closing this user's positions from
+        // a previous tick batch, skip — don't start a second concurrent attempt.
+        if (this.liquidationInProgress.has(userId)) continue;
 
-        // If the profile isn't cached (user placed a position after engine initialized,
-        // or the realtime event was missed), fetch it live from DB rather than skipping
-        // the liquidation check entirely — a missed check could leave a blown account open.
-        if (!profile) {
-          const admin = getAdminClient();
-          const { data } = await admin
+        let cachedProfile = this.userProfiles.get(userId);
+
+        // ── Always fetch a live balance before checking liquidation ──────────
+        // The cached profile.balance can be stale (brokerage debits, PnL
+        // credits all update profiles.balance via DB trigger, but the realtime
+        // event may not have arrived yet).  A stale balance means a stale
+        // threshold — the engine might under- or over-trigger.
+        //
+        // We fetch live balance on every tick for users with open positions.
+        // This is one DB read per active user per second — acceptable cost for
+        // correctness on a financial risk engine.
+        try {
+          const { data: freshProfile } = await admin
             .from('profiles')
             .select('id, balance, auto_sqoff')
             .eq('id', userId)
             .single();
-          if (data && data.id) {
-            this.userProfiles.set(data.id, data);
-            profile = data;
+
+          if (freshProfile && freshProfile.id) {
+            // Update the cache so realtime-dependent code also gets fresh data
+            this.userProfiles.set(freshProfile.id, freshProfile);
+            cachedProfile = freshProfile;
           }
+        } catch {
+          // Network error: fall back to cached profile rather than skipping
         }
 
-        if (!profile) continue;
+        if (!cachedProfile) continue;
 
-        const balance = Number(profile.balance || 0);
-        const autoSqoffPercent = Number(profile.auto_sqoff ?? 90);
+        const balance = Number(cachedProfile.balance || 0);
+        const autoSqoffPercent = Number(cachedProfile.auto_sqoff ?? 90);
         if (autoSqoffPercent <= 0) continue;
 
         // Resolve LTP for each position and compute total floating PnL (account-level)
@@ -427,15 +446,24 @@ export class InMemoryMatchingEngine {
         }
 
         // Account-level liquidation: check total PnL against -(balance × auto_sqoff%)
-        const liquidationResult = await checkAndExecuteAccountLiquidation(
-          userId,
-          balance,
-          autoSqoffPercent,
-          positionsWithLtp,
-          totalFloatingPnl,
-          this.segmentSettings,
-          admin,
-        );
+        // Wrap in in-flight guard: mark this user as being liquidated so concurrent
+        // tick batches don't start a second liquidation while the first is still
+        // closing positions (each close_position RPC takes ~50-200ms).
+        this.liquidationInProgress.add(userId);
+        let liquidationResult;
+        try {
+          liquidationResult = await checkAndExecuteAccountLiquidation(
+            userId,
+            balance,
+            autoSqoffPercent,
+            positionsWithLtp,
+            totalFloatingPnl,
+            this.segmentSettings,
+            admin,
+          );
+        } finally {
+          this.liquidationInProgress.delete(userId);
+        }
 
         if (liquidationResult.liquidated) {
           // Mark all user positions as closed for downstream SL/TP/EOD processing

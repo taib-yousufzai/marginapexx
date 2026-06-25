@@ -3,12 +3,16 @@
  *
  * Implements the new liquidation model:
  *   1. Liquidation threshold is account-level (not per-position)
- *   2. liquidationPnL = -(WalletBalance × LiquidationPercentage)
- *   3. When total floating PnL across ALL positions breaches this threshold,
- *      ALL positions are auto-squared-off
- *   4. If the resulting balance goes negative, settlement records are created
+ *   2. threshold = -(walletBalance × liquidationPercentage / 100)
+ *   3. When total floating PnL across ALL open positions breaches this threshold,
+ *      ALL positions are auto-squared-off immediately.
+ *   4. If the resulting balance goes negative, the deficit is stored as
+ *      settlement_amount (never auto-recovered from future deposits).
  *
  * Used margin is frozen at trade entry (locked_margin), not dynamically recalculated.
+ *
+ * Called from the matching engine on EVERY price tick (once per second) so that
+ * liquidation fires the moment the 90% loss level is breached — not with a delay.
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -89,24 +93,60 @@ export async function checkAndExecuteAccountLiquidation(
     return { liquidated: false, positionsClosed: 0, totalPnl: 0, settlementAmount: 0 };
   }
 
-  // Compute threshold
+  // ── Step 1: Compute threshold against the balance passed in ─────────────
+  // balance is already fetched live from DB by the matching engine before
+  // this call (one DB read per user per tick), so this is the freshest value
+  // available without an additional round-trip.
   const threshold = computeLiquidationThreshold(balance, autoSqoffPercent);
 
-  // Check if total floating PnL breaches threshold
+  // Not yet at liquidation level — return early, nothing to do
   if (totalFloatingPnl > threshold) {
-    // Not yet at liquidation level
     return { liquidated: false, positionsClosed: 0, totalPnl: totalFloatingPnl, settlementAmount: 0 };
   }
 
-  // ─── LIQUIDATION TRIGGERED ───
-  console.warn(`[LiquidationEngine] LIQUIDATION TRIGGERED for user ${userId}. ` +
-    `Balance: ₹${balance.toFixed(2)}, FloatingPnL: ₹${totalFloatingPnl.toFixed(2)}, ` +
-    `Threshold: ₹${threshold.toFixed(2)}`);
+  // ── Step 2: Double-check with a live balance re-fetch ───────────────────
+  // Between the balance fetch in the matching engine and this point, a deposit
+  // or admin credit could have increased the balance — which would raise the
+  // threshold and potentially make the liquidation no longer warranted.
+  // Re-fetch to avoid liquidating an account that just topped up.
+  let confirmedBalance = balance;
+  try {
+    const { data: liveProfile } = await admin
+      .from('profiles')
+      .select('balance, auto_sqoff')
+      .eq('id', userId)
+      .single();
 
-  const previousBalance = balance;
+    if (liveProfile) {
+      confirmedBalance = Number(liveProfile.balance ?? balance);
+      const confirmedAutoSqoff = Number(liveProfile.auto_sqoff ?? autoSqoffPercent);
+      const confirmedThreshold = computeLiquidationThreshold(confirmedBalance, confirmedAutoSqoff);
+
+      if (totalFloatingPnl > confirmedThreshold) {
+        // Deposit just arrived — account is actually fine now
+        return { liquidated: false, positionsClosed: 0, totalPnl: totalFloatingPnl, settlementAmount: 0 };
+      }
+    }
+  } catch {
+    // DB error — proceed with the original balance; better to fire than miss
+  }
+
+  // ─── LIQUIDATION CONFIRMED ───────────────────────────────────────────────
+  const confirmedThreshold = computeLiquidationThreshold(confirmedBalance, autoSqoffPercent);
+  console.warn(
+    `[LiquidationEngine] ⚠️  LIQUIDATION TRIGGERED for user ${userId}. ` +
+    `Balance: ₹${confirmedBalance.toFixed(2)}, ` +
+    `FloatingPnL: ₹${totalFloatingPnl.toFixed(2)}, ` +
+    `Threshold: ₹${confirmedThreshold.toFixed(2)} (${autoSqoffPercent}%). ` +
+    `Closing ${positions.length} position(s) immediately.`,
+  );
+
+  const previousBalance = confirmedBalance;
   let positionsClosed = 0;
 
-  // Close ALL open positions
+  // ── Step 3: Close ALL open positions as fast as possible ────────────────
+  // Sequential RPCs ensure each position gets its own PnL transaction and the
+  // balance trigger fires correctly.  Parallel would risk racing the trigger.
   for (const pos of positions) {
     const ltp = Number(pos.ltp || pos.entry_price);
     const exitBufferKey = `${userId}|${pos.settlement}|${pos.side}`;
@@ -129,17 +169,13 @@ export async function checkAndExecuteAccountLiquidation(
     });
 
     if (closeErr) {
-      console.error(`[LiquidationEngine] Failed to close position ${pos.id}:`, closeErr);
+      console.error(`[LiquidationEngine] Failed to close position ${pos.id}:`, closeErr.message);
     } else {
       positionsClosed++;
     }
   }
 
-  // After all positions are closed, check if balance went negative
-  // The sync_profile_balance trigger handles capping at 0 and routing to settlement_amount
-  // We just need to create the settlement record
-
-  // Fetch updated balance after all closes
+  // ── Step 4: Read final balance to determine settlement amount ────────────
   const { data: updatedProfile } = await admin
     .from('profiles')
     .select('balance, settlement_amount')
@@ -149,7 +185,7 @@ export async function checkAndExecuteAccountLiquidation(
   const settlementAmount = Math.abs(Number(updatedProfile?.settlement_amount || 0));
   const finalLoss = Math.abs(totalFloatingPnl);
 
-  // Create settlement record if there is a settlement amount
+  // ── Step 5: Create settlement record if balance went negative ────────────
   if (settlementAmount > 0) {
     await admin.from('settlement_records').insert({
       user_id: userId,
@@ -158,32 +194,38 @@ export async function checkAndExecuteAccountLiquidation(
       previous_balance: previousBalance,
       final_loss: finalLoss,
       positions_closed: positionsClosed,
-      notes: `Account-level liquidation triggered. Threshold: ₹${threshold.toFixed(2)}, ` +
-        `Floating PnL: ₹${totalFloatingPnl.toFixed(2)}`,
+      notes:
+        `Auto-liquidation at ${autoSqoffPercent}% threshold. ` +
+        `Threshold: ₹${confirmedThreshold.toFixed(2)}, ` +
+        `Floating PnL at trigger: ₹${totalFloatingPnl.toFixed(2)}`,
     });
   }
 
-  // Send notification to user
+  // ── Step 6: Notify the user ──────────────────────────────────────────────
   await admin.from('notifications').insert({
     user_id: userId,
     type: 'GENERAL',
-    title: '[Account Liquidation] All positions squared off',
-    message: `Your account has been liquidated because total losses (₹${Math.abs(totalFloatingPnl).toFixed(2)}) ` +
-      `exceeded the liquidation threshold (₹${Math.abs(threshold).toFixed(2)}). ` +
+    title: '⚠️ Account Liquidated — All positions squared off',
+    message:
+      `Your account was auto-liquidated because total losses ` +
+      `(₹${Math.abs(totalFloatingPnl).toFixed(2)}) exceeded ${autoSqoffPercent}% of your balance ` +
+      `(threshold: ₹${Math.abs(confirmedThreshold).toFixed(2)}). ` +
       `${positionsClosed} position(s) were closed.` +
-      (settlementAmount > 0 ? ` Settlement amount: ₹${settlementAmount.toFixed(2)}` : ''),
+      (settlementAmount > 0 ? ` Outstanding settlement: ₹${settlementAmount.toFixed(2)}.` : ''),
     read: false,
     created_at: new Date().toISOString(),
   });
 
-  // Audit log
+  // ── Step 7: Audit log ────────────────────────────────────────────────────
   await admin.from('act_logs').insert({
     type: 'AUTO_SQUARE_OFF',
     user_id: userId,
     target_user_id: userId,
-    reason: `ACCOUNT_LIQUIDATION: ${positionsClosed} positions closed. ` +
-      `Balance: ₹${previousBalance.toFixed(2)}, PnL: ₹${totalFloatingPnl.toFixed(2)}, ` +
-      `Threshold: ₹${threshold.toFixed(2)}` +
+    reason:
+      `ACCOUNT_LIQUIDATION (${autoSqoffPercent}%): ${positionsClosed} positions closed. ` +
+      `Balance: ₹${previousBalance.toFixed(2)}, ` +
+      `FloatingPnL: ₹${totalFloatingPnl.toFixed(2)}, ` +
+      `Threshold: ₹${confirmedThreshold.toFixed(2)}` +
       (settlementAmount > 0 ? `, Settlement: ₹${settlementAmount.toFixed(2)}` : ''),
   });
 
