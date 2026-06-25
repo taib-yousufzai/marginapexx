@@ -75,10 +75,10 @@ export async function GET(request: NextRequest) {
       commission_value = 1000;
     }
 
-    // Default settings are slightly adjusted if it's scalper mode initialization
     const isScalper = targetMode === 'scalper';
-    const profit_hold_sec = isScalper ? 15 : 120;
-    const commission_val = isScalper ? 8500 : commission_value; // Brokerage increased to ₹85/crore for scalper (approx 8500 per crore equivalent)
+    // Hold lock is disabled — new rows always get 0 so no position is ever locked
+    const profit_hold_sec = 0;
+    const commission_val = isScalper ? 8500 : commission_value;
 
     for (const side of ['BUY', 'SELL'] as const) {
       const key = `${segUpper}-${side}`;
