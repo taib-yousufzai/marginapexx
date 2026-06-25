@@ -376,13 +376,7 @@ export default function FundsPage() {
                     {balanceLoading ? <span style={{ fontSize: '1.2rem', opacity: 0.7 }}>Loading…</span> : `₹${balance?.toFixed(2) ?? '0.00'}`}
                   </h1>
                   {balanceError && <p style={{ fontSize: '0.7rem', color: '#ff6464', marginBottom: '8px' }}>{balanceError}</p>}
-                  {settlementAmount > 0 && (
-                    <div style={{ marginTop: '12px', padding: '10px 16px', background: 'rgba(231, 76, 60, 0.1)', border: '1px solid rgba(231, 76, 60, 0.2)', borderRadius: '12px', color: '#e74c3c', fontSize: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>Outstanding Settlement Debt:</span>
-                      <strong style={{ fontWeight: 800 }}>-₹{settlementAmount.toFixed(2)}</strong>
-                    </div>
-                  )}
-                  <div className="balance-chip" style={{ marginTop: settlementAmount > 0 ? '12px' : '0px' }}><i className="fas fa-shield-check"></i> 100% Encrypted & Secure</div>
+                  <div className="balance-chip" style={{ marginTop: '0px' }}><i className="fas fa-shield-check"></i> 100% Encrypted & Secure</div>
                 </div>
 
                 {isDemo ? (

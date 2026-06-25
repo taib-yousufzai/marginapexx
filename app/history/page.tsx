@@ -22,6 +22,7 @@ interface HistoryItem {
   status: string;
   brokerage: number;
   closedBy?: string;
+  settlement?: string;
   productType?: string;
 }
 
@@ -108,6 +109,7 @@ export default function HistoryPage() {
           brokerage: p.brokerage || 0,
           closedBy: p.closed_by || 'USER',
           productType: p.product_type || 'INTRADAY',
+          settlement: p.settlement || '',
         }));
 
         const merged = [...formattedOrders, ...formattedPos];
@@ -317,6 +319,9 @@ export default function HistoryPage() {
                         </div>
                         <div className="history-card-details" style={{ marginTop: '4px' }}>
                           <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
+                          {currentTab === 'position' && item.settlement && (
+                            <span className="detail-item"><i className="fas fa-tag"></i> {item.settlement}</span>
+                          )}
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
                         </div>
                         {item.closedBy === 'AUTO_LIQUIDATION' && (
