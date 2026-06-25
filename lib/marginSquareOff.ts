@@ -87,7 +87,8 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
           p_user_id: userId,
           p_ltp: baseLtp,
           p_exit_price: exitPrice,
-          p_closed_by: 'SYSTEM'
+          p_closed_by: 'SYSTEM',
+          p_brokerage: 0,
         });
 
         if (!rpcErr) {

@@ -287,6 +287,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_ltp:         baseLtp,
             p_exit_price:  exitPrice,
             p_closed_by:   'USER',
+            p_brokerage:   0,
           });
 
           if (rpcErr) {

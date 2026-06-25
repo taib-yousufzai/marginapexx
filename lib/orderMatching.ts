@@ -413,9 +413,37 @@ export class InMemoryMatchingEngine {
 
         if (!cachedProfile) continue;
 
-        const balance = Number(cachedProfile.balance || 0);
+        // ── Live balance read ─────────────────────────────────────────────────
+        // The Realtime-maintained cache can lag during deploys or under heavy
+        // load, leading to a stale (higher) balance that makes the liquidation
+        // threshold too generous.  Always read the live balance from the DB
+        // before evaluating liquidation.
+        let balance = Number(cachedProfile.balance || 0);
         const autoSqoffPercent = Number(cachedProfile.auto_sqoff ?? 90);
         if (autoSqoffPercent <= 0) continue;
+
+        try {
+          const { data: liveProfile } = await admin
+            .from('profiles')
+            .select('balance')
+            .eq('id', userId)
+            .single();
+          if (liveProfile) {
+            const liveBalance = Number(liveProfile.balance);
+            if (liveBalance !== balance) {
+              console.log(
+                `[OrderMatching] Balance drift detected for user ${userId}: ` +
+                `cached=₹${balance.toFixed(2)}, live=₹${liveBalance.toFixed(2)}`,
+              );
+            }
+            balance = liveBalance;
+            // Sync cache so downstream code is consistent within this tick
+            cachedProfile.balance = liveBalance;
+            this.userProfiles.set(userId, cachedProfile);
+          }
+        } catch {
+          // Non-fatal — proceed with cached balance
+        }
 
         // Resolve LTP for each position and compute total floating PnL (account-level)
         let totalFloatingPnl = 0;
@@ -435,10 +463,27 @@ export class InMemoryMatchingEngine {
 
           if (ltp === undefined || ltp <= 0) {
             ltp = Number(pos.ltp ?? pos.entry_price);
+            console.warn(
+              `[OrderMatching] No live LTP for ${pos.symbol} (user ${userId}). ` +
+              `Using fallback ltp=${ltp}. Check ticker subscription.`,
+            );
           }
 
           const entryPrice = Number(pos.entry_price ?? pos.avg_price);
           const qty = Number(pos.qty_open ?? 0);
+
+          // Guard: if entry_price is missing/NaN, skip this position from PnL
+          // computation.  NaN would poison totalFloatingPnl → NaN > threshold
+          // is always false → triggers a false liquidation.
+          if (isNaN(entryPrice) || isNaN(qty) || qty <= 0) {
+            console.warn(
+              `[OrderMatching] Skipping position ${pos.id} (${pos.symbol}): ` +
+              `invalid entryPrice=${entryPrice} or qty=${qty}`,
+            );
+            positionsWithLtp.push({ ...pos, ltp, qty_open: qty, entry_price: entryPrice });
+            continue;
+          }
+
           const buyExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
           const sellExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
 
@@ -553,6 +598,7 @@ export class InMemoryMatchingEngine {
             p_ltp: ltp,
             p_exit_price: exitPrice,
             p_closed_by: closeReason,
+            p_brokerage: 0,
           });
 
           telemetry.recordDbCall('write', performance.now() - dbStart);

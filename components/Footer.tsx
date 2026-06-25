@@ -112,6 +112,10 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     let totalLockedMargin = 0;
     let totalPositionValue = 0;
 
+    // Default exit buffer — same fallback the backend matching engine uses
+    // when no segment_settings entry exists for the user/segment/side combo.
+    const DEFAULT_EXIT_BUFFER = 0.0017;
+
     rawPositions.forEach(p => {
       if (p.status === 'open' || p.status === 'active') {
         const seg = (p.settlement || '').toUpperCase();
@@ -126,12 +130,16 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
           ltp = marketQuotes[p.symbol]?.lastPrice ?? ltp;
         }
 
+        // Apply exit buffer to match the backend's liquidation PnL formula
+        // (orderMatching.ts computes PnL using exit-adjusted LTP, not raw LTP)
         let unrealised = 0;
         if (p.qty_open !== 0) {
           if (p.side === 'BUY') {
-            unrealised = (ltp - p.entry_price) * p.qty_open;
+            // BUY exits at bid: ltp × (1 - exitBuffer)
+            unrealised = ((ltp * (1 - DEFAULT_EXIT_BUFFER)) - p.entry_price) * p.qty_open;
           } else {
-            unrealised = (p.entry_price - ltp) * p.qty_open;
+            // SELL exits at ask: ltp × (1 + exitBuffer)
+            unrealised = (p.entry_price - (ltp * (1 + DEFAULT_EXIT_BUFFER))) * p.qty_open;
           }
         }
         totalUnrealised += unrealised;
@@ -156,6 +164,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       liquidationLevel: liqLevel,
     };
   }, [rawPositions, marketQuotes, comexQuotes, balance]);
+
 
   // Equity = Balance + Floating P/L (reflects the true account value)
   const equity = balance + floatingPnl;
