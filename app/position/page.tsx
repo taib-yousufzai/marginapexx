@@ -1013,9 +1013,41 @@ export default function PositionPage() {
                           <div className="ps-ba-label">BID</div>
                           <div className="ps-ba-bid">{selectedPos.current_ltp > 0 ? (selectedPos.current_ltp - 0.20).toFixed(2) : '---'}</div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div className="ps-ba-label">ASK</div>
-                          <div className="ps-ba-ask">{selectedPos.current_ltp > 0 ? (selectedPos.current_ltp + 0.20).toFixed(2) : '---'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="ps-ba-label">ASK</div>
+                            <div className="ps-ba-ask">{selectedPos.current_ltp > 0 ? (selectedPos.current_ltp + 0.20).toFixed(2) : '---'}</div>
+                          </div>
+                          <button
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              border: '1.5px solid #059669',
+                              background: 'var(--card-bg, #ffffff)',
+                              color: '#059669',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              transition: 'all 0.15s'
+                            }}
+                            onClick={() => openChart(selectedPos)}
+                            title="Open Chart"
+                          >
+                            <svg 
+                              viewBox="0 0 24 24" 
+                              style={{ width: '1.1rem', height: '1.1rem', display: 'inline-block' }}
+                            >
+                              <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                              <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                              <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                              <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                              <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </button>
                         </div>
                       </div>
 

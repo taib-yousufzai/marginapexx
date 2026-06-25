@@ -1323,7 +1323,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
 
               <div
-                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}
                 onClick={() => {
                   const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
                   setSymbol(targetSymbol);
@@ -1334,7 +1334,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 }}
                 title="Open Chart"
               >
-                <i className="fas fa-chart-simple" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}></i>
+                <svg viewBox="0 0 24 24" style={{ width: '13px', height: '13px', display: 'block' }}>
+                  <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                  <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                  <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                  <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                  <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
 
               <div className="close-order-block" onClick={() => {
