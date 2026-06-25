@@ -99,7 +99,7 @@ async function runManualCheck() {
       }
 
       const exitBuffer = segmentSettingsMap.get(`${userId}|${pos.settlement}|${pos.side}`) ?? 0.0017;
-      
+
       const pnl = pos.side === 'BUY'
         ? ((ltp * (1 - exitBuffer)) - entryPrice) * qty
         : (entryPrice - (ltp * (1 + exitBuffer))) * qty;
@@ -125,7 +125,7 @@ async function runManualCheck() {
     console.log(`Auto-Sqoff threshold: ${autoSqoffPercent}% (₹${threshold.toFixed(2)})`);
     console.log(`Current floating PnL: ₹${totalFloatingPnl.toFixed(2)}`);
     console.log(`Margin Usage Ratio: ${marginRatio.toFixed(2)}%`);
-    
+
     if (isBreached) {
       console.log(`STATUS: 🚨 BREACHED / SHOULD BE LIQUIDATED 🚨`);
       breachCount++;

@@ -133,7 +133,7 @@ export class InMemoryMatchingEngine {
                   this.userProfiles.set(data.id, data);
                 }
               })
-              .catch(() => {}); // non-fatal — will be populated on next profiles change
+              .catch(() => { }); // non-fatal — will be populated on next profiles change
           }
         } else {
           this.activePositions.delete(row.id);
@@ -274,12 +274,12 @@ export class InMemoryMatchingEngine {
           // ─── Apply entry/exit buffers (same logic as orders/route.ts) ───
           // fillPrice stays as raw LTP for the user's position record.
           // bufferFee = absolute price difference * qty, charged as BUFFER_FEE_DEBIT.
-          const buySetting  = this.segmentSettings.get(`${order.user_id}|${order.segment}|BUY`);
+          const buySetting = this.segmentSettings.get(`${order.user_id}|${order.segment}|BUY`);
           const sellSetting = this.segmentSettings.get(`${order.user_id}|${order.segment}|SELL`);
-          const buyEntryBuffer  = buySetting?.entry_buffer  ?? 0.003;
-          const buyExitBuffer   = buySetting?.exit_buffer   ?? 0.0017;
+          const buyEntryBuffer = buySetting?.entry_buffer ?? 0.003;
+          const buyExitBuffer = buySetting?.exit_buffer ?? 0.0017;
           const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
-          const sellExitBuffer  = sellSetting?.exit_buffer  ?? 0.0017;
+          const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
 
           let priceWithBuffer = ltp;
           if (order.side === 'BUY') {
@@ -339,7 +339,7 @@ export class InMemoryMatchingEngine {
 
             // Fetch missing leverage details from the profile or just fallback to generic approximations
             // Since we don't have intraday_leverage fetched here, we'll approximate based on generic rules
-            const leverage = ordCheck?.product_type === 'CARRY' ? 5 : 50; 
+            const leverage = ordCheck?.product_type === 'CARRY' ? 5 : 50;
             const requiredMargin = (order.qty * executionFillPrice) / leverage + finalBrokerage;
             marginStr = ` | Margin Req: ₹${requiredMargin.toFixed(2)} | Bkg: ₹${finalBrokerage.toFixed(2)} | Buf: ₹0.00`;
           } catch (e) {
@@ -487,6 +487,7 @@ export class InMemoryMatchingEngine {
           const buyExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
           const sellExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
 
+          // Liquidation check is calculated based on Bid price (exit-buffer-adjusted), not raw LTP
           const pnl = pos.side === 'BUY' 
             ? ((ltp * (1 - buyExitBuffer)) - entryPrice) * qty 
             : (entryPrice - (ltp * (1 + sellExitBuffer))) * qty;
