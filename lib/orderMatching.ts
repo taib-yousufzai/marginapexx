@@ -381,29 +381,34 @@ export class InMemoryMatchingEngine {
 
         let cachedProfile = this.userProfiles.get(userId);
 
-        // ── Always fetch a live balance before checking liquidation ──────────
-        // The cached profile.balance can be stale (brokerage debits, PnL
-        // credits all update profiles.balance via DB trigger, but the realtime
-        // event may not have arrived yet).  A stale balance means a stale
-        // threshold — the engine might under- or over-trigger.
+        // ── Balance freshness strategy ───────────────────────────────────────
+        // The Realtime subscription (setupRealtimeSync) keeps userProfiles up-to-
+        // date: every time sync_profile_balance fires in the DB (on any transaction
+        // INSERT/UPDATE/DELETE), it updates profiles.balance, and Supabase Realtime
+        // pushes that change to us within ~100-200ms.
         //
-        // We fetch live balance on every tick for users with open positions.
-        // This is one DB read per active user per second — acceptable cost for
-        // correctness on a financial risk engine.
-        try {
-          const { data: freshProfile } = await admin
-            .from('profiles')
-            .select('id, balance, auto_sqoff')
-            .eq('id', userId)
-            .single();
+        // So for users already in the cache, the Realtime-maintained balance is
+        // accurate enough — we don't need a DB round-trip on every tick.
+        //
+        // Exception: if the profile isn't in the cache at all (user just opened
+        // their first position after the engine initialised, or realtime missed the
+        // initial event), we do a one-time live fetch to seed the cache.
+        // After that, realtime keeps it fresh.
+        if (!cachedProfile) {
+          try {
+            const { data: freshProfile } = await admin
+              .from('profiles')
+              .select('id, balance, auto_sqoff')
+              .eq('id', userId)
+              .single();
 
-          if (freshProfile && freshProfile.id) {
-            // Update the cache so realtime-dependent code also gets fresh data
-            this.userProfiles.set(freshProfile.id, freshProfile);
-            cachedProfile = freshProfile;
+            if (freshProfile && freshProfile.id) {
+              this.userProfiles.set(freshProfile.id, freshProfile);
+              cachedProfile = freshProfile;
+            }
+          } catch {
+            // Non-fatal — skip this user for this tick
           }
-        } catch {
-          // Network error: fall back to cached profile rather than skipping
         }
 
         if (!cachedProfile) continue;
