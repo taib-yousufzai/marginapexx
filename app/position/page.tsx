@@ -31,6 +31,7 @@ export default function PositionPage() {
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
   const [settlementAmount, setSettlementAmount] = useState<number>(0);
+  const [rawOrders, setRawOrders] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +55,24 @@ export default function PositionPage() {
         })
         .catch(() => {});
     });
-    return () => { cancelled = true; };
+
+    const fetchOrders = () => {
+      getSession().then((session) => {
+        if (cancelled || !session) return;
+        fetch('/api/orders?status=executed', { headers: { Authorization: `Bearer ${session.access_token}` } })
+          .then(res => res.ok ? res.json() : { orders: [] })
+          .then(data => {
+            if (!cancelled && data.orders) {
+              setRawOrders(data.orders);
+            }
+          })
+          .catch(() => {});
+      });
+    };
+    fetchOrders();
+    const orderTimer = setInterval(fetchOrders, 5000);
+
+    return () => { cancelled = true; clearInterval(orderTimer); };
   }, []);
 
   const formatBalance = (val: number | null) => {
@@ -275,6 +293,72 @@ export default function PositionPage() {
   const openPositions = useMemo(() => positions.filter(p => p.status === 'open' || p.status === 'active'), [positions]);
   const closedPositions = useMemo(() => positions.filter(p => p.status === 'closed'), [positions]);
   const hasOpenPositions = openPositions.length > 0;
+
+  const detailedTickets = useMemo(() => {
+    const sorted = [...rawOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const groups: Record<string, any[]> = {};
+    for (const o of sorted) {
+      const key = `${o.symbol}|${o.product_type || 'INTRADAY'}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(o);
+    }
+    const tickets: any[] = [];
+    for (const key in groups) {
+      let longQ: any[] = [];
+      let shortQ: any[] = [];
+      for (const o of groups[key]) {
+        let q = Number(o.qty);
+        if (o.side === 'BUY') {
+          while (q > 0 && shortQ.length > 0) {
+            if (shortQ[0].remaining_qty <= q) {
+              q -= shortQ[0].remaining_qty;
+              shortQ.shift();
+            } else {
+              shortQ[0].remaining_qty -= q;
+              q = 0;
+            }
+          }
+          if (q > 0) longQ.push({ ...o, remaining_qty: q });
+        } else {
+          while (q > 0 && longQ.length > 0) {
+            if (longQ[0].remaining_qty <= q) {
+              q -= longQ[0].remaining_qty;
+              longQ.shift();
+            } else {
+              longQ[0].remaining_qty -= q;
+              q = 0;
+            }
+          }
+          if (q > 0) shortQ.push({ ...o, remaining_qty: q });
+        }
+      }
+      for (const t of longQ) tickets.push(t);
+      for (const t of shortQ) tickets.push(t);
+    }
+    return tickets.map(t => {
+      const basePos = openPositions.find(p => p.symbol === t.symbol && (p.product_type || 'INTRADAY') === (t.product_type || 'INTRADAY'));
+      const ltp = basePos?.current_ltp || t.fill_price;
+      const pnl = t.side === 'BUY' ? (ltp - t.fill_price) * t.remaining_qty : (t.fill_price - ltp) * t.remaining_qty;
+      const investment = t.fill_price * t.remaining_qty;
+      return {
+        id: `ticket-${t.id}`,
+        symbol: t.symbol,
+        side: t.side,
+        product_type: t.product_type || 'INTRADAY',
+        settlement: t.segment,
+        qty_open: t.remaining_qty,
+        qty_total: t.qty,
+        entry_price: t.fill_price,
+        current_ltp: ltp,
+        total_pnl: pnl,
+        pnl_percent: investment > 0 ? parseFloat(((pnl / investment) * 100).toFixed(2)) : 0,
+        status: 'open',
+        entry_time: t.created_at,
+        hold_lock_active: false,
+        representativePos: basePos,
+      };
+    }).sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
+  }, [rawOrders, openPositions]);
 
   // ── Cumulative grouping: merge same symbol+side+product_type into one row ──
   interface GroupedPosition {
@@ -639,14 +723,15 @@ export default function PositionPage() {
                     )
                   ) : (
                     /* Detailed View */
-                    openPositions.length === 0 ? (
+                    detailedTickets.length === 0 ? (
                       <div className="pos-empty">
                         <i className="fas fa-list" />
                         <p>No trades available</p>
                       </div>
-                    ) : openPositions.map(pos => {
+                    ) : detailedTickets.map(pos => {
                       const entryDate = new Date(pos.entry_time);
                       const timeStr = entryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                      const actualPos = { ...pos, id: pos.representativePos?.id || pos.id };
 
                       return (
                         <div
@@ -654,7 +739,7 @@ export default function PositionPage() {
                           className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
                           onClick={() => {
                             if (pos.status === 'closed') {
-                              handleRowClick(pos);
+                              handleRowClick(actualPos);
                             } else {
                               toggleExpand(pos.id);
                             }
@@ -685,7 +770,7 @@ export default function PositionPage() {
                                   style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    await toggleProductType(pos);
+                                    await toggleProductType(actualPos);
                                   }}
                                 >
                                   {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
@@ -716,12 +801,12 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-                              <button className="pca-btn pca-add" onClick={() => openAddMore(pos)}>
+                              <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
                                 className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(pos); }}
+                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(actualPos); }}
                                 disabled={pos.hold_lock_active}
                               >
                                 <i className="fas fa-times-circle" /> Exit
