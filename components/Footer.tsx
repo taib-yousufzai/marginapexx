@@ -270,14 +270,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                     <TickFlash value={liquidationLevel}>{liquidationLevel < 0 ? '-' : ''}₹{fmt(liquidationLevel)}</TickFlash>
                   </span>
                 </div>
-                {settlementAmount > 0 && (
-                  <div className="summary-item">
-                    <span className="summary-label">Settlement Debt</span>
-                    <span className="summary-value negative">
-                      <TickFlash value={settlementAmount}>-₹{fmt(settlementAmount)}</TickFlash>
-                    </span>
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
