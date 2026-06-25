@@ -184,6 +184,16 @@ export async function checkAndExecuteAccountLiquidation(
   const settlementAmount = Math.abs(Number(updatedProfile?.settlement_amount || 0));
   const finalLoss = Math.abs(totalFloatingPnl);
 
+  // Stamp settlement_amount onto every position that was just liquidated
+  // so users can see it on their individual position history cards.
+  if (settlementAmount > 0 && positionsClosed > 0) {
+    const liquidatedIds = positions.map(p => p.id);
+    await admin
+      .from('positions')
+      .update({ settlement_amount: settlementAmount })
+      .in('id', liquidatedIds);
+  }
+
   //  if balance went negative
   if (settlementAmount > 0) {
     await admin.from('settlement_records').insert({

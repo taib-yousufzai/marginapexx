@@ -23,6 +23,7 @@ interface HistoryItem {
   brokerage: number;
   closedBy?: string;
   settlement?: string;
+  settlementAmount?: number;
   productType?: string;
 }
 
@@ -93,24 +94,37 @@ export default function HistoryPage() {
           brokerage: o.brokerage || 0
         }));
 
-        const formattedPos = (posData.positions || []).map((p: any) => ({
-          id: p.id,
-          scriptName: p.symbol,
-          type: p.side,
-          orderType: p.product_type || 'INTRADAY',
-          qty: p.qty_total,
-          price: p.exit_price || 0,
-          entryPrice: p.entry_price,
-          exitPrice: p.exit_price,
-          pnl: p.pnl || 0,
-          date: new Date(p.created_at).toLocaleString(),
-          exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
-          status: 'closed',
-          brokerage: p.brokerage || 0,
-          closedBy: p.closed_by || 'USER',
-          productType: p.product_type || 'INTRADAY',
-          settlement: p.settlement || '',
-        }));
+        const formattedPos = (posData.positions || []).map((p: any) => {
+          // Derive settlement label, falling back for old positions with none stored
+          const rawSettlement = p.settlement || '';
+          let settlement = rawSettlement;
+          if (!settlement) {
+            const sym: string = (p.symbol || '').toUpperCase();
+            if (sym.endsWith('USDT') || sym.includes('CRYPTO')) settlement = 'Crypto';
+            else if (sym.endsWith('=F') || sym.includes('COMEX')) settlement = 'COMEX';
+            else if (sym.includes('MCX')) settlement = 'MCX';
+            else settlement = 'NSE';
+          }
+          return {
+            id: p.id,
+            scriptName: p.symbol,
+            type: p.side,
+            orderType: p.product_type || 'INTRADAY',
+            qty: p.qty_total,
+            price: p.exit_price || 0,
+            entryPrice: p.entry_price,
+            exitPrice: p.exit_price,
+            pnl: p.pnl || 0,
+            date: new Date(p.created_at).toLocaleString(),
+            exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
+            status: 'closed',
+            brokerage: p.brokerage || 0,
+            closedBy: p.closed_by || 'USER',
+            productType: p.product_type || 'INTRADAY',
+            settlement,
+            settlementAmount: Math.abs(Number(p.settlement_amount || 0)),
+          };
+        });
 
         const merged = [...formattedOrders, ...formattedPos];
         if (typeof window !== 'undefined') window.__historyCache = merged;
@@ -324,7 +338,7 @@ export default function HistoryPage() {
                           )}
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}
                         </div>
-                        {item.closedBy === 'AUTO_LIQUIDATION' && (
+                        {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
                           <div style={{
                             marginTop: '8px',
                             display: 'flex',
@@ -338,7 +352,7 @@ export default function HistoryPage() {
                             <i className="fas fa-triangle-exclamation" style={{ color: '#C62E2E', fontSize: '0.7rem' }}></i>
                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#C62E2E' }}>Settlement</span>
                             <span style={{ fontSize: '0.7rem', color: '#C62E2E', marginLeft: 'auto', fontWeight: 600 }}>
-                              -{formatPrice(Math.abs(item.pnl))}
+                              -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         )}
