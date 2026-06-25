@@ -133,14 +133,51 @@ export class SubscriptionManager {
       }
 
       // 4. Resolve symbols to instrument_tokens using instruments table
-      const { data: resolvedInstruments, error: resolveError } = await admin
-        .from('instruments')
-        .select('id, instrument_token')
-        .in('id', Array.from(symbolsToResolve));
+      // Split into prefixed (contains ':') and raw symbols (does not contain ':')
+      const prefixedSymbols: string[] = [];
+      const rawSymbols: string[] = [];
+      for (const sym of symbolsToResolve) {
+        if (sym.includes(':')) {
+          prefixedSymbols.push(sym);
+        } else {
+          rawSymbols.push(sym);
+        }
+      }
 
-      if (resolveError) {
-        logger.error({ err: resolveError }, 'Error resolving instrument tokens from db');
-        return [];
+      let resolvedInstruments: any[] = [];
+      if (prefixedSymbols.length > 0 && rawSymbols.length > 0) {
+        const { data, error: resolveError } = await admin
+          .from('instruments')
+          .select('id, instrument_token')
+          .or(`id.in.(${prefixedSymbols.map(s => `"${s}"`).join(',')}),tradingsymbol.in.(${rawSymbols.map(s => `"${s}"`).join(',')})`);
+        
+        if (resolveError) {
+          logger.error({ err: resolveError }, 'Error resolving instrument tokens from db via OR');
+          return [];
+        }
+        resolvedInstruments = data || [];
+      } else if (prefixedSymbols.length > 0) {
+        const { data, error: resolveError } = await admin
+          .from('instruments')
+          .select('id, instrument_token')
+          .in('id', prefixedSymbols);
+
+        if (resolveError) {
+          logger.error({ err: resolveError }, 'Error resolving prefixed instrument tokens');
+          return [];
+        }
+        resolvedInstruments = data || [];
+      } else if (rawSymbols.length > 0) {
+        const { data, error: resolveError } = await admin
+          .from('instruments')
+          .select('id, instrument_token')
+          .in('tradingsymbol', rawSymbols);
+
+        if (resolveError) {
+          logger.error({ err: resolveError }, 'Error resolving raw instrument tokens');
+          return [];
+        }
+        resolvedInstruments = data || [];
       }
 
       const mappings: InstrumentMapping[] = [];
