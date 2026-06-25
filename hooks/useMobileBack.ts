@@ -25,7 +25,7 @@ export function useMobileBack(isOpen: boolean, onClose: () => void, hash: string
       
       // If we're already at this hash (e.g., opened twice quickly), don't push again
       if (window.location.hash !== '#' + hash) {
-        window.history.pushState({ modal: hash }, '', targetUrl);
+        window.history.pushState({ ...window.history.state, modal: hash }, '', targetUrl);
       }
 
       const handlePopState = (e: PopStateEvent) => {

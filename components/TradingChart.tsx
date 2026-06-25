@@ -1246,21 +1246,61 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         {!isUnderlyingIndex && !isOrderBlockVisible && (
           currentInstrumentPosition ? (
             <div className="trade-buttons" id="tradeButtons">
-              <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                <span className="btn-label">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                    <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
-                  </svg>
-                  EXIT {currentInstrumentPosition.side === 'BUY' ? 'LONG' : 'SHORT'}
-                </span>
-              </button>
-              <button className="trade-btn exit-quick-chart-btn" onClick={() => handleQuickExit(currentInstrumentPosition.id)} title="Quick Market Exit">
-                <span className="btn-label">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ verticalAlign: 'middle' }}>
-                    <path d="M13 1L1 13M1 1l12 12" />
-                  </svg>
-                </span>
-              </button>
+              {currentInstrumentPosition.side === 'BUY' ? (
+                <>
+                  <button id="buyButton" className="trade-btn buy" onClick={() => {
+                    if (isPanelExpanded && activeSegment === 'chain') {
+                      handleQuickMarketOrder('BUY');
+                    } else {
+                      setIsPanelExpanded(false);
+                      setIsExitFlow(false);
+                      setIsAddMoreFlow(false);
+                      setExitPositionId(null);
+                      setOrderBlockTitle(symbol);
+                      setPostOrderSegment('main');
+                      setIsOrderBlockVisible(true);
+                      setOrderSide('BUY');
+                    }
+                  }}>
+                    <span className="btn-label">BUY</span>
+                  </button>
+                  <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                    <span className="btn-label">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                        <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                      </svg>
+                      EXIT LONG
+                    </span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                    <span className="btn-label">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                        <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                      </svg>
+                      EXIT SHORT
+                    </span>
+                  </button>
+                  <button id="sellButton" className="trade-btn sell" onClick={() => {
+                    if (isPanelExpanded && activeSegment === 'chain') {
+                      handleQuickMarketOrder('SELL');
+                    } else {
+                      setIsPanelExpanded(false);
+                      setIsExitFlow(false);
+                      setIsAddMoreFlow(false);
+                      setExitPositionId(null);
+                      setOrderBlockTitle(symbol);
+                      setPostOrderSegment('main');
+                      setIsOrderBlockVisible(true);
+                      setOrderSide('SELL');
+                    }
+                  }}>
+                    <span className="btn-label">SELL</span>
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="trade-buttons" id="tradeButtons">
