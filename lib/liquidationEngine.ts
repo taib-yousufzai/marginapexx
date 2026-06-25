@@ -200,20 +200,7 @@ export async function checkAndExecuteAccountLiquidation(
     });
   }
 
-  // Notify user 
-  await admin.from('notifications').insert({
-    user_id: userId,
-    type: 'GENERAL',
-    title: ' Account Liquidated — All positions squared off',
-    message:
-      `Your account was auto-liquidated because total losses ` +
-      `(₹${Math.abs(totalFloatingPnl).toFixed(2)}) exceeded ${confirmedAutoSqoff}% of your balance ` +
-      `(threshold: ₹${Math.abs(confirmedThreshold).toFixed(2)}). ` +
-      `${positionsClosed} position(s) were closed.` +
-      (settlementAmount > 0 ? ` Outstanding settlement: ₹${settlementAmount.toFixed(2)}.` : ''),
-    read: false,
-    created_at: new Date().toISOString(),
-  });
+
 
   // ── Step 7: Audit log ────────────────────────────────────────────────────
   await admin.from('act_logs').insert({
