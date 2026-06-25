@@ -254,27 +254,19 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const investment = avgPrice * p.qty_open;
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
-      // Anti-Scalping calculations based on LTP (reconstructing raw entry price)
-      const entryBuffer = sideSetting ? Number(sideSetting.entry_buffer ?? 0.003) : 0.003;
-      let rawEntryLtp = avgPrice;
-      if (p.side === 'BUY') {
-        rawEntryLtp = rawEntryLtp / (1 + entryBuffer);
-      } else {
-        rawEntryLtp = rawEntryLtp / (1 - entryBuffer);
-      }
-
-      const rawPnlLtp = p.side === 'BUY'
-        ? (ltp - rawEntryLtp) * p.qty_open
-        : (rawEntryLtp - ltp) * p.qty_open;
-
-      // Anti-scalping hold lock — only applies when segment settings exist.
-      // Without settings there is no configured hold time, so never lock.
+      // Anti-scalping hold lock
+      // Use the actual unrealised PnL (what the user sees) to decide profit/loss routing.
+      // The rawPnlLtp reconstruction via entry_buffer is unreliable — if entry_buffer in
+      // the DB doesn't exactly match what was applied at fill time, rawPnlLtp can disagree
+      // with what the user sees, causing a loss position to be locked under profitHoldSec.
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 0;
-      const lossHoldSec = sideSetting ? Number(sideSetting.loss_hold_sec) : 0;
+      const lossHoldSec   = sideSetting ? Number(sideSetting.loss_hold_sec)   : 0;
 
-      const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
-      const requiredHold = rawPnlLtp >= 0 ? profitHoldSec : lossHoldSec;
-      const isLocked = (p.status === 'open' || p.status === 'active') && elapsedSec < requiredHold;
+      const elapsedSec   = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
+      // Route based on the unrealised PnL the user actually sees on screen
+      const isInProfit   = unrealised >= 0;
+      const requiredHold = isInProfit ? profitHoldSec : lossHoldSec;
+      const isLocked     = (p.status === 'open' || p.status === 'active') && elapsedSec < requiredHold;
       const remainingSec = isLocked ? (requiredHold - elapsedSec) : 0;
 
       return {
