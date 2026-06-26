@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useMarketQuotes } from './useMarketQuotes';
 import { useComexQuotes } from './useComexQuotes';
 import { MyPosition } from '@/lib/types/order';
+import { isContractExpired } from '@/lib/contractExpiry';
 
 export interface EnrichedPosition extends MyPosition {
   current_ltp: number;
@@ -57,6 +58,10 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
   const [error, setError] = useState<string | null>(null);
   const [inFlightConversions, setInFlightConversions] = useState<Record<string, string>>({});
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  // Track whether segment settings have been fetched at least once.
+  // We defer hold-lock computation until settings are known to avoid
+  // showing the hardcoded 120s fallback before the real value arrives.
+  const [segmentSettingsLoaded, setSegmentSettingsLoaded] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -74,6 +79,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         if (res.ok) {
           const sData = await res.json();
           setSegmentSettings(sData || []);
+          setSegmentSettingsLoaded(true);
         }
       } catch (err) {
         console.error('Failed to fetch segment settings in useMyPositions', err);
@@ -214,24 +220,33 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       const seg = (p.settlement || '').toUpperCase();
       let ltp = p.ltp || p.entry_price;
-      
-      if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
-        let binanceKey = p.symbol.replace('/', '');
-        if (!binanceKey.endsWith('USDT')) {
-          binanceKey = binanceKey + 'USDT';
-        }
-        ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
-      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
-        ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
-      } else {
-        const kiteKey = p.kite_instrument || p.symbol;
-        ltp = marketQuotes[kiteKey]?.lastPrice ?? ltp;
-      }
 
       // Derive DB segment once — used for both PnL and anti-scalping calculations
       const dbSeg = mapSegmentToDbSegment(p.settlement || '');
 
       const avgPrice = p.avg_price || p.entry_price;
+
+      // Detect expired contracts up-front so the LTP lookup and hold-lock logic
+      // can both skip the ticker for dead instruments.
+      const contractExpired = isContractExpired(p.kite_instrument || p.symbol);
+
+      // Only look up live quotes for non-expired contracts.
+      // Expired futures have no feed — using their last stored LTP is the
+      // best we can do and avoids 0-price flicker.
+      if (!contractExpired) {
+        if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
+          let binanceKey = p.symbol.replace('/', '');
+          if (!binanceKey.endsWith('USDT')) {
+            binanceKey = binanceKey + 'USDT';
+          }
+          ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
+        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+          ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
+        } else {
+          const kiteKey = p.kite_instrument || p.symbol;
+          ltp = marketQuotes[kiteKey]?.lastPrice ?? ltp;
+        }
+      }
 
       // Retrieve segment-specific exit buffer (fallback to 0.0017)
       const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
@@ -261,6 +276,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       // minor noise doesn't flip the lock state.
       //
       // Once elapsedSec >= profitHoldSec the lock is permanently off.
+      //
+      // We defer hold-lock activation until segment settings have been fetched
+      // so we never show the hardcoded 120s fallback before the real value loads.
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
 
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
@@ -272,7 +290,12 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         ? ltp > p.entry_price + deadBand
         : ltp < p.entry_price - deadBand;
 
-      const isLocked     = (p.status === 'open' || p.status === 'active')
+      // Only lock if settings have loaded — prevents spurious 120s lock on first render.
+      // Also never lock an expired contract — it has no live feed and the user
+      // may need to close it manually without a hold-timer obstacle.
+      const isLocked     = segmentSettingsLoaded
+                          && !contractExpired
+                          && (p.status === 'open' || p.status === 'active')
                           && isInProfit
                           && elapsedSec < profitHoldSec;
       const remainingSec = isLocked ? (profitHoldSec - elapsedSec) : 0;
@@ -289,7 +312,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         required_hold_seconds: profitHoldSec
       } as EnrichedPosition;
     });
-  }, [rawPositions, marketQuotes, comexQuotes, inFlightConversions, segmentSettings]);
+  }, [rawPositions, marketQuotes, comexQuotes, inFlightConversions, segmentSettings, segmentSettingsLoaded]);
 
   return {
     positions: enrichedPositions,

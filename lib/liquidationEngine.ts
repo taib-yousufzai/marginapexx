@@ -186,12 +186,44 @@ export async function checkAndExecuteAccountLiquidation(
 
   // Stamp settlement_amount onto every position that was just liquidated
   // so users can see it on their individual position history cards.
+  //
+  // We distribute the total settlement debt proportionally by each position's
+  // share of the total floating loss — so the sum across all cards equals the
+  // actual settlement amount (not N× it, which happened when the full amount
+  // was stamped on every row).
   if (settlementAmount > 0 && positionsClosed > 0) {
     const liquidatedIds = positions.map(p => p.id);
-    await admin
-      .from('positions')
-      .update({ settlement_amount: settlementAmount })
-      .in('id', liquidatedIds);
+
+    // Compute each position's floating loss contribution
+    const posLosses = positions.map(p => {
+      const ltp = Number(p.ltp || p.entry_price);
+      const pnl = p.side === 'BUY'
+        ? (ltp - Number(p.entry_price)) * p.qty_open
+        : (Number(p.entry_price) - ltp) * p.qty_open;
+      return { id: p.id, loss: Math.max(0, -pnl) }; // only count losses, clamp to 0
+    });
+
+    const totalLoss = posLosses.reduce((sum, p) => sum + p.loss, 0);
+
+    if (totalLoss > 0) {
+      // Proportional distribution — update each position individually
+      await Promise.all(
+        posLosses.map(({ id, loss }) => {
+          const share = (loss / totalLoss) * settlementAmount;
+          return admin
+            .from('positions')
+            .update({ settlement_amount: Math.round(share * 100) / 100 })
+            .eq('id', id);
+        }),
+      );
+    } else {
+      // All positions broke even or were profitable — split equally
+      const equalShare = Math.round((settlementAmount / liquidatedIds.length) * 100) / 100;
+      await admin
+        .from('positions')
+        .update({ settlement_amount: equalShare })
+        .in('id', liquidatedIds);
+    }
   }
 
   //  if balance went negative

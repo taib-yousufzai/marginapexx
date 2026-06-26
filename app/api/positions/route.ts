@@ -22,7 +22,15 @@ export async function GET(request: NextRequest) {
 
     let positionsQuery = admin.from('positions').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
     if (statusParam) {
-      positionsQuery = positionsQuery.eq('status', statusParam);
+      if (statusParam === 'open') {
+        // 'open' shorthand — include both 'open' and 'active' statuses
+        positionsQuery = positionsQuery.in('status', ['open', 'active']);
+      } else {
+        positionsQuery = positionsQuery.eq('status', statusParam);
+      }
+    } else {
+      // Default: only return open/active — closed positions are fetched explicitly
+      positionsQuery = positionsQuery.in('status', ['open', 'active']);
     }
 
     // Fetch positions and orders in parallel

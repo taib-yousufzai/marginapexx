@@ -785,6 +785,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       refreshOrders();
       refreshPositions();
       fetchBalance();
+      window.dispatchEvent(new CustomEvent('position-closed'));
     } else {
       showToast(res.error || 'Failed to place quick order', true);
     }
@@ -822,6 +823,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       refreshOrders();
       refreshPositions();
       fetchBalance();
+      window.dispatchEvent(new CustomEvent('position-closed'));
     } else {
       showToast(res.error || 'Failed to add to position', true);
     }

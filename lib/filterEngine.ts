@@ -135,24 +135,28 @@ export function isForexOption(instrument: Instrument): boolean {
 
 /**
  * Filters out all Forex CE/PE contracts from the list.
- * Emits a structured console.log (FilterLog) for each excluded item.
+ * Emits a structured console.log (FilterLog) for each excluded item
+ * only in development to avoid production log spam.
  *
  * Requirements: 1.1, 9.8
  */
 export function applyForexFilter(instruments: Instrument[]): Instrument[] {
   const result: Instrument[] = [];
-  const timestamp = new Date().toISOString();
+  const isDev = process.env.NODE_ENV !== 'production';
+  const timestamp = isDev ? new Date().toISOString() : '';
 
   for (const instrument of instruments) {
     if (isForexOption(instrument)) {
-      const log: FilterLog = {
-        event: 'instrument_excluded',
-        symbol: instrument.tradingsymbol,
-        rule: 'FOREX_OPTIONS',
-        segment: instrument.segment ?? instrument.exchange ?? '',
-        timestamp,
-      };
-      console.log(JSON.stringify(log));
+      if (isDev) {
+        const log: FilterLog = {
+          event: 'instrument_excluded',
+          symbol: instrument.tradingsymbol,
+          rule: 'FOREX_OPTIONS',
+          segment: instrument.segment ?? instrument.exchange ?? '',
+          timestamp,
+        };
+        console.log(JSON.stringify(log));
+      }
     } else {
       result.push(instrument);
     }
@@ -173,7 +177,8 @@ export function applyForexFilter(instruments: Instrument[]): Instrument[] {
  */
 export function applyCryptoWhitelist(instruments: Instrument[]): Instrument[] {
   const result: Instrument[] = [];
-  const timestamp = new Date().toISOString();
+  const isDev = process.env.NODE_ENV !== 'production';
+  const timestamp = isDev ? new Date().toISOString() : '';
 
   for (const instrument of instruments) {
     const symbolRaw = instrument.underlying_symbol ?? instrument.name ?? '';
@@ -181,7 +186,7 @@ export function applyCryptoWhitelist(instruments: Instrument[]): Instrument[] {
 
     if (CRYPTO_WHITELIST.has(symbol)) {
       result.push(instrument);
-    } else {
+    } else if (isDev) {
       const log: FilterLog = {
         event: 'instrument_excluded',
         symbol: instrument.tradingsymbol,
@@ -243,16 +248,18 @@ export function applyStrikeRangeFilter(
   const kept = options.filter((i) => selectedStrikes.has(i.strike_price ?? 0));
   const excluded = options.filter((i) => !selectedStrikes.has(i.strike_price ?? 0));
 
-  const timestamp = new Date().toISOString();
-  for (const instrument of excluded) {
-    const log: FilterLog = {
-      event: 'instrument_excluded',
-      symbol: instrument.tradingsymbol,
-      rule: 'STRIKE_RANGE',
-      segment: instrument.segment ?? instrument.exchange ?? '',
-      timestamp,
-    };
-    console.log(JSON.stringify(log));
+  if (process.env.NODE_ENV !== 'production' && excluded.length > 0) {
+    const timestamp = new Date().toISOString();
+    for (const instrument of excluded) {
+      const log: FilterLog = {
+        event: 'instrument_excluded',
+        symbol: instrument.tradingsymbol,
+        rule: 'STRIKE_RANGE',
+        segment: instrument.segment ?? instrument.exchange ?? '',
+        timestamp,
+      };
+      console.log(JSON.stringify(log));
+    }
   }
 
   return [...others, ...kept];
@@ -403,29 +410,31 @@ function filterByActiveExpiry(instruments: Instrument[], today: string): Instrum
   const activeExpiries = applyExpiryFilter(expiries, today);
 
   if (activeExpiries.length === 0) {
-    // No active expiries — emit EXPIRY_FILTER log for all expiry-bearing instruments
-    const timestamp = new Date().toISOString();
-    for (const instrument of withExpiry) {
-      const log: FilterLog = {
-        event: 'instrument_excluded',
-        symbol: instrument.tradingsymbol,
-        rule: 'EXPIRY_FILTER',
-        segment: instrument.segment ?? instrument.exchange ?? '',
-        timestamp,
-      };
-      console.log(JSON.stringify(log));
+    // No active expiries
+    if (process.env.NODE_ENV !== 'production') {
+      const timestamp = new Date().toISOString();
+      for (const instrument of withExpiry) {
+        const log: FilterLog = {
+          event: 'instrument_excluded',
+          symbol: instrument.tradingsymbol,
+          rule: 'EXPIRY_FILTER',
+          segment: instrument.segment ?? instrument.exchange ?? '',
+          timestamp,
+        };
+        console.log(JSON.stringify(log));
+      }
     }
     return withoutExpiry;
   }
 
   const activeSet = new Set(activeExpiries);
   const kept: Instrument[] = [];
-  const timestamp = new Date().toISOString();
 
   for (const instrument of withExpiry) {
     if (activeSet.has(instrument.expiry as string)) {
       kept.push(instrument);
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
+      const timestamp = new Date().toISOString();
       const log: FilterLog = {
         event: 'instrument_excluded',
         symbol: instrument.tradingsymbol,

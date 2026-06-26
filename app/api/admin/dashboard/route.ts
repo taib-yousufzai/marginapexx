@@ -106,8 +106,8 @@ export async function GET(request: Request): Promise<Response> {
     const total_brokerage = positions.reduce((s, p) => s + (Number(p.brokerage) || 0), 0);
     const margin_used = positions.reduce((s, p) => s + (Number((p as any).margin_required) || 0), 0);
 
-    // Net P&L = MTM + Brokerage
-    const net_pnl = mark_to_market + total_brokerage;
+    // Net P&L = MTM - Brokerage (brokerage is a cost, not an addition)
+    const net_pnl = mark_to_market - total_brokerage;
     
     // Net Balance = Net Deposits + Net PNL
     const ledger_balance = net;

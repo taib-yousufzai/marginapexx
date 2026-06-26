@@ -387,9 +387,9 @@ export async function GET() {
     if (forexInstruments.length > 0) segments.push({ name: 'FOREX', icon: 'fa-coins', instruments: forexInstruments });
 
     try {
-      if (!usedFallback) {
-        await redis.set(cacheKey, JSON.stringify({ segments }), 'EX', 900); // 15 mins cache
-      }
+      // Cache for 15 mins when ATM prices were live; 2 mins when using fallback prices
+      const ttl = usedFallback ? 120 : 900;
+      await redis.set(cacheKey, JSON.stringify({ segments }), 'EX', ttl);
     } catch (e) {
       console.error('[library] Redis set cache error:', e);
     }

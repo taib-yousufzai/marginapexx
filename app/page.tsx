@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar';
 
 import { getSession, getRole } from '@/lib/auth';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import { isContractExpired } from '@/lib/contractExpiry';
 import TickFlash from '@/components/TickFlash';
 import './page.css';
 
@@ -16,24 +17,24 @@ const KITE_INSTRUMENTS_ROW1 = [
   'NSE:NIFTY 50',
   'BSE:SENSEX',
   'NSE:NIFTY BANK',
-  'CDS:USDINR26JUNFUT',
+  'CDS:USDINR26JULFUT',
 ];
 const KITE_INSTRUMENTS_ROW2 = [
-  'MCX:CRUDEOIL26JUNFUT',
-  'MCX:GOLD26JUNFUT',
+  'MCX:CRUDEOIL26JULFUT',
+  'MCX:GOLD26AUGFUT',
   'MCX:SILVER26JULFUT',
-  'MCX:NATURALGAS26JUNFUT',
+  'MCX:NATURALGAS26JULFUT',
 ];
 
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'NSE:NIFTY 50': { name: 'NIFTY 50', icon: 'fas fa-chart-line' },
   'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
-  'CDS:USDINR26JUNFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
-  'MCX:CRUDEOIL26JUNFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
-  'MCX:GOLD26JUNFUT': { name: 'GOLD', icon: 'fas fa-coins' },
+  'CDS:USDINR26JULFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
+  'MCX:CRUDEOIL26JULFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
+  'MCX:GOLD26AUGFUT': { name: 'GOLD', icon: 'fas fa-coins' },
   'MCX:SILVER26JULFUT': { name: 'SILVER', icon: 'fas fa-gem' },
-  'MCX:NATURALGAS26JUNFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
+  'MCX:NATURALGAS26JULFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 
 type MarketItem = { name: string; price: number; change: number; changeAmt?: number; type: string; icon: string };
@@ -297,10 +298,15 @@ export default function Page() {
   const kiteConnected = true;
   const kiteLoading = false;
 
-  const buildRow = (instruments: string[]): MarketItem[] => {
+  const buildRow = (instruments: string[]): (MarketItem & { expired?: boolean })[] => {
     return instruments.map((key) => {
       const q = quotes[key];
       const display = KITE_DISPLAY_MAP[key] ?? { name: key, icon: 'fas fa-chart-line' };
+      const expired = isContractExpired(key);
+      if (expired) {
+        // Don't show stale 0/0 values — surface expiry to the user instead
+        return { name: display.name, price: 0, change: 0, changeAmt: 0, type: 'positive', icon: display.icon, expired: true };
+      }
       if (!q) return { name: display.name, price: 0, change: 0, changeAmt: 0, type: 'positive', icon: display.icon };
       return {
         name: display.name,
@@ -481,18 +487,35 @@ export default function Page() {
                           <div className="market-row-scroll" key={`row-${rowIdx}`}>
                             <div className="market-row-blocks">
                               {row.map((market, i) => (
-                                <div className="market-rectangle" key={i} onClick={() => router.push(`/watchlist?symbol=${encodeURIComponent(market.name)}`)}>
+                                <div
+                                  className={`market-rectangle${(market as any).expired ? ' market-rectangle--expired' : ''}`}
+                                  key={i}
+                                  onClick={() => !(market as any).expired && router.push(`/watchlist?symbol=${encodeURIComponent(market.name)}`)}
+                                  style={(market as any).expired ? { cursor: 'default', opacity: 0.6 } : undefined}
+                                >
                                   <div className="market-rect-header">
                                     <span className="market-rect-name">{market.name}</span>
                                   </div>
-                                  <div className="market-rect-price">
-                                    {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                  </div>
-                                  <div className={`market-rect-change ${market.type}`}>
-                                    {market.change >= 0
-                                      ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)`
-                                      : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
-                                  </div>
+                                  {(market as any).expired ? (
+                                    <>
+                                      <div className="market-rect-expired-badge">
+                                        <i className="fas fa-calendar-xmark" style={{ marginRight: 4 }} />
+                                        Contract Expired
+                                      </div>
+                                      <div className="market-rect-expired-sub">Update contract symbol</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="market-rect-price">
+                                        {market.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                      </div>
+                                      <div className={`market-rect-change ${market.type}`}>
+                                        {market.change >= 0
+                                          ? `+${(market.changeAmt ?? 0).toFixed(2)} (+${market.change.toFixed(2)}%)`
+                                          : `${(market.changeAmt ?? 0).toFixed(2)} (${market.change.toFixed(2)}%)`}
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               ))}
                             </div>

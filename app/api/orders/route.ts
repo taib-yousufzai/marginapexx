@@ -80,20 +80,23 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
   try {
     const admin = getAdminClient();
 
-    // 1. Fetch from Redis Hash cache first
+    // 1. Fetch from Redis Hash cache — use HMGET for a single round-trip
     try {
       const { getRedisClient } = await import('@/lib/redis');
       const redis = getRedisClient();
-      await Promise.all(instruments.map(async (inst) => {
-        const cached = await redis.hget('market:quotes', inst);
-        if (cached) {
-          const q = JSON.parse(cached);
-          if (q && q.last_price !== undefined) {
-            result[inst] = q.last_price;
-            foundKiteIds.add(inst);
-          }
+      const cachedValues = await redis.hmget('market:quotes', ...instruments);
+      instruments.forEach((inst, idx) => {
+        const raw = cachedValues[idx];
+        if (raw) {
+          try {
+            const q = JSON.parse(raw);
+            if (q && q.last_price !== undefined) {
+              result[inst] = q.last_price;
+              foundKiteIds.add(inst);
+            }
+          } catch { /* malformed cache entry — fall through */ }
         }
-      }));
+      });
     } catch (redisErr) {
       console.warn('[fetchKiteQuotes] Failed to query Redis, falling back:', redisErr);
     }
@@ -413,7 +416,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit } = body;
+  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit } = body;
+
+  // Normalize crypto symbol: positions may be stored as 'ETH' or 'ETH/USDT'
+  // but exit orders arrive as 'ETHUSDT' from the Binance feed. Strip the USDT
+  // suffix so the RPC can find the open position.
+  let symbol = rawSymbol;
 
   // 3. Basic field validation
   if (!symbol || !side || !qty || !segment) {
@@ -429,115 +437,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const dbSegment = mapSegmentToDbSegment(segment);
   const admin = getAdminClient();
 
-  // Check market hours
-  try {
-    const exchangeName = symbol.includes(':') ? symbol.split(':')[0] : 'NSE';
-    const ex = exchangeName.toUpperCase();
-    const segUpper = dbSegment.toUpperCase();
-
-    if (!segUpper.includes('CRYPTO')) {
-      let segmentId = 'nse';
-      if (ex === 'MCX' || segUpper.includes('MCX')) segmentId = 'mcx';
-      else if (ex === 'BSE' || segUpper.includes('BSE') || segUpper.includes('BFO')) segmentId = 'bse';
-      else if (ex === 'CDS' || ex === 'FOREX' || segUpper.includes('CDS') || segUpper.includes('FOREX')) segmentId = 'forex';
-      else if (ex === 'COMEX' || segUpper.includes('COMEX')) segmentId = 'comex';
-
-      const { data: segmentHour, error: hrError } = await admin
-        .from('trading_hours')
-        .select('name, start_time, end_time, is_active')
-        .eq('id', segmentId)
-        .maybeSingle();
-
-      if (!hrError && segmentHour) {
-        if (!segmentHour.is_active) {
-          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
-        }
-
-        const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-        const dayOfWeek = nowIST.getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-        if (isWeekend) {
-          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
-        }
-
-        const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
-        if (currentHHMM < segmentHour.start_time || currentHHMM >= segmentHour.end_time) {
-          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[POST /api/orders] Market hours check error:', err);
-  }
-
-  const kiteInst = kite_instrument || symbol;
-
-  // Identify all instruments needed for this order to batch the Kite API call
-  const instrumentsToFetch = [kiteInst];
-  const isOption = dbSegment.includes('OPT');
-  const underlyingId = dbSegment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
-  if (isOption && underlyingId !== kiteInst) {
-    instrumentsToFetch.push(underlyingId);
-  }
-
-  // 4-6 + 8-9: Run all independent DB queries AND the Kite LTP fetch in parallel.
-  // This is the key optimization — previously these were sequential (~4 round-trips).
-  const [profileResult, segSettingsResult, scalperSegSettingsResult, positionsResult, quotesMap, scriptSettingsResult, blockedScriptsResult] = await Promise.all([
-    // Profile
-    admin.from('profiles')
-      .select('id, active, read_only, segments, parent_id, balance, trading_mode')
-      .eq('id', user.id)
-      .single(),
-
-    // Segment settings (we don't know parent_id yet, so we'll refetch if needed)
-    admin.from('segment_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('segment', dbSegment),
-
-    // Scalper segment settings
-    admin.from('scalper_segment_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('segment', dbSegment),
-
-    // Fetch active positions to verify total open lot limits (max_lot)
-    admin.from('positions')
-      .select('id, symbol, qty_open, status, entry_price, side, product_type, entry_time')
-      .eq('user_id', user.id)
-      .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
-
-    // Fetch quotes — either Kite or Binance depending on segment
-    (async () => {
-      if (dbSegment === 'CRYPTO') {
-        const price = await fetchBinanceQuote(symbol);
-        return price ? { [kiteInst]: price } : {};
-      } else {
-        return fetchKiteQuotes(instrumentsToFetch);
-      }
-    })(),
-
-    // Fetch script settings for dynamic lot size
-    admin.from('script_settings')
-      .select('symbol, lot_size'),
-
-    // Fetch user blocked scripts
-    admin.from('user_blocked_scripts')
-      .select('symbol')
-      .eq('user_id', user.id)
-      .eq('symbol', symbol)
-      .maybeSingle(),
-  ]);
+  // ── Step A: Fetch profile first (we need parent_id + trading_mode for the next batch) ──
+  const profileResult = await admin.from('profiles')
+    .select('id, active, read_only, segments, parent_id, balance, trading_mode')
+    .eq('id', user.id)
+    .single();
 
   const profile = profileResult.data;
-  const profileErr = profileResult.error;
-  const openPositions = positionsResult?.data ?? [];
-  const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
-  const blockedScript = blockedScriptsResult?.data;
-
-  // 4. Profile checks
-  if (profileErr || !profile) {
+  if (profileResult.error || !profile) {
     return NextResponse.json({ error: 'User profile not found' }, { status: 403 });
   }
   if (!profile.active) {
@@ -547,7 +454,124 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Account is in read-only mode' }, { status: 403 });
   }
 
-  // 9. Base LTP from server
+  const isScalper = profile.trading_mode === 'scalper';
+  const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
+  const parentId = profile.parent_id && profile.parent_id !== user.id ? profile.parent_id : null;
+
+  const kiteInst = kite_instrument || symbol;
+  const instrumentsToFetch = [kiteInst];
+  const isOption = dbSegment.includes('OPT');
+  const underlyingId = dbSegment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
+  if (isOption && underlyingId !== kiteInst) {
+    instrumentsToFetch.push(underlyingId);
+  }
+
+  // ── Step B: Fire ALL remaining independent queries in one parallel batch ──
+  // This includes: user seg settings, parent seg settings (speculative), positions,
+  // LTP fetch, script settings, blocked scripts, and market hours — all at once.
+  const segUpper = dbSegment.toUpperCase();
+  let segmentId = 'nse';
+  if (segUpper.includes('MCX')) segmentId = 'mcx';
+  else if (segUpper.includes('BSE') || segUpper.includes('BFO')) segmentId = 'bse';
+  else if (segUpper.includes('CDS') || segUpper.includes('FOREX')) segmentId = 'forex';
+  else if (segUpper.includes('COMEX')) segmentId = 'comex';
+
+  const [
+    segSettingsResult,
+    parentSegSettingsResult,
+    positionsResult,
+    quotesMap,
+    scriptSettingsResult,
+    blockedScriptsResult,
+    tradingHoursResult,
+  ] = await Promise.all([
+    // User's own segment settings (both sides)
+    admin.from(targetTable)
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('segment', dbSegment),
+
+    // Parent segment settings fetched speculatively in the same round-trip —
+    // avoids a second sequential DB call on the hot path for sub-accounts.
+    parentId
+      ? admin.from(targetTable).select('*').eq('user_id', parentId).eq('segment', dbSegment)
+      : Promise.resolve({ data: [] as any[], error: null }),
+
+    // Open positions for lot-limit and margin checks
+    admin.from('positions')
+      .select('id, symbol, qty_open, status, entry_price, side, product_type, entry_time, locked_margin, margin_required')
+      .eq('user_id', user.id)
+      .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
+
+    // LTP — Binance for crypto, Kite/Redis/Ticker Daemon for everything else
+    (async () => {
+      if (dbSegment === 'CRYPTO') {
+        const price = await fetchBinanceQuote(symbol);
+        return price ? { [kiteInst]: price } : {};
+      }
+      return fetchKiteQuotes(instrumentsToFetch);
+    })(),
+
+    // Script settings for lot size lookup
+    admin.from('script_settings').select('symbol, lot_size'),
+
+    // Blocked scripts for this user
+    admin.from('user_blocked_scripts')
+      .select('symbol')
+      .eq('user_id', user.id)
+      .eq('symbol', symbol)
+      .maybeSingle(),
+
+    // Market hours — non-crypto only; resolve immediately for crypto
+    segUpper.includes('CRYPTO')
+      ? Promise.resolve({ data: null, error: null })
+      : admin.from('trading_hours')
+          .select('name, start_time, end_time, is_active')
+          .eq('id', segmentId)
+          .maybeSingle(),
+  ]);
+
+  // Market hours check (result already fetched in parallel above)
+  if (!segUpper.includes('CRYPTO')) {
+    try {
+      const segmentHour = tradingHoursResult.data;
+      if (!tradingHoursResult.error && segmentHour) {
+        if (!segmentHour.is_active) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+        const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const dayOfWeek = nowIST.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+        const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
+        if (currentHHMM < segmentHour.start_time || currentHHMM >= segmentHour.end_time) {
+          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+        }
+      }
+    } catch (err) {
+      console.error('[POST /api/orders] Market hours check error:', err);
+    }
+  }
+
+  const openPositions = positionsResult?.data ?? [];
+  const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
+  const blockedScript = blockedScriptsResult?.data;
+
+  // Resolve crypto symbol form: if exiting and the symbol ends with USDT,
+  // check if the open position was stored under a different form (e.g. 'ETH' or 'ETH/USDT')
+  if (is_exit && symbol.toUpperCase().endsWith('USDT')) {
+    const withoutUsdt = symbol.replace(/USDT$/i, '');
+    const slashForm = withoutUsdt + '/USDT';
+    const matchedPos = openPositions.find((p: any) =>
+      p.symbol === withoutUsdt || p.symbol === slashForm || p.symbol === symbol
+    );
+    if (matchedPos && matchedPos.symbol !== symbol) {
+      symbol = matchedPos.symbol; // use the form stored in DB
+    }
+  }
+
+  // LTP from parallel fetch
   let kiteLtp = quotesMap[kiteInst] ?? null;
 
   if (!kiteLtp || kiteLtp <= 0) {
@@ -569,28 +593,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Trading Not Allowed In This Script. Please Contact Admin.' }, { status: 403 });
   }
 
-  // 6. Segment settings — choose based on active trading mode
-  const isScalper = profile.trading_mode === 'scalper';
-  const settingsList = isScalper ? (scalperSegSettingsResult.data || []) : (segSettingsResult.data || []);
+  // 6. Segment settings — already fetched in parallel (user + parent speculatively)
+  const settingsList = segSettingsResult.data || [];
+  const parentSettingsList = parentSegSettingsResult.data || [];
 
-  let buySetting = settingsList.find((s: any) => s.side === 'BUY');
-  let sellSetting = settingsList.find((s: any) => s.side === 'SELL');
-
-  if ((!buySetting || !sellSetting) && profile.parent_id && profile.parent_id !== user.id) {
-    const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
-    const { data } = await admin
-      .from(targetTable)
-      .select('*')
-      .eq('user_id', profile.parent_id)
-      .eq('segment', dbSegment);
-    if (data) {
-      if (!buySetting) buySetting = data.find((s: any) => s.side === 'BUY');
-      if (!sellSetting) sellSetting = data.find((s: any) => s.side === 'SELL');
-    }
-  }
-
-  // If there are still no settings in database, construct safety fallback defaults based on segment
-  const segUpper = dbSegment.toUpperCase();
+  let buySetting = settingsList.find((s: any) => s.side === 'BUY') || parentSettingsList.find((s: any) => s.side === 'BUY');
+  let sellSetting = settingsList.find((s: any) => s.side === 'SELL') || parentSettingsList.find((s: any) => s.side === 'SELL');
   let intraday_leverage = 10;
   let holding_leverage = 10;
   if (segUpper.includes('FOREX') || segUpper.includes('CDS')) {
@@ -1066,24 +1074,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new Error(rpcErr.message || 'Order execution failed. Please try again.');
     }
 
-    // Append margin, brokerage, and buffer info to the action log reason
-    const { data: actLog, error: actLogError } = await admin
-      .from('act_logs')
-      .select('id, reason')
-      .eq('user_id', user.id)
-      .eq('symbol', symbol)
-      .in('type', ['ORDER_EXECUTION', 'ORDER_PLACED'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Append margin/brokerage info to act_log in the background — user doesn't wait for this
+    (async () => {
+      try {
+        const { data: actLog, error: actLogError } = await admin
+          .from('act_logs')
+          .select('id, reason')
+          .eq('user_id', user.id)
+          .eq('symbol', symbol)
+          .in('type', ['ORDER_EXECUTION', 'ORDER_PLACED'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-    if (actLog && !actLogError) {
-      const marginStr = ` | Margin Req: ₹${requiredMargin.toFixed(2)} | Bkg: ₹${brokerage.toFixed(2)} | Buf: ₹${bufferFee.toFixed(2)}`;
-      await admin
-        .from('act_logs')
-        .update({ reason: actLog.reason + marginStr })
-        .eq('id', actLog.id);
-    }
+        if (actLog && !actLogError) {
+          const marginStr = ` | Margin Req: ₹${requiredMargin.toFixed(2)} | Bkg: ₹${brokerage.toFixed(2)} | Buf: ₹${bufferFee.toFixed(2)}`;
+          await admin
+            .from('act_logs')
+            .update({ reason: actLog.reason + marginStr })
+            .eq('id', actLog.id);
+        }
+      } catch { /* non-critical — don't fail the order */ }
+    })();
 
     return oId as string;
   };

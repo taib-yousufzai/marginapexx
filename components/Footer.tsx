@@ -135,8 +135,9 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     };
   }, [enrichedPositions, balance, autoSqoffPercent]);
 
-  // Equity = Balance + Floating P/L (reflects the true account value)
-  const equity = balance + floatingPnl;
+  // Equity = sum of (LTP × open qty) across all open positions
+  // This reflects the total market value of held positions.
+  const equity = positionValue;
   // Free Margin = Balance - Used Margin (locked margins, no floating PnL)
   const freeMargin = balance - usedMargin;
   const fmt = (n: number) => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

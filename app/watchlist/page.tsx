@@ -78,20 +78,20 @@ const DEFAULT_CRYPTO_ITEMS: WatchlistItem[] = [
 // Update expiry month as contracts roll (format: CDS:XYZINR26MONFUT)
 
 const DEFAULT_FOREX_ITEMS: WatchlistItem[] = [
-  { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'JPY/INR', symbol: 'JPYINR_FUT', kiteSymbol: 'CDS:JPYINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'JPY/INR', symbol: 'JPYINR_FUT', kiteSymbol: 'CDS:JPYINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
 ];
 
 // ── Default COMEX Items (MCX ₹ via Kite + COMEX $ via Yahoo proxy) ──────────────
 // Rows with both kiteSymbol + comexSymbol show a ₹⇄$ toggle pill
 
 const DEFAULT_COMEX_ITEMS: WatchlistItem[] = [
-  { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
   { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JUNFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
 ];
 
 function getDefaultWatchlistItems(): WatchlistItem[] {
@@ -1063,6 +1063,10 @@ function WatchlistContent() {
         if (isDuplicate) return prev;
         const next = [...prev, newItem];
         saveWatchlistToStorage(next, userId);
+        // Keep inline script symbol set in sync
+        if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+          (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+        }
         return next;
       });
     };
@@ -1073,6 +1077,10 @@ function WatchlistContent() {
           return !(i.symbol === symbol && getTabForItem(i) === activeTab);
         });
         saveWatchlistToStorage(next, userId);
+        // Keep inline script symbol set in sync
+        if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+          (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+        }
         return next;
       });
     };
@@ -2169,7 +2177,21 @@ function WatchlistContent() {
           <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{(basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0) * 0.2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{basketLegs.reduce((acc, leg) => {
+                const price = getLegPrice(leg.item);
+                const seg = mapSegmentToDbSegment(leg.item.segment);
+                const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
+                const lev = Number(setting?.intraday_leverage ?? 10);
+                const levType = setting?.intraday_type ?? 'Multiplier';
+                const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
+                const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
+                const exposure = qty * price;
+                let portion = 0;
+                if (levType === '%') portion = exposure * (lev / 100);
+                else if (levType === 'Fixed') portion = (qty / lotSz) * lev;
+                else portion = exposure / lev;
+                return acc + portion;
+              }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
             <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
           </div>
           <div style={{ display: 'flex', gap: '12px', width: '100%', padding: '0 4px' }}>
@@ -2479,9 +2501,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           name: 'MCX-FUT',
           icon: 'fa-coins',
           instruments: [
-            { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+            { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
             { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
-            { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 }
+            { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 }
           ]
         },
         {
@@ -2491,13 +2513,13 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
             {
               name: 'GOLD',
               instruments: [
-                { name: 'GOLD 72000 CE', symbol: 'GOLD26JUN72000CE', kiteSymbol: 'MCX:GOLD26JUN72000CE', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: '2026-06-30', open: 812, high: 828, low: 810, close: 820 }
+                { name: 'GOLD 72000 CE', symbol: 'GOLD26JUL72000CE', kiteSymbol: 'MCX:GOLD26JUL72000CE', price: 820, change: '+0.9%', segment: 'MCX - Options', contractDate: '2026-07-31', open: 812, high: 828, low: 810, close: 820 }
               ]
             },
             {
               name: 'CRUDEOIL',
               instruments: [
-                { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUN6000CE', kiteSymbol: 'MCX:CRUDEOIL26JUN6000CE', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: '2026-06-30', open: 140, high: 152, low: 138, close: 145 }
+                { name: 'CRUDEOIL 6000 CE', symbol: 'CRUDEOIL26JUL6000CE', kiteSymbol: 'MCX:CRUDEOIL26JUL6000CE', price: 145, change: '+1.5%', segment: 'MCX - Options', contractDate: '2026-07-31', open: 140, high: 152, low: 138, close: 145 }
               ]
             }
           ]
@@ -2515,18 +2537,18 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           name: 'FOREX',
           icon: 'fa-globe',
           instruments: [
-            { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JUNFUT', price: 95.96, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 95.72, high: 96.03, low: 95.59, close: 95.61 },
-            { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JUNFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 }
+            { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JULFUT', price: 95.96, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 95.72, high: 96.03, low: 95.59, close: 95.61 },
+            { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0 }
           ]
         },
         {
           name: 'COMEX',
           icon: 'fa-gem',
           instruments: [
-            { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26JUNFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
+            { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
             { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
-            { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JUNFUT', comexSymbol: 'CL=F', price: 6120, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 },
-            { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JUNFUT', comexSymbol: 'HG=F', price: 780, change: '0%', segment: 'MCX - Futures', contractDate: 'Jun 2026', open: 0, high: 0, low: 0, close: 0 }
+            { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 6120, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0 },
+            { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 780, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0 }
           ]
         },
         {
@@ -2628,9 +2650,34 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         return str.replace(/[&<>]/g, function(m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]; });
       }
 
+      // Symbols currently in the watchlist — kept in sync so buttons can
+      // reflect "Added" state without waiting for a React re-render.
+      var watchlistSymbols = new Set(
+        (window.__watchlistItems || []).map(function(i) { return i.symbol; })
+      );
+
+      // Called by React after the watchlist state updates so the inline
+      // script always has the latest set.
+      window.__syncWatchlistSymbols = function(symbols) {
+        watchlistSymbols = new Set(symbols);
+      };
+
+      function setButtonAdded(btn) {
+        btn.textContent = 'Added ✓';
+        btn.disabled = true;
+        btn.style.background = '#2C8E5A';
+        btn.style.color = '#fff';
+        btn.style.opacity = '0.85';
+        btn.style.cursor = 'default';
+      }
+
       function addToWatchlist(item) {
         if (typeof window.__addToWatchlistCallback === 'function') {
           window.__addToWatchlistCallback(item);
+          watchlistSymbols.add(item.symbol);
+          // Update every button on screen for this symbol
+          var btns = document.querySelectorAll('[data-watch-symbol="' + item.symbol.replace(/"/g, '') + '"]');
+          btns.forEach(function(btn) { setButtonAdded(btn); });
           if (window.showToast) window.showToast('Added to watchlist', false);
         }
       }
@@ -2667,14 +2714,22 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           html += '<div class="folder-header">' + escapeHtml(seg.name) + '</div>';
           if (seg.instruments) {
             seg.instruments.forEach(function(inst) {
-              html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button></div>';
+              var alreadyAdded = watchlistSymbols.has(inst.symbol);
+              var btnHtml = alreadyAdded
+                ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" disabled style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:default;">Added ✓</button>'
+                : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button>';
+              html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span>' + btnHtml + '</div>';
             });
           }
           if (seg.subCategories) {
             seg.subCategories.forEach(function(sub) {
               html += '<div class="subfolder-item"><div class="subfolder-header">' + escapeHtml(sub.name) + '</div>';
               sub.instruments.forEach(function(inst) {
-                html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span><button class="add-script-btn" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button></div>';
+                var alreadyAdded = watchlistSymbols.has(inst.symbol);
+                var btnHtml = alreadyAdded
+                  ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" disabled style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:default;">Added ✓</button>'
+                  : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button>';
+                html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span>' + btnHtml + '</div>';
               });
               html += '</div>';
             });
@@ -2739,15 +2794,15 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           var bottomHtml = dateStr ? escapeHtml(dateStr) + '<span style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">' + escapeHtml(badgeStr) + '</span>' : escapeHtml(badgeStr);
 
             var defaultPrice = item.price ? item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---';
-            var isAdded = window.__watchlistItems && window.__watchlistItems.some(function(w) { return (w.kiteSymbol && w.kiteSymbol === item.kiteSymbol) || (w.symbol && w.symbol === item.symbol); });
-            var btnHtml = isAdded 
-              ? '<button class="add-script-btn sri-add-btn" style="background: #e2e8f0; color: #64748b; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" disabled>Added</button>'
-              : '<button class="add-script-btn sri-add-btn" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>';
+            var alreadyInWL = watchlistSymbols.has(item.symbol);
+            var addBtnHtml = alreadyInWL
+              ? '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" disabled style="background: #2C8E5A; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem; opacity: 0.85; cursor: default;">Added ✓</button>'
+              : '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>';
             html += '<div class="search-result-item" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">' +
             '<div class="sri-left"><div class="sri-name" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 4px;">' + escapeHtml(mainName) + '</div><div class="sri-symbol" style="color: #94a3b8; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center;">' + bottomHtml + '</div></div>' +
             '<div class="sri-right" style="display: flex; align-items: center; gap: 12px;">' +
             '<div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; min-width: 60px; text-align: right;">' + escapeHtml(defaultPrice) + '</div>' +
-            btnHtml +
+            addBtnHtml +
             '</div></div>';
         });
         if (searchResultCount) searchResultCount.textContent = results.length + ' RESULTS';

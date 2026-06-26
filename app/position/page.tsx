@@ -32,10 +32,35 @@ export default function PositionPage() {
   // Listen for position-closed events fired by TradingChart so we immediately
   // refresh without waiting for the next 5-second poll cycle
   useEffect(() => {
-    const handler = () => refresh();
+    const handler = () => { refresh(); fetchClosed(); };
     window.addEventListener('position-closed', handler);
     return () => window.removeEventListener('position-closed', handler);
   }, [refresh]);
+
+  // Closed positions are fetched separately (the main hook only returns open/active)
+  const [closedPositions, setClosedPositions] = useState<EnrichedPosition[]>([]);
+  const [closedLoading, setClosedLoading] = useState(false);
+
+  const fetchClosed = async () => {
+    setClosedLoading(true);
+    try {
+      const session = await getSession();
+      if (!session) return;
+      const res = await fetch('/api/positions?status=closed', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: 'no-store',
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setClosedPositions((data.positions || []) as EnrichedPosition[]);
+    } catch { /* non-critical */ } finally {
+      setClosedLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClosed();
+  }, []);
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
   const [settlementAmount, setSettlementAmount] = useState<number>(0);
@@ -218,6 +243,23 @@ export default function PositionPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Tick every second so hold-timer countdown rerenders live without waiting
+  // for the next position poll cycle.
+  const [, setTickCount] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTickCount(c => c + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Compute live remaining hold seconds directly from entry_time so the
+  // countdown is accurate to the second regardless of the hook poll interval.
+  const computeRemaining = (pos: EnrichedPosition): number => {
+    if (!pos.hold_lock_active) return 0;
+    const elapsed = Math.floor((Date.now() - new Date(pos.entry_time).getTime()) / 1000);
+    const remaining = pos.required_hold_seconds - elapsed;
+    return remaining > 0 ? remaining : 0;
+  };
+
   const toggleProductType = async (pos: EnrichedPosition) => {
     const originalType = pos.product_type;
     const newType = originalType === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
@@ -312,13 +354,13 @@ export default function PositionPage() {
   };
 
   const openPositions = useMemo(() => positions.filter(p => p.status === 'open' || p.status === 'active'), [positions]);
-  const closedPositions = useMemo(() => positions.filter(p => p.status === 'closed'), [positions]);
+  // closedPositions comes from the separate fetch above (positions hook only returns open/active)
   const hasOpenPositions = openPositions.length > 0;
 
-  // Detailed view: each open position as its own individual card
+  // Detailed view: every position (open + closed) as its own individual card
   const detailedTickets = useMemo(() => {
-    return [...openPositions].sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
-  }, [openPositions]);
+    return [...positions, ...closedPositions].sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
+  }, [positions, closedPositions]);
 
   // ── Cumulative grouping: merge same symbol+side+product_type into one row ──
   interface GroupedPosition {
@@ -608,6 +650,12 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === group.key && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
+                              {group.hold_lock_active && (
+                                <div className="pos-lock-banner" style={{ width: '100%', marginBottom: '8px' }}>
+                                  <span className="banner-icon"><i className="fas fa-lock" /></span>
+                                  <span>Hold timer: <strong>{formatHoldTime(computeRemaining(group.representativePos))}</strong> / {formatHoldTime(group.representativePos.required_hold_seconds)} remaining</span>
+                                </div>
+                              )}
                               <button className="pca-btn pca-add" onClick={() => openAddMore(group.representativePos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
@@ -754,6 +802,12 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
+                              {pos.hold_lock_active && (
+                                <div className="pos-lock-banner" style={{ width: '100%', marginBottom: '8px' }}>
+                                  <span className="banner-icon"><i className="fas fa-lock" /></span>
+                                  <span>Hold timer: <strong>{formatHoldTime(computeRemaining(pos))}</strong> / {formatHoldTime(pos.required_hold_seconds)} remaining</span>
+                                </div>
+                              )}
                               <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
@@ -962,7 +1016,7 @@ export default function PositionPage() {
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Used Margin</div>
                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>
-                            {fmtPrice(selectedPos.margin_required || (selectedPos.entry_price * selectedPos.qty_total) || 0, selectedPos.settlement)}
+                            {fmtPrice(selectedPos.margin_required || selectedPos.locked_margin || 0, selectedPos.settlement)}
                           </div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
@@ -1109,7 +1163,13 @@ export default function PositionPage() {
                         </div>
                       </div>
 
-                      {/* Lock Message display */}
+                      {/* Lock Banner: shown when the anti-scalping hold timer is active */}
+                      {selectedPos.hold_lock_active && (
+                        <div className="pos-lock-banner" style={{ marginBottom: '8px' }}>
+                          <span className="banner-icon"><i className="fas fa-lock" /></span>
+                          <span>Anti-scalping hold: <strong>{formatHoldTime(computeRemaining(selectedPos))}</strong> remaining of {formatHoldTime(selectedPos.required_hold_seconds)}</span>
+                        </div>
+                      )}
 
                       {/* P&L + Exit All */}
                       <div className="ps-pnl-section">

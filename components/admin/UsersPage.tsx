@@ -22,7 +22,7 @@ function mapUserListItem(u: UserListItem): UserRow {
     role: u.role.toUpperCase(),
     active: u.active,
     ledgerBal: u.balance,
-    mAvailable: u.balance - (u.marginUsed ?? 0),
+    mAvailable: (u.balance + (u.openPnl ?? 0)) - (u.marginUsed ?? 0),
     openPnl: u.openPnl ?? 0,
     m2m: u.m2m ?? 0,
     weeklyPnl: u.weeklyPnl ?? 0,

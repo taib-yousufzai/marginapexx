@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { isContractExpired } from '@/lib/contractExpiry';
 
 export interface QuoteData {
   lastPrice: number;
@@ -160,7 +161,9 @@ export function useMarketQuotes(symbols: string[]) {
   const pendingUpdatesRef = useRef<Record<string, QuoteData>>({});
 
   useEffect(() => {
-    const currentSymbols = symbolsKey.split(',').filter(Boolean);
+    // Strip expired futures contracts — they have no live feed and would only
+    // generate noise (empty quotes, "No live LTP" warnings in the ticker).
+    const currentSymbols = symbolsKey.split(',').filter(Boolean).filter(s => !isContractExpired(s));
     if (currentSymbols.length === 0) return;
 
     // Fetch initial REST snapshot to avoid empty values if WS doesn't push immediately

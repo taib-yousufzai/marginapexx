@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getAdminClient } from './adminClient.ts';
 import { telemetry } from './metrics.ts';
 import { checkAndExecuteAccountLiquidation } from './liquidationEngine.ts';
+import { isContractExpired } from './contractExpiry.ts';
 
 export interface Quote {
   id: string; // e.g. "NSE:INFY"
@@ -464,10 +465,14 @@ export class InMemoryMatchingEngine {
 
           if (ltp === undefined || ltp <= 0) {
             ltp = Number(pos.ltp ?? pos.entry_price);
-            console.warn(
-              `[OrderMatching] No live LTP for ${pos.symbol} (user ${userId}). ` +
-              `Using fallback ltp=${ltp}. Check ticker subscription.`,
-            );
+            // Only warn when the symbol is a live (non-expired) contract.
+            // Expired futures simply have no feed — that's expected, not a bug.
+            if (!isContractExpired(pos.symbol)) {
+              console.warn(
+                `[OrderMatching] No live LTP for ${pos.symbol} (user ${userId}). ` +
+                `Using fallback ltp=${ltp}. Check ticker subscription.`,
+              );
+            }
           }
 
           const entryPrice = Number(pos.entry_price ?? pos.avg_price);

@@ -88,9 +88,9 @@ export async function GET(request: Request): Promise<Response> {
         s.weeklyPnl += Number(pos.pnl || 0);
       }
 
-      // Margin Used
+      // Margin Used — prefer locked_margin (frozen at entry) over margin_required
       if (pos.status === 'open' || pos.status === 'active') {
-        s.marginUsed += Number(pos.margin_required || 0);
+        s.marginUsed += Number((pos as any).locked_margin || pos.margin_required || 0);
       }
     });
 
