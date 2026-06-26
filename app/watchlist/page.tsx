@@ -225,14 +225,20 @@ export function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistIte
   return items.filter(item => getTabForItem(item) === tab);
 }
 
-/** Filters items by case-insensitive name/symbol match. Treats whitespace-only query as empty. */
+/** Filters items by word-start match on name/symbol. "Nif" matches "NIFTY" but not "FINNIFTY". */
 export function filterBySearch(items: WatchlistItem[], query: string): WatchlistItem[] {
   if (!query.trim()) return items;
   const q = query.toLowerCase();
+
+  function wordStartMatch(text: string): boolean {
+    const t = text.toLowerCase();
+    if (t.startsWith(q)) return true;
+    const words = t.split(/[\s\-_\/]/);
+    return words.some(w => w.startsWith(q));
+  }
+
   return items.filter(
-    item =>
-      item.name.toLowerCase().includes(q) ||
-      item.symbol.toLowerCase().includes(q)
+    item => wordStartMatch(item.name) || wordStartMatch(item.symbol)
   );
 }
 
@@ -762,6 +768,9 @@ function WatchlistContent() {
       area.style.display = 'none';
       return;
     }
+
+    // Pre-show the area so it's visible before inline script renders results
+    area.style.display = 'flex';
 
     // Use the exposed search function directly — avoids the fragile synthetic
     // input event that could fire before the inline script has attached its listener
@@ -2796,10 +2805,25 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(function() {
           var activeTab = window.__activeTab || 'All';
+          var q = query.toLowerCase();
 
-          // Local results filtered against the full (settled) query
+          // Word-start matching: query must match the start of any word in name/symbol
+          // e.g. "nif" matches "NIFTY 50" and "NIFTY22300PE" but NOT "FINNIFTY" or "BANKNIFTY"
+          function wordStartMatch(text) {
+            var t = text.toLowerCase();
+            // Check if text itself starts with query
+            if (t.indexOf(q) === 0) return true;
+            // Check if any word (split by space, hyphen, underscore, digit boundary) starts with query
+            var words = t.split(/[\s_\/\-]/);
+            for (var i = 0; i < words.length; i++) {
+              if (words[i].indexOf(q) === 0) return true;
+            }
+            return false;
+          }
+
+          // Local results filtered with word-start match
           var localResults = allScriptsDB.filter(function(s) {
-            var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+            var match = wordStartMatch(s.name) || wordStartMatch(s.symbol);
             if (!match) return false;
             if (activeTab === 'All') return true;
             return getTabForSearchItem(s.segment, s.category) === activeTab;
@@ -2825,10 +2849,14 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               // Check query is still current (guard against tab changes mid-flight)
               var currentInput = document.getElementById('globalSearchInput');
               if (!currentInput || currentInput.value.trim() !== query) return;
+              // Apply word-start filter to live results too
+              var filteredLive = liveResults.filter(function(r) {
+                return wordStartMatch(r.name || '') || wordStartMatch(r.symbol || '');
+              });
               // Live results first, then any local-only extras not in live set
-              var liveSymbols = new Set(liveResults.map(function(r) { return r.symbol; }));
+              var liveSymbols = new Set(filteredLive.map(function(r) { return r.symbol; }));
               var hardcodedExtra = localResults.filter(function(s) { return !liveSymbols.has(s.symbol); });
-              var merged = liveResults.concat(hardcodedExtra);
+              var merged = filteredLive.concat(hardcodedExtra);
               var activeTabLive = window.__activeTab || 'All';
               if (activeTabLive !== 'All') {
                 merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
