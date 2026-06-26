@@ -4772,7 +4772,7 @@ BEGIN
   WHERE user_id = v_order.user_id
     AND symbol = v_order.symbol
     AND product_type = v_order.product_type
-    AND status = 'open'
+    AND status IN ('open', 'active')
     AND qty_open > 0
   FOR UPDATE; -- lock the row
 
