@@ -1167,6 +1167,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </svg>
           </div>
 
+          {/* Search */}
+          <div className="tc-tb-icon" title="Search Symbol" onClick={() => showToast('Search coming soon')}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="6" cy="6" r="4.5" />
+              <path d="M10 10l2.5 2.5" strokeLinecap="round" />
+            </svg>
+          </div>
+
           {/* Fullscreen */}
           <div className="tc-tb-icon" title="Fullscreen" onClick={() => {
             const el = document.getElementById('chartSheet');
@@ -1226,35 +1234,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             setShowSettingsModal={setShowSettingsModal}
           />
 
-          {/* Trade On Chart Button (Bottom Right, opposite to TV logo) */}
-          <div
-            title="Trade On Chart"
-            onClick={() => {
-              setIsTradeOnChartActive(!isTradeOnChartActive);
-            }}
-            style={{
-              position: 'absolute',
-              bottom: '26px', // Adjusted to align vertically with TradingView logo (above time axis)
-              right: '64px', // Moved slightly left from the very right edge
-              zIndex: 10,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              background: 'var(--green-bg, #e8f5e9)',
-              color: 'var(--green, #1db954)',
-              cursor: 'pointer',
-              border: '1px solid var(--green, #1db954)',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3v18h18" />
-              <path d="M18 9l-5 5-4-4-5 5" />
-            </svg>
-            <span style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>Trade On Chart</span>
-          </div>
+          {/* Scalp button moved to P&L card — removed from chart overlay */}
         </div>
       </div>
 
@@ -1296,8 +1276,31 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
                 </span>
               </div>
-              <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
-                <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  title="Scalp"
+                  onClick={() => setIsTradeOnChartActive(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '4px 14px',
+                    borderRadius: '4px',
+                    background: 'var(--green-bg, #e8f5e9)',
+                    color: 'var(--green, #1db954)',
+                    cursor: 'pointer',
+                    border: '1px solid var(--green, #1db954)',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 3v18h18" />
+                    <path d="M18 9l-5 5-4-4-5 5" />
+                  </svg>
+                  <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>Scalp</span>
+                </div>
+                <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
+                  <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+                </div>
               </div>
             </>
           )}
@@ -1307,7 +1310,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       {/* Bottom Section */}
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
-        {!isUnderlyingIndex && !isOrderBlockVisible && !isTradeOnChartActive && (
+        {!isUnderlyingIndex && !isOrderBlockVisible && (
           currentInstrumentPosition ? (
             <div className="trade-buttons" id="tradeButtons">
               {currentInstrumentPosition.side === 'BUY' ? (

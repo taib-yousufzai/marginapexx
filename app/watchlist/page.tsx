@@ -2773,7 +2773,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       }
 
       function runSearch(query) {
+        // Empty query — hide results immediately (no debounce needed)
         if (query.length === 0) {
+          if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+          if (currentSearchController) { try { currentSearchController.abort(); } catch(e) {} }
           var area = document.getElementById('searchResultsArea');
           if (area) area.style.display = 'none';
           var btn = document.getElementById('clearSearchBtn');
@@ -2784,27 +2787,28 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         var btn = document.getElementById('clearSearchBtn');
         if (btn) btn.style.display = 'block';
 
-        var activeTab = window.__activeTab || 'All';
-
-        // Show local results immediately (zero-latency feedback)
-        var localResults = allScriptsDB.filter(function(s) {
-          var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
-          if (!match) return false;
-          if (activeTab === 'All') return true;
-          return getTabForSearchItem(s.segment, s.category) === activeTab;
-        });
-        renderSearchResults(localResults);
-
         // Cancel any previous in-flight request
         if (currentSearchController) {
           try { currentSearchController.abort(); } catch(e) {}
         }
-        currentSearchController = new AbortController();
-        var signal = currentSearchController.signal;
 
-        // Debounced live DB fetch
+        // Debounce both local and live results — filter on full word, not per character
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
         searchDebounceTimer = setTimeout(function() {
+          var activeTab = window.__activeTab || 'All';
+
+          // Local results filtered against the full (settled) query
+          var localResults = allScriptsDB.filter(function(s) {
+            var match = s.name.toLowerCase().indexOf(query.toLowerCase()) >= 0 || s.symbol.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+            if (!match) return false;
+            if (activeTab === 'All') return true;
+            return getTabForSearchItem(s.segment, s.category) === activeTab;
+          });
+          renderSearchResults(localResults);
+
+          currentSearchController = new AbortController();
+          var signal = currentSearchController.signal;
+
           fetch('/api/market/instruments/search?q=' + encodeURIComponent(query), {
             headers: { 'Authorization': 'Bearer ' + (window.__accessToken || '') },
             signal: signal
