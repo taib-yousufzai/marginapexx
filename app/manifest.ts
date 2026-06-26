@@ -29,7 +29,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
       {
-        src: '/splash-icon.jpg?v=6',
+        src: '/loading-logo.jpg?v=7',
         sizes: '512x512',
         type: 'image/jpeg',
         purpose: 'any',
