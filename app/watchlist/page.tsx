@@ -742,12 +742,7 @@ function WatchlistContent() {
     return trimmed;
   };
 
-  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText).filter(item => {
-    if (allowedSegments === null) return true; // still loading — show all initially
-    if (allowedSegments.length === 0) return true; // no restriction
-    const dbSeg = mapSegmentToDbSegment(item.segment);
-    return allowedSegments.includes(dbSeg);
-  });
+  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
   const scriptMountedRef = useRef(false);
   const deepLinkHandledRef = useRef(false);
   const watchlistItemsRef = useRef<WatchlistItem[]>([]);
