@@ -2190,3 +2190,112 @@
   border-radius: 0 !important;
   box-shadow: none !important;
 }
+
+/* --- Search Feature --- */
+.tc-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.tc-search-container.full-width {
+  position: absolute;
+  left: 36px;
+  right: 8px;
+  background: var(--surface);
+  z-index: 101;
+  height: 100%;
+}
+.tc-search-input {
+  width: 140px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 0 10px;
+  font-size: 13px;
+  outline: none;
+  transition: width 0.2s ease;
+}
+.tc-search-container.full-width .tc-search-input {
+  width: 100%;
+  height: 36px;
+}
+.tc-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 250px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+.tc-search-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.tc-search-tabs::-webkit-scrollbar {
+  display: none;
+}
+.tc-search-tab {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  user-select: none;
+}
+.tc-search-tab:hover {
+  background: var(--border);
+}
+.tc-search-tab.active {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+.tc-search-results {
+  max-height: 250px;
+  overflow-y: auto;
+}
+.dark .tc-search-dropdown {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.tc-search-msg {
+  padding: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.tc-search-result-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  flex-direction: column;
+}
+.tc-search-result-item:last-child {
+  border-bottom: none;
+}
+.tc-search-result-item:hover {
+  background: var(--bg);
+}
+.tc-res-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.tc-res-segment {
+  font-size: 10px;
+  color: var(--text-muted);
+}

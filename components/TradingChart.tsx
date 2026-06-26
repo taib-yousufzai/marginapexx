@@ -95,6 +95,37 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [error, setError] = useState<string | null>(null);
   const [historicalCandles, setHistoricalCandles] = useState<Candle[]>([]);
 
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeSearchTab, setActiveSearchTab] = useState('All');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data);
+        } else {
+          setSearchResults([]);
+        }
+      } catch (err) {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Indicators toggle state
   const [activeIndicators, setActiveIndicators] = useState({
     sma: false,
@@ -1046,11 +1077,67 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         </button>
 
         {/* ── Symbol ── */}
-        <div className="tc-symbol-btn">
-          <span className="tc-symbol-exchange">{displayExchange}</span>
-          <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
-        </div>
+        {isSearchActive ? (
+          <div className={`tc-search-container ${searchQuery.length > 0 ? 'full-width' : ''}`}>
+             <input 
+               ref={searchInputRef}
+               className="tc-search-input"
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               placeholder="Search instruments..."
+               onBlur={() => {
+                 setTimeout(() => {
+                    setIsSearchActive(false);
+                    setSearchQuery('');
+                 }, 200);
+               }}
+             />
+             {searchQuery.length > 0 && (
+               <div className="tc-search-dropdown">
+                 <div className="tc-search-tabs">
+                   {['All', 'INDEX-FUT', 'INDEX-OPT', 'MCX-FUT', 'MCX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'NSE-EQ', 'CRYPTO', 'COMEX', 'FOREX'].map(tab => (
+                     <div 
+                        key={tab} 
+                        className={`tc-search-tab ${activeSearchTab === tab ? 'active' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); setActiveSearchTab(tab); }}
+                     >
+                       {tab}
+                     </div>
+                   ))}
+                 </div>
+                 <div className="tc-search-results">
+                   {isSearching ? <div className="tc-search-msg">Searching...</div> : 
+                     (activeSearchTab === 'All' ? searchResults : searchResults.filter(res => mapSegmentToDbSegment(res.segment) === activeSearchTab)).length > 0 ? (
+                       (activeSearchTab === 'All' ? searchResults : searchResults.filter(res => mapSegmentToDbSegment(res.segment) === activeSearchTab)).map(res => (
+                          <div key={res.kiteSymbol} className="tc-search-result-item" onClick={() => {
+                              setSymbol(res.kiteSymbol);
+                              setSegment(res.segment);
+                              setIsSearchActive(false);
+                              setSearchQuery('');
+                              setSearchResults([]);
+                              const targetSymbol = res.kiteSymbol;
+                              setOrderBlockTitle(targetSymbol);
+                          }}>
+                             <div className="tc-res-name">{res.name}</div>
+                             <div className="tc-res-segment">{res.segment}</div>
+                          </div>
+                       ))
+                     ) : <div className="tc-search-msg">No results found</div>
+                   }
+                 </div>
+               </div>
+             )}
+          </div>
+        ) : (
+          <div className="tc-symbol-btn" onClick={() => {
+            setIsSearchActive(true);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }}>
+            <span className="tc-symbol-exchange">{displayExchange}</span>
+            <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
+          </div>
+        )}
 
         <div className="tc-divider"></div>
 
@@ -1168,7 +1255,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           </div>
 
           {/* Search */}
-          <div className="tc-tb-icon" title="Search Symbol" onClick={() => showToast('Search coming soon')}>
+          <div className="tc-tb-icon" title="Search Symbol" onClick={() => {
+            setIsSearchActive(true);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="6" cy="6" r="4.5" />
               <path d="M10 10l2.5 2.5" strokeLinecap="round" />

@@ -1059,7 +1059,13 @@ function WatchlistContent() {
     window.__addToWatchlistCallback = (item: WatchlistItem) => {
       setWatchlistItems(prev => {
         const newItem = { ...item, category: activeTab };
-        if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
+        let isDuplicate = false;
+        if (activeTab === 'All') {
+          isDuplicate = prev.some(i => i.symbol === newItem.symbol);
+        } else {
+          isDuplicate = prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab);
+        }
+        if (isDuplicate) return prev;
         const next = [...prev, newItem];
         saveWatchlistToStorage(next, userId);
         return next;
@@ -1188,7 +1194,7 @@ function WatchlistContent() {
         if (detailOverlay) detailOverlay.classList.add('active');
       }
     };
-  }, [watchlistItems, activeTab]);
+  }, [watchlistItems, activeTab, userId]);
 
   const openTradeSheet = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BOTH') => {
     setTradeSide(side);
