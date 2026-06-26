@@ -2739,11 +2739,15 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           var bottomHtml = dateStr ? escapeHtml(dateStr) + '<span style="background: #f1f5f9; color: #64748b; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px;">' + escapeHtml(badgeStr) + '</span>' : escapeHtml(badgeStr);
 
             var defaultPrice = item.price ? item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---';
+            var isAdded = window.__watchlistItems && window.__watchlistItems.some(function(w) { return (w.kiteSymbol && w.kiteSymbol === item.kiteSymbol) || (w.symbol && w.symbol === item.symbol); });
+            var btnHtml = isAdded 
+              ? '<button class="add-script-btn sri-add-btn" style="background: #e2e8f0; color: #64748b; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" disabled>Added</button>'
+              : '<button class="add-script-btn sri-add-btn" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>';
             html += '<div class="search-result-item" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">' +
             '<div class="sri-left"><div class="sri-name" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 4px;">' + escapeHtml(mainName) + '</div><div class="sri-symbol" style="color: #94a3b8; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center;">' + bottomHtml + '</div></div>' +
             '<div class="sri-right" style="display: flex; align-items: center; gap: 12px;">' +
             '<div class="sri-price" data-kite-id="' + escapeHtml(kiteId) + '" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; min-width: 60px; text-align: right;">' + escapeHtml(defaultPrice) + '</div>' +
-            '<button class="add-script-btn sri-add-btn" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>' +
+            btnHtml +
             '</div></div>';
         });
         if (searchResultCount) searchResultCount.textContent = results.length + ' RESULTS';

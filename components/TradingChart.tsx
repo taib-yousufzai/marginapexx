@@ -1382,10 +1382,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     border: '1px solid var(--green, #1db954)',
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 3v18h18" />
-                    <path d="M18 9l-5 5-4-4-5 5" />
-                  </svg>
                   <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>Scalp</span>
                 </div>
                 <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
