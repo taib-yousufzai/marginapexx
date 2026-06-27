@@ -84,29 +84,175 @@ function mapSegmentToDbSegment(s: string): string {
   return trimmed;
 }
 
-export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
-  const [symbol, setSymbol] = useState(propSymbol);
-  const [segment, setSegment] = useState(propSegment);
+const SwipeableItem = ({ children, onDelete }: { children: React.ReactNode, onDelete: () => void }) => {
+  const [translateX, setTranslateX] = useState(0);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const isSwiping = useRef(false);
 
-  useEffect(() => {
-    setSymbol(propSymbol);
-    setSegment(propSegment);
-  }, [propSymbol, propSegment]);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    isSwiping.current = true;
+  };
 
-  const [timeframe, setTimeframe] = useState<Timeframe>('5m');
-  const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
-  const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const hasLoadedData = useRef(false);
-  const [error, setError] = useState<string | null>(null);
-  const [historicalCandles, setHistoricalCandles] = useState<Candle[]>([]);
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping.current) return;
+    currentX.current = e.touches[0].clientX;
+    const diff = currentX.current - startX.current;
+    if (diff < 0) {
+      setTranslateX(Math.max(diff, -80));
+    } else {
+      setTranslateX(Math.min(diff, 0));
+    }
+  };
 
-  const [isSearchActive, setIsSearchActive] = useState(false);
+  const handleTouchEnd = () => {
+    isSwiping.current = false;
+    if (translateX < -40) {
+      setTranslateX(-80);
+    } else {
+      setTranslateX(0);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '12px' }}>
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, right: 0, width: '80px',
+        background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'white', zIndex: 0, opacity: translateX < 0 ? 1 : 0, transition: 'opacity 0.2s ease'
+      }}>
+        <button style={{ background: 'transparent', border: 'none', color: 'white', height: '100%', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => { e.stopPropagation(); onDelete(); setTranslateX(0); }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" /></svg>
+        </button>
+      </div>
+      <div
+        className={translateX < 0 ? 'swipe-active' : ''}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: `translateX(${translateX}px)`,
+          transition: isSwiping.current ? 'none' : 'transform 0.2s ease',
+          position: 'relative',
+          zIndex: 1,
+          background: 'transparent',
+          width: '100%'
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+const SEGMENT_TAB_MAP: Record<string, string> = {
+  'NSE - Futures': 'INDEX-FUT',
+  'BSE - Futures': 'INDEX-FUT',
+  'NSE - Options': 'INDEX-OPT',
+  'BSE - Options': 'INDEX-OPT',
+  'NSE - Stock Futures': 'STOCK-FUT',
+  'BSE - Stock Futures': 'STOCK-FUT',
+  'NSE - Stock Options': 'STOCK-OPT',
+  'BSE - Stock Options': 'STOCK-OPT',
+  'MCX - Futures': 'MCX-FUT',
+  'MCX - Options': 'MCX-OPT',
+  'NSE - Equity': 'NSE-EQ',
+  'BSE - Equity': 'NSE-EQ',
+  'Crypto': 'CRYPTO',
+  'CRYPTO': 'CRYPTO',
+  'Forex': 'FOREX',
+  'FOREX': 'FOREX',
+  'CDS - Futures': 'FOREX',
+  'CDS - Options': 'FOREX',
+  'COMEX - Futures': 'COMEX',
+  'COMEX - Options': 'COMEX',
+  'COMEX': 'COMEX',
+  'COI': 'COMEX',
+};
+
+const DEFAULT_CRYPTO_ITEMS = [
+  { name: 'Bitcoin', symbol: 'BTC', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Ethereum', symbol: 'ETH', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+  { name: 'Dogecoin', symbol: 'DOGE', kiteSymbol: '', binanceSymbol: 'DOGEUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
+];
+
+const DEFAULT_FOREX_ITEMS = [
+  { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+  { name: 'JPY/INR', symbol: 'JPYINR_FUT', kiteSymbol: 'CDS:JPYINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
+];
+
+const DEFAULT_COMEX_ITEMS = [
+  { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+];
+
+function getDefaultWatchlistItems() {
+  return [
+    { name: 'NIFTY 50 INDEX', symbol: 'NIFTY_INDEX', kiteSymbol: 'NSE:NIFTY 50', price: 22456.80, change: '+0.45%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 22350, high: 22580, low: 22320, close: 22456.80 },
+    { name: 'BANKNIFTY INDEX', symbol: 'BANKNIFTY_INDEX', kiteSymbol: 'NSE:NIFTY BANK', price: 48210.50, change: '-0.21%', segment: 'NSE - Futures', contractDate: '28 Mar 2025', open: 48350, high: 48500, low: 48100, close: 48210.50 },
+    { name: 'SENSEX INDEX', symbol: 'SENSEX_INDEX', kiteSymbol: 'BSE:SENSEX', price: 74230.15, change: '+0.32%', segment: 'BSE - Futures', contractDate: '28 Mar 2025', open: 73950, high: 74500, low: 73800, close: 74230.15 },
+    ...DEFAULT_CRYPTO_ITEMS,
+    ...DEFAULT_FOREX_ITEMS,
+    ...DEFAULT_COMEX_ITEMS,
+  ];
+}
+
+function getStoredWatchlistItems() {
+  if (typeof window !== 'undefined' && (window as any).__watchlistItems && (window as any).__watchlistItems.length > 0) {
+    return (window as any).__watchlistItems;
+  }
+  try {
+    let bestKey = 'marginApex_watchlist';
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('marginApex_watchlist_')) {
+        bestKey = key;
+        break;
+      }
+    }
+    const rawUser = localStorage.getItem(bestKey);
+    if (rawUser && rawUser !== 'null') {
+      const parsed = JSON.parse(rawUser);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+  return getDefaultWatchlistItems();
+}
+
+function getTabForItem(item: any): string {
+  if (item.category) {
+    const c = item.category.toUpperCase();
+    if (c.includes('INDEX - FUTURE')) return 'INDEX-FUT';
+    if (c.includes('INDEX - OPTIONS')) return 'INDEX-OPT';
+    if (c.includes('STOCKS - FUTURE')) return 'STOCK-FUT';
+    if (c.includes('MCX - FUTURE')) return 'MCX-FUT';
+    if (c.includes('MCX - OPTIONS')) return 'MCX-OPT';
+    if (c.includes('CRYPTO')) return 'CRYPTO';
+    if (c.includes('FOREX')) return 'FOREX';
+    if (c.includes('COMEX')) return 'COMEX';
+  }
+
+  if (item.segment && SEGMENT_TAB_MAP[item.segment]) {
+    return SEGMENT_TAB_MAP[item.segment];
+  }
+  return 'INDEX-FUT'; // Fallback
+}
+
+const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeSearchTab, setActiveSearchTab] = useState('All');
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => searchInputRef.current?.focus(), 100);
+  }, []);
 
   useEffect(() => {
     if (!searchQuery || searchQuery.trim().length === 0) {
@@ -128,9 +274,179 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       } finally {
         setIsSearching(false);
       }
-    }, 400);
+    }, 150);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  return (
+    <div className="tc-search-overlay-fullscreen">
+      <div className="tc-search-header-fs" style={{ padding: '12px 16px', gap: '0', background: 'var(--container-bg, #FFFFFF)', zIndex: 10 }}>
+        <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', zIndex: 1 }}>
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            ref={searchInputRef}
+            className="tc-search-input-fs"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search stocks, options, futures..."
+            style={{ width: '100%', paddingRight: '40px', paddingLeft: '40px' }}
+          />
+          <button
+            className="tc-icon-btn"
+            onClick={onClose}
+            style={{ position: 'absolute', right: '8px', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </div>
+      <div className="tc-search-body-fs">
+        <div className="tc-search-tabs">
+          {['All', 'INDEX-FUT', 'INDEX-OPT', 'MCX-FUT', 'MCX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'NSE-EQ', 'CRYPTO', 'COMEX', 'FOREX'].map(tab => (
+            <div
+              key={tab}
+              className={`tc-search-tab ${activeSearchTab === tab ? 'active' : ''}`}
+              onClick={(e) => { e.stopPropagation(); setActiveSearchTab(tab); }}
+            >
+              {tab}
+            </div>
+          ))}
+        </div>
+        <div className="tc-search-results-fs">
+          {isSearching ? <div className="tc-search-msg">Searching...</div> :
+            searchQuery.length === 0 ? (
+              activeSearchTab === 'All' ? (
+                starredInstruments.length > 0 ? (
+                  starredInstruments.map((res: any, idx: number) => (
+                    <SwipeableItem key={`${res.kiteSymbol}-${idx}`} onDelete={() => toggleStar(res)}>
+                      <div className="tc-search-result-item" style={{ borderBottom: 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            className="tc-star-btn"
+                            onClick={(e) => { e.stopPropagation(); toggleStar(res); }}
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: '#F59E0B', display: 'flex', alignItems: 'center' }}
+                          >
+                            ★
+                          </button>
+                          <div className="tc-res-info">
+                            <div className="tc-res-name">{res.name}</div>
+                            <div className="tc-res-segment">{res.segment}</div>
+                          </div>
+                        </div>
+                        <button className="tc-res-open-btn" onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect(res);
+                        }}>Open</button>
+                      </div>
+                    </SwipeableItem>
+                  ))
+                ) : <div className="tc-search-msg">Type to search for an instrument</div>
+              ) : (
+                (() => {
+                  const defaultItems = getStoredWatchlistItems().filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab);
+                  return defaultItems.length > 0 ? (
+                    defaultItems.map((res: any, idx: number) => {
+                      const isStarred = starredInstruments.some((p: any) => p.kiteSymbol === res.kiteSymbol);
+                      return (
+                        <div key={`${res.kiteSymbol}-${idx}`} className="tc-search-result-item">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              className="tc-star-btn"
+                              onClick={(e) => { e.stopPropagation(); toggleStar(res); }}
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: isStarred ? '#F59E0B' : '#D1D5DB', display: 'flex', alignItems: 'center' }}
+                            >
+                              {isStarred ? '★' : '☆'}
+                            </button>
+                            <div className="tc-res-info">
+                              <div className="tc-res-name">{res.name}</div>
+                              <div className="tc-res-segment">{res.segment}</div>
+                            </div>
+                          </div>
+                          <button className="tc-res-open-btn" onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect(res);
+                          }}>Open</button>
+                        </div>
+                      )
+                    })
+                  ) : <div className="tc-search-msg">Type to search for an instrument</div>;
+                })()
+              )
+            ) :
+              (activeSearchTab === 'All' ? searchResults : searchResults.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab)).length > 0 ? (
+                (activeSearchTab === 'All' ? searchResults : searchResults.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab)).map((res: any, idx: number) => {
+                  const isStarred = starredInstruments.some((p: any) => p.kiteSymbol === res.kiteSymbol);
+                  return (
+                    <div key={`${res.kiteSymbol}-${idx}`} className="tc-search-result-item">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          className="tc-star-btn"
+                          onClick={(e) => { e.stopPropagation(); toggleStar(res); }}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: isStarred ? '#F59E0B' : '#D1D5DB', display: 'flex', alignItems: 'center' }}
+                        >
+                          {isStarred ? '★' : '☆'}
+                        </button>
+                        <div className="tc-res-info">
+                          <div className="tc-res-name">{res.name}</div>
+                          <div className="tc-res-segment">{res.segment}</div>
+                        </div>
+                      </div>
+                      <button className="tc-res-open-btn" onClick={(e) => {
+                        e.stopPropagation();
+                        onSelect(res);
+                      }}>Open</button>
+                    </div>
+                  )
+                })
+              ) : <div className="tc-search-msg">No results found</div>
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
+  const [symbol, setSymbol] = useState(propSymbol);
+  const [segment, setSegment] = useState(propSegment);
+
+  useEffect(() => {
+    setSymbol(propSymbol);
+    setSegment(propSegment);
+  }, [propSymbol, propSegment]);
+
+  const [timeframe, setTimeframe] = useState<Timeframe>('5m');
+  const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
+  const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const hasLoadedData = useRef(false);
+  const [error, setError] = useState<string | null>(null);
+  const [historicalCandles, setHistoricalCandles] = useState<Candle[]>([]);
+
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [starredInstruments, setStarredInstruments] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('marginApex_starred_instruments');
+      if (stored) setStarredInstruments(JSON.parse(stored));
+    } catch (e) { }
+  }, []);
+
+  const toggleStar = (item: any) => {
+    setStarredInstruments(prev => {
+      const isStarred = prev.some(p => p.kiteSymbol === item.kiteSymbol);
+      const next = isStarred ? prev.filter(p => p.kiteSymbol !== item.kiteSymbol) : [...prev, item];
+      try { localStorage.setItem('marginApex_starred_instruments', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
+
+
 
   // Indicators toggle state
   const [activeIndicators, setActiveIndicators] = useState({
@@ -1101,56 +1417,17 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
         {/* ── Symbol ── */}
         {isSearchActive ? (
-          <div className={`tc-search-container ${searchQuery.length > 0 ? 'full-width' : ''}`}>
-             <input 
-               ref={searchInputRef}
-               className="tc-search-input"
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               placeholder="Search instruments..."
-               onBlur={() => {
-                 setTimeout(() => {
-                    setIsSearchActive(false);
-                    setSearchQuery('');
-                 }, 200);
-               }}
-             />
-             {searchQuery.length > 0 && (
-               <div className="tc-search-dropdown">
-                 <div className="tc-search-tabs">
-                   {['All', 'INDEX-FUT', 'INDEX-OPT', 'MCX-FUT', 'MCX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'NSE-EQ', 'CRYPTO', 'COMEX', 'FOREX'].map(tab => (
-                     <div 
-                        key={tab} 
-                        className={`tc-search-tab ${activeSearchTab === tab ? 'active' : ''}`}
-                        onClick={(e) => { e.stopPropagation(); setActiveSearchTab(tab); }}
-                     >
-                       {tab}
-                     </div>
-                   ))}
-                 </div>
-                 <div className="tc-search-results">
-                   {isSearching ? <div className="tc-search-msg">Searching...</div> : 
-                     (activeSearchTab === 'All' ? searchResults : searchResults.filter(res => mapSegmentToDbSegment(res.segment) === activeSearchTab)).length > 0 ? (
-                       (activeSearchTab === 'All' ? searchResults : searchResults.filter(res => mapSegmentToDbSegment(res.segment) === activeSearchTab)).map(res => (
-                          <div key={res.kiteSymbol} className="tc-search-result-item" onClick={() => {
-                              setSymbol(res.kiteSymbol);
-                              setSegment(res.segment);
-                              setIsSearchActive(false);
-                              setSearchQuery('');
-                              setSearchResults([]);
-                              const targetSymbol = res.kiteSymbol;
-                              setOrderBlockTitle(targetSymbol);
-                          }}>
-                             <div className="tc-res-name">{res.name}</div>
-                             <div className="tc-res-segment">{res.segment}</div>
-                          </div>
-                       ))
-                     ) : <div className="tc-search-msg">No results found</div>
-                   }
-                 </div>
-               </div>
-             )}
-          </div>
+          <ChartSearchOverlay
+            starredInstruments={starredInstruments}
+            toggleStar={toggleStar}
+            onClose={() => setIsSearchActive(false)}
+            onSelect={(res: any) => {
+              setSymbol(res.kiteSymbol);
+              setSegment(res.segment);
+              setIsSearchActive(false);
+              setOrderBlockTitle(res.kiteSymbol);
+            }}
+          />
         ) : (
           <div className="tc-symbol-btn" onClick={() => {
             setIsSearchActive(true);

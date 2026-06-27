@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').trim();
 
-    if (q.length < 2) {
+    if (q.length < 1) {
       return NextResponse.json([]);
     }
 
@@ -231,6 +231,15 @@ export async function GET(request: NextRequest) {
     // Filter rows to ensure they actually match the search terms in a meaningful way.
     // This avoids matching "25" to all 2025 options because of "25" in their internal Zerodha tradingsymbol (e.g. NIFTY2532822300PE).
     const searchTerms = q.toLowerCase().split(/\s+/);
+
+    function wordStartMatch(text: string, term: string): boolean {
+      if (!text) return false;
+      const t = text.toLowerCase();
+      if (t.startsWith(term)) return true;
+      const words = t.split(/[\s\-_\/]/);
+      return words.some(w => w.startsWith(term));
+    }
+
     rows = rows.filter((r: any) => {
       const dispName = buildDisplayName(
         r.tradingsymbol,
@@ -239,15 +248,15 @@ export async function GET(request: NextRequest) {
         r.option_type ?? null,
         null
       ).toLowerCase();
-      const symbol = r.tradingsymbol.toLowerCase();
+      const symbol = (r.tradingsymbol || '').toLowerCase();
       const name = (r.name || '').toLowerCase();
 
       return searchTerms.every(term => {
         // If the term is numeric and it's an option instrument with a strike price, it should match the strike price
         if (/^\d+$/.test(term) && r.strike_price !== null) {
-          return String(r.strike_price).includes(term);
+          return String(r.strike_price).startsWith(term);
         }
-        return dispName.includes(term) || name.includes(term) || symbol.includes(term);
+        return wordStartMatch(dispName, term) || wordStartMatch(name, term) || wordStartMatch(symbol, term);
       });
     });
 

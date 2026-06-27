@@ -2191,111 +2191,246 @@
   box-shadow: none !important;
 }
 
-/* --- Search Feature --- */
-.tc-search-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.tc-search-container.full-width {
-  position: absolute;
-  left: 36px;
-  right: 8px;
-  background: var(--surface);
-  z-index: 101;
-  height: 100%;
-}
-.tc-search-input {
-  width: 140px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  padding: 0 10px;
-  font-size: 13px;
-  outline: none;
-  transition: width 0.2s ease;
-}
-.tc-search-container.full-width .tc-search-input {
-  width: 100%;
-  height: 36px;
-}
-.tc-search-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
+.tc-search-overlay-fullscreen {
+  position: fixed;
+  top: 0;
   left: 0;
   width: 100%;
-  min-width: 250px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  height: 100dvh;
+  background: #F5F7FB;
+  z-index: 99999;
   display: flex;
   flex-direction: column;
 }
+
+.dark .tc-search-overlay-fullscreen {
+  background: #0B111D;
+}
+
+.tc-search-header-fs {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E8ECF0;
+  z-index: 2;
+}
+
+.dark .tc-search-header-fs {
+  background: #111827;
+  border-bottom: 1px solid #1F2937;
+}
+
+.tc-search-input-fs {
+  flex: 1;
+  height: 48px;
+  border: 1px solid #E8ECF0;
+  border-radius: 24px;
+  background: #F8F9FC;
+  color: #1A1E2B;
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.tc-search-input-fs:focus {
+  border-color: #B0BAD0;
+  background: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.dark .tc-search-input-fs {
+  background: #1F2937;
+  border-color: #374151;
+  color: #F9FAFB;
+}
+.dark .tc-search-input-fs:focus {
+  border-color: #4B5563;
+  background: #111827;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.tc-search-body-fs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #F5F7FB;
+}
+
+.dark .tc-search-body-fs {
+  background: #0B111D;
+}
+
 .tc-search-tabs {
   display: flex;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border);
+  gap: 6px;
+  padding: 12px 16px;
   overflow-x: auto;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E8ECF0;
 }
+.dark .tc-search-tabs {
+  background: #111827;
+  border-color: #1F2937;
+}
+
 .tc-search-tabs::-webkit-scrollbar {
   display: none;
 }
+
 .tc-search-tab {
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 11px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
-  background: var(--bg);
+  color: #6B7280;
+  background: transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   user-select: none;
 }
+
 .tc-search-tab:hover {
-  background: var(--border);
+  color: #374151;
+  background: #F3F4F6;
 }
+
 .tc-search-tab.active {
-  background: var(--blue-bg);
-  color: var(--blue);
+  background: #C62E2E;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(198, 46, 46, 0.2);
 }
-.tc-search-results {
-  max-height: 250px;
+
+.dark .tc-search-tab {
+  color: #9CA3AF;
+}
+.dark .tc-search-tab:hover {
+  color: #F3F4F6;
+  background: #1F2937;
+}
+.dark .tc-search-tab.active {
+  background: #E63946;
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+}
+
+.tc-search-results-fs {
+  flex: 1;
   overflow-y: auto;
-}
-.dark .tc-search-dropdown {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-.tc-search-msg {
-  padding: 10px;
-  font-size: 13px;
-  color: var(--text-muted);
-  text-align: center;
-}
-.tc-search-result-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-soft);
+  padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  /* Hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.tc-search-result-item:last-child {
-  border-bottom: none;
+
+.tc-search-results-fs::-webkit-scrollbar {
+  display: none;
 }
+
+.tc-search-msg {
+  padding: 40px 20px;
+  font-size: 14px;
+  color: #9CA3AF;
+  text-align: center;
+  font-weight: 500;
+}
+
+.tc-search-result-item {
+  padding: 14px 16px;
+  background: #FFFFFF;
+  border: 1px solid #E8ECF0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
 .tc-search-result-item:hover {
-  background: var(--bg);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #D1D5DB;
 }
+
+.swipe-active .tc-search-result-item {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right-color: transparent !important;
+}
+
+.dark .tc-search-result-item {
+  background: #111827;
+  border-color: #1F2937;
+}
+.dark .tc-search-result-item:hover {
+  border-color: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tc-res-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .tc-res-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: 0.1px;
 }
+
 .tc-res-segment {
-  font-size: 10px;
-  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.dark .tc-res-name {
+  color: #F9FAFB;
+}
+.dark .tc-res-segment {
+  color: #9CA3AF;
+}
+
+.tc-res-open-btn {
+  background: #FEF2F2;
+  color: #C62E2E;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tc-res-open-btn:hover {
+  background: #C62E2E;
+  color: #FFFFFF;
+}
+
+.dark .tc-res-open-btn {
+  background: #2D1A1E;
+  color: #E63946;
+}
+.dark .tc-res-open-btn:hover {
+  background: #E63946;
+  color: #FFFFFF;
+}
+
+.tc-star-btn {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tc-star-btn:active {
+  transform: scale(1.3);
 }
