@@ -62,19 +62,40 @@ export class InMemoryMatchingEngine {
     this.userProfiles.clear();
 
     if (userIds.length > 0) {
-      const [segSettingsRes, profilesRes] = await Promise.all([
+      // Fetch profiles to determine which users are scalpers
+      const [segSettingsRes, scalperSegSettingsRes, profilesRes] = await Promise.all([
         admin
           .from('segment_settings')
           .select('user_id, segment, side, entry_buffer, exit_buffer')
           .in('user_id', userIds),
         admin
+          .from('scalper_segment_settings')
+          .select('user_id, segment, side, entry_buffer, exit_buffer')
+          .in('user_id', userIds),
+        admin
           .from('profiles')
-          .select('id, balance, auto_sqoff')
+          .select('id, balance, auto_sqoff, trading_mode')
           .in('id', userIds)
       ]);
 
+      // Build a set of scalper user IDs so we know which settings table to prefer
+      const scalperUserIds = new Set<string>();
+      if (profilesRes.data) {
+        const dataArr = Array.isArray(profilesRes.data) ? profilesRes.data : [profilesRes.data];
+        for (const p of dataArr) {
+          if (p && p.id) {
+            this.userProfiles.set(p.id, p);
+            if (p.trading_mode === 'scalper') scalperUserIds.add(p.id);
+          } else if (p && userIds.length === 1) {
+            this.userProfiles.set(userIds[0], p);
+          }
+        }
+      }
+
+      // Load standard segment settings (for non-scalpers)
       if (segSettingsRes.data) {
         for (const s of segSettingsRes.data) {
+          if (scalperUserIds.has(s.user_id)) continue; // scalper — will be overridden below
           const key = `${s.user_id}|${s.segment}|${s.side}`;
           this.segmentSettings.set(key, {
             entry_buffer: Number(s.entry_buffer ?? 0.003),
@@ -83,14 +104,15 @@ export class InMemoryMatchingEngine {
         }
       }
 
-      if (profilesRes.data) {
-        const dataArr = Array.isArray(profilesRes.data) ? profilesRes.data : [profilesRes.data];
-        for (const p of dataArr) {
-          if (p && p.id) {
-            this.userProfiles.set(p.id, p);
-          } else if (p && userIds.length === 1) {
-            this.userProfiles.set(userIds[0], p);
-          }
+      // Load scalper segment settings (for scalpers), overriding standard ones
+      if (scalperSegSettingsRes.data) {
+        for (const s of scalperSegSettingsRes.data) {
+          if (!scalperUserIds.has(s.user_id)) continue; // not a scalper — skip
+          const key = `${s.user_id}|${s.segment}|${s.side}`;
+          this.segmentSettings.set(key, {
+            entry_buffer: Number(s.entry_buffer ?? 0.003),
+            exit_buffer: Number(s.exit_buffer ?? 0.0017)
+          });
         }
       }
     }
@@ -150,10 +172,28 @@ export class InMemoryMatchingEngine {
         const row = payload.new as any;
         if (row && row.user_id) {
           const key = `${row.user_id}|${row.segment}|${row.side}`;
-          this.segmentSettings.set(key, {
-            entry_buffer: Number(row.entry_buffer ?? 0.003),
-            exit_buffer: Number(row.exit_buffer ?? 0.0017)
-          });
+          // Only apply if user is not a scalper (scalper settings come from scalper table)
+          const profile = this.userProfiles.get(row.user_id);
+          if (!profile || profile.trading_mode !== 'scalper') {
+            this.segmentSettings.set(key, {
+              entry_buffer: Number(row.entry_buffer ?? 0.003),
+              exit_buffer: Number(row.exit_buffer ?? 0.0017)
+            });
+          }
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scalper_segment_settings' }, (payload) => {
+        const row = payload.new as any;
+        if (row && row.user_id) {
+          const key = `${row.user_id}|${row.segment}|${row.side}`;
+          // Only apply if user IS a scalper
+          const profile = this.userProfiles.get(row.user_id);
+          if (profile && profile.trading_mode === 'scalper') {
+            this.segmentSettings.set(key, {
+              entry_buffer: Number(row.entry_buffer ?? 0.003),
+              exit_buffer: Number(row.exit_buffer ?? 0.0017)
+            });
+          }
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trading_hours' }, (payload) => {

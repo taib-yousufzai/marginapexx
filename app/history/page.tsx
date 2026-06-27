@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import { supabase } from '@/lib/supabaseClient';
@@ -35,6 +36,7 @@ declare global {
 
 export default function HistoryPage() {
   useAuth();
+  const router = useRouter();
   const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -154,7 +156,7 @@ export default function HistoryPage() {
     const gl = posHistory.filter(h => h.pnl < 0).reduce((acc, h) => acc + Math.abs(h.pnl), 0);
     const b = historyData.reduce((acc, h) => acc + h.brokerage, 0);
     const s = posHistory.reduce((acc, h) => acc + (h.settlementAmount ?? 0), 0);
-    return { gp, gl, b, s, n: gp - gl - b - s };
+    return { gp, gl, b, s, n: gp - gl - b };
   }, [historyData]);
 
   const formatPrice = (val: number) => {
@@ -291,7 +293,7 @@ export default function HistoryPage() {
                     const pnlPercent = item.entryPrice ? ((item.pnl / (item.entryPrice * item.qty)) * 100).toFixed(2) : "0.00";
 
                     return (
-                      <div key={item.id} className="history-card">
+                      <div key={item.id} className="history-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/watchlist?symbol=${encodeURIComponent(item.scriptName)}`)}>
                         <div className="history-card-header">
                           <div className="script-info">
                             <span className="script-name">{item.scriptName}</span>
@@ -367,15 +369,15 @@ export default function HistoryPage() {
           <span className="footer-value">{formatPrice(summary.b)}</span>
         </div>
         <div className="footer-row">
-          <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
-          <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
-            {formatPrice(summary.n)}
-          </span>
-        </div>
-        <div className="footer-row">
           <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
           <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
             {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
+          </span>
+        </div>
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
+          <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
+            {formatPrice(summary.n)}
           </span>
         </div>
       </div>

@@ -75,11 +75,11 @@ export async function POST(
     // 3. If converting requires more margin, perform a free margin check
     if (marginDifference > 0) {
       const { data: allOpenPos } = await admin.from('positions')
-        .select('margin_required, pnl')
+        .select('locked_margin, margin_required, pnl')
         .eq('user_id', user.id)
         .eq('status', 'open');
 
-      const totalUsedMargin = (allOpenPos || []).reduce((acc, p) => acc + Number(p.margin_required || 0), 0);
+      const totalUsedMargin = (allOpenPos || []).reduce((acc, p) => acc + Number(p.locked_margin || p.margin_required || 0), 0);
       const totalFloatingPnl = (allOpenPos || []).reduce((acc, p) => acc + Number(p.pnl || 0), 0);
       const balance = Number(profile.balance || 0);
       const freeMargin = (balance + totalFloatingPnl) - totalUsedMargin;

@@ -75,6 +75,12 @@ function mapSegmentToDbSegment(s: string): string {
   if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
   if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
   if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  // Already-mapped DB keys — pass through directly
+  if (['INDEX-FUT', 'INDEX-OPT', 'STOCK-FUT', 'STOCK-OPT', 'MCX-FUT', 'MCX-OPT', 'NSE-EQ', 'CRYPTO', 'FOREX', 'COMEX'].includes(trimmed)) return trimmed;
+  // Legacy alias used by older code paths
+  if (trimmed === 'NFO-OPT') return 'INDEX-OPT';
+  if (trimmed === 'BFO-OPT') return 'INDEX-OPT';
+  if (trimmed === 'NFO-FUT') return 'INDEX-FUT';
   return trimmed;
 }
 
@@ -469,9 +475,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     return () => { isMounted = false; };
   }, [symbol, timeframe, isCrypto]);
 
-  // Update with live quote
+  // Update with live quote — only when the chart is showing an underlying (index/equity),
+  // not a derivative. When viewing an option/futures chart, liveQuote is the underlying's
+  // price and must not overwrite currentPrice (which comes from the option's candle data).
   useEffect(() => {
     if (!liveQuote || loading) return;
+    if (symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT')) return;
 
     const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
     if (!lastPrice) return;
@@ -843,8 +852,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   }, [positions, symbol]);
 
   // Calculated Required Margin for current order block state
-  const rawBid = liveQuote ? (liveQuote.bid || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
-  const rawAsk = liveQuote ? (liveQuote.ask || liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice;
+  // Determine if the current chart symbol is itself an option/futures contract
+  // (not the underlying index). In that case, liveQuote belongs to the underlying
+  // and must not be used for price — use currentPrice (set from candle data) instead.
+  const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
+  const rawBid = (!symbolIsDerivative && liveQuote)
+    ? (liveQuote.bid || liveQuote.lastPrice || liveQuote.last_price || currentPrice)
+    : currentPrice;
+  const rawAsk = (!symbolIsDerivative && liveQuote)
+    ? (liveQuote.ask || liveQuote.lastPrice || liveQuote.last_price || currentPrice)
+    : currentPrice;
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
   const priceOfScript = chainContract
@@ -1522,7 +1539,21 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 onClick={() => {
                   const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
                   setSymbol(targetSymbol);
-                  setSegment(targetSymbol.includes('CE') || targetSymbol.includes('PE') ? 'NFO-OPT' : segment);
+                  // Derive the correct display segment so mapSegmentToDbSegment works
+                  if (chainContract) {
+                    const n = chainContract.name.toUpperCase();
+                    const isBse = n.includes('SENSEX') || n.includes('BANKEX');
+                    const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
+                    if (isMcx) {
+                      setSegment('MCX - Options');
+                    } else if (isBse) {
+                      setSegment('BSE - Options');
+                    } else {
+                      setSegment('NSE - Options');
+                    }
+                  } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
+                    setSegment('NSE - Options');
+                  }
                   setIsPanelExpanded(false);
                   setIsOrderBlockVisible(false);
                   setChainContract(null);

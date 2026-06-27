@@ -2940,8 +2940,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       document.addEventListener('input', handleSearchInput);
       // Expose so React's searchText useEffect can trigger it directly
       window.__triggerSearch = function(query) {
-        var input = document.getElementById('globalSearchInput');
-        if (input) runSearch(input.value.trim());
+        runSearch(query);
       };
 
 

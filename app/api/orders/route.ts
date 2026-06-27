@@ -499,7 +499,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Open positions for lot-limit and margin checks
     admin.from('positions')
-      .select('id, symbol, qty_open, status, entry_price, side, product_type, entry_time, locked_margin, margin_required')
+      .select('id, symbol, qty_open, status, entry_price, side, product_type, entry_time, locked_margin, margin_required, pnl')
       .eq('user_id', user.id)
       .in('status', ['open', 'OPEN', 'active', 'ACTIVE']),
 
@@ -782,12 +782,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const requiredMargin = marginPortion + brokerage;
 
-  // Free Margin = Balance - Sum(locked_margins from all open positions)
-  // locked_margin is frozen at trade entry and does not change with market conditions
+  // Free Margin = Balance + Floating PnL - Sum(locked_margins from all open positions)
+  // Consistent with marginSquareOff.ts and liquidationEngine.ts.
+  // Floating PnL from the DB-cached pos.pnl is used here as an approximation;
+  // the live liquidation engine uses real-time LTP-based PnL for the trigger.
   const totalLockedMargin = openPositions.reduce(
     (sum: number, p: any) => sum + Number(p.locked_margin || p.margin_required || 0), 0
   );
-  const freeMargin = balance - totalLockedMargin;
+  const totalFloatingPnl = openPositions.reduce(
+    (sum: number, p: any) => sum + Number(p.pnl || 0), 0
+  );
+  const freeMargin = balance + totalFloatingPnl - totalLockedMargin;
 
   if (freeMargin < requiredMargin) {
     return NextResponse.json({
@@ -888,8 +893,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const rawPnlValue = activePosition.side === 'BUY'
-      ? (baseLtp - rawEntryLtp) * Number(qty)
-      : (rawEntryLtp - baseLtp) * Number(qty);
+      ? (baseLtp - rawEntryLtp) * Number(activePosition.qty_open)
+      : (rawEntryLtp - baseLtp) * Number(activePosition.qty_open);
 
     const durationSec = Math.floor((Date.now() - new Date(activePosition.entry_time).getTime()) / 1000);
     const requiredHold = rawPnlValue > 0 ? profitHoldSec : lossHoldSec;

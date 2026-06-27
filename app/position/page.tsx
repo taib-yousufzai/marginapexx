@@ -52,7 +52,25 @@ export default function PositionPage() {
       });
       if (!res.ok) return;
       const data = await res.json();
-      setClosedPositions((data.positions || []) as EnrichedPosition[]);
+      // Enrich closed positions with the computed fields expected by the UI.
+      // Closed positions from the raw API don't go through useMyPositions enrichment,
+      // so we derive the missing EnrichedPosition fields here.
+      const enriched = (data.positions || []).map((p: any): EnrichedPosition => {
+        const pnl = Number(p.pnl || 0);
+        const investment = Number(p.avg_price || p.entry_price || 0) * Number(p.qty_total || p.qty_open || 1);
+        const pnl_percent = investment > 0 ? parseFloat(((pnl / investment) * 100).toFixed(2)) : 0;
+        return {
+          ...p,
+          current_ltp: Number(p.exit_price || p.ltp || p.entry_price || 0),
+          unrealised_pnl: 0,
+          total_pnl: pnl,
+          pnl_percent,
+          hold_lock_active: false,
+          remaining_hold_seconds: 0,
+          required_hold_seconds: 0,
+        };
+      });
+      setClosedPositions(enriched);
     } catch { /* non-critical */ } finally {
       setClosedLoading(false);
     }
@@ -357,10 +375,10 @@ export default function PositionPage() {
   // closedPositions comes from the separate fetch above (positions hook only returns open/active)
   const hasOpenPositions = openPositions.length > 0;
 
-  // Detailed view: every position (open + closed) as its own individual card
+  // Detailed view: open/active positions only — closed positions live in the Closed tab
   const detailedTickets = useMemo(() => {
-    return [...positions, ...closedPositions].sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
-  }, [positions, closedPositions]);
+    return [...positions].sort((a, b) => new Date(b.entry_time).getTime() - new Date(a.entry_time).getTime());
+  }, [positions]);
 
   // ── Cumulative grouping: merge same symbol+side+product_type into one row ──
   interface GroupedPosition {
@@ -491,7 +509,10 @@ export default function PositionPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
-                    <span>₹{formatBalance(balance)}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance + unrealized : null)}</span>
+                      <span style={{ fontSize: '0.58rem', opacity: 0.7, fontWeight: 600 }}>Equity</span>
+                    </div>
                   </button>
                   <button
                     className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
@@ -512,7 +533,10 @@ export default function PositionPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
-                    <span>{formatBalance(balance)}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{formatBalance(balance !== null ? balance + unrealized : null)}</span>
+                      <span style={{ fontSize: '0.62rem', opacity: 0.7, fontWeight: 600 }}>Equity</span>
+                    </div>
                   </button>
                   <button
                     className={`pos-exit-btn${!hasOpenPositions ? ' disabled' : ''}`}
@@ -744,7 +768,14 @@ export default function PositionPage() {
                         <div
                           key={pos.id}
                           className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
-                          onClick={() => toggleExpand(pos.id)}
+                          onClick={() => {
+                            if (pos.status === 'closed') {
+                              // Closed positions open the detail sheet
+                              handleRowClick(pos);
+                            } else {
+                              toggleExpand(pos.id);
+                            }
+                          }}
                         >
                           <div className="pos-detail-main-layout">
                             {/* Left Side: Symbol and Metadata */}

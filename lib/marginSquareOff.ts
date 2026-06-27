@@ -45,20 +45,34 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
     let totalFloatingPnl = 0;
 
     for (const pos of positions) {
-      // Find exit buffer from settings
+      // Find settings for this position
       const key = `${pos.settlement}_${pos.side}`;
       const setting = userSettingsMap.get(key) || parentSettingsMap.get(key);
 
       // Use frozen locked_margin (fallback to margin_required for backward compat)
       const lockedMargin = Number(pos.locked_margin || pos.margin_required || 0);
-      
       totalLockedMargin += lockedMargin;
-      totalFloatingPnl += Number(pos.pnl || 0);
+
+      // Compute live floating PnL using exit-buffer-adjusted LTP (same formula as liquidationEngine)
+      // This is more accurate than stale pos.pnl which is only updated on close.
+      const exitBuffer = setting?.exit_buffer ?? 0.0017;
+      const baseLtp = Number(pos.ltp || pos.entry_price);
+      const entryPrice = Number(pos.entry_price || pos.avg_price);
+      const qty = Number(pos.qty_open || 0);
+      let livePnl = 0;
+      if (qty > 0 && entryPrice > 0) {
+        if (pos.side === 'BUY') {
+          livePnl = (baseLtp * (1 - exitBuffer) - entryPrice) * qty;
+        } else {
+          livePnl = (entryPrice - baseLtp * (1 + exitBuffer)) * qty;
+        }
+      }
+      totalFloatingPnl += livePnl;
 
       positionsWithMargin.push({
         ...pos,
         lockedMargin,
-        exitBuffer: setting?.exit_buffer ?? 0.0017
+        exitBuffer,
       });
     }
 

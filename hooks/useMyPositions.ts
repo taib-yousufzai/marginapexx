@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useMarketQuotes } from './useMarketQuotes';
 import { useComexQuotes } from './useComexQuotes';
@@ -58,6 +58,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
   const [error, setError] = useState<string | null>(null);
   const [inFlightConversions, setInFlightConversions] = useState<Record<string, string>>({});
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
+  // Per-instance cache for change detection — avoids cross-instance cache poisoning
+  // when multiple hook consumers (position page + chart) fetch at different times.
+  const localCacheRef = useRef<MyPosition[]>(globalPositionsCache.slice());
   // Track whether segment settings have been fetched at least once.
   // We defer hold-lock computation until settings are known to avoid
   // showing the hardcoded 120s fallback before the real value arrives.
@@ -122,11 +125,14 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const newPositions: MyPosition[] = data.positions || [];
 
       // Only update state if something actually changed — avoids unnecessary
-      // re-renders (and the visible layout shift) when data is identical
+      // re-renders (and the visible layout shift) when data is identical.
+      // Uses per-instance localCacheRef so multiple hook consumers (position page + chart)
+      // each independently detect changes rather than sharing a global cache.
+      const localCache = localCacheRef.current;
       const didChange =
-        newPositions.length !== globalPositionsCache.length ||
+        newPositions.length !== localCache.length ||
         newPositions.some((p, i) => {
-          const cached = globalPositionsCache[i];
+          const cached = localCache[i];
           return (
             !cached ||
             p.id !== cached.id ||
@@ -139,7 +145,8 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         });
 
       if (didChange) {
-        globalPositionsCache = newPositions;
+        localCacheRef.current = newPositions;
+        globalPositionsCache = newPositions; // keep global in sync for initial state on new mounts
         setRawPositions(newPositions);
       }
     } catch (err) {
@@ -269,26 +276,29 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
       // Anti-scalping hold lock — only on profitable positions.
       //
-      // PROFIT/LOSS determination uses a margin above entry_price (not avg_price
-      // which includes fill buffer, causing flicker when LTP hovers near avg).
-      // A position is considered "in profit" only when LTP has moved meaningfully
-      // above entry_price — we use a small dead-band (0.1% of entry price) so
-      // minor noise doesn't flip the lock state.
-      //
-      // Once elapsedSec >= profitHoldSec the lock is permanently off.
-      //
-      // We defer hold-lock activation until segment settings have been fetched
-      // so we never show the hardcoded 120s fallback before the real value loads.
+      // Uses the same profit detection as the server-side close routes:
+      // strip the entry buffer from entry_price to get the raw market price,
+      // then compare live LTP to that raw price. This prevents the buffer
+      // from inflating the "profit" threshold and causing the lock to fire
+      // at breakeven.
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
-
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
 
-      // Dead-band: require LTP to be at least 0.1% above/below entry_price
-      // before calling it a profit. Eliminates flicker at breakeven.
-      const deadBand = p.entry_price * 0.001;
+      // Strip entry buffer to match server-side rawEntryLtp calculation
+      const entryBufferVal = sideSetting ? Number(sideSetting.entry_buffer ?? 0.003) : 0.003;
+      let rawEntryPrice: number;
+      if (p.side === 'BUY') {
+        rawEntryPrice = p.entry_price / (1 + entryBufferVal);
+      } else {
+        rawEntryPrice = p.entry_price / (1 - entryBufferVal);
+      }
+
+      // Position is "in profit" when LTP exceeds the raw (pre-buffer) entry price.
+      // A small dead-band prevents lock-state flicker right at breakeven.
+      const deadBand = rawEntryPrice * 0.001;
       const isInProfit = p.side === 'BUY'
-        ? ltp > p.entry_price + deadBand
-        : ltp < p.entry_price - deadBand;
+        ? ltp > rawEntryPrice + deadBand
+        : ltp < rawEntryPrice - deadBand;
 
       // Only lock if settings have loaded — prevents spurious 120s lock on first render.
       // Also never lock an expired contract — it has no live feed and the user
