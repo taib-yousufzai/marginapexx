@@ -86,7 +86,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
       // Subscribe to realtime profile changes for user balance and settlement_amount
       channel = supabase
-        .channel(`profile-realtime-footer`)
+        .channel(`profile-realtime-footer-${Date.now()}`)
         .on(
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },

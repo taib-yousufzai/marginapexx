@@ -181,17 +181,21 @@ export async function checkAndExecuteAccountLiquidation(
     .eq('id', userId)
     .single();
 
-  const settlementAmount = Math.abs(Number(updatedProfile?.settlement_amount || 0));
+  const totalProfileSettlement = Math.abs(Number(updatedProfile?.settlement_amount || 0));
+  // The incremental settlement caused strictly by this liquidation event
+  // previousBalance is the total balance before we started (could be negative if they already had debt)
+  const previousDebt = previousBalance < 0 ? Math.abs(previousBalance) : 0;
+  // If their previous balance was positive, but now they have a settlement amount, the incremental debt is the full settlement amount.
+  // If they already had debt, the incremental debt is the new debt minus the old debt.
+  const incrementalSettlement = Math.max(0, totalProfileSettlement - previousDebt);
   const finalLoss = Math.abs(totalFloatingPnl);
 
   // Stamp settlement_amount onto every position that was just liquidated
   // so users can see it on their individual position history cards.
   //
-  // We distribute the total settlement debt proportionally by each position's
-  // share of the total floating loss — so the sum across all cards equals the
-  // actual settlement amount (not N× it, which happened when the full amount
-  // was stamped on every row).
-  if (settlementAmount > 0 && positionsClosed > 0) {
+  // We distribute the incremental settlement debt proportionally by each position's
+  // share of the total floating loss.
+  if (incrementalSettlement > 0 && positionsClosed > 0) {
     const liquidatedIds = positions.map(p => p.id);
 
     // Compute each position's floating loss contribution
@@ -209,7 +213,7 @@ export async function checkAndExecuteAccountLiquidation(
       // Proportional distribution — update each position individually
       await Promise.all(
         posLosses.map(({ id, loss }) => {
-          const share = (loss / totalLoss) * settlementAmount;
+          const share = (loss / totalLoss) * incrementalSettlement;
           return admin
             .from('positions')
             .update({ settlement_amount: Math.round(share * 100) / 100 })
@@ -218,7 +222,7 @@ export async function checkAndExecuteAccountLiquidation(
       );
     } else {
       // All positions broke even or were profitable — split equally
-      const equalShare = Math.round((settlementAmount / liquidatedIds.length) * 100) / 100;
+      const equalShare = Math.round((incrementalSettlement / liquidatedIds.length) * 100) / 100;
       await admin
         .from('positions')
         .update({ settlement_amount: equalShare })

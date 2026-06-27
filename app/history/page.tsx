@@ -156,7 +156,7 @@ export default function HistoryPage() {
     const gl = posHistory.filter(h => h.pnl < 0).reduce((acc, h) => acc + Math.abs(h.pnl), 0);
     const b = historyData.reduce((acc, h) => acc + h.brokerage, 0);
     const s = posHistory.reduce((acc, h) => acc + (h.settlementAmount ?? 0), 0);
-    return { gp, gl, b, s, n: gp - gl - b };
+    return { gp, gl, b, s, n: gp - gl - b - s };
   }, [historyData]);
 
   const formatPrice = (val: number) => {
