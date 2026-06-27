@@ -164,6 +164,10 @@ DECLARE
   v_pos_found boolean;
   v_lot_size numeric;
   v_lots numeric;
+  
+  -- Referral / First Trade Bonus vars
+  v_has_traded boolean;
+  v_parent_id_text text;
 BEGIN
   -- Fetch the order
   SELECT * INTO v_order
@@ -432,6 +436,24 @@ BEGIN
       );
     END IF;
   END IF;
+
+  -- ─── FIRST TRADE BONUS LOGIC ───
+  SELECT has_traded, parent_id INTO v_has_traded, v_parent_id_text
+  FROM public.profiles WHERE id = v_order.user_id;
+
+  IF NOT v_has_traded THEN
+    UPDATE public.profiles SET has_traded = TRUE WHERE id = v_order.user_id;
+    IF v_parent_id_text IS NOT NULL THEN
+      UPDATE public.profiles
+         SET referral_balance = referral_balance + 200
+       WHERE id = v_parent_id_text::uuid;
+      INSERT INTO public.referral_earnings
+        (referrer_id, referred_user_id, transaction_id, commission_amount, earning_type)
+      VALUES
+        (v_parent_id_text::uuid, v_order.user_id, v_order.id, 200, 'FIRST_TRADE_BONUS');
+    END IF;
+  END IF;
+
 END;
 $$;
 
