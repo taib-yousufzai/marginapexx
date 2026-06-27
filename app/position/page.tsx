@@ -663,6 +663,17 @@ export default function PositionPage() {
                                 {fmtUSD(group.total_pnl, group.settlement)}
                               </div>
                               <div className="pos-card-ltp">
+                                {group.hold_lock_active && (
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                    fontSize: '0.6rem', fontWeight: 700, color: '#C62E2E',
+                                    background: '#FEE2E2', padding: '2px 7px', borderRadius: '20px',
+                                    marginBottom: '3px'
+                                  }}>
+                                    <i className="fas fa-lock" style={{ fontSize: '0.55rem' }} />
+                                    {formatHoldTime(computeRemaining(group.representativePos))}
+                                  </span>
+                                )}
                                 {group.product_type && (
                                   <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
                                     {group.product_type}
