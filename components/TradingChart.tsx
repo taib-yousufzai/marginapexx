@@ -1383,7 +1383,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </div>
             <div style={{ color: 'var(--pill-text)', fontSize: '11px' }}>Entry ₹{entryPrice.toFixed(2)}</div>
             <div style={{ color: pnlColor, fontWeight: 700 }}>
-              {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(0)}
+              {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(2)}
             </div>
           </div>
           <div className="position-actions">
