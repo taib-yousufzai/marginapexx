@@ -685,12 +685,7 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === group.key && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-                              {group.hold_lock_active && (
-                                <div className="pos-lock-banner" style={{ width: '100%', marginBottom: '8px' }}>
-                                  <span className="banner-icon"><i className="fas fa-lock" /></span>
-                                  <span>Hold timer: <strong>{formatHoldTime(computeRemaining(group.representativePos))}</strong> / {formatHoldTime(group.representativePos.required_hold_seconds)} remaining</span>
-                                </div>
-                              )}
+
                               <button className="pca-btn pca-add" onClick={() => openAddMore(group.representativePos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
@@ -844,12 +839,7 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-                              {pos.hold_lock_active && (
-                                <div className="pos-lock-banner" style={{ width: '100%', marginBottom: '8px' }}>
-                                  <span className="banner-icon"><i className="fas fa-lock" /></span>
-                                  <span>Hold timer: <strong>{formatHoldTime(computeRemaining(pos))}</strong> / {formatHoldTime(pos.required_hold_seconds)} remaining</span>
-                                </div>
-                              )}
+
                               <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
