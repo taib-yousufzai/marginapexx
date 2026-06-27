@@ -207,12 +207,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     : (totalQty * (priceOfScript > 0 ? priceOfScript : 0));
 
   let marginPortion = 0;
-  if (leverageType === '%') {
-    marginPortion = baseExposure * (leverage / 100);
-  } else if (leverageType === 'Fixed') {
-    marginPortion = (totalQty / lotSize) * leverage;
-  } else {
-    marginPortion = baseExposure / leverage;
+  if (!exitMode) {
+    if (leverageType === '%') {
+      marginPortion = baseExposure * (leverage / 100);
+    } else if (leverageType === 'Fixed') {
+      marginPortion = (totalQty / lotSize) * leverage;
+    } else {
+      marginPortion = baseExposure / leverage;
+    }
   }
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
   const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);
@@ -1339,7 +1341,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT SELL' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'BUY'}
                 </button>
               )}
               {(side === 'SELL' || side === 'BOTH') && (
@@ -1348,7 +1350,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   disabled={placingOrder}
                   onClick={() => handlePlace('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT BUY' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'SELL'}
                 </button>
               )}
             </div>

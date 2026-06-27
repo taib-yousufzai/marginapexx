@@ -1950,7 +1950,7 @@ function WatchlistContent() {
                   disabled={placingOrder}
                   onClick={() => handlePlaceOrder('BUY')}
                 >
-                  {placingOrder ? 'PLACING...' : hasSellPos ? 'EXIT SELL' : 'BUY'}
+                  {placingOrder ? 'PLACING...' : hasSellPos ? 'EXIT POSITION' : 'BUY'}
                 </button>
               )}
               {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
@@ -1960,7 +1960,7 @@ function WatchlistContent() {
                   disabled={placingOrder}
                   onClick={() => handlePlaceOrder('SELL')}
                 >
-                  {placingOrder ? 'PLACING...' : hasBuyPos ? 'EXIT BUY' : 'SELL'}
+                  {placingOrder ? 'PLACING...' : hasBuyPos ? 'EXIT POSITION' : 'SELL'}
                 </button>
               )}
             </>

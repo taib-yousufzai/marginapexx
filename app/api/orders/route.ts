@@ -558,14 +558,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
   const blockedScript = blockedScriptsResult?.data;
 
-  // Resolve crypto symbol form: if exiting and the symbol ends with USDT,
-  // check if the open position was stored under a different form (e.g. 'ETH' or 'ETH/USDT')
-  if (is_exit && symbol.toUpperCase().endsWith('USDT')) {
-    const withoutUsdt = symbol.replace(/USDT$/i, '');
-    const slashForm = withoutUsdt + '/USDT';
-    const matchedPos = openPositions.find((p: any) =>
-      p.symbol === withoutUsdt || p.symbol === slashForm || p.symbol === symbol
+  // Resolve crypto symbol form: if exiting, we must match the exact form stored in the DB (e.g. 'BTC', 'BTCUSDT', or 'BTC/USDT')
+  if (is_exit && dbSegment === 'CRYPTO') {
+    const base = symbol.toUpperCase().replace(/USDT$/, '').replace(/\/USDT$/, '');
+    const withoutUsdt = base;
+    const withUsdt = base + 'USDT';
+    const slashForm = base + '/USDT';
+
+    // Find a matching position regardless of which of the 3 formats was sent
+    const matchedPos = openPositions.find((p: any) => 
+      p.symbol === withoutUsdt || p.symbol === withUsdt || p.symbol === slashForm
     );
+
     if (matchedPos && matchedPos.symbol !== symbol) {
       symbol = matchedPos.symbol; // use the form stored in DB
     }
@@ -731,13 +735,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const exposure      = qty * marginPrice;
   
   let marginPortion = 0;
-  if (leverageType === '%') {
-    marginPortion = exposure * (leverageVal / 100);
-  } else if (leverageType === 'Fixed') {
-    const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
-    marginPortion = lotsUsed * leverageVal;
-  } else {
-    marginPortion = exposure / leverageVal;
+  if (!is_exit) {
+    if (leverageType === '%') {
+      marginPortion = exposure * (leverageVal / 100);
+    } else if (leverageType === 'Fixed') {
+      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
+      marginPortion = lotsUsed * leverageVal;
+    } else {
+      marginPortion = exposure / leverageVal;
+    }
   }
 
   const entryBufferRatio = (side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0;
