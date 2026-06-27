@@ -460,3 +460,10 @@ $$;
 -- 5. Re-grant permissions
 REVOKE EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric, numeric, numeric, boolean, numeric) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric, numeric, numeric, boolean, numeric) TO service_role;
+-- 1. Add bid_buffer column to segment_settings
+ALTER TABLE public.segment_settings 
+ADD COLUMN IF NOT EXISTS bid_buffer numeric NOT NULL DEFAULT 0.003;
+
+-- 2. Add bid_buffer column to scalper_segment_settings
+ALTER TABLE public.scalper_segment_settings 
+ADD COLUMN IF NOT EXISTS bid_buffer numeric NOT NULL DEFAULT 0.003;
