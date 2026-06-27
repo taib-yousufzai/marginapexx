@@ -34,7 +34,7 @@ export async function GET(request: Request): Promise<Response> {
 
     let pQuery = adminClient
       .from('profiles')
-      .select('id, client_id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
+      .select('id, client_id, email, full_name, phone, role, parent_id, segments, active, read_only, demo_user, intraday_sq_off, auto_sqoff, showcase_auto_sqoff, sqoff_method, balance, settlement_amount, created_at, scheduled_delete_at, trading_mode, mode_locked_until');
     
     if (isBroker) {
       pQuery = pQuery.eq('parent_id', authResult.callerUser.id);
@@ -119,6 +119,7 @@ const PROFILE_FIELDS = [
   'demo_user',
   'intraday_sq_off',
   'auto_sqoff',
+  'showcase_auto_sqoff',
   'sqoff_method',
   'trading_mode',
   'mode_locked_until',
@@ -305,7 +306,7 @@ export async function POST(request: Request): Promise<Response> {
         // Fetch the default template (if one exists)
         const { data: defaultTemplate } = await adminClient
           .from('account_templates')
-          .select('id, segments, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, trading_mode')
+          .select('id, segments, read_only, demo_user, intraday_sq_off, auto_sqoff, showcase_auto_sqoff, sqoff_method, trading_mode')
           .eq('is_default', true)
           .single();
 
@@ -316,6 +317,7 @@ export async function POST(request: Request): Promise<Response> {
             demo_user: defaultTemplate.demo_user,
             intraday_sq_off: defaultTemplate.intraday_sq_off,
             auto_sqoff: defaultTemplate.auto_sqoff,
+            showcase_auto_sqoff: defaultTemplate.showcase_auto_sqoff,
             sqoff_method: defaultTemplate.sqoff_method,
             trading_mode: defaultTemplate.trading_mode,
             template_id: defaultTemplate.id,

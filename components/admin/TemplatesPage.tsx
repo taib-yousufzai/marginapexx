@@ -14,6 +14,7 @@ export interface AccountTemplate {
   demo_user: boolean;
   intraday_sq_off: boolean;
   auto_sqoff: number;
+  showcase_auto_sqoff: number;
   sqoff_method: string;
   trading_mode: string;
   created_at: string;
@@ -209,6 +210,7 @@ function TemplateCard({
           <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
             <Pill label="Segments" value={(template.segments ?? []).length.toString()} />
             <Pill label="Auto Sq-Off" value={`${template.auto_sqoff}%`} />
+            <Pill label="Showcase Sq-Off" value={`${template.showcase_auto_sqoff}%`} />
             <Pill label="Method" value={template.sqoff_method} />
             {template.read_only && <Pill label="Read Only" value="Yes" danger />}
             {template.demo_user && <Pill label="Demo" value="Yes" />}

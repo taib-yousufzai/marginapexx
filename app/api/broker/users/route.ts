@@ -135,6 +135,7 @@ const PROFILE_FIELDS = [
   'demo_user',
   'intraday_sq_off',
   'auto_sqoff',
+  'showcase_auto_sqoff',
   'sqoff_method',
 ] as const;
 

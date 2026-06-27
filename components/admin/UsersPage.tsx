@@ -10,7 +10,7 @@ type UserRow = {
   weeklyPnl: number; alltimePnl: number; marginUsed: number; holdingMargin: number;
   broker: string; mobile: string; scheduled_delete_at: string | null;
   segments: string[]; read_only: boolean; demo_user: boolean;
-  intraday_sq_off: boolean; auto_sqoff: number; sqoff_method: string;
+  intraday_sq_off: boolean; auto_sqoff: number; showcase_auto_sqoff: number; sqoff_method: string;
   settlementAmount: number;
 };
 
@@ -37,6 +37,7 @@ function mapUserListItem(u: UserListItem): UserRow {
     demo_user: u.demo_user,
     intraday_sq_off: u.intraday_sq_off,
     auto_sqoff: u.auto_sqoff,
+    showcase_auto_sqoff: (u as any).showcase_auto_sqoff ?? 85,
     sqoff_method: u.sqoff_method,
     settlementAmount: u.settlement_amount ?? 0,
   };
@@ -132,6 +133,7 @@ export default function UsersPage({ selectedUser: _selectedUser, onSelectUser, o
       'Demo User': u.demo_user ? 'Yes' : 'No',
       'Intraday SQ Off': u.intraday_sq_off ? 'Yes' : 'No',
       'Auto SQ Off %': u.auto_sqoff,
+      'Showcase SQ Off %': u.showcase_auto_sqoff,
       'SQ Off Method': u.sqoff_method,
     }));
     downloadCSV(exportData, `users_export_${new Date().toISOString().split('T')[0]}.csv`);

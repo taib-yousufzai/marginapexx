@@ -14,6 +14,7 @@ export interface Profile {
   demo_user: boolean;
   intraday_sq_off: boolean;
   auto_sqoff: number;
+  showcase_auto_sqoff: number;
   sqoff_method: string;
   scheduled_delete_at: string | null; // ISO timestamp or null
   created_at: string;
@@ -60,6 +61,7 @@ export interface CreateUserRequest {
   demo_user?: boolean;
   intraday_sq_off?: boolean;
   auto_sqoff?: number;
+  showcase_auto_sqoff?: number;
   sqoff_method?: string;
 }
 

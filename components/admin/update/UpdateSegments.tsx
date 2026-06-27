@@ -240,10 +240,14 @@ function SegmentBlock({
             <div className="adm-upd-field">
               <label className="adm-upd-label">Intraday Type</label>
               <select className="adm-upd-input adm-upd-select" value={value.intradayType} onChange={e => upd('intradayType', e.target.value)}>
-                <option>Multiplier</option><option>Direct</option>
+                <option>Multiplier</option><option value="%">%</option><option>Fixed</option>
               </select>
               <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-                Req Funds = (Qty &times; Market Price) &divide; Leverage
+                {value.intradayType === '%'
+                  ? 'Req Funds = (Qty × Price) × (Leverage / 100)'
+                  : value.intradayType === 'Fixed'
+                  ? 'Req Funds = Lots × Leverage  — fixed ₹ per lot (ideal for option selling)'
+                  : 'Req Funds = (Qty × Price) ÷ Leverage'}
               </span>
             </div>
           </div>
@@ -265,10 +269,14 @@ function SegmentBlock({
             <div className="adm-upd-field">
               <label className="adm-upd-label">Holding Type</label>
               <select className="adm-upd-input adm-upd-select" value={value.holdingType} onChange={e => upd('holdingType', e.target.value)}>
-                <option>Multiplier</option><option>Direct</option>
+                <option>Multiplier</option><option value="%">%</option><option>Fixed</option>
               </select>
               <span style={{ fontSize: '10px', color: '#8b949e', marginTop: '4px', display: 'block', lineHeight: '1.4' }}>
-                Req Funds = (Qty &times; Market Price) &divide; Leverage
+                {value.holdingType === '%'
+                  ? 'Req Funds = (Qty × Price) × (Leverage / 100)'
+                  : value.holdingType === 'Fixed'
+                  ? 'Req Funds = Lots × Leverage  — fixed ₹ per lot (ideal for option selling)'
+                  : 'Req Funds = (Qty × Price) ÷ Leverage'}
               </span>
             </div>
             <div></div>

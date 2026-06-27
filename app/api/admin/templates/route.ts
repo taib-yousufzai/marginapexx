@@ -15,6 +15,7 @@ export interface TemplateRow {
   demo_user: boolean;
   intraday_sq_off: boolean;
   auto_sqoff: number;
+  showcase_auto_sqoff: number;
   sqoff_method: string;
   trading_mode: string;
   created_by: string | null;
@@ -25,7 +26,7 @@ export interface TemplateRow {
 const TEMPLATE_FIELDS = [
   'name', 'description', 'is_default',
   'segments', 'read_only', 'demo_user',
-  'intraday_sq_off', 'auto_sqoff', 'sqoff_method', 'trading_mode',
+  'intraday_sq_off', 'auto_sqoff', 'showcase_auto_sqoff', 'sqoff_method', 'trading_mode',
 ] as const;
 
 export async function GET(request: Request): Promise<Response> {
@@ -36,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
 
     const { data, error } = await adminClient
       .from('account_templates')
-      .select('id, name, description, is_default, segments, read_only, demo_user, intraday_sq_off, auto_sqoff, sqoff_method, trading_mode, created_by, created_at, updated_at')
+      .select('id, name, description, is_default, segments, read_only, demo_user, intraday_sq_off, auto_sqoff, showcase_auto_sqoff, sqoff_method, trading_mode, created_by, created_at, updated_at')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
 

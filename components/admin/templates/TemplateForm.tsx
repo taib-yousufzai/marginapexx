@@ -30,6 +30,7 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
   const [demoUser, setDemoUser] = useState(template ? template.demo_user : (isDemoMode ?? false));
   const [intradaySqOff, setIntradaySqOff] = useState(template?.intraday_sq_off ?? false);
   const [autoSqoff, setAutoSqoff] = useState(String(template?.auto_sqoff ?? 90));
+  const [showcaseAutoSqoff, setShowcaseAutoSqoff] = useState(String((template as any)?.showcase_auto_sqoff ?? 85));
   const [sqoffMethod, setSqoffMethod] = useState(template?.sqoff_method ?? 'Credit');
   const [tradingMode, setTradingMode] = useState(template?.trading_mode ?? 'normal');
 
@@ -141,6 +142,7 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
       demo_user: demoUser,
       intraday_sq_off: intradaySqOff,
       auto_sqoff: Number(autoSqoff),
+      showcase_auto_sqoff: Number(showcaseAutoSqoff),
       sqoff_method: sqoffMethod,
       trading_mode: tradingMode,
     };
@@ -246,6 +248,7 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
             demoUser={demoUser} setDemoUser={setDemoUser}
             intradaySqOff={intradaySqOff} setIntradaySqOff={setIntradaySqOff}
             autoSqoff={autoSqoff} setAutoSqoff={setAutoSqoff}
+            showcaseAutoSqoff={showcaseAutoSqoff} setShowcaseAutoSqoff={setShowcaseAutoSqoff}
             sqoffMethod={sqoffMethod} setSqoffMethod={setSqoffMethod}
             tradingMode={tradingMode} setTradingMode={setTradingMode}
           />
@@ -305,6 +308,7 @@ function ProfileTab({
   isDefault, setIsDefault, segments, toggleSegment,
   readOnly, setReadOnly, demoUser, setDemoUser,
   intradaySqOff, setIntradaySqOff, autoSqoff, setAutoSqoff,
+  showcaseAutoSqoff, setShowcaseAutoSqoff,
   sqoffMethod, setSqoffMethod, tradingMode, setTradingMode,
 }: {
   name: string; setName: (v: string) => void;
@@ -315,6 +319,7 @@ function ProfileTab({
   demoUser: boolean; setDemoUser: (v: boolean) => void;
   intradaySqOff: boolean; setIntradaySqOff: (v: boolean) => void;
   autoSqoff: string; setAutoSqoff: (v: string) => void;
+  showcaseAutoSqoff: string; setShowcaseAutoSqoff: (v: string) => void;
   sqoffMethod: string; setSqoffMethod: (v: string) => void;
   tradingMode: string; setTradingMode: (v: string) => void;
 }) {
@@ -344,9 +349,12 @@ function ProfileTab({
         </select>
       </Field>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Auto Sq-Off (%)">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <Field label="Base Auto Sq-Off (%)">
           <input className="adm-upd-input" type="number" value={autoSqoff} onChange={e => setAutoSqoff(e.target.value)} />
+        </Field>
+        <Field label="Showcase Sq-Off (%)">
+          <input className="adm-upd-input" type="number" value={showcaseAutoSqoff} onChange={e => setShowcaseAutoSqoff(e.target.value)} />
         </Field>
         <Field label="Sq-Off Method">
           <select className="adm-upd-input adm-upd-select" value={sqoffMethod} onChange={e => setSqoffMethod(e.target.value)}>

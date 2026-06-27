@@ -65,6 +65,7 @@ create table if not exists public.profiles (
   demo_user         boolean     not null default false,
   intraday_sq_off   boolean     not null default false,
   auto_sqoff        integer     not null default 90,
+  showcase_auto_sqoff numeric     not null default 85,
   sqoff_method      text        not null default 'Credit',
   scheduled_delete_at timestamptz,
   created_at        timestamptz not null default now(),
@@ -265,6 +266,9 @@ alter table if exists public.profiles
 
 alter table if exists public.profiles
   add column if not exists auto_sqoff numeric default 90;
+  
+  alter table public.profiles
+  add column if not exists showcase_auto_sqoff numeric default 85;
 
 alter table if exists public.profiles
   add column if not exists sqoff_method text default 'Credit';

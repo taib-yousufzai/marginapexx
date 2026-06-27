@@ -74,11 +74,11 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('auto_sqoff')
+          .select('showcase_auto_sqoff')
           .eq('id', session.user.id)
           .single();
         if (profile && !cancelled) {
-          setAutoSqoffPercent(Number(profile.auto_sqoff ?? 90));
+          setAutoSqoffPercent(Number((profile as any).showcase_auto_sqoff ?? 85));
         }
       } catch (err) {
         console.error('Failed to fetch profile settings in Footer', err);
@@ -96,7 +96,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
             if (updated) {
               setBalance(Number(updated.balance ?? 0));
               setSettlementAmount(Math.abs(Number(updated.settlement_amount ?? 0)));
-              setAutoSqoffPercent(Number(updated.auto_sqoff ?? 90));
+              setAutoSqoffPercent(Number(updated.showcase_auto_sqoff ?? 85));
             }
           }
         )
@@ -266,7 +266,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
                   </span>
                 </div>
                 <div className="summary-item">
-                  <span className="summary-label">Liquidation</span>
+                  <span className="summary-label">Liquidation ({autoSqoffPercent}%)</span>
                   <span className={`summary-value negative`}>
                     <TickFlash value={liquidationLevel}>{liquidationLevel < 0 ? '-' : ''}₹{fmt(liquidationLevel)}</TickFlash>
                   </span>

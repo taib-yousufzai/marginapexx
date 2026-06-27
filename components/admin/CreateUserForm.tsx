@@ -19,6 +19,7 @@ export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBa
   const [demoUser, setDemoUser] = useState(isDemoMode || false);
   const [intradaySqOff, setIntradaySqOff] = useState(false);
   const [autoSqoff, setAutoSqoff] = useState('90');
+  const [showcaseAutoSqoff, setShowcaseAutoSqoff] = useState('85');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
   const [segments, setSegments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,7 @@ export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBa
         demo_user: demoUser,
         intraday_sq_off: intradaySqOff,
         auto_sqoff: Number(autoSqoff),
+        showcase_auto_sqoff: Number(showcaseAutoSqoff),
         sqoff_method: sqoffMethod,
       }),
     });
@@ -167,8 +169,12 @@ export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBa
         <div className="adm-cu-section-title">Global Settings</div>
         <div className="adm-cu-global-row">
           <div className="adm-cu-field" style={{ flex: 1 }}>
-            <label className="adm-cu-label">Auto Sqoff %</label>
+            <label className="adm-cu-label">Base Auto Sqoff %</label>
             <input className="adm-cu-input" type="number" value={autoSqoff} onChange={e => setAutoSqoff(e.target.value)} />
+          </div>
+          <div className="adm-cu-field" style={{ flex: 1 }}>
+            <label className="adm-cu-label">Showcase Sqoff %</label>
+            <input className="adm-cu-input" type="number" value={showcaseAutoSqoff} onChange={e => setShowcaseAutoSqoff(e.target.value)} />
           </div>
           <div className="adm-cu-field" style={{ flex: 1 }}>
             <label className="adm-cu-label">Auto Sqoff Method</label>

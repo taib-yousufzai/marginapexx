@@ -20,6 +20,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
   const [demoUser, setDemoUser] = useState(false);
   const [intradaySqOff, setIntradaySqOff] = useState(false);
   const [autoSqoff, setAutoSqoff] = useState('90');
+  const [showcaseAutoSqoff, setShowcaseAutoSqoff] = useState('85');
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
   const [tradingMode, setTradingMode] = useState('normal');
   const [segments, setSegments] = useState<string[]>([]);
@@ -52,6 +53,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
       setDemoUser(p.demo_user ?? false);
       setIntradaySqOff(p.intraday_sq_off ?? false);
       setAutoSqoff(String(p.auto_sqoff ?? 90));
+      setShowcaseAutoSqoff(String((p as any).showcase_auto_sqoff ?? 85));
       setSqoffMethod(p.sqoff_method ?? 'Credit');
       setTradingMode(p.trading_mode ?? 'normal');
       setSegments(p.segments ?? []);
@@ -79,6 +81,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
         demo_user: demoUser,
         intraday_sq_off: intradaySqOff,
         auto_sqoff: Number(autoSqoff),
+        showcase_auto_sqoff: Number(showcaseAutoSqoff),
         sqoff_method: sqoffMethod,
         trading_mode: tradingMode,
         segments,
@@ -170,8 +173,12 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
         <div className="adm-upd-section-title" style={{ marginTop: 8 }}>Global Settings</div>
         <div className="adm-upd-grid2">
           <div className="adm-upd-field">
-            <label className="adm-upd-label">Auto Sqoff %</label>
+            <label className="adm-upd-label">Base Auto Sqoff %</label>
             <input className="adm-upd-input" value={autoSqoff} onChange={e => setAutoSqoff(e.target.value)} />
+          </div>
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">Showcase Sqoff %</label>
+            <input className="adm-upd-input" value={showcaseAutoSqoff} onChange={e => setShowcaseAutoSqoff(e.target.value)} />
           </div>
           <div className="adm-upd-field">
             <label className="adm-upd-label">Auto Sqoff Method</label>
