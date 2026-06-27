@@ -21,6 +21,7 @@ export type SegmentSettingRow = {
   holding_leverage: number;
   entry_buffer: number;
   holding_type: string;
+  bid_buffer: number;
   exit_buffer: number;
   trade_allowed: boolean;
   top_limit: number;
@@ -46,7 +47,7 @@ export async function GET(
     const { data, error } = await adminClient
       .from('scalper_segment_settings')
       .select(
-        'id, user_id, segment, side, commission_type, commission_value, carry_commission_type, carry_commission_value, gtt_commission_type, gtt_commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
+        'id, user_id, segment, side, commission_type, commission_value, carry_commission_type, carry_commission_value, gtt_commission_type, gtt_commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, bid_buffer, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
       )
       .eq('user_id', id);
 
@@ -136,6 +137,8 @@ export async function POST(
         typeof entry.entry_buffer === 'number' ? entry.entry_buffer : 0.003,
       holding_type:
         typeof entry.holding_type === 'string' ? entry.holding_type : 'Multiplier',
+      bid_buffer:
+        typeof entry.bid_buffer === 'number' ? entry.bid_buffer : 0.003,
       exit_buffer:
         typeof entry.exit_buffer === 'number' ? entry.exit_buffer : 0.0017,
       trade_allowed:

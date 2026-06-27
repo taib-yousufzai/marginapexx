@@ -55,7 +55,7 @@ export async function checkAndExecuteAccountLiquidation(
   autoSqoffPercent: number,
   positions: PositionForLiquidation[],
   totalFloatingPnl: number,
-  exitBuffers: Map<string, { exit_buffer: number }>,
+  exitBuffers: Map<string, { exit_buffer: number, bid_buffer?: number }>,
   admin: SupabaseClient,
 ): Promise<LiquidationResult> {
   if (autoSqoffPercent <= 0 || positions.length === 0) {
@@ -132,11 +132,13 @@ export async function checkAndExecuteAccountLiquidation(
   for (const pos of positions) {
     const ltp = Number(pos.ltp || pos.entry_price);
     const exitBufferKey = `${userId}|${pos.settlement}|${pos.side}`;
-    const exitBuffer = exitBuffers.get(exitBufferKey)?.exit_buffer ?? 0.0017;
+    const bufferSettings = exitBuffers.get(exitBufferKey);
+    const exitBuffer = bufferSettings?.exit_buffer ?? 0.0017;
+    const bidBuffer = bufferSettings?.bid_buffer ?? 0.003;
 
     let exitPrice: number;
     if (pos.side === 'BUY') {
-      exitPrice = ltp * (1 - exitBuffer);
+      exitPrice = ltp * (1 - bidBuffer);
     } else {
       exitPrice = ltp * (1 + exitBuffer);
     }

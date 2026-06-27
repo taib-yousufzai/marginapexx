@@ -254,6 +254,7 @@ export async function POST(request: Request): Promise<Response> {
             holding_leverage: 10,
             holding_type: 'Multiplier',
             entry_buffer: 0.003,
+            bid_buffer: 0.003,
             exit_buffer: 0.0017,
             trade_allowed: true,
           });
@@ -274,6 +275,7 @@ export async function POST(request: Request): Promise<Response> {
             holding_leverage: 10,
             holding_type: 'Multiplier',
             entry_buffer: 0.003,
+            bid_buffer: 0.003,
             exit_buffer: 0.0017,
             trade_allowed: true,
           });

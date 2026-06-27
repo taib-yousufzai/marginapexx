@@ -995,8 +995,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     fillPrice = client_price;
   } else {
     const buyEntryBuffer = buySetting?.entry_buffer ?? 0.003;
+    const buyBidBuffer = buySetting?.bid_buffer ?? 0.003;
     const buyExitBuffer = buySetting?.exit_buffer ?? 0.0017;
     const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
+    const sellBidBuffer = sellSetting?.bid_buffer ?? 0.003;
     const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
 
     let priceWithBuffer = baseLtp;
@@ -1011,11 +1013,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     } else {
       if (is_exit) {
-        // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - exitBuffer) of BUY side settings
-        priceWithBuffer = baseLtp * (1 - buyExitBuffer);
+        // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - bidBuffer) of BUY side settings
+        priceWithBuffer = baseLtp * (1 - buyBidBuffer);
       } else {
-        // Short Entry (Selling) executes at: Bid * (1 - entryBuffer) of SELL side settings
-        priceWithBuffer = baseLtp * (1 - sellEntryBuffer);
+        // Short Entry (Selling) executes at: Bid * (1 - bidBuffer) of SELL side settings
+        priceWithBuffer = baseLtp * (1 - sellBidBuffer);
       }
     }
 

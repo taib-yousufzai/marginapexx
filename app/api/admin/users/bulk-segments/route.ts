@@ -66,6 +66,7 @@ export async function POST(request: Request): Promise<Response> {
             holding_leverage: Number(config.holdingLeverage),
             holding_type: config.holdingType,
             entry_buffer: Number(config.entryBuffer),
+            bid_buffer: Number(config.bidBuffer),
             exit_buffer: Number(config.exitBuffer),
             trade_allowed: config.tradeAllowed
           });

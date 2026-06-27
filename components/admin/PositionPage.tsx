@@ -23,6 +23,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
   const [editBrokerage, setEditBrokerage] = useState('');
   const [editSettlement, setEditSettlement] = useState('');
   const [editStatus, setEditStatus] = useState<'open' | 'active' | 'closed'>('open');
+  const [editSide, setEditSide] = useState<'BUY' | 'SELL'>('BUY');
   const [weeklyPnl, setWeeklyPnl] = useState<number>(0);
 
   const uid = selectedUser.id;
@@ -119,12 +120,14 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
     setEditBrokerage(String(p.brokerage || 0));
     setEditSettlement(p.settlement || '');
     setEditStatus(p.status);
+    setEditSide(p.side as 'BUY' | 'SELL');
   };
 
   const handleEdit = () => {
     if (!editPos?.id) return;
     const body: Record<string, unknown> = {};
     body.status = editStatus;
+    body.side = editSide;
 
     if (editStatus === 'closed') {
       body.avg_price = Number(editAvgPrice);
@@ -207,6 +210,19 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
                 <option value="open">Open</option>
                 <option value="active">Active</option>
                 <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div className="adm-sheet-field">
+              <label className="adm-sheet-label">Side</label>
+              <select 
+                className="adm-sheet-input" 
+                value={editSide} 
+                onChange={e => setEditSide(e.target.value as any)}
+                style={{ background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d' }}
+              >
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
               </select>
             </div>
 

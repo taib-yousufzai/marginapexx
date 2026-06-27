@@ -38,6 +38,7 @@ const EDITABLE_FIELDS = [
   'settlement',
   'status',
   'qty_total',
+  'side',
 ] as const;
 
 export async function PATCH(
@@ -347,13 +348,16 @@ export async function PATCH(
 
             const { data: settingsRows } = await adminClient
               .from(settingsTable)
-              .select('segment, side, exit_buffer')
+              .select('segment, side, exit_buffer, bid_buffer')
               .eq('user_id', lookupId);
 
-            const exitBuffers = new Map<string, { exit_buffer: number }>();
+            const exitBuffers = new Map<string, { exit_buffer: number, bid_buffer: number }>();
             for (const row of settingsRows ?? []) {
               const key = `${updatedPosition.user_id}|${row.segment}|${row.side}`;
-              exitBuffers.set(key, { exit_buffer: Number(row.exit_buffer ?? 0.0017) });
+              exitBuffers.set(key, { 
+                exit_buffer: Number(row.exit_buffer ?? 0.0017),
+                bid_buffer: Number(row.bid_buffer ?? 0.003) 
+              });
             }
 
             // Compute total floating PnL across all open positions using stored ltp
@@ -366,7 +370,7 @@ export async function PATCH(
               // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
               const bufKeyBuy = `${updatedPosition.user_id}|${pos.settlement}|BUY`;
               const bufKeySell = `${updatedPosition.user_id}|${pos.settlement}|SELL`;
-              const buyBuf = exitBuffers.get(bufKeyBuy)?.exit_buffer ?? 0.0017;
+              const buyBuf = exitBuffers.get(bufKeyBuy)?.bid_buffer ?? 0.003;
               const sellBuf = exitBuffers.get(bufKeySell)?.exit_buffer ?? 0.0017;
 
               const pnl =

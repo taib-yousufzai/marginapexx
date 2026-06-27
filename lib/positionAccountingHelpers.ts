@@ -46,7 +46,8 @@ export function pnlAffectingFieldsChanged(updateFields: Record<string, unknown>)
     'avg_price' in updateFields ||
     'qty_open' in updateFields ||
     'qty_total' in updateFields ||
-    'ltp' in updateFields // ← mark price change shifts floating PnL; must trigger risk check
+    'ltp' in updateFields ||
+    'side' in updateFields
   );
 }
 

@@ -15,6 +15,7 @@ export type SegmentSettingsType = {
   intradayType: string;
   holdingLeverage: string; entryBuffer: string;
   holdingType: string;
+  bidBuffer: string;
   exitBuffer: string; tradeAllowed: boolean;
   topLimit: string;
   minLimit: string;
@@ -39,6 +40,7 @@ export interface SegmentRow {
   holding_leverage: number;
   entry_buffer: number;
   holding_type: string;
+  bid_buffer: number;
   exit_buffer: number;
   trade_allowed: boolean;
   top_limit: number;
@@ -55,6 +57,7 @@ const defaultSeg = (): SegmentSettingsType => ({
   intradayType: 'Multiplier',
   holdingLeverage: '5', entryBuffer: '0',
   holdingType: 'Multiplier',
+  bidBuffer: '0',
   exitBuffer: '0', tradeAllowed: true,
   topLimit: '0',
   minLimit: '0',
@@ -264,7 +267,7 @@ function SegmentBlock({
             </div>
           </div>
 
-          {/* Row 7: Holding Type on Left (Right side blank) */}
+          {/* Row 7: Holding Type on Left, Bid Buffer on Right */}
           <div className="adm-upd-grid2">
             <div className="adm-upd-field">
               <label className="adm-upd-label">Holding Type</label>
@@ -279,7 +282,10 @@ function SegmentBlock({
                   : 'Req Funds = (Qty × Price) ÷ Leverage'}
               </span>
             </div>
-            <div></div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Bid Buffer</label>
+              <input className="adm-upd-input" type="number" step="0.0001" value={value.bidBuffer} onChange={e => upd('bidBuffer', e.target.value)} />
+            </div>
           </div>
 
           {/* Row 8: Exit Buffer & Trade Allowed */}
@@ -359,6 +365,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
     holdingLeverage: String(row.holding_leverage),
     entryBuffer: String(row.entry_buffer),
     holdingType: row.holding_type,
+    bidBuffer: String(row.bid_buffer ?? 0),
     exitBuffer: String(row.exit_buffer),
     tradeAllowed: row.trade_allowed,
     topLimit: String(row.top_limit ?? 0),
@@ -449,6 +456,7 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
         holding_leverage: Number(s.holdingLeverage),
         entry_buffer: Number(s.entryBuffer),
         holding_type: s.holdingType,
+        bid_buffer: Number(s.bidBuffer),
         exit_buffer: Number(s.exitBuffer),
         trade_allowed: s.tradeAllowed,
         top_limit: Number(s.topLimit ?? 0),
