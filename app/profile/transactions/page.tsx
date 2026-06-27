@@ -88,6 +88,12 @@ export default function TransactionHistoryPage() {
     return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
   };
 
+  const getDisplayType = (tx: Transaction) => {
+    if (tx.account_name === 'System Credit') return 'Credit';
+    if (tx.account_name === 'System Debit') return 'Debit';
+    return tx.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal';
+  };
+
   const filteredTransactions = transactions.filter(tx => {
     if (filter === 'ALL') return true;
     if (filter === 'PENDING') return tx.status === 'PENDING';
@@ -222,7 +228,7 @@ export default function TransactionHistoryPage() {
                         <i className={`fas ${tx.status === 'CANCELLED_BY_USER' ? 'fa-ban' : tx.type === 'DEPOSIT' ? 'fa-arrow-down' : 'fa-arrow-up'}`}></i>
                       </div>
                       <div className="th-details">
-                        <h3 className="th-type">{tx.type === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'}</h3>
+                        <h3 className="th-type">{getDisplayType(tx)}</h3>
                         <p className="th-date">{formatDate(tx.created_at)}</p>
                       </div>
                     </div>
