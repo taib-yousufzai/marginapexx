@@ -275,30 +275,13 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const pnl_percent = investment > 0 ? (total_pnl / investment) * 100 : 0;
 
       // Anti-scalping hold lock — only on profitable positions.
-      //
-      // Uses the same profit detection as the server-side close routes:
-      // strip the entry buffer from entry_price to get the raw market price,
-      // then compare live LTP to that raw price. This prevents the buffer
-      // from inflating the "profit" threshold and causing the lock to fire
-      // at breakeven.
+      // Uses the displayed P&L (total_pnl) so the timer matches what the user sees:
+      // green P&L = timer active, red P&L = no timer.
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
 
-      // Strip entry buffer to match server-side rawEntryLtp calculation
-      const entryBufferVal = sideSetting ? Number(sideSetting.entry_buffer ?? 0.003) : 0.003;
-      let rawEntryPrice: number;
-      if (p.side === 'BUY') {
-        rawEntryPrice = p.entry_price / (1 + entryBufferVal);
-      } else {
-        rawEntryPrice = p.entry_price / (1 - entryBufferVal);
-      }
-
-      // Position is "in profit" when LTP exceeds the raw (pre-buffer) entry price.
-      // A small dead-band prevents lock-state flicker right at breakeven.
-      const deadBand = rawEntryPrice * 0.001;
-      const isInProfit = p.side === 'BUY'
-        ? ltp > rawEntryPrice + deadBand
-        : ltp < rawEntryPrice - deadBand;
+      // Position is "in profit" when the displayed P&L is positive
+      const isInProfit = total_pnl > 0;
 
       // Only lock if settings have loaded — prevents spurious 120s lock on first render.
       // Also never lock an expired contract — it has no live feed and the user
