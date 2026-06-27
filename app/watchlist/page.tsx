@@ -1468,7 +1468,11 @@ function WatchlistContent() {
   const calculatedRequiredMargin = Math.round(calcMarginPortion(
     effectiveMarginPrice,
     orderUnit === 'lot' ? orderQty * lotSize : orderQty
-  ) + ((orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge) * 2));
+  ) + ((
+    intradayCharge +
+    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
+    (orderType === 'GTT' ? gttCharge : 0)
+  ) * 2));
 
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
@@ -1904,7 +1908,11 @@ function WatchlistContent() {
                   Charges Breakdown {showCharges ? '▲' : '▼'}
                 </span>
                 <span className="ts-mv required" style={{ color: '#15803D', fontWeight: 800 }}>
-                  ₹ {(orderType === 'GTT' ? gttCharge : productType === 'CARRY' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹ {(
+                    intradayCharge +
+                    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
+                    (orderType === 'GTT' ? gttCharge : 0)
+                  ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               {showCharges && (
@@ -1912,18 +1920,18 @@ function WatchlistContent() {
                   <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
                     <span className="ts-ml">Intraday Brokerage</span>
                     <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
-                      ₹ {(productType === 'INTRADAY' && orderType !== 'GTT' ? intradayCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="ts-margin-row">
                     <span className="ts-ml">Carry Charges</span>
-                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
-                      ₹ {(productType === 'CARRY' && orderType !== 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <span className="ts-mv carry" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                      ₹ {(productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="ts-margin-row">
                     <span className="ts-ml">GTT Charges</span>
-                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
+                    <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
                       ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>

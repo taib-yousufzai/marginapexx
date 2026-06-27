@@ -927,7 +927,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const totalBrokerage = (intradayCharge + (orderCarry === 'carry' ? carryCharge : 0) + (orderType === 'gtt' ? gttCharge : 0)) * 2;
+  const totalBrokerage = (
+    intradayCharge +
+    (orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0) +
+    (orderType === 'gtt' ? gttCharge : 0)
+  ) * 2;
   const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (leverageType === 'Fixed' ? (orderQty / lotSize) * leverage : (executionPrice * orderQty) / leverage);
   const reqMargin = Math.round(marginPortion + totalBrokerage);
 
@@ -1750,7 +1754,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       Charges Breakdown {showCharges ? '▲' : '▼'}
                     </span>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)' }}>
-                      ₹{(orderType === 'gtt' ? gttCharge : orderCarry === 'carry' ? carryCharge : intradayCharge).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹{totalBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   {showCharges && (
@@ -1758,18 +1762,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
                         <span style={{ color: 'var(--green)', fontWeight: 700 }}>
-                          ₹{(orderCarry === 'normal' && orderType !== 'gtt' ? intradayCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
-                          ₹{(orderCarry === 'carry' && orderType !== 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
-                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                        <span style={{ color: orderType === 'gtt' ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
                           ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>

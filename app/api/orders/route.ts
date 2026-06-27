@@ -765,8 +765,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   else if (intradayCommType === 'Per Trade' || intradayCommType === 'Flat') intradayCharge = intradayCommVal;
   else intradayCharge = exposure * 0.001;
 
-  // Carry
-  if (targetProductType === 'CARRY') {
+  // Carry — applied for CARRY product type AND for GTT orders
+  if (targetProductType === 'CARRY' || order_type === 'GTT') {
     const carryCommType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
     const carryCommVal = Number(segSetting.carry_commission_value ?? segSetting.commission_value ?? 0);
     if (carryCommType === 'Per Crore') carryCharge = (exposure * carryCommVal) / 10000000;

@@ -196,7 +196,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     segSetting.gtt_commission_value ?? 10
   ) : 0;
 
-  const calculatedBrokerage = (intradayCharge + (productType === 'CARRY' ? carryCharge : 0) + (orderType === 'GTT' ? gttCharge : 0)) * 2;
+  const calculatedBrokerage = (
+    intradayCharge +
+    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
+    (orderType === 'GTT' ? gttCharge : 0)
+  ) * 2;
 
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
@@ -1313,14 +1317,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
-                        <span className="ts2-mv" style={productType === 'CARRY' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                          ₹ {carryCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span className="ts2-mv" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                          ₹ {(productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">GTT Charges</span>
                         <span className="ts2-mv" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                          ₹ {gttCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </>
