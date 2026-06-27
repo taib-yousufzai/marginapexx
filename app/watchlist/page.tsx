@@ -2672,11 +2672,41 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
       function setButtonAdded(btn) {
         btn.textContent = 'Added ✓';
-        btn.disabled = true;
+        btn.disabled = false;
         btn.style.background = '#2C8E5A';
         btn.style.color = '#fff';
         btn.style.opacity = '0.85';
-        btn.style.cursor = 'default';
+        btn.style.cursor = 'pointer';
+        
+        var symbol = btn.getAttribute('data-watch-symbol');
+        if (symbol) {
+          btn.setAttribute('onclick', 'removeFromWatchlist("' + symbol.replace(/"/g, '&quot;') + '")');
+        }
+      }
+
+      function setButtonRemoved(btn) {
+        var isSearch = btn.classList.contains('sri-add-btn');
+        btn.textContent = isSearch ? 'Add' : '+ Add';
+        btn.disabled = false;
+        
+        if (isSearch) {
+          btn.style.background = '#c53030';
+          btn.style.color = 'white';
+          btn.style.border = 'none';
+          btn.style.borderRadius = '20px';
+          btn.style.padding = '6px 16px';
+          btn.style.fontWeight = '600';
+          btn.style.fontSize = '0.85rem';
+          btn.style.opacity = '1';
+        } else {
+          btn.style.cssText = '';
+        }
+        btn.style.cursor = 'pointer';
+        
+        var itemJsonEscaped = btn.getAttribute('data-watch-item');
+        if (itemJsonEscaped) {
+           btn.setAttribute('onclick', 'addToWatchlist(' + itemJsonEscaped + ')');
+        }
       }
 
       function addToWatchlist(item) {
@@ -2693,6 +2723,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       function removeFromWatchlist(symbol) {
         if (typeof window.__removeFromWatchlistCallback === 'function') {
           window.__removeFromWatchlistCallback(symbol);
+          watchlistSymbols.delete(symbol);
+          var btns = document.querySelectorAll('[data-watch-symbol="' + symbol.replace(/"/g, '') + '"]');
+          btns.forEach(function(btn) { setButtonRemoved(btn); });
           if (window.showToast) window.showToast('Removed from watchlist', false);
         }
       }
@@ -2723,9 +2756,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           if (seg.instruments) {
             seg.instruments.forEach(function(inst) {
               var alreadyAdded = watchlistSymbols.has(inst.symbol);
+              var itemJsonEscaped = JSON.stringify(inst).replace(/"/g, '&quot;');
               var btnHtml = alreadyAdded
-                ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" disabled style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:default;">Added ✓</button>'
-                : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button>';
+                ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" data-watch-item="' + itemJsonEscaped + '" onclick=\\'removeFromWatchlist("' + escapeHtml(inst.symbol) + '")\\' style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:pointer;">Added ✓</button>'
+                : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" data-watch-item="' + itemJsonEscaped + '" onclick=\\'addToWatchlist(' + itemJsonEscaped + ')\\'>+ Add</button>';
               html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span>' + btnHtml + '</div>';
             });
           }
@@ -2734,9 +2768,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               html += '<div class="subfolder-item"><div class="subfolder-header">' + escapeHtml(sub.name) + '</div>';
               sub.instruments.forEach(function(inst) {
                 var alreadyAdded = watchlistSymbols.has(inst.symbol);
+                var itemJsonEscaped = JSON.stringify(inst).replace(/"/g, '&quot;');
                 var btnHtml = alreadyAdded
-                  ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" disabled style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:default;">Added ✓</button>'
-                  : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" onclick=\\'addToWatchlist(' + JSON.stringify(inst).replace(/"/g, '&quot;') + ')\\'>+ Add</button>';
+                  ? '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" data-watch-item="' + itemJsonEscaped + '" onclick=\\'removeFromWatchlist("' + escapeHtml(inst.symbol) + '")\\' style="background:#2C8E5A;color:#fff;opacity:0.85;cursor:pointer;">Added ✓</button>'
+                  : '<button class="add-script-btn" data-watch-symbol="' + escapeHtml(inst.symbol) + '" data-watch-item="' + itemJsonEscaped + '" onclick=\\'addToWatchlist(' + itemJsonEscaped + ')\\'>+ Add</button>';
                 html += '<div class="script-item"><span>' + escapeHtml(inst.name) + '</span>' + btnHtml + '</div>';
               });
               html += '</div>';
@@ -2803,9 +2838,10 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
             var defaultPrice = item.price ? item.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---';
             var alreadyInWL = watchlistSymbols.has(item.symbol);
+            var itemJsonEscaped = JSON.stringify(item).replace(/"/g, '&quot;');
             var addBtnHtml = alreadyInWL
-              ? '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" disabled style="background: #2C8E5A; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem; opacity: 0.85; cursor: default;">Added ✓</button>'
-              : '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem;" onclick=\\'addToWatchlist(' + JSON.stringify(item).replace(/"/g, '&quot;') + ')\\'>Add</button>';
+              ? '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" data-watch-item="' + itemJsonEscaped + '" onclick=\\'removeFromWatchlist("' + escapeHtml(item.symbol) + '")\\' style="background: #2C8E5A; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem; opacity: 0.85; cursor: pointer;">Added ✓</button>'
+              : '<button class="add-script-btn sri-add-btn" data-watch-symbol="' + escapeHtml(item.symbol) + '" data-watch-item="' + itemJsonEscaped + '" style="background: #c53030; color: white; border: none; border-radius: 20px; padding: 6px 16px; font-weight: 600; font-size: 0.85rem; cursor: pointer;" onclick=\\'addToWatchlist(' + itemJsonEscaped + ')\\'>Add</button>';
             html += '<div class="search-result-item" style="padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">' +
             '<div class="sri-left"><div class="sri-name" style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 4px;">' + escapeHtml(mainName) + '</div><div class="sri-symbol" style="color: #94a3b8; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center;">' + bottomHtml + '</div></div>' +
             '<div class="sri-right" style="display: flex; align-items: center; gap: 12px;">' +

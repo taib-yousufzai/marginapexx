@@ -155,7 +155,7 @@ export default function PositionPage() {
       setChartItem({
         name: pos.symbol,
         symbol: pos.symbol,
-        kiteSymbol: pos.symbol,
+        kiteSymbol: pos.kite_instrument || pos.symbol,
         price: pos.current_ltp,
         segment: seg,
       });
@@ -524,9 +524,8 @@ export default function PositionPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance + unrealized : null)}</span>
-                      <span style={{ fontSize: '0.58rem', opacity: 0.7, fontWeight: 600 }}>Equity</span>
                     </div>
                   </button>
                   <button
@@ -548,9 +547,8 @@ export default function PositionPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{formatBalance(balance !== null ? balance + unrealized : null)}</span>
-                      <span style={{ fontSize: '0.62rem', opacity: 0.7, fontWeight: 600 }}>Equity</span>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance + unrealized : null)}</span>
                     </div>
                   </button>
                   <button

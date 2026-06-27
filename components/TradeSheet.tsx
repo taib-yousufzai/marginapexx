@@ -1285,19 +1285,15 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
-                  <div className="ts2-margin-row">
+                  <div className="ts2-margin-row" style={{ marginTop: '4px', borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px' }}>
                     <span className="ts2-ml">Required Margin</span>
                     <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
                   </div>
-                </div>
-
-                <div style={{ height: 8 }} />
-
-                {/* Collapsible Charges Breakdown */}
-                <div className="ts2-margin-card">
+                  
+                  {/* Collapsible Charges Breakdown */}
                   <div 
                     className="ts2-margin-row" 
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    style={{ cursor: 'pointer', userSelect: 'none', marginTop: '4px', borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px' }}
                     onClick={() => setShowCharges(!showCharges)}
                   >
                     <span className="ts2-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
@@ -1309,7 +1305,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   {showCharges && (
                     <>
-                      <div className="ts2-margin-row" style={{ borderTop: '1px solid var(--border-light, #F1F5F9)' }}>
+                      <div className="ts2-margin-row" style={{ borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px', marginTop: '4px' }}>
                         <span className="ts2-ml">Intraday Brokerage</span>
                         <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 700 }}>
                           ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}

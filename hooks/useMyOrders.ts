@@ -72,8 +72,9 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
 
     init();
 
+    const channelName = `my-orders-realtime-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel('my-orders-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
