@@ -1211,13 +1211,13 @@ export default function PositionPage() {
               <span>{toast}</span>
             </div>
 
-            {/* Anti-Scalping Lock Modal */}
+            {/* Profit Side Hold Timer Modal */}
             <div className={`pos-modal-overlay${lockModalPos ? ' open' : ''}`} onClick={() => setLockModalPos(null)}>
               <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
                 <div className="pos-modal-icon" style={{ color: '#F59E0B', background: '#FEF3C7' }}>
                   <i className="fas fa-lock" />
                 </div>
-                <div className="pos-modal-title">Anti-Scalping Hold</div>
+                <div className="pos-modal-title">Profit Side Hold Timer</div>
                 <div className="pos-modal-desc">
                   This position is currently in profit. You must hold profitable trades for a minimum period before exiting.
                 </div>
