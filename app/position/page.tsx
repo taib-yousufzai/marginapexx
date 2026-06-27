@@ -180,6 +180,9 @@ export default function PositionPage() {
   // Inline expand for open positions
   const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
 
+  // Anti-scalping lock modal
+  const [lockModalPos, setLockModalPos] = useState<EnrichedPosition | null>(null);
+
   // ── Mobile Back Button Interception ──
   useMobileBack(isSheetOpen, () => {
     setIsSheetOpen(false);
@@ -205,6 +208,10 @@ export default function PositionPage() {
   useMobileBack(isExitAllModalOpen, () => {
     setIsExitAllModalOpen(false);
   }, 'posexitall');
+
+  useMobileBack(!!lockModalPos, () => {
+    setLockModalPos(null);
+  }, 'poslock');
 
   const toggleExpand = (posId: string) => {
     setExpandedPosId(prev => prev === posId ? null : posId);
@@ -457,21 +464,29 @@ export default function PositionPage() {
     const result = await closePositionsBatch(exitablePositions.map(p => p.id));
     
     if (result.success && result.results) {
+      let firstError = '';
       result.results.forEach((res: any) => {
-        if (res.success) successCount++;
-        else failCount++;
+        if (res.success) {
+          successCount++;
+        } else {
+          failCount++;
+          if (!firstError && res.error) firstError = res.error;
+        }
       });
+      
+      setIsExitingAll(false);
+      setIsExitAllModalOpen(false);
+      
+      if (failCount === 0) {
+        showToast(`Successfully closed ${successCount} position(s).`);
+      } else {
+        showToast(`Closed ${successCount}, failed ${failCount}. ${firstError ? `Error: ${firstError}` : ''}`);
+      }
     } else {
       failCount = exitablePositions.length;
-    }
-    
-    setIsExitingAll(false);
-    setIsExitAllModalOpen(false);
-    
-    if (failCount === 0) {
-      showToast(`Successfully closed ${successCount} position(s).`);
-    } else {
-      showToast(`Closed ${successCount}, failed ${failCount}.`);
+      setIsExitingAll(false);
+      setIsExitAllModalOpen(false);
+      showToast(`Closed ${successCount}, failed ${failCount}. Error: ${result.error || 'Unknown'}`);
     }
     refresh();
   };
@@ -663,17 +678,6 @@ export default function PositionPage() {
                                 {fmtUSD(group.total_pnl, group.settlement)}
                               </div>
                               <div className="pos-card-ltp">
-                                {group.hold_lock_active && (
-                                  <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: '3px',
-                                    fontSize: '0.6rem', fontWeight: 700, color: '#C62E2E',
-                                    background: '#FEE2E2', padding: '2px 7px', borderRadius: '20px',
-                                    marginBottom: '3px'
-                                  }}>
-                                    <i className="fas fa-lock" style={{ fontSize: '0.55rem' }} />
-                                    {formatHoldTime(computeRemaining(group.representativePos))}
-                                  </span>
-                                )}
                                 {group.product_type && (
                                   <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
                                     {group.product_type}
@@ -685,17 +689,18 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === group.key && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-
                               <button className="pca-btn pca-add" onClick={() => openAddMore(group.representativePos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
                                 className={`pca-btn pca-exit${group.hold_lock_active ? ' disabled-lock' : ''}`}
                                 onClick={() => {
-                                  if (group.hold_lock_active) return;
+                                  if (group.hold_lock_active) {
+                                    setLockModalPos(group.representativePos);
+                                    return;
+                                  }
                                   openExitSheet(group.representativePos);
                                 }}
-                                disabled={group.hold_lock_active}
                               >
                                 <i className="fas fa-times-circle" /> Exit All
                               </button>
@@ -776,7 +781,6 @@ export default function PositionPage() {
                           className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
                           onClick={() => {
                             if (pos.status === 'closed') {
-                              // Closed positions open the detail sheet
                               handleRowClick(pos);
                             } else {
                               toggleExpand(pos.id);
@@ -839,67 +843,38 @@ export default function PositionPage() {
                           </div>
                           {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
                             <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-
                               <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
                                 <i className="fas fa-plus-circle" /> Add More
                               </button>
                               <button
                                 className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { if (!pos.hold_lock_active) openExitSheet(actualPos); }}
-                                disabled={pos.hold_lock_active}
+                                onClick={() => { 
+                                  if (pos.hold_lock_active) {
+                                    setLockModalPos(actualPos);
+                                  } else {
+                                    openExitSheet(actualPos); 
+                                  }
+                                }}
                               >
                                 <i className="fas fa-times-circle" /> Exit
                               </button>
                               <button
                                 style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '42px',
-                                  height: '38px',
-                                  borderRadius: '16px',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  width: '42px', height: '38px', borderRadius: '16px',
                                   border: '1.5px solid var(--border-card, #CBD5E1)',
-                                  background: 'var(--card-bg, #ffffff)',
-                                  color: 'var(--text-primary, #1F2937)',
-                                  cursor: 'pointer',
-                                  flexShrink: 0,
-                                  transition: 'all 0.15s'
+                                  background: 'var(--card-bg, #ffffff)', color: 'var(--text-primary, #1F2937)',
+                                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s'
                                 }}
                                 onClick={() => openChart(pos)}
                               >
-                                <svg 
-                                  viewBox="0 0 24 24" 
-                                  style={{
-                                    width: '1.25rem',
-                                    height: '1.25rem',
-                                    display: 'inline-block',
-                                    verticalAlign: 'middle',
-                                  }}
-                                >
-                                  {/* Bars */}
+                                <svg viewBox="0 0 24 24" style={{ width: '1.25rem', height: '1.25rem', display: 'inline-block', verticalAlign: 'middle' }}>
                                   <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
                                   <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
                                   <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
                                   <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                                  
-                                  {/* Trendline */}
-                                  <path 
-                                    d="M 4 14 L 8 9 L 13 12 L 20 4" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                  />
-                                  {/* Arrowhead */}
-                                  <polyline 
-                                    points="15 4 20 4 20 9" 
-                                    fill="none" 
-                                    stroke="currentColor" 
-                                    strokeWidth="2" 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                  />
+                                  <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               </button>
                             </div>
@@ -1195,13 +1170,7 @@ export default function PositionPage() {
                         </div>
                       </div>
 
-                      {/* Lock Banner: shown when the anti-scalping hold timer is active */}
-                      {selectedPos.hold_lock_active && (
-                        <div className="pos-lock-banner" style={{ marginBottom: '8px' }}>
-                          <span className="banner-icon"><i className="fas fa-lock" /></span>
-                          <span>Anti-scalping hold: <strong>{formatHoldTime(computeRemaining(selectedPos))}</strong> remaining of {formatHoldTime(selectedPos.required_hold_seconds)}</span>
-                        </div>
-                      )}
+
 
                       {/* P&L + Exit All */}
                       <div className="ps-pnl-section">
@@ -1240,6 +1209,43 @@ export default function PositionPage() {
             <div className={`pos-toast${toast ? ' show' : ''}`}>
               <i className="fas fa-circle-info" />
               <span>{toast}</span>
+            </div>
+
+            {/* Anti-Scalping Lock Modal */}
+            <div className={`pos-modal-overlay${lockModalPos ? ' open' : ''}`} onClick={() => setLockModalPos(null)}>
+              <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
+                <div className="pos-modal-icon" style={{ color: '#F59E0B', background: '#FEF3C7' }}>
+                  <i className="fas fa-lock" />
+                </div>
+                <div className="pos-modal-title">Anti-Scalping Hold</div>
+                <div className="pos-modal-desc">
+                  This position is currently in profit. You must hold profitable trades for a minimum period before exiting.
+                </div>
+                
+                {lockModalPos && (
+                  <div style={{
+                    margin: '20px 0', padding: '16px', background: '#F8F9FA',
+                    borderRadius: '12px', border: '1px solid #E5E7EB', textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Time Remaining
+                    </div>
+                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', fontFamily: 'monospace' }}>
+                      {formatHoldTime(computeRemaining(lockModalPos))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="pos-modal-actions">
+                  <button 
+                    className="pos-modal-btn cancel" 
+                    style={{ width: '100%' }}
+                    onClick={() => setLockModalPos(null)}
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Exit All Confirmation Modal */}

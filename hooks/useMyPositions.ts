@@ -303,14 +303,13 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       // Only lock if settings have loaded — prevents spurious 120s lock on first render.
       // Also never lock an expired contract — it has no live feed and the user
       // may need to close it manually without a hold-timer obstacle.
-      // Lock is active for the full profitHoldSec window from entry — regardless of
-      // whether the position is currently in profit or loss. This matches the server
-      // which checks PnL at the moment of exit, not continuously. The user cannot
-      // know in advance whether LTP will be above raw entry at the exact exit moment.
+      // Lock is active for the full profitHoldSec window from entry, but
+      // only appears if the position is currently in profit.
       const isLocked     = segmentSettingsLoaded
                           && !contractExpired
                           && (p.status === 'open' || p.status === 'active')
-                          && elapsedSec < profitHoldSec;
+                          && elapsedSec < profitHoldSec
+                          && isInProfit;
       const remainingSec = isLocked ? (profitHoldSec - elapsedSec) : 0;
 
       return {
