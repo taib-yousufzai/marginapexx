@@ -878,32 +878,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Enforce Anti-Scalping hold duration for manual market exits
   if (is_exit && activePosition && (order_type === 'MARKET' || order_type === 'SLM')) {
-    const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
     const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
     const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
-    let estExitPrice: number;
-    if (activePosition.side === 'BUY') {
-      estExitPrice = baseLtp * (1 - exitBuffer);
-    } else {
-      estExitPrice = baseLtp * (1 + exitBuffer);
-    }
-    estExitPrice = Math.round(estExitPrice * 100) / 100;
-
-    const entryBuffer = segSetting?.entry_buffer ?? 0.003;
-    let rawEntryLtp = Number(activePosition.entry_price);
-    if (activePosition.side === 'BUY') {
-      rawEntryLtp = rawEntryLtp / (1 + entryBuffer);
-    } else {
-      rawEntryLtp = rawEntryLtp / (1 - entryBuffer);
-    }
-
-    const rawPnlValue = activePosition.side === 'BUY'
-      ? (baseLtp - rawEntryLtp) * Number(activePosition.qty_open)
-      : (rawEntryLtp - baseLtp) * Number(activePosition.qty_open);
+    // Use displayed P&L (entry_price is the buffered fill price) to determine profit/loss.
+    // Matches what the user sees on screen and what the close route enforces.
+    const pnlValue = activePosition.side === 'BUY'
+      ? (baseLtp - Number(activePosition.entry_price)) * Number(activePosition.qty_open)
+      : (Number(activePosition.entry_price) - baseLtp) * Number(activePosition.qty_open);
 
     const durationSec = Math.floor((Date.now() - new Date(activePosition.entry_time).getTime()) / 1000);
-    const requiredHold = rawPnlValue > 0 ? profitHoldSec : lossHoldSec;
+    const requiredHold = pnlValue > 0 ? profitHoldSec : lossHoldSec;
 
     if (durationSec < requiredHold) {
       return NextResponse.json({

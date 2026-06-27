@@ -280,14 +280,14 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       const profitHoldSec = sideSetting ? Number(sideSetting.profit_hold_sec) : 120;
       const elapsedSec = Math.floor((Date.now() - new Date(p.entry_time).getTime()) / 1000);
 
-      // Position is "in profit" when the displayed P&L is positive
-      const isInProfit = total_pnl > 0;
+      // Profit detection: use the displayed unrealised P&L (buffer-inclusive).
+      // This matches what the user sees on screen — if the card shows a negative
+      // number, the Exit button is available. If it shows positive, it's locked.
+      const isInProfit = unrealised > 0;
 
       // Only lock if settings have loaded — prevents spurious 120s lock on first render.
       // Also never lock an expired contract — it has no live feed and the user
       // may need to close it manually without a hold-timer obstacle.
-      // Lock is active for the full profitHoldSec window from entry, but
-      // only appears if the position is currently in profit.
       const isLocked     = segmentSettingsLoaded
                           && !contractExpired
                           && (p.status === 'open' || p.status === 'active')
