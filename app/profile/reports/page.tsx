@@ -78,8 +78,8 @@ export default function ReportsPage() {
 
         // Set default dates on client only (avoids SSR hydration mismatch)
         const today     = new Date().toISOString().split('T')[0];
-        const thirtyAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        setFromDate(thirtyAgo);
+        const sevenAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        setFromDate(sevenAgo);
         setToDate(today);
     }, []);
 
@@ -92,7 +92,7 @@ export default function ReportsPage() {
             const h = { Authorization: `Bearer ${s.access_token}` };
             const [oRes, pRes] = await Promise.all([
                 fetch('/api/orders?limit=500', { headers: h }),
-                fetch('/api/positions',        { headers: h }),
+                fetch('/api/positions?status=closed', { headers: h }), // Explicity request closed positions for P&L
             ]);
             if (oRes.ok) { const d = await oRes.json(); setOrders(d.orders ?? []); }
             if (pRes.ok) { const d = await pRes.json(); setPositions(d.positions ?? []); }
@@ -107,6 +107,7 @@ export default function ReportsPage() {
 
     /* ── date range filter ── */
     const inRange = (iso: string) => {
+        if (!iso) return false;
         const d  = new Date(iso);
         const fr = new Date(fromDate);
         const to = new Date(toDate); to.setHours(23, 59, 59, 999);
@@ -120,7 +121,9 @@ export default function ReportsPage() {
     const isFakeOrders       = filteredOrders.length === 0;
 
     /* ── positions ── */
-    const closedPositions       = positions.filter(p => (p.status === 'CLOSED' || p.pnl !== null) && inRange(p.created_at));
+    // Filter by closed_at or exit_time if available, otherwise fallback to created_at
+    const getPosDate = (p: any) => p.exit_time || p.closed_at || p.created_at;
+    const closedPositions       = positions.filter(p => (p.status?.toLowerCase() === 'closed' || p.pnl !== null) && inRange(getPosDate(p)));
     const filteredFakePositions = FAKE_POSITIONS.filter(p => inRange(p.created_at));
     const displayPositions      = closedPositions.length > 0 ? closedPositions : filteredFakePositions;
     const isFakePositions       = closedPositions.length === 0;
