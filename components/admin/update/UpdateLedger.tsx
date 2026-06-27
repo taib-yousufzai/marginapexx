@@ -16,7 +16,7 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
   const uid = selectedUser.id;
   const [amount, setAmount] = useState('');
   const [direction, setDirection] = useState<'Credit' | 'Debit'>('Credit');
-  const [entryType, setEntryType] = useState<EntryType>('ADJUSTMENT');
+  const entryType: EntryType = direction === 'Credit' ? 'DEPOSIT' : 'WITHDRAWAL';
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
@@ -67,18 +67,6 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
       <div className="adm-upd-card">
         <div className="adm-upd-grid2">
           <div className="adm-upd-field">
-            <label className="adm-upd-label">Transaction Type</label>
-            <select
-              className="adm-upd-input adm-upd-select"
-              value={entryType}
-              onChange={e => setEntryType(e.target.value as EntryType)}
-            >
-              {ENTRY_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="adm-upd-field">
             <label className="adm-upd-label">Direction</label>
             <select
               className="adm-upd-input adm-upd-select"
@@ -89,9 +77,6 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
               <option value="Debit">Debit (-)</option>
             </select>
           </div>
-        </div>
-
-        <div className="adm-upd-grid2">
           <div className="adm-upd-field">
             <label className="adm-upd-label">Amount (₹)</label>
             <input
@@ -102,7 +87,10 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
               onChange={e => setAmount(e.target.value)}
             />
           </div>
-          <div className="adm-upd-field">
+        </div>
+
+        <div className="adm-upd-grid2">
+          <div className="adm-upd-field" style={{ gridColumn: 'span 2' }}>
             <label className="adm-upd-label">Justification Note (Optional)</label>
             <input
               className="adm-upd-input"
@@ -112,6 +100,8 @@ export default function UpdateLedger({ selectedUser }: { selectedUser: { id: str
             />
           </div>
         </div>
+
+
       </div>
 
       <button

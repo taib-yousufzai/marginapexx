@@ -71,6 +71,7 @@ export async function POST(
         type: prType,
         amount: adjustment,
         status: 'APPROVED',
+        account_name: type === 'Credit' ? 'System Credit' : 'System Debit',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

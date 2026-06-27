@@ -95,14 +95,8 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
   };
 
   const handleReopen = (pos: Position) => {
-    const qtyOpen = Number(pos.qty.split('/')[1] || pos.qty.split('/')[0] || 0);
-    apiCall(`/api/admin/positions/${pos.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        status: 'open',
-        qty_open: qtyOpen,
-        exit_price: null,
-      }),
+    apiCall(`/api/admin/positions/${pos.id}/reopen`, {
+      method: 'POST',
     }).then(({ ok, status }) => {
       if (status === 401) { signOut(); return; }
       if (status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
