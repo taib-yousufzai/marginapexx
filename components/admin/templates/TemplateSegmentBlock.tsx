@@ -224,8 +224,6 @@ export function SegmentBlock({
               <input className="adm-upd-input" type="number" value={value.holdingLeverage} onChange={e => upd('holdingLeverage', e.target.value)} />
             </div>
             <div className="adm-upd-field">
-              <label className="adm-upd-label">Entry Buffer</label>
-              <input className="adm-upd-input" type="number" step="0.0001" value={value.entryBuffer} onChange={e => upd('entryBuffer', e.target.value)} />
             </div>
           </div>
 
