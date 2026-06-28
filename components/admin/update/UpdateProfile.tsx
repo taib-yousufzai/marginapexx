@@ -24,6 +24,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
   const [tradingMode, setTradingMode] = useState('normal');
   const [segments, setSegments] = useState<string[]>([]);
+  const [templateName, setTemplateName] = useState<string | null>(null);
   
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
@@ -57,6 +58,14 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
       setSqoffMethod(p.sqoff_method ?? 'Credit');
       setTradingMode(p.trading_mode ?? 'normal');
       setSegments(p.segments ?? []);
+      
+      if (p.template_id) {
+        apiCall(`/api/admin/templates/${p.template_id}`, { method: 'GET' }).then(res => {
+          if (res.ok && res.data) {
+            setTemplateName((res.data as any).name);
+          }
+        });
+      }
     }).catch((err: unknown) => {
       setLoading(false);
       setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
@@ -112,6 +121,12 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
           <label className="adm-upd-label">Username</label>
           <input className="adm-upd-input" value={uid} readOnly />
         </div>
+        {templateName && (
+          <div className="adm-upd-field">
+            <label className="adm-upd-label">Applied Template</label>
+            <input className="adm-upd-input" style={{ color: '#58a6ff', borderColor: '#30363d', background: '#0d1117' }} value={templateName} readOnly />
+          </div>
+        )}
         <div className="adm-upd-field">
           <label className="adm-upd-label">Email</label>
           <input className="adm-upd-input" value={email} onChange={e => setEmail(e.target.value)} />
