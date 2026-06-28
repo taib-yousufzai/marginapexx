@@ -419,6 +419,7 @@ function SegmentsTab({
   setExpandedSegments,
   loading,
   isScalper = false,
+  onCopyToOtherMode,
 }: {
   segBlocks: string[];
   settings: Record<string, SegmentSettingsType>;

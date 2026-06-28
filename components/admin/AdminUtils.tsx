@@ -71,6 +71,7 @@ export type PositionItem = {
   ltp: number | null; exit_price: number | null; duration_seconds: number;
   brokerage: number; sl: number | null; tp: number | null;
   entry_time: string; exit_time: string | null; settlement: string | null;
+  status: 'open' | 'active' | 'closed';
 };
 
 export type Position = {

@@ -15,6 +15,7 @@ const defaultSeg = (): SegmentSettingsType => ({
   intradayType: 'Multiplier',
   holdingLeverage: '5', entryBuffer: '0',
   holdingType: 'Multiplier',
+  bidBuffer: '0',
   exitBuffer: '0', tradeAllowed: true,
   topLimit: '0',
   minLimit: '0',
