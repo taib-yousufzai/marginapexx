@@ -484,6 +484,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     scriptSettingsResult,
     blockedScriptsResult,
     tradingHoursResult,
+    pendingOrdersResult,
   ] = await Promise.all([
     // User's own segment settings (both sides)
     admin.from(targetTable)
@@ -529,6 +530,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           .select('name, start_time, end_time, is_active')
           .eq('id', segmentId)
           .maybeSingle(),
+          
+    // Pending orders for lot-limit checks
+    admin.from('orders')
+      .select('id, symbol, qty, lots, status, side, segment')
+      .eq('user_id', user.id)
+      .eq('status', 'PENDING'),
   ]);
 
   // Market hours check (result already fetched in parallel above)
@@ -555,6 +562,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const openPositions = positionsResult?.data ?? [];
+  const pendingOrders = pendingOrdersResult?.data ?? [];
   const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
   const blockedScript = blockedScriptsResult?.data;
 
@@ -689,10 +697,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Include PENDING entry orders in the segment limit check
+  if (pendingOrders.length > 0) {
+    for (const po of pendingOrders) {
+      if (po.is_exit) continue; // Skip pending exit orders
+      if (po.segment === dbSegment || mapSymbolToSegment(po.symbol) === dbSegment) {
+        const size = getLotSize(po.symbol, dbScriptSettings);
+        const poLots = Number(po.lots) > 0 ? Number(po.lots) : (Number(po.qty) / size);
+        totalOpenLots += poLots;
+      }
+    }
+  }
+
   const newOrderLots = lots > 0 ? lots : (qty / symbolLotSize);
-  if (totalOpenLots + newOrderLots > (segSetting.max_lot as number)) {
+  if (!is_exit && (totalOpenLots + newOrderLots > (segSetting.max_lot as number))) {
     return NextResponse.json({
-      error: `Order exceeds maximum segment limit of ${segSetting.max_lot} lots. Current open positions: ${totalOpenLots.toFixed(2)} lots.`,
+      error: `Order exceeds maximum segment limit of ${segSetting.max_lot} lots. Current open/pending positions: ${totalOpenLots.toFixed(2)} lots.`,
     }, { status: 400 });
   }
 
