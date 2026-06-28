@@ -126,6 +126,7 @@ function RegisterForm() {
     if (!confirmEmail.trim()) { setConfirmEmailError('Please confirm your email'); hasError = true; }
     if (email.trim() !== confirmEmail.trim()) { setConfirmEmailError('Emails do not match'); hasError = true; }
     if (!password) { setPasswordError('Password is required'); hasError = true; }
+    else if (password.length < 8) { setPasswordError('Password must be at least 8 characters.'); hasError = true; }
     if (!confirmPassword) { setConfirmPasswordError('Please confirm your password'); hasError = true; }
     if (hasError) return;
     if (password !== confirmPassword) { setConfirmPasswordError('Passwords do not match'); return; }
