@@ -3,7 +3,7 @@
  * POST /api/admin/templates  — create a new account template
  */
 
-import { requireAdmin } from '../_auth';
+import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 
 export interface TemplateRow {
   id: string;
@@ -31,7 +31,7 @@ const TEMPLATE_FIELDS = [
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['MANAGE_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
@@ -54,7 +54,7 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['MANAGE_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient, callerUser } = authResult;
 

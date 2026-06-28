@@ -4,7 +4,7 @@
  * DELETE /api/admin/templates/[id]  — delete template (only if no users are assigned)
  */
 
-import { requireAdmin } from '../../_auth';
+import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 
 const TEMPLATE_FIELDS = [
   'name', 'description', 'is_default',
@@ -17,7 +17,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['MANAGE_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['MANAGE_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
@@ -114,7 +114,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['MANAGE_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
