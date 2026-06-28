@@ -16,8 +16,8 @@ const navItems: { key: string, label: string, icon: string, path: string, perm?:
   { key: 'funds', label: 'Funds', icon: 'fas fa-wallet', path: '/funds', perm: 'VIEW_OWN_WALLET' },
   { key: 'rules', label: 'Rules', icon: 'fas fa-file-contract', path: '/rules' },
   { key: 'profile', label: 'Profile', icon: 'fas fa-user-circle', path: '/profile', perm: 'VIEW_OWN_PROFILE' },
-  { key: 'users', label: 'Users', icon: 'fas fa-users', path: '/admin/users', perm: 'VIEW_USERS' },
-  { key: 'admin', label: 'Admin', icon: 'fas fa-cogs', path: '/admin/settings', perm: 'MANAGE_GLOBAL_SETTINGS' },
+  { key: 'users', label: 'Users', icon: 'fas fa-users', path: '/admin#users', perm: 'VIEW_USERS' },
+  { key: 'admin', label: 'Admin', icon: 'fas fa-cogs', path: '/admin#settings', perm: 'MANAGE_GLOBAL_SETTINGS' },
 ];
 
 export default function Sidebar() {

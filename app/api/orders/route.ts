@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
+import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
 import type {
@@ -248,10 +249,9 @@ function mapSymbolToSegment(symbol: string): string {
 // ─── GET /api/orders ──────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const user = await getUserFromRequest(request);
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authResult = await apiRequireAuth(request, ['VIEW_OWN_ORDERS']);
+  if (authResult instanceof Response) return authResult as NextResponse;
+  const { callerUser: user } = authResult;
 
   try {
     const admin = getAdminClient();
