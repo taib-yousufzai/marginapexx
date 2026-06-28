@@ -52,6 +52,7 @@ export const defaultSeg = (isScalper = false): SegmentSettingsType => ({
   intradayType: 'Multiplier',
   holdingLeverage: '5', entryBuffer: '0',
   holdingType: 'Multiplier',
+  bidBuffer: '0',
   exitBuffer: '0', tradeAllowed: true,
   topLimit: '0', minLimit: '0',
 });
@@ -241,22 +242,18 @@ export function SegmentBlock({
             <div />
           </div>
 
-          <div className="adm-upd-grid2" style={{ alignItems: 'flex-start' }}>
+          <div className="adm-upd-grid3" style={{ alignItems: 'flex-start' }}>
             <div className="adm-upd-field">
-              <label className="adm-upd-label">Exit Buffer</label>
-              <input className="adm-upd-input" type="number" step="0.0001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
+              <label className="adm-upd-label">Entry Buffer (%)</label>
+              <input className="adm-upd-input" type="number" step="0.001" value={value.entryBuffer} onChange={e => upd('entryBuffer', e.target.value)} />
             </div>
-            <div className="adm-upd-toggle-item" style={{ marginTop: 2 }}>
-              <span className="adm-upd-label">Trade Allowed</span>
-              <div style={{ display: 'flex', alignItems: 'center', height: 40, marginTop: 4 }}>
-                <div
-                  className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`}
-                  style={value.tradeAllowed ? { background: '#14b8a6' } : {}}
-                  onClick={() => upd('tradeAllowed', !value.tradeAllowed)}
-                >
-                  <div className="adm-toggle-thumb" style={{ background: '#fff' }} />
-                </div>
-              </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Bid Buffer (%)</label>
+              <input className="adm-upd-input" type="number" step="0.001" value={value.bidBuffer} onChange={e => upd('bidBuffer', e.target.value)} />
+            </div>
+            <div className="adm-upd-field">
+              <label className="adm-upd-label">Exit Buffer (%)</label>
+              <input className="adm-upd-input" type="number" step="0.001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
             </div>
           </div>
 
@@ -269,6 +266,22 @@ export function SegmentBlock({
               <label className="adm-upd-label">Min Price Limit (%)</label>
               <input className="adm-upd-input" type="number" step="0.1" value={value.minLimit} onChange={e => upd('minLimit', e.target.value)} />
             </div>
+          </div>
+
+          <div className="adm-upd-grid2" style={{ alignItems: 'flex-start' }}>
+            <div className="adm-upd-toggle-item" style={{ marginTop: 2 }}>
+              <span className="adm-upd-label">Trade Allowed</span>
+              <div style={{ display: 'flex', alignItems: 'center', height: 40, marginTop: 4 }}>
+                <div
+                  className={`adm-toggle ${value.tradeAllowed ? 'on' : ''}`}
+                  style={value.tradeAllowed ? { background: '#14b8a6' } : {}}
+                  onClick={() => upd('tradeAllowed', !value.tradeAllowed)}
+                >
+                  <div className="adm-toggle-thumb" style={{ background: '#fff' }} />
+                </div>
+              </div>
+            </div>
+            <div />
           </div>
         </>
       )}
