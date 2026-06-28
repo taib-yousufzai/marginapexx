@@ -80,10 +80,14 @@ export async function GET(
       }
     }
 
+    const url = new URL(request.url);
+    const mode = url.searchParams.get('mode') ?? 'normal';
+    const table = mode === 'scalper' ? 'scalper_segment_settings' : 'segment_settings';
+
     // Step 3: Query all segment_settings rows for this user
     // Validates: Requirements 8.1, 8.3
     const { data, error } = await adminClient
-      .from('segment_settings')
+      .from(table)
       .select(
         'id, user_id, segment, side, commission_type, commission_value, carry_commission_type, carry_commission_value, gtt_commission_type, gtt_commission_value, profit_hold_sec, loss_hold_sec, strike_range, max_lot, max_order_lot, intraday_leverage, intraday_type, holding_leverage, entry_buffer, holding_type, bid_buffer, exit_buffer, trade_allowed, top_limit, min_limit, created_at, updated_at',
       )
@@ -214,10 +218,14 @@ export async function POST(
         typeof entry.min_limit === 'number' ? entry.min_limit : 0,
     }));
 
-    // Step 7: Upsert using the unique constraint (user_id, segment, side)
-    // Validates: Requirement 8.4
+    const url = new URL(request.url);
+    const mode = url.searchParams.get('mode') ?? 'normal';
+    const table = mode === 'scalper' ? 'scalper_segment_settings' : 'segment_settings';
+
+    // Step 7: Upsert the segment settings array
+    // Validates: Requirements 8.2, 8.4
     const { data, error } = await adminClient
-      .from('segment_settings')
+      .from(table)
       .upsert(rows, { onConflict: 'user_id,segment,side' })
       .select();
 

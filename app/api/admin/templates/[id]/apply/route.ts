@@ -64,7 +64,6 @@ export async function POST(
     // 2. Update profile-level settings for all selected users
     const profileUpdate: Record<string, unknown> = {
       read_only: template.read_only,
-      demo_user: template.demo_user,
       intraday_sq_off: template.intraday_sq_off,
       auto_sqoff: template.auto_sqoff,
       showcase_auto_sqoff: template.showcase_auto_sqoff,
