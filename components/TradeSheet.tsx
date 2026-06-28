@@ -83,7 +83,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [showCharges, setShowCharges] = useState(false);
-  
+
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
@@ -163,7 +163,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const priceOfScript = activeSide === 'SELL' ? rawBid : rawAsk;
 
   const intradayLeverage = segSetting?.intraday_leverage ?? 10;
-  const holdingLeverage  = segSetting?.holding_leverage  ?? 10;
+  const holdingLeverage = segSetting?.holding_leverage ?? 10;
   const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
 
   const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
@@ -304,9 +304,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
       }
     }
-  // Intentionally exclude activePositions — only run when sheet opens or side changes,
-  // never on background polls (which would stomp user-edited qty)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Intentionally exclude activePositions — only run when sheet opens or side changes,
+    // never on background polls (which would stomp user-edited qty)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [side, isOpen, item?.symbol, propProductType, exitMode]);
 
   // Fetch balance, active positions, and segment settings
@@ -316,14 +316,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const token = session?.access_token;
       if (!token) return;
-      
+
       // Fetch balance
       fetch('/api/pay/balance', {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(r => r.json())
         .then(data => { if (typeof data.balance === 'number') setAvailableBalance(data.balance); })
-        .catch(() => {});
+        .catch(() => { });
 
       // Fetch segment settings and script settings in parallel
       try {
@@ -614,15 +614,15 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       const isSl = modifyingOrderId.startsWith('pos-sl-');
       const isTarget = modifyingOrderId.startsWith('pos-target-');
       const isGtt = modifyingOrderId.startsWith('pos-gtt-');
-      
+
       const isStillTarget = isTarget && (orderType === 'TARGET' || orderType === 'LIMIT');
       const isStillSl = isSl && (orderType === 'SL' || orderType === 'SLM');
       const isStillGtt = isGtt && orderType === 'GTT';
 
       if (isStillTarget || isStillSl || isStillGtt) {
-        const updateData = isSl 
-          ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null } 
-          : isTarget 
+        const updateData = isSl
+          ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null }
+          : isTarget
             ? { target: resolvedClientPrice || resolvedTarget || null }
             : { stop_loss: resolvedStopLoss || null, target: resolvedTarget || null };
 
@@ -1267,14 +1267,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
                 {/* Product Type */}
                 {!exitMode && (
-                <div className="ts2-card">
-                  <div className="ts2-label">Product Type</div>
-                  <div className="ts2-pills">
-                    {(['INTRADAY', 'CARRY'] as ProductType[]).map(p => (
-                      <button key={p} className={`ts2-pill${productType === p ? ' active' : ''}`} onClick={() => setProductType(p)}>{p}</button>
-                    ))}
+                  <div className="ts2-card">
+                    <div className="ts2-label">Product Type</div>
+                    <div className="ts2-pills">
+                      {(['INTRADAY', 'CARRY'] as ProductType[]).map(p => (
+                        <button key={p} className={`ts2-pill${productType === p ? ' active' : ''}`} onClick={() => setProductType(p)}>{p}</button>
+                      ))}
+                    </div>
                   </div>
-                </div>
                 )}
 
                 {/* Margin */}
@@ -1289,10 +1289,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <span className="ts2-ml">Required Margin</span>
                     <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
                   </div>
-                  
+
                   {/* Collapsible Charges Breakdown */}
-                  <div 
-                    className="ts2-margin-row" 
+                  <div
+                    className="ts2-margin-row"
                     style={{ cursor: 'pointer', userSelect: 'none', marginTop: '4px', borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px' }}
                     onClick={() => setShowCharges(!showCharges)}
                   >

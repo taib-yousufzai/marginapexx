@@ -2017,7 +2017,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 </div>
               )}
 
-              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '4px', alignItems: 'stretch' }}>
+              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                   <div className="margin-line">
                     <span className="margin-line-label">Free Margin:</span>
@@ -2031,19 +2031,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   </div>
                 </div>
 
-                <div style={{ height: '4px' }} />
-
                 <div
                   style={{
-                    background: 'var(--bg)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px',
                     width: '100%',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
+                    borderTop: '1px solid var(--border)',
+                    marginTop: '8px',
+                    paddingTop: '8px'
                   }}
                 >
                   <div

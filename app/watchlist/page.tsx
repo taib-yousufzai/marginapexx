@@ -1894,14 +1894,10 @@ function WatchlistContent() {
             <div className="ts-margin-card">
               <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">{availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}</span></div>
               <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            </div>
-
-            <div style={{ height: '8px' }}></div>
-
-            <div className="ts-margin-card">
+              
               <div 
                 className="ts-margin-row" 
-                style={{ cursor: 'pointer', userSelect: 'none' }}
+                style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #EEF2F8)' }}
                 onClick={() => setShowCharges(!showCharges)}
               >
                 <span className="ts-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
