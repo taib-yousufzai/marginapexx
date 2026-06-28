@@ -11,14 +11,14 @@
  * Body: { user_ids: string[] }
  */
 
-import { requireAdmin } from '../../../_auth';
+import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['APPLY_TEMPLATES']);
     if (authResult instanceof Response) return authResult;
     const { adminClient, callerUser } = authResult;
 
