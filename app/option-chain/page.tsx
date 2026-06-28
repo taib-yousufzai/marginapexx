@@ -253,6 +253,7 @@ function OptionChainContent() {
   const normalizedSymbol = symbol === 'MIDCAP' ? 'MIDCPNIFTY' : symbol;
 
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
+  const [showCharges, setShowCharges] = useState(false);
 
   const cacheKey = `${normalizedSymbol}_${selectedExpiry || 'default'}`;
   
@@ -1204,10 +1205,44 @@ function OptionChainContent() {
                       <span className="ts-ml">Required Margin</span>
                       <span className="ts-mv required">₹ {calculatedRequiredMargin.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="ts-margin-row">
-                      <span className="ts-ml">Carry Charges</span>
-                      <span className="ts-mv carry">₹ {calculatedCarryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div 
+                      className="ts-margin-row" 
+                      style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #EEF2F8)' }}
+                      onClick={() => setShowCharges(!showCharges)}
+                    >
+                      <span className="ts-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
+                        Charges Breakdown {showCharges ? '▲' : '▼'}
+                      </span>
+                      <span className="ts-mv required" style={{ color: '#15803D', fontWeight: 800 }}>
+                        ₹ {(
+                          calculatedIntradayCharge +
+                          (productType === 'CARRY' || orderType === 'GTT' ? calculatedCarryCharges : 0) +
+                          (orderType === 'GTT' ? gttCharge : 0)
+                        ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
+                    {showCharges && (
+                      <>
+                        <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
+                          <span className="ts-ml">Intraday Brokerage</span>
+                          <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
+                            ₹ {calculatedIntradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="ts-margin-row">
+                          <span className="ts-ml">Carry Charges</span>
+                          <span className="ts-mv carry" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                            ₹ {(productType === 'CARRY' || orderType === 'GTT' ? calculatedCarryCharges : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="ts-margin-row">
+                          <span className="ts-ml">GTT Charges</span>
+                          <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                            ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div style={{ height: '8px' }}></div>
                 </div>

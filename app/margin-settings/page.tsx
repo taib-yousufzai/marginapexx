@@ -523,7 +523,7 @@ export default function UnifiedSettingsPage() {
             <button className="modal-close-x" onClick={() => setIsRulesModalOpen(false)}>✕</button>
           </div>
           <div className="modal-body">
-            <p className="modal-intro-text">Please read carefully before continuing.</p>
+            <p className="modal-intro-text">Official trading guidelines for both Margin and Scalper modes:</p>
             <div className="conditions-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
               <div className="condition-item">
                 <span className="condition-num">1</span>
@@ -574,6 +574,229 @@ export default function UnifiedSettingsPage() {
                   <p>Users may not exploit pricing errors, technical glitches, delayed feeds, software bugs, calculation anomalies, latency differences, system vulnerabilities, or unintended platform behavior.</p>
                 </div>
               </div>
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '0.95rem', color: 'inherit' }}>Options Trading Rules</h4>
+              <div className="condition-item">
+                <span className="condition-num">8</span>
+                <div className="condition-desc">
+                  <strong>Expiry-Hour Option Selling Restriction</strong>
+                  <p>Option selling during the final hours before expiry for the primary purpose of capturing accelerated time decay is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">9</span>
+                <div className="condition-desc">
+                  <strong>Commodity Option Concentration Restriction</strong>
+                  <p>Users may not trade exclusively in commodity options.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">10</span>
+                <div className="condition-desc">
+                  <strong>Stock Option Concentration Restriction</strong>
+                  <p>Users may not trade exclusively in stock options.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">11</span>
+                <div className="condition-desc">
+                  <strong>Mandatory Index Participation</strong>
+                  <p>At least fifty percent (50%) of options exposure, volume, or activity must involve index options as determined by the Platform.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">12</span>
+                <div className="condition-desc">
+                  <strong>Momentum Exploitation Restriction</strong>
+                  <p>Simultaneous purchase of both Call (CE) and Put (PE) contracts on the same instrument for volatility capture, event-based exploitation, momentum extraction, or platform gaming may be restricted or prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">13</span>
+                <div className="condition-desc">
+                  <strong>Expiry Manipulation Prohibited</strong>
+                  <p>Trading strategies designed solely to exploit expiry-related pricing distortions, settlement mechanics, or platform calculations may be disallowed.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">14</span>
+                <div className="condition-desc">
+                  <strong>Risk-Free Structure Prohibited</strong>
+                  <p>Trading structures designed primarily to create near risk-free outcomes, artificial hedges, or guaranteed ranking advantages may be restricted.</p>
+                </div>
+              </div>
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '0.95rem', color: 'inherit' }}>Account Usage Rules</h4>
+              <div className="condition-item">
+                <span className="condition-num">15</span>
+                <div className="condition-desc">
+                  <strong>One User, One Primary Account</strong>
+                  <p>Each account must be used solely by its registered owner.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">16</span>
+                <div className="condition-desc">
+                  <strong>Account Handling Prohibited</strong>
+                  <p>No user may permit another person to operate, manage, monitor, control, advise, or execute trades on their behalf.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">17</span>
+                <div className="condition-desc">
+                  <strong>Shared Access Prohibited</strong>
+                  <p>Sharing passwords, login credentials, devices, sessions, authentication codes, or account access with another person is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">18</span>
+                <div className="condition-desc">
+                  <strong>Multiple Account Abuse Prohibited</strong>
+                  <p>Users may not create, control, operate, benefit from, or participate through multiple accounts to gain an unfair advantage.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">19</span>
+                <div className="condition-desc">
+                  <strong>Linked Account Monitoring</strong>
+                  <p>The Platform may identify and link accounts through common devices, IP addresses, payment methods, behavioral patterns, contact details, referral relationships, or other indicators.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">20</span>
+                <div className="condition-desc">
+                  <strong>Opposite Position Trading Prohibited</strong>
+                  <p>Taking buy positions in one account and corresponding sell positions in another account for hedging, risk transfer, ranking manipulation, or coordinated benefit is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">21</span>
+                <div className="condition-desc">
+                  <strong>Account Leasing or Sale Prohibited</strong>
+                  <p>Buying, selling, renting, transferring, gifting, or leasing accounts is prohibited.</p>
+                </div>
+              </div>
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '0.95rem', color: 'inherit' }}>Coordination &amp; Market Conduct Rules</h4>
+              <div className="condition-item">
+                <span className="condition-num">22</span>
+                <div className="condition-desc">
+                  <strong>Group Trading Prohibited</strong>
+                  <p>Coordinated trading among friends, groups, communities, trading clubs, syndicates, organizations, or teams is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">23</span>
+                <div className="condition-desc">
+                  <strong>Signal-Based Manipulation Prohibited</strong>
+                  <p>Coordinated signal sharing intended to influence competitions, rankings, rewards, or platform outcomes is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">24</span>
+                <div className="condition-desc">
+                  <strong>Operator Calls Prohibited</strong>
+                  <p>Trading solely based on operator calls, manipulated tips, guaranteed-return schemes, pump-and-dump activity, or coordinated instructions is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">25</span>
+                <div className="condition-desc">
+                  <strong>Collusion Prohibited</strong>
+                  <p>Any arrangement between users intended to create unfair outcomes, transfer performance, evade rules, or manipulate results is prohibited.</p>
+                </div>
+              </div>
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '0.95rem', color: 'inherit' }}>Payments &amp; Verification</h4>
+              <div className="condition-item">
+                <span className="condition-num">26</span>
+                <div className="condition-desc">
+                  <strong>Same-Person Funding Requirement</strong>
+                  <p>Deposits, subscriptions, payments, and account funding must originate from the same individual whose details are registered on the account.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">27</span>
+                <div className="condition-desc">
+                  <strong>Identity Verification</strong>
+                  <p>The Platform may request identity, address, payment, banking, or ownership verification at any time.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">28</span>
+                <div className="condition-desc">
+                  <strong>Source Verification</strong>
+                  <p>The Platform reserves the right to investigate payment sources, funding methods, and account ownership where suspicious activity is detected.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">29</span>
+                <div className="condition-desc">
+                  <strong>Verification Failure</strong>
+                  <p>Failure to provide requested verification information may result in restrictions, suspension, or account termination.</p>
+                </div>
+              </div>
+              <h4 style={{ marginTop: '16px', marginBottom: '8px', fontSize: '0.95rem', color: 'inherit' }}>Platform Authority &amp; Enforcement</h4>
+              <div className="condition-item">
+                <span className="condition-num">30</span>
+                <div className="condition-desc">
+                  <strong>Monitoring Rights</strong>
+                  <p>The Platform may monitor, record, review, analyze, audit, and investigate any account, trade, communication, payment, login activity, or user behavior for compliance purposes.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">31</span>
+                <div className="condition-desc">
+                  <strong>Suspicious Activity Review</strong>
+                  <p>The Platform may investigate unusual profitability, abnormal consistency, coordinated behavior, suspicious trading patterns, excessive returns, or activity inconsistent with normal educational trading.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">32</span>
+                <div className="condition-desc">
+                  <strong>Trade Cancellation Rights</strong>
+                  <p>The Platform may cancel, modify, reverse, settle, reject, or adjust trades that violate these rules or are suspected of violating these rules.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">33</span>
+                <div className="condition-desc">
+                  <strong>Profit Adjustment Rights</strong>
+                  <p>The Platform may remove, reduce, freeze, withhold, adjust, or invalidate profits, rankings, rewards, incentives, points, achievements, or competition results obtained through prohibited activity.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">34</span>
+                <div className="condition-desc">
+                  <strong>Competition Protection</strong>
+                  <p>The Platform reserves the right to disqualify users from contests, leaderboards, rankings, rewards, incentives, and promotional programs where suspicious activity is identified.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">35</span>
+                <div className="condition-desc">
+                  <strong>Rule Circumvention Prohibited</strong>
+                  <p>Any attempt to circumvent the intent or spirit of these rules shall be treated as a violation, even if the specific conduct is not expressly listed.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">36</span>
+                <div className="condition-desc">
+                  <strong>Discretionary Enforcement</strong>
+                  <p>The Platform reserves the right to take corrective action whenever it reasonably believes user activity may compromise fairness, integrity, security, educational objectives, or user experience.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">37</span>
+                <div className="condition-desc">
+                  <strong>No Obligation to Provide Prior Notice</strong>
+                  <p>Corrective actions may be taken with or without prior notice where the Platform considers immediate action necessary.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">38</span>
+                <div className="condition-desc">
+                  <strong>Final Authority</strong>
+                  <p>The interpretation, application, and enforcement of these Trading Rules shall remain solely with the Platform, and all decisions made by the Platform shall be final, binding, and conclusive.</p>
+                </div>
+              </div>
+              <p style={{ marginBottom: '12px', fontSize: '0.9rem', lineHeight: '1.5' }}><strong>The Platform reserves the right to investigate and act against any activity that, in its sole judgment, violates the spirit of fair participation, even if such activity is not specifically listed in these rules.</strong></p>
             </div>
             <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>
               <input type="checkbox" id="rules-agree" style={{ marginTop: '3px' }} defaultChecked />
