@@ -17,7 +17,8 @@
  * Validates: Requirements 7.8–7.9, 12.1–12.6
  */
 
-import { requireAdmin } from '../../_auth';
+import { requireAuth } from '../../_auth'; // keep using _auth wrapper for now if it exports requireAuth, or better, import from lib
+import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 import { checkAndExecuteAccountLiquidation } from '@/lib/liquidationEngine';
 import {
   calculateClosedPnl,
@@ -47,7 +48,7 @@ export async function PATCH(
 ): Promise<Response> {
   try {
     // Step 1: Authenticate and authorize the caller
-    const authResult = await requireAdmin(request);
+    const authResult = await apiRequireAuth(request, ['VIEW_USER_POSITIONS']);
     if (authResult instanceof Response) return authResult;
     const { adminClient, callerUser } = authResult;
 

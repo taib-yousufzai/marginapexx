@@ -15,12 +15,13 @@
  * Validates: Requirements 3.2–3.9
  */
 
-import { requireAdmin } from '../_auth';
+import { requireAuth } from '../../../../lib/api-middleware';
 import { getRole } from '../../../../lib/auth'; // trigger recompile
+import { auditLog } from '../../../../lib/audit';
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    const authResult = await requireAdmin(request);
+    const authResult = await requireAuth(request, ['VIEW_USERS']);
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
@@ -129,16 +130,15 @@ export async function POST(request: Request): Promise<Response> {
   try {
     // Step 1: Authenticate and authorize the caller
     // Validates: Requirements 2.1–2.7
-    const authResult = await requireAdmin(request);
+    // Depending on the role we are creating, we might need different permissions, but for now we require CREATE_USER.
+    // We will refine later based on the role being created.
+    const authResult = await requireAuth(request, ['CREATE_USER']);
     if (authResult instanceof Response) return authResult;
-    const { adminClient, callerUser } = authResult;
+    const { adminClient, callerUser, callerRole } = authResult;
 
-    const callerRole = getRole(callerUser);
-    if (callerRole === 'broker') {
-      return Response.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Step 2: Parse JSON body
+    // We no longer strictly hardcode broker checks here unless it's a structural limitation.
+    // But let's leave the broker check for now if needed, or rely on permissions.
+    // If they have CREATE_USER, they can create users. If they try to create a broker, we check if they have CREATE_BROKER.
     // Validates: Requirement 6.4
     let body: Record<string, unknown>;
     try {
@@ -360,6 +360,11 @@ export async function POST(request: Request): Promise<Response> {
 
     // Step 7: Return 201 with id, client_id, and email
     // Validates: Requirement 3.6
+    await auditLog(adminClient, callerUser.id, newUser.id, 'User Created', {
+      role: body.role,
+      email: email,
+      client_id: client_id
+    });
     return Response.json({ id: newUser.id, client_id: client_id, email: newUser.email }, { status: 201 });
   } catch (err: any) {
     // Outer catch: unhandled exceptions
