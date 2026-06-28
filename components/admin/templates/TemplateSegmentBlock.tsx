@@ -15,6 +15,7 @@ export type SegmentSettingsType = {
   holdingType: string;
   exitBuffer: string; tradeAllowed: boolean;
   topLimit: string; minLimit: string;
+  useCustomCalc: boolean;
 };
 
 export interface SegmentRow {
@@ -40,6 +41,7 @@ export interface SegmentRow {
   trade_allowed: boolean;
   top_limit: number;
   min_limit: number;
+  use_custom_calc?: boolean;
 }
 
 export const defaultSeg = (isScalper = false): SegmentSettingsType => ({
@@ -55,6 +57,7 @@ export const defaultSeg = (isScalper = false): SegmentSettingsType => ({
   bidBuffer: '0',
   exitBuffer: '0', tradeAllowed: true,
   topLimit: '0', minLimit: '0',
+  useCustomCalc: false,
 });
 
 // ─── SegmentBlock ─────────────────────────────────────────────────────────────
@@ -254,6 +257,19 @@ export function SegmentBlock({
               <input className="adm-upd-input" type="number" step="0.001" value={value.exitBuffer} onChange={e => upd('exitBuffer', e.target.value)} />
             </div>
           </div>
+
+          {name.includes('CRYPTO') && (
+            <div className="adm-upd-grid2" style={{ marginTop: '15px' }}>
+              <div className="adm-upd-field" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label className="adm-upd-label" style={{ marginBottom: 0 }}>Use Custom Fill Calculation</label>
+                <label className="adm-upd-toggle">
+                  <input type="checkbox" checked={value.useCustomCalc} onChange={e => upd('useCustomCalc', e.target.checked)} />
+                  <span className="adm-upd-slider"></span>
+                </label>
+              </div>
+              <div />
+            </div>
+          )}
 
           <div className="adm-upd-grid2">
             <div className="adm-upd-field">

@@ -28,7 +28,7 @@ import type {
  * Fetch the Binance LTP for a crypto symbol using the same
  * Redis → Ticker Daemon → Binance REST cascade as the Kite path.
  */
-async function fetchBinanceQuote(symbol: string): Promise<number | null> {
+async function fetchBinanceQuote(symbol: string): Promise<{ltp: number, bid: number, ask: number} | null> {
   let cleanSym = symbol.replace('/', '').toUpperCase();
   if (!cleanSym.endsWith('USDT')) cleanSym = cleanSym + 'USDT';
 
@@ -39,7 +39,13 @@ async function fetchBinanceQuote(symbol: string): Promise<number | null> {
     const cached = await redis.hget('market:quotes', cleanSym);
     if (cached) {
       const q = JSON.parse(cached);
-      if (q && q.last_price !== undefined) return Number(q.last_price);
+      if (q && q.last_price !== undefined) {
+        return {
+          ltp: Number(q.last_price),
+          bid: Number(q.bid || q.last_price * 0.9995),
+          ask: Number(q.ask || q.last_price * 1.0005)
+        };
+      }
     }
   } catch { /* fall through */ }
 
@@ -51,7 +57,12 @@ async function fetchBinanceQuote(symbol: string): Promise<number | null> {
     if (resTicker.ok) {
       const json = await resTicker.json();
       if (json.success && json.data && json.data[cleanSym]) {
-        return Number(json.data[cleanSym].last_price);
+        const q = json.data[cleanSym];
+        return {
+          ltp: Number(q.last_price),
+          bid: Number(q.bid || q.last_price * 0.9995),
+          ask: Number(q.ask || q.last_price * 1.0005)
+        };
       }
     }
   } catch { /* fall through */ }
@@ -61,7 +72,11 @@ async function fetchBinanceQuote(symbol: string): Promise<number | null> {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.price ? parseFloat(data.price) : null;
+    if (data.price) {
+      const ltp = parseFloat(data.price);
+      return { ltp, bid: ltp * 0.9995, ask: ltp * 1.0005 };
+    }
+    return null;
   } catch (err) {
     console.error('[fetchBinanceQuote] Error:', err);
     return null;
@@ -507,8 +522,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // LTP — Binance for crypto, Kite/Redis/Ticker Daemon for everything else
     (async () => {
       if (dbSegment === 'CRYPTO') {
-        const price = await fetchBinanceQuote(symbol);
-        return price ? { [kiteInst]: price } : {};
+        const q = await fetchBinanceQuote(symbol);
+        return q ? { [kiteInst]: q.ltp, [`${kiteInst}_bid`]: q.bid, [`${kiteInst}_ask`]: q.ask } : {};
       }
       return fetchKiteQuotes(instrumentsToFetch);
     })(),
@@ -585,10 +600,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // LTP from parallel fetch
   let kiteLtp = quotesMap[kiteInst] ?? null;
+  let kiteBid = quotesMap[`${kiteInst}_bid`] ?? kiteLtp;
+  let kiteAsk = quotesMap[`${kiteInst}_ask`] ?? kiteLtp;
 
   if (!kiteLtp || kiteLtp <= 0) {
     if (client_price && client_price > 0) {
       kiteLtp = client_price;
+      kiteBid = client_price;
+      kiteAsk = client_price;
       console.warn(`[orders] Market quote not found for ${kiteInst}, falling back to client_price: ${client_price}`);
     } else {
       return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
@@ -804,7 +823,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     else if (gttCommType === 'Per Trade' || gttCommType === 'Flat') gttCharge = gttCommVal;
   }
 
-  const brokerage = (intradayCharge + carryCharge + gttCharge) * 2;
+  // Since brokerage might be zeroed out later for Crypto, we capture it as required margin first
+  // However, we MUST use a `let` variable because we re-assign `brokerage = 0` below
+  let brokerage = (intradayCharge + carryCharge + gttCharge) * 2;
 
   const requiredMargin = marginPortion + brokerage;
 
@@ -1022,29 +1043,59 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const sellExitBuffer = (sellSetting?.exit_buffer ?? 0.17) / 100;
 
     let priceWithBuffer = baseLtp;
+    
+    // Check if the custom calculation is enabled for this side
+    const isCustomCalc = side === 'BUY' ? buySetting?.use_custom_calc : sellSetting?.use_custom_calc;
 
-    if (side === 'BUY') {
-      if (is_exit) {
-        // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
-        priceWithBuffer = baseLtp * (1 + sellExitBuffer);
+    if (dbSegment === 'CRYPTO' && isCustomCalc) {
+      const brokeragePerUnit = qty > 0 ? (brokerage / qty) : 0;
+      
+      if (side === 'BUY') {
+        if (is_exit) {
+          // Buy to close: bid + bid buffer + exit buffer + brokerage
+          priceWithBuffer = kiteBid * (1 + sellBidBuffer + sellExitBuffer) + brokeragePerUnit;
+        } else {
+          // Long Entry: bid + bid buffer + entry buffer + brokerage
+          priceWithBuffer = kiteBid * (1 + buyBidBuffer + buyEntryBuffer) + brokeragePerUnit;
+        }
       } else {
-        // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
-        priceWithBuffer = baseLtp * (1 + buyEntryBuffer);
+        if (is_exit) {
+          // Sell to close: ask - bid buffer - exit buffer - brokerage
+          priceWithBuffer = kiteAsk * (1 - buyBidBuffer - buyExitBuffer) - brokeragePerUnit;
+        } else {
+          // Short Entry: ask - bid buffer - entry buffer - brokerage
+          priceWithBuffer = kiteAsk * (1 - sellBidBuffer - sellEntryBuffer) - brokeragePerUnit;
+        }
       }
+      
+      // Since brokerage is now baked into the execution price, we set it to 0 so the wallet doesn't get double charged.
+      brokerage = 0;
+      bufferFee = 0;
+      fillPrice = priceWithBuffer;
     } else {
-      if (is_exit) {
-        // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - bidBuffer) of BUY side settings
-        priceWithBuffer = baseLtp * (1 - buyBidBuffer);
+      if (side === 'BUY') {
+        if (is_exit) {
+          // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
+          priceWithBuffer = baseLtp * (1 + sellExitBuffer);
+        } else {
+          // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
+          priceWithBuffer = baseLtp * (1 + buyEntryBuffer);
+        }
       } else {
-        // Short Entry (Selling) executes at: Bid * (1 - bidBuffer) of SELL side settings
-        priceWithBuffer = baseLtp * (1 - sellBidBuffer);
+        if (is_exit) {
+          // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - bidBuffer) of BUY side settings
+          priceWithBuffer = baseLtp * (1 - buyBidBuffer);
+        } else {
+          // Short Entry (Selling) executes at: Bid * (1 - bidBuffer) of SELL side settings
+          priceWithBuffer = baseLtp * (1 - sellBidBuffer);
+        }
       }
-    }
 
-    // Fill price is the actual execution price (ask for BUY, bid for SELL).
-    // Buffer is baked into the fill price so avg_price reflects what the user paid.
-    bufferFee = 0;
-    fillPrice = priceWithBuffer;
+      // Fill price is the actual execution price (ask for BUY, bid for SELL).
+      // Buffer is baked into the fill price so avg_price reflects what the user paid.
+      bufferFee = 0;
+      fillPrice = priceWithBuffer;
+    }
   }
 
   fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp

@@ -216,6 +216,8 @@ export async function POST(
         typeof entry.top_limit === 'number' ? entry.top_limit : 0,
       min_limit:
         typeof entry.min_limit === 'number' ? entry.min_limit : 0,
+      use_custom_calc:
+        typeof entry.use_custom_calc === 'boolean' ? entry.use_custom_calc : false,
     }));
 
     const url = new URL(request.url);

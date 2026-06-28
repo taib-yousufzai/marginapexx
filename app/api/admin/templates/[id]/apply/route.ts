@@ -115,6 +115,7 @@ export async function POST(
             trade_allowed: s.trade_allowed,
             top_limit: s.top_limit,
             min_limit: s.min_limit,
+            use_custom_calc: s.use_custom_calc ?? false,
           });
         }
       }
@@ -162,6 +163,7 @@ export async function POST(
             trade_allowed: s.trade_allowed,
             top_limit: s.top_limit,
             min_limit: s.min_limit,
+            use_custom_calc: s.use_custom_calc ?? false,
           });
         }
       }
