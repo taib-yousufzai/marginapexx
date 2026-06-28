@@ -143,7 +143,9 @@ export async function GET(
       txnQuery = txnQuery.gte('created_at', date_from);
     }
     if (date_to) {
-      txnQuery = txnQuery.lte('created_at', date_to);
+      const toDate = new Date(date_to);
+      toDate.setDate(toDate.getDate() + 1);
+      txnQuery = txnQuery.lt('created_at', toDate.toISOString());
     }
 
     const { data: txnData, error: txnError } = await txnQuery;
@@ -162,7 +164,9 @@ export async function GET(
       posQuery = posQuery.gte('entry_time', date_from);
     }
     if (date_to) {
-      posQuery = posQuery.lte('entry_time', date_to);
+      const toDate = new Date(date_to);
+      toDate.setDate(toDate.getDate() + 1);
+      posQuery = posQuery.lt('entry_time', toDate.toISOString());
     }
 
     const { data: posData, error: posError } = await posQuery;

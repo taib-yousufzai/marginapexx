@@ -159,7 +159,9 @@ export async function GET(request: Request): Promise<Response> {
       query = query.gte('created_at', dateFrom);
     }
     if (dateTo) {
-      query = query.lte('created_at', dateTo);
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.lt('created_at', toDate.toISOString());
     }
 
     // Step 4.5: Apply user_id filter if present

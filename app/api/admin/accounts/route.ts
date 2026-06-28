@@ -120,7 +120,9 @@ export async function GET(request: Request): Promise<Response> {
       positionsQuery = positionsQuery.gte('created_at', dateFrom);
     }
     if (dateTo) {
-      positionsQuery = positionsQuery.lte('created_at', dateTo);
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      positionsQuery = positionsQuery.lt('created_at', toDate.toISOString());
     }
 
     const { data: positionsData, error: positionsError } = await positionsQuery;

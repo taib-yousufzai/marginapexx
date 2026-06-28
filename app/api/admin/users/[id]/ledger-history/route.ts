@@ -76,7 +76,9 @@ export async function GET(
       countQuery = countQuery.gte('created_at', dateFrom);
     }
     if (dateTo) {
-      countQuery = countQuery.lte('created_at', dateTo);
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      countQuery = countQuery.lt('created_at', toDate.toISOString());
     }
     if (entryTypeParam) {
       countQuery = countQuery.eq('entry_type', entryTypeParam);
@@ -97,7 +99,9 @@ export async function GET(
       dataQuery = dataQuery.gte('created_at', dateFrom);
     }
     if (dateTo) {
-      dataQuery = dataQuery.lte('created_at', dateTo);
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      dataQuery = dataQuery.lt('created_at', toDate.toISOString());
     }
     if (entryTypeParam) {
       dataQuery = dataQuery.eq('entry_type', entryTypeParam);

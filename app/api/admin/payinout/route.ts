@@ -87,7 +87,9 @@ export async function GET(request: Request): Promise<Response> {
 
     // Apply date_to filter
     if (dateTo) {
-      query = query.lte('created_at', dateTo);
+      const toDate = new Date(dateTo);
+      toDate.setDate(toDate.getDate() + 1);
+      query = query.lt('created_at', toDate.toISOString());
     }
 
     // NOTE: Search is now done client-side after merging profiles so we can

@@ -73,7 +73,11 @@ export async function GET(request: Request): Promise<Response> {
       txnQuery = txnQuery.in('user_id', targetUserIds);
     }
     if (date_from) txnQuery = txnQuery.gte('created_at', date_from);
-    if (date_to) txnQuery = txnQuery.lte('created_at', date_to);
+    if (date_to) {
+      const toDate = new Date(date_to);
+      toDate.setDate(toDate.getDate() + 1);
+      txnQuery = txnQuery.lt('created_at', toDate.toISOString());
+    }
 
     const { data: txnData, error: txnError } = await txnQuery;
     if (txnError) return Response.json({ error: 'Failed to fetch transactions' }, { status: 500 });
@@ -84,7 +88,11 @@ export async function GET(request: Request): Promise<Response> {
       posQuery = posQuery.in('user_id', targetUserIds);
     }
     if (date_from) posQuery = posQuery.gte('entry_time', date_from);
-    if (date_to) posQuery = posQuery.lte('entry_time', date_to);
+    if (date_to) {
+      const toDate = new Date(date_to);
+      toDate.setDate(toDate.getDate() + 1);
+      posQuery = posQuery.lt('entry_time', toDate.toISOString());
+    }
 
     const { data: posData, error: posError } = await posQuery;
     if (posError) return Response.json({ error: 'Failed to fetch positions' }, { status: 500 });
