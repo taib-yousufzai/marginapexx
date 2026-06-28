@@ -313,7 +313,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    rows = [...filteredForex, ...filteredCrypto, ...filteredOptions, ...otherRows];
+    // Prioritize EQ and exact matches in otherRows
+    otherRows.sort((a: any, b: any) => {
+      const qLower = q.toLowerCase();
+      const aSym = (a.tradingsymbol || '').toLowerCase();
+      const bSym = (b.tradingsymbol || '').toLowerCase();
+      if (aSym === qLower && bSym !== qLower) return -1;
+      if (bSym === qLower && aSym !== qLower) return 1;
+      if (a.instrument_type === 'EQ' && b.instrument_type !== 'EQ') return -1;
+      if (b.instrument_type === 'EQ' && a.instrument_type !== 'EQ') return 1;
+      return 0;
+    });
+
+    rows = [...otherRows, ...filteredCrypto, ...filteredForex, ...filteredOptions];
 
     // Fetch live prices for all results
     const kiteIds = rows.map((inst: any) => `${inst.exchange}:${inst.tradingsymbol}`);
