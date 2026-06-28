@@ -425,14 +425,12 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                 <th style={{ padding: '16px', fontWeight: 600 }}>Updated</th>
                 <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Accept</th>
                 <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Reject</th>
-                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Pos</th>
-                <th style={{ padding: '16px', fontWeight: 600, textAlign: 'center' }}>Ledger</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={14} style={{ padding: 20 }}>
+                  <td colSpan={12} style={{ padding: 20 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {Array.from({ length: 3 }).map((_, i) => <SkeletonLine key={i} height={40} />)}
                     </div>
@@ -440,13 +438,13 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={14} style={{ padding: 20 }}>
+                  <td colSpan={12} style={{ padding: 20 }}>
                     <div className="adm-dashed-box" style={{ borderColor: '#f85149', color: '#f85149' }}>{error}</div>
                   </td>
                 </tr>
               ) : displayed.length === 0 ? (
                 <tr>
-                  <td colSpan={14} style={{ padding: 20 }}>
+                  <td colSpan={12} style={{ padding: 20 }}>
                     <div className="adm-dashed-box">No {tab} requests matching your criteria.</div>
                   </td>
                 </tr>
