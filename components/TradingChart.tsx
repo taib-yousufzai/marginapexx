@@ -923,10 +923,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       return;
     }
 
-    // Determine target symbol and segment — use position's symbol when in add-more flow
-    let orderSymbol = (isAddMoreFlow && addMoreSymbol) ? addMoreSymbol : symbol;
+    // Determine target symbol and segment — use position's symbol when in add-more or exit flow
+    let orderSymbol = symbol;
+    let orderSegment = segment;
+
+    if (isAddMoreFlow && addMoreSymbol) {
+      orderSymbol = addMoreSymbol;
+      orderSegment = addMoreSegment || segment;
+    } else if (isExitFlow && exitPositionId) {
+      const p = positions.find(x => x.id === exitPositionId);
+      if (p) {
+        orderSymbol = p.symbol;
+        orderSegment = p.settlement || p.segment || segment;
+      }
+    }
+
     let orderKiteInstrument = orderSymbol;
-    let orderSegment = (isAddMoreFlow && addMoreSegment) ? addMoreSegment : segment;
 
     if (chainContract) {
       orderSymbol = chainContract.name;
@@ -1048,9 +1060,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setUseLots(false);
     setOrderCarry(pos.product_type === 'CARRY' ? 'carry' : 'normal');
     setOrderType('market');
-    setLimitPrice(currentPrice.toFixed(2));
-    setTriggerPrice(currentPrice.toFixed(2));
-    setOrderBlockTitle(`Exit · ${symbol}`);
+    const posPrice = pos.current_ltp || pos.avg_price || pos.entry_price || currentPrice;
+    setLimitPrice(posPrice.toFixed(2));
+    setTriggerPrice(posPrice.toFixed(2));
+    setOrderBlockTitle(`Exit · ${pos.symbol}`);
     setPostOrderSegment('main');
     setIsOrderBlockVisible(true);
   };
