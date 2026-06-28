@@ -172,6 +172,7 @@ export default function TemplateApplyModal({ template, onClose, onApplied, isDem
                 user={user}
                 checked={selectedIds.has(user.id)}
                 onChange={() => toggleUser(user.id)}
+                templateId={template.id}
               />
             ))
           )}
@@ -212,11 +213,15 @@ function UserRow({
   user,
   checked,
   onChange,
+  templateId,
 }: {
   user: UserListItem;
   checked: boolean;
   onChange: () => void;
+  templateId: string;
 }) {
+  const hasTemplate = user.template_id === templateId;
+
   return (
     <div
       onClick={onChange}
@@ -241,6 +246,16 @@ function UserRow({
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+        {hasTemplate && (
+          <span style={{
+            fontSize: '10px', padding: '2px 6px', borderRadius: 10,
+            background: 'rgba(56, 189, 248, 0.1)',
+            color: '#38bdf8',
+            marginBottom: '4px'
+          }}>
+            Has Template
+          </span>
+        )}
         <span style={{
           fontSize: '10px', padding: '2px 6px', borderRadius: 10,
           background: user.active ? '#14532d' : '#7c2d12',

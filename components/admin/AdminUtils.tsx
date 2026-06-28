@@ -57,6 +57,7 @@ export type UserListItem = {
   settlement_amount?: number;
   trading_mode?: string;
   mode_locked_until?: string | null;
+  template_id?: string | null;
   openPnl?: number;
   m2m?: number;
   weeklyPnl?: number;
