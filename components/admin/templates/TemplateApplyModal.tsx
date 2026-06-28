@@ -41,7 +41,7 @@ export default function TemplateApplyModal({ template, onClose, onApplied, isDem
     );
   }, [users, search]);
 
-  const selectableFiltered = filtered.filter(u => u.template_id !== template.id);
+  const selectableFiltered = filtered;
   const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(u => selectedIds.has(u.id));
 
   const toggleSelectAll = () => {
@@ -225,23 +225,18 @@ function UserRow({
 
   return (
     <div
-      onClick={!hasTemplate ? onChange : undefined}
+      onClick={onChange}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 20px', cursor: hasTemplate ? 'not-allowed' : 'pointer',
+        padding: '10px 20px', cursor: 'pointer',
         borderBottom: '1px solid #21262d',
         background: checked ? 'rgba(20,184,166,0.06)' : hasTemplate ? 'rgba(255,255,255,0.02)' : 'transparent',
         transition: 'background 0.15s',
-        opacity: hasTemplate ? 0.6 : 1,
       }}
-      onMouseEnter={e => { if (!checked && !hasTemplate) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(20,184,166,0.06)' : hasTemplate ? 'rgba(255,255,255,0.02)' : 'transparent'; }}
     >
-      {hasTemplate ? (
-        <div style={{ width: 16, height: 16, flexShrink: 0 }} /> // Spacer to align text
-      ) : (
-        <Checkbox checked={checked} onChange={onChange} />
-      )}
+      <Checkbox checked={checked} onChange={onChange} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: '#e6edf3', fontSize: '13px', fontWeight: 600 }}>
           {user.full_name ?? user.email}
@@ -259,7 +254,7 @@ function UserRow({
             color: '#38bdf8',
             marginBottom: '4px'
           }}>
-            Already Applied
+            Re-apply
           </span>
         )}
         <span style={{
