@@ -262,6 +262,12 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
             expandedSegments={expandedSegments}
             setExpandedSegments={setExpandedSegments}
             loading={loadingSegs}
+            onCopyToOtherMode={() => {
+              if (confirm('Copy all Normal settings to Scalper?')) {
+                setScalerSettings(segSettings);
+                setToast({ message: 'Settings copied to Scalper (click Save to apply)', type: 'success' });
+              }
+            }}
           />
         )}
 
@@ -274,6 +280,12 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
             setExpandedSegments={setExpandedSegments}
             loading={loadingSegs}
             isScalper
+            onCopyToOtherMode={() => {
+              if (confirm('Copy all Scalper settings to Normal?')) {
+                setSegSettings(scalperSettings);
+                setToast({ message: 'Settings copied to Normal (click Save to apply)', type: 'success' });
+              }
+            }}
           />
         )}
       </div>
@@ -415,6 +427,7 @@ function SegmentsTab({
   setExpandedSegments: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => void;
   loading: boolean;
   isScalper?: boolean;
+  onCopyToOtherMode?: () => void;
 }) {
   if (loading) return <div style={{ color: '#8b949e', padding: 20 }}>Loading…</div>;
 
@@ -431,6 +444,16 @@ function SegmentsTab({
           className="adm-upd-copy-btn"
           style={{ fontSize: '11px', padding: '5px 12px' }}
         >Collapse All</button>
+
+        {onCopyToOtherMode && (
+          <button
+            onClick={onCopyToOtherMode}
+            className="adm-btn-primary"
+            style={{ fontSize: '11px', padding: '5px 12px', background: '#3b82f6', border: 'none', marginLeft: 'auto' }}
+          >
+            Copy to {isScalper ? 'Normal' : 'Scalper'}
+          </button>
+        )}
       </div>
 
       {segBlocks.map(name => (

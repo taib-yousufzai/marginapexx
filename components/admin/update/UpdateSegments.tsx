@@ -428,6 +428,60 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
     }
   };
 
+  const handleCopyToOtherMode = async () => {
+    const target = segmentMode === 'scalper' ? 'Normal' : 'Scalper';
+    if (!confirm(`Are you sure you want to copy all current settings on this screen to ${target} segments?`)) return;
+    
+    setSaving(true);
+    
+    const segRows = segBlocks.map(name => {
+      const parts = name.split('-');
+      const side = parts[parts.length - 1];
+      const segment = parts.slice(0, parts.length - 1).join('-');
+      const s = segSettings[name] ?? defaultSeg();
+      return {
+        user_id: uid,
+        segment,
+        side,
+        commission_type: s.commissionType,
+        commission_value: Number(s.commissionValue),
+        carry_commission_type: s.carryCommissionType,
+        carry_commission_value: Number(s.carryCommissionValue),
+        gtt_commission_type: s.gttCommissionType,
+        gtt_commission_value: Number(s.gttCommissionValue),
+        profit_hold_sec: Number(s.profitHoldSec),
+        loss_hold_sec: Number(s.loss_hold_sec),
+        strike_range: Number(s.strikeRange),
+        max_lot: Number(s.maxLot),
+        max_order_lot: Number(s.maxOrderLot),
+        intraday_leverage: Number(s.intradayLeverage),
+        intraday_type: s.intradayType,
+        holding_leverage: Number(s.holdingLeverage),
+        entry_buffer: Number(s.entryBuffer),
+        holding_type: s.holdingType,
+        bid_buffer: Number(s.bidBuffer),
+        exit_buffer: Number(s.exitBuffer),
+        trade_allowed: s.tradeAllowed,
+        top_limit: Number(s.topLimit ?? 0),
+        min_limit: Number(s.minLimit ?? 0),
+      };
+    });
+    
+    const endpoint = segmentMode === 'scalper' ? `/api/admin/users/${uid}/segments` : `/api/admin/users/${uid}/scalper-segments`;
+    const segRes = await apiCall(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(segRows),
+    });
+    
+    setSaving(false);
+    if (segRes.status === 401) { signOut(); return; }
+    if (segRes.status === 403) { setToast({ message: 'Access Denied', type: 'error' }); return; }
+    if (!segRes.ok) { setToast({ message: 'Server Error', type: 'error' }); return; }
+
+    setToast({ message: `Successfully copied to ${target}!`, type: 'success' });
+  };
+
+
   const handleSave = async () => {
     setSaving(true);
     
@@ -486,11 +540,21 @@ export default function UpdateSegments({ selectedUser }: { selectedUser: { id: s
         <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f8fafc' }}>
           {segmentMode === 'scalper' ? 'Scalper Segment Settings' : 'Normal Segment Settings'}
         </span>
-        <i 
-          className="fas fa-bars" 
-          style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}
-          onClick={() => setShowMenu(true)}
-        ></i>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={handleCopyToOtherMode}
+            disabled={saving}
+            className="adm-btn-primary"
+            style={{ fontSize: '12px', padding: '6px 14px', background: '#3b82f6', border: 'none', opacity: saving ? 0.6 : 1 }}
+          >
+            Copy to {segmentMode === 'scalper' ? 'Normal' : 'Scalper'}
+          </button>
+          <i 
+            className="fas fa-bars" 
+            style={{ color: '#8b949e', fontSize: '1.2rem', cursor: 'pointer' }}
+            onClick={() => setShowMenu(true)}
+          ></i>
+        </div>
       </div>
 
       {/* Expand / Collapse All Controls */}
