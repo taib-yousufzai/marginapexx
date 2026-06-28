@@ -369,15 +369,15 @@ export default function HistoryPage() {
           <span className="footer-value">{formatPrice(summary.b)}</span>
         </div>
         <div className="footer-row">
-          <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
-          <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
-            {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
-          </span>
-        </div>
-        <div className="footer-row">
           <span className="footer-label"><i className="fas fa-chart-line"></i> Net P&L</span>
           <span className={`footer-value ${summary.n >= 0 ? 'net-profit' : 'net-loss'}`}>
             {formatPrice(summary.n)}
+          </span>
+        </div>
+        <div className="footer-row">
+          <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
+          <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
+            {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
           </span>
         </div>
       </div>

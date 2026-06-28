@@ -262,7 +262,10 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const res = await fetch(`/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}`);
+        const url = activeSearchTab === 'All' 
+          ? `/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}`
+          : `/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}&tab=${encodeURIComponent(activeSearchTab)}`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setSearchResults(data);
@@ -276,7 +279,7 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
       }
     }, 150);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, activeSearchTab]);
 
   return (
     <div className="tc-search-overlay-fullscreen">
@@ -375,9 +378,27 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
                   ) : <div className="tc-search-msg">Type to search for an instrument</div>;
                 })()
               )
-            ) :
-              (activeSearchTab === 'All' ? searchResults : searchResults.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab)).length > 0 ? (
-                (activeSearchTab === 'All' ? searchResults : searchResults.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab)).map((res: any, idx: number) => {
+            ) : (
+              (() => {
+                const q = searchQuery.toLowerCase();
+                const wordStartMatch = (txt: string) => {
+                  if (!txt) return false;
+                  const t = txt.toLowerCase();
+                  if (t.startsWith(q)) return true;
+                  return t.split(/[\s\-_\/]/).some(w => w.startsWith(q));
+                };
+                
+                const localMatches = getStoredWatchlistItems().filter((item: any) => {
+                  return wordStartMatch(item.name) || wordStartMatch(item.symbol);
+                });
+
+                const allCombined = [...localMatches, ...searchResults];
+                const uniqueCombined = Array.from(new Map(allCombined.map(item => [item.kiteSymbol, item])).values());
+                
+                const finalResults = activeSearchTab === 'All' ? uniqueCombined : uniqueCombined.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab);
+
+                return finalResults.length > 0 ? (
+                  finalResults.map((res: any, idx: number) => {
                   const isStarred = starredInstruments.some((p: any) => p.kiteSymbol === res.kiteSymbol);
                   return (
                     <div key={`${res.kiteSymbol}-${idx}`} className="tc-search-result-item">
@@ -401,7 +422,9 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
                     </div>
                   )
                 })
-              ) : <div className="tc-search-msg">No results found</div>
+                ) : <div className="tc-search-msg">No results found</div>;
+              })()
+            )
           }
         </div>
       </div>
@@ -1028,7 +1051,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setLimitPrice(currentPrice.toFixed(2));
     setTriggerPrice(currentPrice.toFixed(2));
     setOrderBlockTitle(`Exit · ${symbol}`);
-    setPostOrderSegment('positions');
+    setPostOrderSegment('main');
     setIsOrderBlockVisible(true);
   };
 
@@ -1061,7 +1084,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setOrderCarry(pos.product_type === 'CARRY' ? 'carry' : 'normal');
     setOrderType('market');
     setOrderBlockTitle(`Add More · ${pos.symbol}`);
-    setPostOrderSegment('positions');
+    setPostOrderSegment('main');
     setIsOrderBlockVisible(true);
   };
 

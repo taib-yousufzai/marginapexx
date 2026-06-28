@@ -178,6 +178,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const q = (searchParams.get('q') || '').trim();
+    const tab = searchParams.get('tab') || 'All';
 
     if (q.length < 1) {
       return NextResponse.json([]);
@@ -188,6 +189,17 @@ export async function GET(request: NextRequest) {
 
     // Smart parse: "nifty 24040" → underlying + strike query
     const parsed = parseOptionQuery(q);
+    
+    const applyTabFilter = (query: any) => {
+      if (tab === 'All') return query;
+      if (tab.includes('-OPT')) return query.not('option_type', 'is', null);
+      if (tab.includes('-FUT')) return query.is('option_type', null).in('instrument_type', ['FUTIDX', 'FUTSTK', 'FUT', 'MAPPED_FUT', 'FUTCOM', 'FUTCUR']);
+      if (tab === 'NSE-EQ') return query.eq('instrument_type', 'EQ');
+      if (tab === 'CRYPTO') return query.eq('segment', 'CRYPTO');
+      if (tab === 'FOREX') return query.eq('exchange', 'CDS');
+      if (tab === 'COMEX') return query.eq('segment', 'COMEX');
+      return query;
+    };
 
     if (parsed) {
       const today = new Date().toISOString().split('T')[0];
@@ -204,6 +216,8 @@ export async function GET(request: NextRequest) {
       if (parsed.optionType) {
         dbQuery = dbQuery.eq('option_type', parsed.optionType);
       }
+      
+      dbQuery = applyTabFilter(dbQuery);
 
       ({ data, error } = await dbQuery);
     }
@@ -212,13 +226,18 @@ export async function GET(request: NextRequest) {
     if (!data || data.length === 0) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
       const today = new Date().toISOString().split('T')[0];
-      ({ data, error } = await supabase
+      
+      let dbQuery = supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-        .or(`tradingsymbol.ilike.%${qNoSpace}%,tradingsymbol.ilike.%${q}%,name.ilike.%${q}%`)
+        .or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`)
         .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
-        .limit(150));
+        .limit(150);
+        
+      dbQuery = applyTabFilter(dbQuery);
+      
+      ({ data, error } = await dbQuery);
     }
 
     if (error) {
