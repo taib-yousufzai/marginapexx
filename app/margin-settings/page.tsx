@@ -187,7 +187,7 @@ export default function UnifiedSettingsPage() {
       setActualMode('scalper');
       setActiveTab('scalper');
       setModeLockedUntil(data.mode_locked_until);
-      showAlert("Scalper Mode Activated!", "Brokerage increased to ₹85/crore\nAuto-exit timer: 15 seconds\n48-hour lock period started");
+      showAlert("Scalper Mode Activated!", "Slightly Higher Brokerage\nLow Profit Hold Trade Time\nPerfect For Scalper");
     } catch (err: any) {
       showAlert("Activation Failed", err.message || "An unexpected error occurred");
     } finally {
@@ -219,7 +219,7 @@ export default function UnifiedSettingsPage() {
       setActualMode('normal');
       setActiveTab('normal');
       setModeLockedUntil(null);
-      showAlert("Normal Mode Activated!", "Brokerage reduced to ₹20/crore\nStandard execution timing restored");
+      showAlert("Normal Mode Activated!", "Slightly Low Brokerage\nHigher Profit Hold Trade Timer\nScalping Banned");
     } catch (err: any) {
       showAlert("Switch Failed", err.message || "An unexpected error occurred");
     } finally {
@@ -446,20 +446,18 @@ export default function UnifiedSettingsPage() {
             <div className="mode-option-card" onClick={handleChooseNormal}>
               <div className="mode-option-title">Normal Mode</div>
               <ul className="mode-feature-list">
-                <li>Low Brokerage - ₹20 per crore (equity) / ₹15 per lot (options)</li>
-                <li>High Profit Hold Time - Hold positions until EOD (3:20 PM)</li>
-                <li>Standard execution speed (~250ms)</li>
-                <li>No lock-in period on mode switching</li>
+                <li>Slightly Low Brokerage</li>
+                <li>Higher Profit Hold Trade Timer</li>
+                <li>Scalping Banned</li>
               </ul>
             </div>
 
             <div className="mode-option-card" onClick={handleChooseScalper}>
               <div className="mode-option-title">Scalper Mode</div>
               <ul className="mode-feature-list">
-                <li>High Brokerage - ₹85 per crore (equity) + 40% surcharge on options</li>
-                <li>Low Profit Hold Time - Auto-exit after 15 seconds (equity) / 10 seconds (options)</li>
-                <li>Ultra-fast execution (~45ms) with direct liquidity routing</li>
-                <li>48-hour lock period - Cannot switch back to Normal for 48 hours</li>
+                <li>Slightly Higher Brokerage</li>
+                <li>Low Profit Hold Trade Time</li>
+                <li>Perfect For Scalper</li>
               </ul>
             </div>
 
@@ -483,10 +481,10 @@ export default function UnifiedSettingsPage() {
           <div className="modal-body">
             <p className="modal-intro-text">Please review and accept the following conditions to activate high-frequency Scalper Settings on your profile:</p>
             <div className="conditions-list">
-              <div className="condition-item"><span className="condition-num">1</span><div className="condition-desc"><strong>Direct High-Speed Routing</strong><p>Scalper trades bypass standard order buffers for millisecond execution. This might increase immediate market fill risk.</p></div></div>
-              <div className="condition-item"><span className="condition-num">2</span><div className="condition-desc"><strong>High Frequency Safety Limits</strong><p>Accounts under scalper mode are subject to a strict safety ceiling of max 12 orders per minute to protect your margin.</p></div></div>
-              <div className="condition-item"><span className="condition-num">3</span><div className="condition-desc"><strong>Mandatory Auto-Exit Liability</strong><p>Auto-exit safety timers execute market-level orders. BFO/NFO slippages during automatic exits are the sole liability of the trader.</p></div></div>
-              <div className="condition-item"><span className="condition-num">4</span><div className="condition-desc"><strong>Locked Trailing Stop-Loss</strong><p>Stop-losses are calculated on tick-level updates. Trailing stop-loss triggers cannot be modified while an active position is open.</p></div></div>
+              <div className="condition-item"><span className="condition-num">1</span><div className="condition-desc"><p>Read trading rules before trading.</p></div></div>
+              <div className="condition-item"><span className="condition-num">2</span><div className="condition-desc"><p>Scalping includes quick trade actions.</p></div></div>
+              <div className="condition-item"><span className="condition-num">3</span><div className="condition-desc"><p>Switching to scalper mode will not be chargeable for 48 hours, check the settings of scalper mode thoroughly before switching.</p></div></div>
+              <div className="condition-item"><span className="condition-num">4</span><div className="condition-desc"><p>Trade with proper risk management and trade wisely.</p></div></div>
             </div>
           </div>
           <div className="modal-footer">
@@ -521,20 +519,69 @@ export default function UnifiedSettingsPage() {
       <div className={`scalper-modal-overlay ${isRulesModalOpen ? 'active' : ''}`} onClick={() => setIsRulesModalOpen(false)}>
         <div className="scalper-modal-card" onClick={e => e.stopPropagation()}>
           <div className="modal-header">
-            <h3 className="modal-title">Trading Rules & Regulations</h3>
+            <h3 className="modal-title">Trading Rules, Fair Usage Policy & Code of Conduct</h3>
             <button className="modal-close-x" onClick={() => setIsRulesModalOpen(false)}>✕</button>
           </div>
           <div className="modal-body">
-            <p className="modal-intro-text">Official trading guidelines for both Margin and Scalper modes:</p>
-            <div className="conditions-list">
-              <div className="condition-item"><span className="condition-num">1</span><div className="condition-desc"><strong>Standard Margin Rules</strong><p>Intraday leverage up to 5x. Minimum margin requirements must be maintained. Positions auto-square off at market close.</p></div></div>
-              <div className="condition-item"><span className="condition-num">2</span><div className="condition-desc"><strong>Scalper HFT Rules</strong><p>Maximum 12 orders per minute. Auto-exit at 15 seconds for equity, 10 seconds for options. Direct routing with millisecond execution.</p></div></div>
-              <div className="condition-item"><span className="condition-num">3</span><div className="condition-desc"><strong>Risk Management</strong><p>Stop-loss is mandatory for all positions. Maximum slippage tolerance 0.05% in scalper mode. System may square off if margin falls below requirement.</p></div></div>
-              <div className="condition-item"><span className="condition-num">4</span><div className="condition-desc"><strong>Liability Clause</strong><p>All trades are at trader's own risk. Auto-exit market orders may incur slippage. Platform not liable for high-frequency execution losses.</p></div></div>
+            <p className="modal-intro-text">Please read carefully before continuing.</p>
+            <div className="conditions-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <div className="condition-item">
+                <span className="condition-num">1</span>
+                <div className="condition-desc">
+                  <strong>Chamka Trading is strictly prohibited.</strong>
+                  <p>Any artificial, manipulative, collusive, circular, non-genuine, or platform-exploiting trading activity intended to generate unfair gains, rankings, rewards, incentives, rebates, referrals, competition results, or account performance is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">2</span>
+                <div className="condition-desc">
+                  <strong>Maximum Position Holding Period</strong>
+                  <p>No position may be carried forward for more than three (3) trading days. Users wishing to continue a market view must close the existing position and initiate a new position.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">3</span>
+                <div className="condition-desc">
+                  <strong>High-Frequency Trading (HFT) Prohibited</strong>
+                  <p>High-frequency trading, excessive order placement, rapid-fire trading, algorithmic trading, latency exploitation, quote stuffing, excessive scalping, or similar behavior is prohibited.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">4</span>
+                <div className="condition-desc">
+                  <strong>Minimum Trade Interval</strong>
+                  <p>A minimum gap of two (2) minutes must be maintained between consecutive trades.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">5</span>
+                <div className="condition-desc">
+                  <strong>Artificial Volume Generation Prohibited</strong>
+                  <p>Users may not place trades solely to generate turnover, activity, rankings, incentives, rewards, or competition points.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">6</span>
+                <div className="condition-desc">
+                  <strong>Excessive Churning Prohibited</strong>
+                  <p>Repeated entry and exit of positions without genuine market rationale may be treated as abusive trading activity.</p>
+                </div>
+              </div>
+              <div className="condition-item">
+                <span className="condition-num">7</span>
+                <div className="condition-desc">
+                  <strong>Platform Exploitation Prohibited</strong>
+                  <p>Users may not exploit pricing errors, technical glitches, delayed feeds, software bugs, calculation anomalies, latency differences, system vulnerabilities, or unintended platform behavior.</p>
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.85rem', color: '#475569', fontWeight: 500 }}>
+              <input type="checkbox" id="rules-agree" style={{ marginTop: '3px' }} defaultChecked />
+              <label htmlFor="rules-agree">I have read, understood, and agree to the Trading Rules, Fair Usage Policy, and Code of Conduct.</label>
             </div>
           </div>
           <div className="modal-footer">
-            <button className="modal-btn confirm" onClick={() => setIsRulesModalOpen(false)}>I Understand</button>
+            <button className="modal-btn confirm" style={{ width: '100%', textTransform: 'uppercase' }} onClick={() => setIsRulesModalOpen(false)}>[ I AGREE & CONTINUE ]</button>
           </div>
         </div>
       </div>
