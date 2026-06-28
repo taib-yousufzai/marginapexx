@@ -199,13 +199,13 @@ export async function POST(
       holding_leverage:
         typeof entry.holding_leverage === 'number' ? entry.holding_leverage : 5,
       entry_buffer:
-        typeof entry.entry_buffer === 'number' ? entry.entry_buffer : 0.003,
+        typeof entry.entry_buffer === 'number' ? entry.entry_buffer : 0.3,
       holding_type:
         typeof entry.holding_type === 'string' ? entry.holding_type : 'Multiplier',
       bid_buffer:
-        typeof entry.bid_buffer === 'number' ? entry.bid_buffer : 0.003,
+        typeof entry.bid_buffer === 'number' ? entry.bid_buffer : 0.3,
       exit_buffer:
-        typeof entry.exit_buffer === 'number' ? entry.exit_buffer : 0.0017,
+        typeof entry.exit_buffer === 'number' ? entry.exit_buffer : 0.17,
       trade_allowed:
         typeof entry.trade_allowed === 'boolean' ? entry.trade_allowed : true,
       top_limit:

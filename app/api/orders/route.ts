@@ -746,8 +746,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  const entryBufferRatio = (side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0;
-  const exitBufferRatio = (side === 'SELL' ? sellSetting.exit_buffer : buySetting.exit_buffer) ?? 0;
+  const entryBufferRatio = ((side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0) / 100;
+  const exitBufferRatio = ((side === 'SELL' ? sellSetting.exit_buffer : buySetting.exit_buffer) ?? 0) / 100;
   const entryBufferCost = exposure * entryBufferRatio;
   const exitBufferCost = exposure * exitBufferRatio;
 
@@ -994,12 +994,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (order_type === 'LIMIT' || order_type === 'SL' || order_type === 'GTT') {
     fillPrice = client_price;
   } else {
-    const buyEntryBuffer = buySetting?.entry_buffer ?? 0.003;
-    const buyBidBuffer = buySetting?.bid_buffer ?? 0.003;
-    const buyExitBuffer = buySetting?.exit_buffer ?? 0.0017;
-    const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
-    const sellBidBuffer = sellSetting?.bid_buffer ?? 0.003;
-    const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
+    const buyEntryBuffer = (buySetting?.entry_buffer ?? 0.3) / 100;
+    const buyBidBuffer = (buySetting?.bid_buffer ?? 0.3) / 100;
+    const buyExitBuffer = (buySetting?.exit_buffer ?? 0.17) / 100;
+    const sellEntryBuffer = (sellSetting?.entry_buffer ?? 0.3) / 100;
+    const sellBidBuffer = (sellSetting?.bid_buffer ?? 0.3) / 100;
+    const sellExitBuffer = (sellSetting?.exit_buffer ?? 0.17) / 100;
 
     let priceWithBuffer = baseLtp;
 

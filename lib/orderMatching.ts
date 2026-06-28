@@ -98,9 +98,9 @@ export class InMemoryMatchingEngine {
           if (scalperUserIds.has(s.user_id)) continue; // scalper — will be overridden below
           const key = `${s.user_id}|${s.segment}|${s.side}`;
           this.segmentSettings.set(key, {
-            entry_buffer: Number(s.entry_buffer ?? 0.003),
-            bid_buffer: Number(s.bid_buffer ?? 0.003),
-            exit_buffer: Number(s.exit_buffer ?? 0.0017)
+            entry_buffer: Number(s.entry_buffer ?? 0.3),
+            bid_buffer: Number(s.bid_buffer ?? 0.3),
+            exit_buffer: Number(s.exit_buffer ?? 0.17)
           });
         }
       }
@@ -111,9 +111,9 @@ export class InMemoryMatchingEngine {
           if (!scalperUserIds.has(s.user_id)) continue; // not a scalper — skip
           const key = `${s.user_id}|${s.segment}|${s.side}`;
           this.segmentSettings.set(key, {
-            entry_buffer: Number(s.entry_buffer ?? 0.003),
-            bid_buffer: Number(s.bid_buffer ?? 0.003),
-            exit_buffer: Number(s.exit_buffer ?? 0.0017)
+            entry_buffer: Number(s.entry_buffer ?? 0.3),
+            bid_buffer: Number(s.bid_buffer ?? 0.3),
+            exit_buffer: Number(s.exit_buffer ?? 0.17)
           });
         }
       }
@@ -178,9 +178,9 @@ export class InMemoryMatchingEngine {
           const profile = this.userProfiles.get(row.user_id);
           if (!profile || profile.trading_mode !== 'scalper') {
             this.segmentSettings.set(key, {
-              entry_buffer: Number(row.entry_buffer ?? 0.003),
-              bid_buffer: Number(row.bid_buffer ?? 0.003),
-              exit_buffer: Number(row.exit_buffer ?? 0.0017)
+              entry_buffer: Number(row.entry_buffer ?? 0.3),
+              bid_buffer: Number(row.bid_buffer ?? 0.3),
+              exit_buffer: Number(row.exit_buffer ?? 0.17)
             });
           }
         }
@@ -193,9 +193,9 @@ export class InMemoryMatchingEngine {
           const profile = this.userProfiles.get(row.user_id);
           if (profile && profile.trading_mode === 'scalper') {
             this.segmentSettings.set(key, {
-              entry_buffer: Number(row.entry_buffer ?? 0.003),
-              bid_buffer: Number(row.bid_buffer ?? 0.003),
-              exit_buffer: Number(row.exit_buffer ?? 0.0017)
+              entry_buffer: Number(row.entry_buffer ?? 0.3),
+              bid_buffer: Number(row.bid_buffer ?? 0.3),
+              exit_buffer: Number(row.exit_buffer ?? 0.17)
             });
           }
         }
@@ -322,12 +322,12 @@ export class InMemoryMatchingEngine {
           // bufferFee = absolute price difference * qty, charged as BUFFER_FEE_DEBIT.
           const buySetting = this.segmentSettings.get(`${order.user_id}|${order.segment}|BUY`);
           const sellSetting = this.segmentSettings.get(`${order.user_id}|${order.segment}|SELL`);
-          const buyEntryBuffer = buySetting?.entry_buffer ?? 0.003;
-          const buyBidBuffer = buySetting?.bid_buffer ?? 0.003;
-          const buyExitBuffer = buySetting?.exit_buffer ?? 0.0017;
-          const sellEntryBuffer = sellSetting?.entry_buffer ?? 0.003;
-          const sellBidBuffer = sellSetting?.bid_buffer ?? 0.003;
-          const sellExitBuffer = sellSetting?.exit_buffer ?? 0.0017;
+          const buyEntryBuffer = (buySetting?.entry_buffer ?? 0.3) / 100;
+          const buyBidBuffer = (buySetting?.bid_buffer ?? 0.3) / 100;
+          const buyExitBuffer = (buySetting?.exit_buffer ?? 0.17) / 100;
+          const sellEntryBuffer = (sellSetting?.entry_buffer ?? 0.3) / 100;
+          const sellBidBuffer = (sellSetting?.bid_buffer ?? 0.3) / 100;
+          const sellExitBuffer = (sellSetting?.exit_buffer ?? 0.17) / 100;
 
           let priceWithBuffer = ltp;
           if (order.side === 'BUY') {

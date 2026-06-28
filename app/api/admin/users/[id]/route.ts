@@ -199,9 +199,9 @@ export async function PATCH(
               intraday_type: 'Multiplier',
               holding_leverage,
               holding_type: 'Multiplier',
-              entry_buffer: 0.003,
-              bid_buffer: 0.003,
-              exit_buffer: 0.0017,
+              entry_buffer: 0.3,
+              bid_buffer: 0.3,
+              exit_buffer: 0.17,
               trade_allowed: true,
             });
           }

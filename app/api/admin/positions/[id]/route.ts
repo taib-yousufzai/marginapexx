@@ -355,8 +355,8 @@ export async function PATCH(
             for (const row of settingsRows ?? []) {
               const key = `${updatedPosition.user_id}|${row.segment}|${row.side}`;
               exitBuffers.set(key, { 
-                exit_buffer: Number(row.exit_buffer ?? 0.0017),
-                bid_buffer: Number(row.bid_buffer ?? 0.003) 
+                exit_buffer: Number(row.exit_buffer ?? 0.17),
+                bid_buffer: Number(row.bid_buffer ?? 0.3) 
               });
             }
 
@@ -370,8 +370,8 @@ export async function PATCH(
               // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
               const bufKeyBuy = `${updatedPosition.user_id}|${pos.settlement}|BUY`;
               const bufKeySell = `${updatedPosition.user_id}|${pos.settlement}|SELL`;
-              const buyBuf = exitBuffers.get(bufKeyBuy)?.bid_buffer ?? 0.003;
-              const sellBuf = exitBuffers.get(bufKeySell)?.exit_buffer ?? 0.0017;
+              const buyBuf = (exitBuffers.get(bufKeyBuy)?.bid_buffer ?? 0.3) / 100;
+              const sellBuf = (exitBuffers.get(bufKeySell)?.exit_buffer ?? 0.17) / 100;
 
               const pnl =
                 pos.side === 'BUY'

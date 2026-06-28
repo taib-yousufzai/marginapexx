@@ -133,8 +133,8 @@ export async function checkAndExecuteAccountLiquidation(
     const ltp = Number(pos.ltp || pos.entry_price);
     const exitBufferKey = `${userId}|${pos.settlement}|${pos.side}`;
     const bufferSettings = exitBuffers.get(exitBufferKey);
-    const exitBuffer = bufferSettings?.exit_buffer ?? 0.0017;
-    const bidBuffer = bufferSettings?.bid_buffer ?? 0.003;
+    const exitBuffer = (bufferSettings?.exit_buffer ?? 0.17) / 100;
+    const bidBuffer = (bufferSettings?.bid_buffer ?? 0.3) / 100;
 
     let exitPrice: number;
     if (pos.side === 'BUY') {
