@@ -41,7 +41,8 @@ export default function TemplateApplyModal({ template, onClose, onApplied, isDem
     );
   }, [users, search]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every(u => selectedIds.has(u.id));
+  const selectableFiltered = filtered.filter(u => u.template_id !== template.id);
+  const allFilteredSelected = selectableFiltered.length > 0 && selectableFiltered.every(u => selectedIds.has(u.id));
 
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
@@ -53,7 +54,7 @@ export default function TemplateApplyModal({ template, onClose, onApplied, isDem
     } else {
       setSelectedIds(prev => {
         const next = new Set(prev);
-        filtered.forEach(u => next.add(u.id));
+        selectableFiltered.forEach(u => next.add(u.id));
         return next;
       });
     }
@@ -224,18 +225,23 @@ function UserRow({
 
   return (
     <div
-      onClick={onChange}
+      onClick={!hasTemplate ? onChange : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 20px', cursor: 'pointer',
+        padding: '10px 20px', cursor: hasTemplate ? 'not-allowed' : 'pointer',
         borderBottom: '1px solid #21262d',
-        background: checked ? 'rgba(20,184,166,0.06)' : 'transparent',
+        background: checked ? 'rgba(20,184,166,0.06)' : hasTemplate ? 'rgba(255,255,255,0.02)' : 'transparent',
         transition: 'background 0.15s',
+        opacity: hasTemplate ? 0.6 : 1,
       }}
-      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(20,184,166,0.06)' : 'transparent'; }}
+      onMouseEnter={e => { if (!checked && !hasTemplate) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = checked ? 'rgba(20,184,166,0.06)' : hasTemplate ? 'rgba(255,255,255,0.02)' : 'transparent'; }}
     >
-      <Checkbox checked={checked} onChange={onChange} />
+      {hasTemplate ? (
+        <div style={{ width: 16, height: 16, flexShrink: 0 }} /> // Spacer to align text
+      ) : (
+        <Checkbox checked={checked} onChange={onChange} />
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ color: '#e6edf3', fontSize: '13px', fontWeight: 600 }}>
           {user.full_name ?? user.email}
@@ -253,7 +259,7 @@ function UserRow({
             color: '#38bdf8',
             marginBottom: '4px'
           }}>
-            Has Template
+            Already Applied
           </span>
         )}
         <span style={{
