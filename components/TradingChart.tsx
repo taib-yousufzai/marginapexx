@@ -220,7 +220,7 @@ function getStoredWatchlistItems() {
       const parsed = JSON.parse(rawUser);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch (e) {}
+  } catch (e) { }
   return getDefaultWatchlistItems();
 }
 
@@ -262,7 +262,7 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const url = activeSearchTab === 'All' 
+        const url = activeSearchTab === 'All'
           ? `/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}`
           : `/api/market/instruments/search?q=${encodeURIComponent(searchQuery)}&tab=${encodeURIComponent(activeSearchTab)}`;
         const res = await fetch(url);
@@ -387,41 +387,41 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
                   if (t.startsWith(q)) return true;
                   return t.split(/[\s\-_\/]/).some(w => w.startsWith(q));
                 };
-                
+
                 const localMatches = getStoredWatchlistItems().filter((item: any) => {
                   return wordStartMatch(item.name) || wordStartMatch(item.symbol);
                 });
 
                 const allCombined = [...localMatches, ...searchResults];
                 const uniqueCombined = Array.from(new Map(allCombined.map(item => [item.kiteSymbol, item])).values());
-                
+
                 const finalResults = activeSearchTab === 'All' ? uniqueCombined : uniqueCombined.filter((res: any) => getTabForItem(res) === activeSearchTab || mapSegmentToDbSegment(res.segment) === activeSearchTab);
 
                 return finalResults.length > 0 ? (
                   finalResults.map((res: any, idx: number) => {
-                  const isStarred = starredInstruments.some((p: any) => p.kiteSymbol === res.kiteSymbol);
-                  return (
-                    <div key={`${res.kiteSymbol}-${idx}`} className="tc-search-result-item">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button
-                          className="tc-star-btn"
-                          onClick={(e) => { e.stopPropagation(); toggleStar(res); }}
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: isStarred ? '#F59E0B' : '#D1D5DB', display: 'flex', alignItems: 'center' }}
-                        >
-                          {isStarred ? '★' : '☆'}
-                        </button>
-                        <div className="tc-res-info">
-                          <div className="tc-res-name">{res.name}</div>
-                          <div className="tc-res-segment">{res.segment}</div>
+                    const isStarred = starredInstruments.some((p: any) => p.kiteSymbol === res.kiteSymbol);
+                    return (
+                      <div key={`${res.kiteSymbol}-${idx}`} className="tc-search-result-item">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            className="tc-star-btn"
+                            onClick={(e) => { e.stopPropagation(); toggleStar(res); }}
+                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '24px', color: isStarred ? '#F59E0B' : '#D1D5DB', display: 'flex', alignItems: 'center' }}
+                          >
+                            {isStarred ? '★' : '☆'}
+                          </button>
+                          <div className="tc-res-info">
+                            <div className="tc-res-name">{res.name}</div>
+                            <div className="tc-res-segment">{res.segment}</div>
+                          </div>
                         </div>
+                        <button className="tc-res-open-btn" onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect(res);
+                        }}>Open</button>
                       </div>
-                      <button className="tc-res-open-btn" onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect(res);
-                      }}>Open</button>
-                    </div>
-                  )
-                })
+                    )
+                  })
                 ) : <div className="tc-search-msg">No results found</div>;
               })()
             )
@@ -1264,26 +1264,28 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     return chargeExposure * 0.001;
   };
 
-  const intradayCharge = segSetting ? computeCharge(
+  const multiplier = (isExitFlow || isAddMoreFlow || modifyOrderId) ? 1 : 2;
+
+  const intradayCharge = (segSetting ? computeCharge(
     segSetting.commission_type || 'Per Crore',
     segSetting.commission_value ?? 0
-  ) : 0;
+  ) : 0) * multiplier;
 
-  const carryCharge = segSetting ? computeCharge(
+  const carryCharge = (segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0;
+  ) : 0) * multiplier;
 
-  const gttCharge = segSetting ? computeCharge(
+  const gttCharge = (segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
-  ) : 0;
+  ) : 0) * multiplier;
 
   const totalBrokerage = (
     intradayCharge +
     (orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0) +
     (orderType === 'gtt' ? gttCharge : 0)
-  ) * 2;
+  );
   const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (leverageType === 'Fixed' ? (orderQty / lotSize) * leverage : (executionPrice * orderQty) / leverage);
   const reqMargin = Math.round(marginPortion + totalBrokerage);
 

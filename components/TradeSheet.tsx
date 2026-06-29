@@ -180,27 +180,33 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     if (commType === 'Per Trade' || commType === 'Flat') return commVal;
     return chargeExposure * 0.001;
   };
+  const targetPT = propProductType || productType;
+  const existingPos = activePositions.find(p => p.symbol === item?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.product_type === targetPT);
+  const hasBuyPos = existingPos?.side === 'BUY';
+  const hasSellPos = existingPos?.side === 'SELL';
 
-  const intradayCharge = segSetting ? computeCharge(
+  const multiplier = (exitMode || existingPos) ? 1 : 2;
+
+  const intradayCharge = (segSetting ? computeCharge(
     segSetting.commission_type || 'Per Crore',
     segSetting.commission_value ?? 0
-  ) : 0;
+  ) : 0) * multiplier;
 
-  const carryCharge = segSetting ? computeCharge(
+  const carryCharge = (segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0;
+  ) : 0) * multiplier;
 
-  const gttCharge = segSetting ? computeCharge(
+  const gttCharge = (segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
-  ) : 0;
+  ) : 0) * multiplier;
 
   const calculatedBrokerage = (
     intradayCharge +
     (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
     (orderType === 'GTT' ? gttCharge : 0)
-  ) * 2;
+  );
 
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
@@ -356,14 +362,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     setTimeout(() => setToast(null), 3000);
   };
 
-  const targetPT = propProductType || productType;
-  const existingPos = activePositions.find(p => p.symbol === item?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.product_type === targetPT);
-  console.log('[DEBUG TradeSheet] item:', item?.symbol, 'targetPT:', targetPT, 'activePositions count:', activePositions.length, 'found:', !!existingPos);
-  if (existingPos) {
-    console.log('[DEBUG TradeSheet] Matched position details:', { id: existingPos.id, symbol: existingPos.symbol, product_type: existingPos.product_type, side: existingPos.side });
-  }
-  const hasBuyPos = existingPos?.side === 'BUY';
-  const hasSellPos = existingPos?.side === 'SELL';
+
 
   const topLimit = segSetting?.top_limit ?? 0;
   const minLimit = segSetting?.min_limit ?? 0;
@@ -1279,10 +1278,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
                 {/* Margin */}
                 <div className="ts2-margin-card">
+                  <div className="ts2-margin-row">
+                    <span className="ts2-ml">Available</span>
+                    <span className="ts2-mv-avail">
+                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
+                    </span>
+                  </div>
+                  <div className="ts2-margin-row">
+                    <span className="ts2-ml">Required Margin</span>
+                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
+                  </div>
+
                   {/* Collapsible Charges Breakdown */}
                   <div
                     className="ts2-margin-row"
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                    style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px', marginTop: '4px' }}
                     onClick={() => setShowCharges(!showCharges)}
                   >
                     <span className="ts2-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
@@ -1294,17 +1304,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   {showCharges && (
                     <>
-                      <div className="ts2-margin-row" style={{ borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px', marginTop: '4px' }}>
-                        <span className="ts2-ml">Available</span>
-                        <span className="ts2-mv-avail">
-                          {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
-                        </span>
-                      </div>
-                      <div className="ts2-margin-row">
-                        <span className="ts2-ml">Required Margin</span>
-                        <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="ts2-margin-row">
+                      <div className="ts2-margin-row" style={{ paddingTop: '8px' }}>
                         <span className="ts2-ml">Intraday Brokerage</span>
                         <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 700 }}>
                           ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
