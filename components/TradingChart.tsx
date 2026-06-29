@@ -2026,6 +2026,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 </div>
               )}
 
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 2px 4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Free Margin: <span style={{ color: 'var(--text)', fontWeight: 700 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
+                <span style={{ color: 'var(--text-muted)' }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text)', fontWeight: 700 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
+              </div>
+
               <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' }}>
                 <div
                   style={{
@@ -2048,19 +2053,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     </span>
                   </div>
                   {showCharges && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Free Margin</span>
-                        <span style={{ color: 'var(--text)', fontWeight: 700 }}>
-                          ₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Required Margin</span>
-                        <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text)', fontWeight: 700 }}>
-                          ₹{reqMargin.toLocaleString('en-IN')}
-                        </span>
-                      </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
                         <span style={{ color: 'var(--green)', fontWeight: 700 }}>
