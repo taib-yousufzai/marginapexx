@@ -2026,12 +2026,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 2px 4px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Free Margin: <span style={{ color: 'var(--text)', fontWeight: 700 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
-                <span style={{ color: 'var(--text-muted)' }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text)', fontWeight: 700 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
-              </div>
-
-              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' }}>
+              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', paddingBottom: '8px', borderBottom: '1px solid var(--border)', marginBottom: '8px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
+                  <span style={{ color: 'var(--text-muted)' }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
+                </div>
                 <div
                   style={{
                     display: 'flex',

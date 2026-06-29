@@ -1278,15 +1278,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
                 {/* Margin */}
                 <div className="ts2-margin-card">
-                  <div className="ts2-margin-row">
-                    <span className="ts2-ml">Available</span>
-                    <span className="ts2-mv-avail">
-                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
-                    </span>
-                  </div>
-                  <div className="ts2-margin-row">
-                    <span className="ts2-ml">Required Margin</span>
-                    <span className="ts2-mv">₹ {requiredMargin.toLocaleString('en-IN')}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 4px 10px' }}>
+                    <span style={{ color: 'var(--text-muted, #888)' }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 700 }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '--'}</span></span>
+                    <span style={{ color: 'var(--text-muted, #888)' }}>Required Margin: <span className={`${requiredMargin > (availableBalance || 0) ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 700 }}>₹{requiredMargin.toLocaleString('en-IN')}</span></span>
                   </div>
 
                   {/* Collapsible Charges Breakdown */}
