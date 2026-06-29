@@ -1469,7 +1469,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             setIsSearchActive(true);
             setTimeout(() => searchInputRef.current?.focus(), 100);
           }}>
-            <span className="tc-symbol-exchange">{displayExchange}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', opacity: 0.7 }}>
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
             <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
           </div>
@@ -1590,16 +1593,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </svg>
           </div>
 
-          {/* Search */}
-          <div className="tc-tb-icon" title="Search Symbol" onClick={() => {
-            setIsSearchActive(true);
-            setTimeout(() => searchInputRef.current?.focus(), 100);
-          }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="6" cy="6" r="4.5" />
-              <path d="M10 10l2.5 2.5" strokeLinecap="round" />
-            </svg>
-          </div>
+
 
           {/* Fullscreen */}
           <div className="tc-tb-icon" title="Fullscreen" onClick={() => {
@@ -2031,29 +2025,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               )}
 
               <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                  <div className="margin-line">
-                    <span className="margin-line-label">Free Margin:</span>
-                    <span className="margin-line-value">₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-                  </div>
-                  <div className="margin-line">
-                    <span className="margin-line-label">Required Margin:</span>
-                    <span className={`margin-line-value ${reqMargin > balance ? 'negative' : ''}`}>
-                      ₹{reqMargin.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                </div>
-
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '6px',
                     width: '100%',
-                    boxSizing: 'border-box',
-                    borderTop: '1px solid var(--border)',
-                    marginTop: '8px',
-                    paddingTop: '8px'
+                    boxSizing: 'border-box'
                   }}
                 >
                   <div
@@ -2069,6 +2047,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   </div>
                   {showCharges && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Free Margin</span>
+                        <span style={{ color: 'var(--text)', fontWeight: 700 }}>
+                          ₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Required Margin</span>
+                        <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text)', fontWeight: 700 }}>
+                          ₹{reqMargin.toLocaleString('en-IN')}
+                        </span>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
                         <span style={{ color: 'var(--green)', fontWeight: 700 }}>
