@@ -297,7 +297,8 @@ export async function POST(
 
   // --- BROKERAGE CALCULATION & POST-PROCESSING ---
   try {
-    const exposure = exitPrice * Number(pos.qty_open);
+    const entryExposure = Number(pos.entry_price) * Number(pos.qty_open);
+    const exitExposure = exitPrice * Number(pos.qty_open);
     const commType = pos.product_type === 'CARRY' 
       ? (segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore')
       : (segSetting?.commission_type || 'Per Crore');
@@ -307,18 +308,17 @@ export async function POST(
     
     let brokerage = 0;
     if (commType === 'Per Crore') {
-      brokerage = (exposure * commVal) / 10000000;
+      brokerage = ((entryExposure + exitExposure) * commVal) / 10000000;
     } else if (commType === 'Per Lot') {
       const { data: inst } = await admin.from('instruments').select('lot_size').eq('tradingsymbol', pos.symbol).single();
       const symbolLotSize = inst?.lot_size || 1;
       const lotsUsed = Number(pos.qty_open) / symbolLotSize;
-      brokerage = lotsUsed * commVal;
+      brokerage = lotsUsed * commVal * 2;
     } else if (commType === 'Per Trade' || commType === 'Flat') {
-      brokerage = commVal;
+      brokerage = commVal * 2;
     } else {
-      brokerage = exposure * 0.001; // fallback
+      brokerage = (entryExposure + exitExposure) * 0.001; // fallback
     }
-    brokerage = brokerage * 2;
 
     if (brokerage > 0) {
       await admin.from('transactions').insert({
