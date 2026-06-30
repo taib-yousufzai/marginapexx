@@ -187,26 +187,22 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const multiplier = (exitMode || existingPos) ? 1 : 2;
 
-  const intradayCharge = (segSetting ? computeCharge(
+  const intradayCharge = (productType === 'INTRADAY' && orderType !== 'GTT' && segSetting ? computeCharge(
     segSetting.commission_type || 'Per Crore',
     segSetting.commission_value ?? 0
   ) : 0) * multiplier;
 
-  const carryCharge = (segSetting ? computeCharge(
+  const carryCharge = ((productType === 'CARRY' || orderType === 'GTT') && segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
   ) : 0) * multiplier;
 
-  const gttCharge = (segSetting ? computeCharge(
+  const gttCharge = (orderType === 'GTT' && segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
   ) : 0) * multiplier;
 
-  const calculatedBrokerage = (
-    intradayCharge +
-    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
-    (orderType === 'GTT' ? gttCharge : 0)
-  );
+  const calculatedBrokerage = intradayCharge + carryCharge + gttCharge;
 
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
