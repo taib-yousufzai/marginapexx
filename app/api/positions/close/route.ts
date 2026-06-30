@@ -201,9 +201,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       Array.from(cryptoSymbolsToFetch)
     );
 
-    // 4. Process closing for each position
-    const results = await Promise.all(
-      posSymbols.map(async ({ pos, lookupKey }) => {
+    // 4. Process closing for each position sequentially to avoid DB deadlocks
+    const results = [];
+    for (const { pos, lookupKey } of posSymbols) {
         try {
           // Check market hours
           const symbol = pos.symbol || '';
@@ -222,7 +222,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             const segmentHour = tradingHoursMap.get(segmentId);
             if (segmentHour) {
               if (!segmentHour.is_active) {
-                return { positionId: pos.id, success: false, error: 'market is closed' };
+                results.push({ positionId: pos.id, success: false, error: 'market is closed' });
+                continue;
               }
 
               const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -230,12 +231,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
               if (isWeekend) {
-                return { positionId: pos.id, success: false, error: 'market is closed' };
+                results.push({ positionId: pos.id, success: false, error: 'market is closed' });
+                continue;
               }
 
               const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
               if (currentHHMM < segmentHour.start_time || currentHHMM >= segmentHour.end_time) {
-                return { positionId: pos.id, success: false, error: 'market is closed' };
+                results.push({ positionId: pos.id, success: false, error: 'market is closed' });
+                continue;
               }
             }
           }
@@ -265,11 +268,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const requiredHold = pnlValue > 0 ? profitHoldSec : lossHoldSec;
 
           if (durationSec < requiredHold) {
-            return {
+            results.push({
               positionId: pos.id,
               success: false,
               error: `Anti-Scalping: Minimum hold time of ${requiredHold}s required. Elapsed: ${durationSec}s.`
-            };
+            });
+            continue;
           }
 
           // Call RPC
@@ -284,7 +288,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           if (rpcErr) {
             console.error(`[POST /api/positions/close] RPC error for position ${pos.id}:`, rpcErr);
-            return { positionId: pos.id, success: false, error: `RPC Error: ${rpcErr.message || JSON.stringify(rpcErr)}` };
+            results.push({ positionId: pos.id, success: false, error: `RPC Error: ${rpcErr.message || JSON.stringify(rpcErr)}` });
+            continue;
           }
 
           // --- BROKERAGE CALCULATION & POST-PROCESSING ---
@@ -338,12 +343,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             console.error(`[POST /api/positions/close] Brokerage error for position ${pos.id}:`, brokErr);
           }
 
-          return { positionId: pos.id, success: true, pnl: Number(pnl), exit_price: exitPrice };
+          results.push({ positionId: pos.id, success: true, pnl: Number(pnl), exit_price: exitPrice });
         } catch (innerErr: any) {
-          return { positionId: pos.id, success: false, error: innerErr.message || 'Unknown error' };
+          results.push({ positionId: pos.id, success: false, error: innerErr.message || 'Unknown error' });
         }
-      })
-    );
+    }
 
     return NextResponse.json({ success: true, results }, { status: 200 });
   } catch (err: any) {
