@@ -183,6 +183,24 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     };
   }, [fetchPositions]);
 
+  // Helper to smartly resolve Kite prefixes if the database is missing them
+  const resolveKitePrefix = useCallback((key: string, settlement: string) => {
+    if (key.includes(':')) return key;
+    const seg = (settlement || '').toUpperCase();
+    let prefix = 'NSE:';
+    if (seg.includes('MCX')) prefix = 'MCX:';
+    else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
+    else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
+    else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
+    else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
+    
+    // Catch base indexes
+    if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';
+    if (prefix === 'NFO:' && !key.match(/\d/)) prefix = 'NSE:';
+    
+    return `${prefix}${key}`;
+  }, []);
+
   // Group instrument keys by segment
   const { kiteKeys, binanceKeys, comexKeys } = useMemo(() => {
     const kite: string[] = [];
@@ -201,7 +219,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
         comex.push(p.symbol);
       } else {
-        kite.push(p.kite_instrument || p.symbol);
+        kite.push(resolveKitePrefix(p.kite_instrument || p.symbol, p.settlement || ''));
       }
     });
 
@@ -250,7 +268,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
           ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
         } else {
-          const kiteKey = p.kite_instrument || p.symbol;
+          const kiteKey = resolveKitePrefix(p.kite_instrument || p.symbol, p.settlement || '');
           ltp = marketQuotes[kiteKey]?.lastPrice ?? ltp;
         }
       }
