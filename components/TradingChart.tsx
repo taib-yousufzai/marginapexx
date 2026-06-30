@@ -432,7 +432,7 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
   );
 };
 
-export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote: propLiveQuote }: TradingChartProps) {
   const [symbol, setSymbol] = useState(propSymbol);
   const [segment, setSegment] = useState(propSegment);
 
@@ -563,16 +563,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const chainExpiry = chainData?.selectedExpiry || '';
 
   const symbolsToFetch = useMemo(() => {
-    if (activeSegment !== 'chain' || !chainStrikes.length) return [];
-    const syms: string[] = [];
-    chainStrikes.forEach((s: any) => {
-      if (s.ce?.id) syms.push(s.ce.id);
-      if (s.pe?.id) syms.push(s.pe.id);
-    });
+    const syms: string[] = [symbol];
+    if (activeSegment === 'chain' && chainStrikes.length > 0) {
+      chainStrikes.forEach((s: any) => {
+        if (s.ce?.id) syms.push(s.ce.id);
+        if (s.pe?.id) syms.push(s.pe.id);
+      });
+    }
     return syms;
-  }, [activeSegment, chainStrikes]);
+  }, [activeSegment, chainStrikes, symbol]);
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
+  const liveQuote = marketQuotes[symbol] || propLiveQuote;
 
   const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number, kiteId?: string) => {
     setIsPanelExpanded(false);
@@ -2048,11 +2050,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 </div>
               )}
 
-              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', paddingBottom: '8px', borderBottom: '1px solid var(--border)', marginBottom: '8px' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
-                  <span style={{ color: 'var(--text-muted)' }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 4px', marginBottom: '8px' }}>
+                <span style={{ color: '#8b949e', fontWeight: 500 }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
+                <span style={{ color: '#8b949e', fontWeight: 500 }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
+              </div>
+              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--pill-bg, rgba(139, 148, 158, 0.1))', border: 'none', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
                 <div
                   style={{
                     display: 'flex',
