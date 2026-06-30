@@ -71,16 +71,26 @@ export function validatePayRequest(
       return { valid: false, error: 'Withdrawals are currently disabled', status: 400 };
     }
 
-    // 5. Disallowed day
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const currentDay = dayNames[nowUtc.getUTCDay()];
+    // 5. Disallowed day (IST)
+    const options: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Kolkata', weekday: 'long' };
+    const currentDay = new Intl.DateTimeFormat('en-US', options).format(nowUtc);
     if (!rules.allowed_days.includes(currentDay)) {
       return { valid: false, error: 'Withdrawals not allowed on this day', status: 400 };
     }
 
-    // 6. Outside time window
-    const currentHHMM = `${String(nowUtc.getUTCHours()).padStart(2, '0')}:${String(nowUtc.getUTCMinutes()).padStart(2, '0')}`;
-    if (currentHHMM < rules.start_time || currentHHMM >= rules.end_time) {
+    // 6. Outside time window (IST)
+    const timeOptions: Intl.DateTimeFormatOptions = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+    // Some implementations of Intl.DateTimeFormat return 24 for midnight, so we handle it if necessary, but usually hour12: false gives 00-23
+    let currentHHMMSS = new Intl.DateTimeFormat('en-US', timeOptions).format(nowUtc);
+    if (currentHHMMSS.startsWith('24:')) {
+      currentHHMMSS = '00' + currentHHMMSS.slice(2);
+    }
+    
+    // Some databases return start_time as 'HH:MM:SS' and some as 'HH:MM'. We slice to match.
+    const ruleStart = rules.start_time.padEnd(8, ':00').slice(0, 8);
+    const ruleEnd = rules.end_time.padEnd(8, ':00').slice(0, 8);
+    
+    if (currentHHMMSS < ruleStart || currentHHMMSS >= ruleEnd) {
       return { valid: false, error: 'Withdrawals not allowed at this time', status: 400 };
     }
 

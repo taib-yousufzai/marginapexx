@@ -187,7 +187,7 @@ export async function GET(request: Request) {
              }
           }
           
-          const { error: rpcErr } = await admin.rpc('close_position_system', {
+          const { error: rpcErr } = await admin.rpc('close_position', {
             p_position_id: pos.id,
             p_user_id: userProfile.id,
             p_ltp: baseLtp,

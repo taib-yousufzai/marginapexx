@@ -96,7 +96,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
         exitPrice = Math.round(exitPrice * 100) / 100;
 
         // Call RPC close_position
-        const { data: pnl, error: rpcErr } = await adminClient.rpc('close_position', {
+        const { error: rpcErr } = await adminClient.rpc('close_position', {
           p_position_id: pos.id,
           p_user_id: userId,
           p_ltp: baseLtp,
