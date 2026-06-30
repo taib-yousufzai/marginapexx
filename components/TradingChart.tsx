@@ -432,7 +432,7 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
   );
 };
 
-export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote: propLiveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
   const [symbol, setSymbol] = useState(propSymbol);
   const [segment, setSegment] = useState(propSegment);
 
@@ -563,18 +563,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const chainExpiry = chainData?.selectedExpiry || '';
 
   const symbolsToFetch = useMemo(() => {
-    const syms: string[] = [symbol];
-    if (activeSegment === 'chain' && chainStrikes.length > 0) {
-      chainStrikes.forEach((s: any) => {
-        if (s.ce?.id) syms.push(s.ce.id);
-        if (s.pe?.id) syms.push(s.pe.id);
-      });
-    }
+    if (activeSegment !== 'chain' || !chainStrikes.length) return [];
+    const syms: string[] = [];
+    chainStrikes.forEach((s: any) => {
+      if (s.ce?.id) syms.push(s.ce.id);
+      if (s.pe?.id) syms.push(s.pe.id);
+    });
     return syms;
-  }, [activeSegment, chainStrikes, symbol]);
+  }, [activeSegment, chainStrikes]);
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
-  const liveQuote = marketQuotes[symbol] || propLiveQuote;
 
   const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number, kiteId?: string) => {
     setIsPanelExpanded(false);
@@ -1473,6 +1471,25 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             toggleStar={toggleStar}
             onClose={() => setIsSearchActive(false)}
             onSelect={(res: any) => {
+              // Reset all chart state for new symbol
+              setHistoricalCandles([]);
+              setCurrentPrice(0);
+              setPriceChange(0);
+              setPriceChangePct(0);
+              setLoading(true);
+              setError(null);
+              hasLoadedData.current = false;
+
+              // Reset order block
+              setChainContract(null);
+              setIsOrderBlockVisible(false);
+              setIsPanelExpanded(false);
+              setIsExitFlow(false);
+              setIsAddMoreFlow(false);
+              setExitPositionId(null);
+              setActiveSegment('orders');
+
+              // Set new symbol/segment
               setSymbol(res.kiteSymbol);
               setSegment(res.segment);
               setIsSearchActive(false);
