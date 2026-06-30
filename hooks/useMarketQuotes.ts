@@ -243,7 +243,7 @@ export function useMarketQuotes(symbols: string[]) {
 
     wsManager.subscribe(currentSymbols, onMessage);
 
-    // Throttle rendering state updates to 250ms
+    // Throttle rendering state updates to 50ms for smooth 20fps tick-by-tick updates
     const flushInterval = setInterval(() => {
       const pending = pendingUpdatesRef.current;
       if (Object.keys(pending).length > 0) {
@@ -253,7 +253,7 @@ export function useMarketQuotes(symbols: string[]) {
         }));
         pendingUpdatesRef.current = {};
       }
-    }, 250);
+    }, 50);
 
     return () => {
       clearInterval(flushInterval);

@@ -67,6 +67,8 @@ export function useComexQuotes(
         { cache: 'no-store' },
       );
 
+
+
       if (!res.ok) {
         setError(`COMEX API error: ${res.status}`);
         return;
