@@ -284,7 +284,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           if (rpcErr) {
             console.error(`[POST /api/positions/close] RPC error for position ${pos.id}:`, rpcErr);
-            return { positionId: pos.id, success: false, error: 'Failed to close position via RPC' };
+            return { positionId: pos.id, success: false, error: `RPC Error: ${rpcErr.message || JSON.stringify(rpcErr)}` };
           }
 
           // --- BROKERAGE CALCULATION & POST-PROCESSING ---

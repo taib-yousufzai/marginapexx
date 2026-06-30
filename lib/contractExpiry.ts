@@ -78,8 +78,5 @@ export function isContractExpired(kiteSymbol: string): boolean {
   if (expiryYear < todayYear) return true;
   if (expiryYear === todayYear && expiryMonth < todayMonth) return true;
 
-  // Same month: treat as expired after the 20th (covers MCX monthly expiry ~17th-20th)
-  if (expiryYear === todayYear && expiryMonth === todayMonth && todayDate > 20) return true;
-
   return false;
 }
