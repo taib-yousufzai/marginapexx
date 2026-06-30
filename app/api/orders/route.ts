@@ -1178,7 +1178,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           option_type: parsedOption.optionType,
         },
         action: (is_exit ?? false)
-          ? (side === 'BUY' ? 'BUY_EXIT' : 'SELL_EXIT')
+          ? (side === 'BUY' ? 'SELL_EXIT' : 'BUY_EXIT')
           : (side === 'BUY' ? 'BUY' : 'SELL'),
         quantity: qty,
       } as any;
