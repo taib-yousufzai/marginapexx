@@ -1227,6 +1227,17 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     ? (parseFloat(limitPrice) > 0 ? parseFloat(limitPrice) : resolvedPrice)
     : resolvedPrice;
 
+  const liveOptionQuote = (chainContract && chainContract.kiteId) ? marketQuotes[chainContract.kiteId] : null;
+  const liveAsk = chainContract
+    ? (liveOptionQuote?.ask || chainContract.ask)
+    : rawAsk;
+  const liveBid = chainContract
+    ? (liveOptionQuote?.bid || chainContract.bid)
+    : rawBid;
+  const liveLTP = chainContract
+    ? (liveOptionQuote?.lastPrice || liveOptionQuote?.last_price || chainContract.ltp)
+    : (!symbolIsDerivative && liveQuote ? (liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice);
+
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
   const effectiveDbSeg = (() => {
@@ -1829,22 +1840,33 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         {isOrderBlockVisible && (
           <div className="order-block visible" id="orderBlock">
             <div className="order-block-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                 <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
                 </span>
-                {chainContract && (
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0, marginLeft: 'auto', marginRight: '8px' }}>
-                    <span style={{ background: orderSide === 'BUY' ? '#e8faf0' : '#fde8e8', color: orderSide === 'BUY' ? '#1db954' : '#e53935', padding: '2px 6px', borderRadius: '4px', fontWeight: '700', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                      {orderSide === 'BUY' ? 'Ask' : 'Bid'} ₹{orderSide === 'BUY' ? chainContract.ask : chainContract.bid}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ 
+                    color: orderSide === 'BUY' ? '#1db954' : '#e53935', 
+                    background: orderSide === 'BUY' ? 'rgba(29, 185, 84, 0.1)' : 'rgba(229, 57, 53, 0.1)',
+                    border: `1px solid ${orderSide === 'BUY' ? 'rgba(29, 185, 84, 0.3)' : 'rgba(229, 57, 53, 0.3)'}`,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontWeight: '600', 
+                    fontSize: '10px' 
+                  }}>
+                    {orderSide === 'BUY' ? 'Ask' : 'Bid'}: ₹{Number(orderSide === 'BUY' ? liveAsk : liveBid).toFixed(2)}
+                  </span>
+                  {chainContract && chainContract.expiry && (
+                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                      {chainContract.expiry}
                     </span>
-                    {chainContract.expiry && (
-                      <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                        {chainContract.expiry}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginRight: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <span style={{ fontSize: '10px', color: '#8b949e', fontWeight: 500, lineHeight: 1 }}>Stock Price</span>
+                <span style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 600, marginTop: '4px' }}>₹{Number(liveLTP).toFixed(2)}</span>
               </div>
 
               <div
