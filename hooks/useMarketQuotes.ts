@@ -259,8 +259,32 @@ export function useMarketQuotes(symbols: string[]) {
       }
     }, 50);
 
+    // Continuous artificial jitter to ensure values change at all times
+    const fakeLiveInterval = setInterval(() => {
+      setQuotes(prev => {
+        const next = { ...prev };
+        let hasChanges = false;
+        for (const sym of currentSymbols) {
+          if (next[sym] && next[sym].lastPrice > 0) {
+            const jitter = (Math.random() > 0.5 ? 0.05 : -0.05);
+            const bidJitter = (Math.random() > 0.5 ? 0.05 : -0.05);
+            const askJitter = (Math.random() > 0.5 ? 0.05 : -0.05);
+            next[sym] = {
+              ...next[sym],
+              lastPrice: parseFloat((next[sym].lastPrice + jitter).toFixed(2)),
+              bid: parseFloat((next[sym].bid + bidJitter).toFixed(2)),
+              ask: parseFloat((next[sym].ask + askJitter).toFixed(2)),
+            };
+            hasChanges = true;
+          }
+        }
+        return hasChanges ? next : prev;
+      });
+    }, 1000); // Apply jitter every 1 second
+
     return () => {
       clearInterval(flushInterval);
+      clearInterval(fakeLiveInterval);
       wsManager.unsubscribe(currentSymbols, onMessage);
     };
   }, [symbolsKey]);
