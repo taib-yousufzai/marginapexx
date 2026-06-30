@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     };
 
     // Load segment settings and profiles to get users' balances and configurations
-    const { data: profiles } = await admin.from('profiles').select('id, parent_id, trading_mode, balance');
+    const { data: profiles } = await admin.from('profiles').select('id, parent_id, trading_mode, balance, intraday_sq_off');
     const { data: segmentSettings } = await admin.from('segment_settings').select('*');
     const { data: scalperSettings } = await admin.from('scalper_segment_settings').select('*');
 
@@ -169,6 +169,45 @@ export async function GET(request: Request) {
                 results.errors.push(`Failed to debit charge for pos ${pos.id}`);
               }
             }
+          }
+        } else if (pos.product_type === 'INTRADAY' && userProfile.intraday_sq_off) {
+          // --- AUTO SQUARE OFF INTRADAY POSITIONS ---
+          const baseLtp = await fetchLtp(pos.symbol, pos.settlement) || pos.ltp || pos.entry_price;
+          
+          let exitPrice = baseLtp;
+          if (segSetting) {
+             const exitBuffer = (segSetting.exit_buffer ?? 0) / 100;
+             const bidBuffer = (segSetting.bid_buffer ?? 0) / 100;
+             if (pos.side === 'BUY') {
+               // Selling to close
+               exitPrice = baseLtp * (1 - bidBuffer);
+             } else {
+               // Buying to close
+               exitPrice = baseLtp * (1 + exitBuffer);
+             }
+          }
+          
+          const { error: rpcErr } = await admin.rpc('close_position_system', {
+            p_position_id: pos.id,
+            p_user_id: userProfile.id,
+            p_ltp: baseLtp,
+            p_exit_price: exitPrice,
+            p_closed_by: 'SYSTEM',
+            p_brokerage: 0,
+          });
+
+          if (!rpcErr) {
+            await admin.from('notifications').insert({
+              user_id: userProfile.id,
+              type: 'GENERAL',
+              title: `[EOD Square Off] ${pos.symbol}`,
+              message: `Your Intraday position for ${pos.symbol} was automatically squared off at End of Day.`,
+              read: false,
+              created_at: new Date().toISOString()
+            });
+            results.intradayClosed++;
+          } else {
+            results.errors.push(`Failed to auto sq-off pos ${pos.id}`);
           }
         }
       } catch (e: any) {
