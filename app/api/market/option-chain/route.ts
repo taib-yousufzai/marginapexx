@@ -21,7 +21,7 @@ function getOptionChainSegment(sym: string): string {
   if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(s)) {
     return 'INDEX-OPT';
   }
-  if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(s)) {
+  if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLDM', 'SILVERM', 'CRUDEOILM', 'NATGASMINI'].includes(s)) {
     return 'MCX-OPT';
   }
   return 'STOCK-OPT';
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
 
         // Determine the segment to pick the right strike range
         const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(symbol);
-        const isMcx = ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].includes(symbol);
+        const isMcx = ['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLDM', 'SILVERM', 'CRUDEOILM', 'NATGASMINI'].includes(symbol);
         const range = isMcx ? strikeConfig.mcxOptionsRange : strikeConfig.indexOptionsRange;
 
         // Look up ATM price from Redis

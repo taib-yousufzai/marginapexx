@@ -91,10 +91,10 @@ const commodityInstruments = [
   { name: "SILVER", icon: "fas fa-gem", sub: "Silver" },
   { name: "CRUDEOIL", icon: "fas fa-oil-can", sub: "Crude Oil" },
   { name: "NATURALGAS", icon: "fas fa-fire", sub: "Nat Gas" },
-  { name: "GOLD MINI", icon: "fas fa-coins", sub: "Mini Gold" },
-  { name: "SILVER MINI", icon: "fas fa-gem", sub: "Mini Silver" },
-  { name: "CRUDE MINI", icon: "fas fa-oil-can", sub: "Mini Crude" },
-  { name: "NG MINI", icon: "fas fa-fire", sub: "Mini NG" }
+  { name: "GOLDM", icon: "fas fa-coins", sub: "Mini Gold" },
+  { name: "SILVERM", icon: "fas fa-gem", sub: "Mini Silver" },
+  { name: "CRUDEOILM", icon: "fas fa-oil-can", sub: "Mini Crude" },
+  { name: "NATGASMINI", icon: "fas fa-fire", sub: "Mini NG" }
 ];
 
 const getNextExpiryDate = (dayOfWeek: number) => {
@@ -346,7 +346,7 @@ export default function Page() {
     if (['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCAP', 'SENSEX', 'BANKEX'].includes(s)) {
       return 'INDEX-OPT';
     }
-    if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLD MINI', 'SILVER MINI', 'CRUDE MINI', 'NG MINI'].includes(s)) {
+    if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLDM', 'SILVERM', 'CRUDEOILM', 'NATGASMINI'].includes(s)) {
       return 'MCX-OPT';
     }
     return 'STOCK-OPT';
