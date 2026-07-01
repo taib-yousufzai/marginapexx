@@ -114,7 +114,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const { positions: enrichedPositions } = useMyPositions();
 
   // Live P&L, Used Margin (frozen) and Equity calculations — update on every tick
-  const { floatingPnl, usedMargin, positionValue, liquidationLevel } = useMemo(() => {
+  const { floatingPnl, lossOnlyPnl, usedMargin, positionValue, liquidationLevel } = useMemo(() => {
     let totalUnrealised = 0;
     let totalLockedMargin = 0;
     let totalPositionValue = 0;
