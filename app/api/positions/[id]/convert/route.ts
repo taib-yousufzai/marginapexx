@@ -47,7 +47,7 @@ export async function POST(
     // 2. Calculate the new leverage and required margin
     const lookupId = profile.parent_id ?? user.id;
     const { data: segSetting } = await admin.from('segment_settings')
-      .select('holding_leverage, intraday_leverage')
+      .select('holding_leverage, intraday_leverage, holding_type, intraday_type')
       .eq('user_id', lookupId)
       .eq('segment', pos.settlement || '')
       .eq('side', pos.side)
@@ -68,7 +68,38 @@ export async function POST(
       }
     }
 
-    const newMarginRequired = (Number(pos.qty_open) * Number(pos.entry_price)) / finalLeverage;
+    let leverageType: string = segSetting 
+      ? (product_type === 'CARRY' ? (segSetting.holding_type || 'Multiplier') : (segSetting.intraday_type || 'Multiplier'))
+      : 'Multiplier';
+
+    let newMarginRequired = 0;
+    const exposure = Number(pos.qty_open) * Number(pos.entry_price);
+    
+    if (leverageType === '%') {
+      newMarginRequired = exposure * (finalLeverage / 100);
+    } else if (leverageType === 'Fixed') {
+      // For fixed leverage, it's based on lots. We fetch lot size if possible, or fallback to qty.
+      let symbolLotSize = 1;
+      const n = (pos.symbol || '').toUpperCase();
+      if (n.includes('BANKNIFTY') || n.includes('BANKEX')) symbolLotSize = 30;
+      else if (n.includes('FINNIFTY')) symbolLotSize = 60;
+      else if (n.includes('MIDCP') || n.includes('MIDCAP')) symbolLotSize = 120;
+      else if (n.includes('SENSEX')) symbolLotSize = 20;
+      else if (n.includes('NIFTY')) symbolLotSize = 65;
+      else if (n.includes('GOLDM')) symbolLotSize = 10;
+      else if (n.includes('GOLD')) symbolLotSize = 100;
+      else if (n.includes('SILVERM')) symbolLotSize = 5;
+      else if (n.includes('SILVER')) symbolLotSize = 30;
+      else if (n.includes('CRUDEOILM')) symbolLotSize = 10;
+      else if (n.includes('CRUDEOIL')) symbolLotSize = 100;
+      else if (n.includes('NATGASMINI')) symbolLotSize = 250;
+      else if (n.includes('NATURALGAS')) symbolLotSize = 1250;
+      
+      const lotsUsed = Number(pos.qty_open) / symbolLotSize;
+      newMarginRequired = lotsUsed * finalLeverage;
+    } else {
+      newMarginRequired = exposure / finalLeverage;
+    }
     const currentPositionMargin = Number(pos.margin_required || 0);
     const marginDifference = newMarginRequired - currentPositionMargin;
 
