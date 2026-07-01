@@ -54,6 +54,7 @@ export async function GET(request: Request) {
       .eq('name', symbol)
       .not('expiry', 'is', null)
       .gte('expiry', today)
+      .in('option_type', ['CE', 'PE'])
       .order('expiry', { ascending: true });
 
     // 3. Parallelize Options query (if expiry is known upfront)
