@@ -51,19 +51,37 @@ function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: n
   return 1;
 }
 
-function mapSegmentToDbSegment(s: string): string {
-  if (!s) return '';
-  const trimmed = s.trim();
-  if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
-  if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
-  if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
-  if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
-  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
-  if (trimmed === 'MCX - Options') return 'MCX-OPT';
-  if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
-  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
-  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
-  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
+  if (!s && !symbol) return '';
+  const trimmed = (s || '').trim().toUpperCase();
+  
+  if (['NSE - FUTURES', 'BSE - FUTURES', 'NFO - FUTURES', 'BFO - FUTURES'].includes(trimmed)) return 'INDEX-FUT';
+  if (['NSE - OPTIONS', 'BSE - OPTIONS', 'NFO - OPTIONS', 'BFO - OPTIONS'].includes(trimmed)) return 'INDEX-OPT';
+  if (['NSE - STOCK FUTURES', 'BSE - STOCK FUTURES', 'NFO - STOCK FUTURES', 'BFO - STOCK FUTURES'].includes(trimmed)) return 'STOCK-FUT';
+  if (['NSE - STOCK OPTIONS', 'BSE - STOCK OPTIONS', 'NFO - STOCK OPTIONS', 'BFO - STOCK OPTIONS'].includes(trimmed)) return 'STOCK-OPT';
+  if (trimmed === 'MCX - FUTURES') return 'MCX-FUT';
+  if (trimmed === 'MCX - OPTIONS') return 'MCX-OPT';
+  if (['NSE - EQUITY', 'BSE - EQUITY'].includes(trimmed)) return 'NSE-EQ';
+  if (trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'FOREX' || trimmed === 'CDS - FUTURES' || trimmed === 'CDS - OPTIONS') return 'FOREX';
+  if (trimmed === 'COMEX - FUTURES' || trimmed === 'COMEX - OPTIONS' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+
+  const n = symbol.toUpperCase();
+  if (n) {
+    if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS')) {
+      if (n.endsWith('CE') || n.endsWith('PE')) return 'MCX-OPT';
+      return 'MCX-FUT';
+    }
+    if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX')) {
+      if (n.endsWith('CE') || n.endsWith('PE')) return 'INDEX-OPT';
+      return 'INDEX-FUT';
+    }
+    if (n.endsWith('CE') || n.endsWith('PE')) return 'STOCK-OPT';
+    if (n.endsWith('FUT')) return 'STOCK-FUT';
+    if (n.includes('-') || n.includes('/')) return 'FOREX';
+    if (trimmed === 'NSE') return 'NSE-EQ';
+  }
+
   return trimmed;
 }
 
@@ -91,7 +109,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const isOpen = !!item;
   const lotSize = item ? getLotSize(item.name, scriptSettings) : 1;
 
-  const dbSeg = item ? mapSegmentToDbSegment(item.segment) : '';
+  const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
   const isCrypto = dbSeg.toUpperCase().includes('CRYPTO');
 
   let bSymbol = item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '';
