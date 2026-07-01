@@ -47,11 +47,17 @@ export async function GET(request: Request) {
 
     let usedFallback = false;
 
+    let targetExchanges = ['NFO', 'BFO'];
+    if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLDM', 'SILVERM', 'CRUDEOILM', 'NATGASMINI'].includes(symbol)) {
+      targetExchanges = ['MCX'];
+    }
+
     // 2. Parallelize Expiries query (Removed failing RPC to speed up fallback)
     const expiriesPromise = supabase
       .from('instruments')
       .select('expiry')
       .eq('name', symbol)
+      .in('exchange', targetExchanges)
       .not('expiry', 'is', null)
       .gte('expiry', today)
       .in('option_type', ['CE', 'PE'])
@@ -64,6 +70,7 @@ export async function GET(request: Request) {
         .from('instruments')
         .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
         .eq('name', symbol)
+        .in('exchange', targetExchanges)
         .eq('expiry', expiry)
         .in('option_type', ['CE', 'PE'])
         .order('strike_price', { ascending: true });
@@ -90,6 +97,7 @@ export async function GET(request: Request) {
         .from('instruments')
         .select('id, instrument_token, tradingsymbol, strike_price, option_type, exchange')
         .eq('name', symbol)
+        .in('exchange', targetExchanges)
         .eq('expiry', selectedExpiry)
         .in('option_type', ['CE', 'PE'])
         .order('strike_price', { ascending: true });
