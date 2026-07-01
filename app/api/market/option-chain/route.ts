@@ -46,6 +46,7 @@ export async function GET(request: Request) {
     }
 
     let usedFallback = false;
+    let atmPrice = 0;
 
     let targetExchanges = ['NFO', 'BFO'];
     if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS', 'GOLDM', 'SILVERM', 'CRUDEOILM', 'NATGASMINI'].includes(symbol)) {
@@ -135,7 +136,7 @@ export async function GET(request: Request) {
         const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;
         const cached = await redis.hget('market:quotes', kiteId);
 
-        let atmPrice = 0;
+        // atmPrice already declared in outer scope
         if (cached) {
           const q = JSON.parse(cached);
           atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
