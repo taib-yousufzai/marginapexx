@@ -99,9 +99,26 @@ BEGIN
     -- Fixed = margin per lot; need lot_size to convert qty to lots
     SELECT lot_size INTO v_lot_size
     FROM public.script_settings
-    WHERE symbol = NEW.symbol
+    WHERE NEW.symbol LIKE '%' || symbol || '%'
+    ORDER BY length(symbol) DESC
     LIMIT 1;
-    IF v_lot_size IS NULL OR v_lot_size <= 0 THEN v_lot_size := 1; END IF;
+
+    IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
+      IF NEW.symbol LIKE '%BANKNIFTY%' OR NEW.symbol LIKE '%BANKEX%' THEN v_lot_size := 30;
+      ELSIF NEW.symbol LIKE '%FINNIFTY%' THEN v_lot_size := 60;
+      ELSIF NEW.symbol LIKE '%MIDCP%' OR NEW.symbol LIKE '%MIDCAP%' THEN v_lot_size := 120;
+      ELSIF NEW.symbol LIKE '%SENSEX%' THEN v_lot_size := 20;
+      ELSIF NEW.symbol LIKE '%NIFTY%' THEN v_lot_size := 65;
+      ELSIF NEW.symbol LIKE '%GOLDM%' THEN v_lot_size := 10;
+      ELSIF NEW.symbol LIKE '%GOLD%' THEN v_lot_size := 100;
+      ELSIF NEW.symbol LIKE '%SILVERM%' THEN v_lot_size := 5;
+      ELSIF NEW.symbol LIKE '%SILVER%' THEN v_lot_size := 30;
+      ELSIF NEW.symbol LIKE '%CRUDEOILM%' THEN v_lot_size := 10;
+      ELSIF NEW.symbol LIKE '%CRUDEOIL%' THEN v_lot_size := 100;
+      ELSIF NEW.symbol LIKE '%NATGASMINI%' THEN v_lot_size := 250;
+      ELSIF NEW.symbol LIKE '%NATURALGAS%' THEN v_lot_size := 1250;
+      ELSE v_lot_size := 1; END IF;
+    END IF;
     v_lots := NEW.qty_open / v_lot_size;
     v_computed_margin := v_lots * v_leverage;
   ELSE
