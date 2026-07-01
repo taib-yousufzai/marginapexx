@@ -158,7 +158,6 @@ BEGIN
     exit_time = now(),
     pnl = v_pnl,
     duration_seconds = v_duration_sec,
-    closed_by = p_closed_by,
     updated_at = now(),
     -- The caller passes p_brokerage for exit, but we don't charge it for now if they paid 2x entry. 
     -- We just append it to track if needed.
