@@ -185,7 +185,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const hasBuyPos = existingPos?.side === 'BUY';
   const hasSellPos = existingPos?.side === 'SELL';
 
-  const multiplier = (exitMode || existingPos) ? 1 : 2;
+  const isExitTrade = exitMode || (activeSide === 'BUY' && hasSellPos) || (activeSide === 'SELL' && hasBuyPos);
+  const multiplier = isExitTrade ? 1 : 2;
 
   const intradayCharge = (productType === 'INTRADAY' && orderType !== 'GTT' && segSetting ? computeCharge(
     segSetting.commission_type || 'Per Crore',
