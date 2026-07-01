@@ -23,7 +23,7 @@ const supabase = createClient(
 );
 
 // Known underlying symbols for smart parsing
-const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', 'BANKEX', 'CRUDEOIL', 'NATURALGAS', 'SILVER', 'GOLD'];
+const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', 'BANKEX', 'CRUDEOILM', 'CRUDEOIL', 'NATGASMINI', 'NATURALGAS', 'SILVERM', 'SILVER', 'GOLDM', 'GOLD'];
 
 /**
  * Try to parse a query like "nifty 24040" or "banknifty 48500 ce"

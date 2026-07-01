@@ -239,7 +239,9 @@ function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: num
   if (n.includes('GOLD')) return 100;
   if (n.includes('SILVERM')) return 5;
   if (n.includes('SILVER')) return 30;
+  if (n.includes('CRUDEOILM')) return 10;
   if (n.includes('CRUDEOIL')) return 100;
+  if (n.includes('NATGASMINI')) return 250;
   if (n.includes('NATURALGAS')) return 1250;
   return 1;
 }

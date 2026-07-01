@@ -276,15 +276,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             continue;
           }
 
-          // Call RPC
-          const { data: pnl, error: rpcErr } = await admin.rpc('close_position', {
-            p_position_id: pos.id,
-            p_user_id:     user.id,
-            p_ltp:         baseLtp,
-            p_exit_price:  exitPrice,
-            p_closed_by:   'USER',
-            p_brokerage:   0,
-          });
+          // Call RPC with retry logic for deadlocks
+          let pnl: any;
+          let rpcErr: any;
+          
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            const result = await admin.rpc('close_position', {
+              p_position_id: pos.id,
+              p_user_id:     user.id,
+              p_ltp:         baseLtp,
+              p_exit_price:  exitPrice,
+              p_closed_by:   'USER',
+              p_brokerage:   0,
+            });
+            
+            pnl = result.data;
+            rpcErr = result.error;
+            
+            // Postgres deadlock error code is often 40P01, but the message will contain "deadlock"
+            if (rpcErr && rpcErr.message && rpcErr.message.toLowerCase().includes('deadlock')) {
+              console.warn(`[POST /api/positions/close] Deadlock detected on attempt ${attempt} for position ${pos.id}. Retrying...`);
+              if (attempt < 3) {
+                // Exponential backoff
+                await new Promise(resolve => setTimeout(resolve, 200 * attempt));
+                continue;
+              }
+            }
+            break; // Success or non-deadlock error, break the loop
+          }
 
           if (rpcErr) {
             console.error(`[POST /api/positions/close] RPC error for position ${pos.id}:`, rpcErr);
