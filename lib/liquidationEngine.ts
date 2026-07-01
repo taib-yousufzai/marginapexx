@@ -233,10 +233,10 @@ export async function checkAndExecuteAccountLiquidation(
   }
 
   //  if balance went negative
-  if (settlementAmount > 0) {
+  if (incrementalSettlement > 0) {
     await admin.from('settlement_records').insert({
       user_id: userId,
-      settlement_amount: settlementAmount,
+      settlement_amount: incrementalSettlement,
       liquidation_event: 'AUTO_LIQUIDATION',
       previous_balance: previousBalance,
       final_loss: finalLoss,
@@ -260,13 +260,13 @@ export async function checkAndExecuteAccountLiquidation(
       `Balance: ₹${previousBalance.toFixed(2)}, ` +
       `FloatingPnL: ₹${totalFloatingPnl.toFixed(2)}, ` +
       `Threshold: ₹${confirmedThreshold.toFixed(2)}` +
-      (settlementAmount > 0 ? `, Settlement: ₹${settlementAmount.toFixed(2)}` : ''),
+      (incrementalSettlement > 0 ? `, Settlement: ₹${incrementalSettlement.toFixed(2)}` : ''),
   });
 
   return {
     liquidated: true,
     positionsClosed,
     totalPnl: totalFloatingPnl,
-    settlementAmount,
+    settlementAmount: incrementalSettlement,
   };
 }
