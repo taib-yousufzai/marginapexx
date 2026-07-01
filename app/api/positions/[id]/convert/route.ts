@@ -80,9 +80,12 @@ export async function POST(
         .eq('status', 'open');
 
       const totalUsedMargin = (allOpenPos || []).reduce((acc, p) => acc + Number(p.locked_margin || p.margin_required || 0), 0);
-      const totalFloatingPnl = (allOpenPos || []).reduce((acc, p) => acc + Number(p.pnl || 0), 0);
+      const totalFloatingLoss = (allOpenPos || []).reduce((acc, p) => {
+        const pnl = Number(p.pnl || 0);
+        return acc + (pnl < 0 ? pnl : 0);
+      }, 0);
       const balance = Number(profile.balance || 0);
-      const freeMargin = (balance + totalFloatingPnl) - totalUsedMargin;
+      const freeMargin = (balance + totalFloatingLoss) - totalUsedMargin;
 
       if (freeMargin < marginDifference) {
         return NextResponse.json({
@@ -93,7 +96,11 @@ export async function POST(
 
     // 4. Update the position row itself in the positions table
     const { error: posUpdateErr } = await admin.from('positions')
-      .update({ product_type })
+      .update({ 
+        product_type,
+        margin_required: newMarginRequired,
+        locked_margin: newMarginRequired
+      })
       .eq('id', positionId)
       .eq('user_id', user.id);
 

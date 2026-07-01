@@ -42,7 +42,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
     // 4. Use frozen locked_margin for each open position (set at trade entry, never recalculated)
     const positionsWithMargin = [];
     let totalLockedMargin = 0;
-    let totalFloatingPnl = 0;
+    let totalFloatingLoss = 0;
 
     for (const pos of positions) {
       // Find settings for this position
@@ -67,7 +67,9 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
           livePnl = (entryPrice - baseLtp * (1 + exitBuffer)) * qty;
         }
       }
-      totalFloatingPnl += livePnl;
+      if (livePnl < 0) {
+        totalFloatingLoss += livePnl;
+      }
 
       positionsWithMargin.push({
         ...pos,
@@ -77,7 +79,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
     }
 
     // 5. Check if total available margin is negative
-    const freeMargin = (balance + totalFloatingPnl) - totalLockedMargin;
+    const freeMargin = (balance + totalFloatingLoss) - totalLockedMargin;
     
     if (freeMargin < 0) {
       // User has insufficient margin now!

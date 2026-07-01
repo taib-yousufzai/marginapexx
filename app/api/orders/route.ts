@@ -837,10 +837,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const totalLockedMargin = openPositions.reduce(
     (sum: number, p: any) => sum + Number(p.locked_margin || p.margin_required || 0), 0
   );
-  const totalFloatingPnl = openPositions.reduce(
-    (sum: number, p: any) => sum + Number(p.pnl || 0), 0
+  const totalFloatingLoss = openPositions.reduce(
+    (sum: number, p: any) => {
+      const pnl = Number(p.pnl || 0);
+      return sum + (pnl < 0 ? pnl : 0);
+    }, 0
   );
-  const freeMargin = balance + totalFloatingPnl - totalLockedMargin;
+  const freeMargin = balance + totalFloatingLoss - totalLockedMargin;
 
   if (freeMargin < requiredMargin) {
     return NextResponse.json({

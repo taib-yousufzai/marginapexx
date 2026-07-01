@@ -263,6 +263,7 @@ function OptionChainContent() {
     expiries: string[];
     strikes: any[];
     expiry: string;
+    underlyingPrice?: number;
   } | null>(getLocalCache(cacheKey));
   
   const [loading, setLoading] = useState(!getLocalCache(cacheKey));
@@ -359,9 +360,12 @@ function OptionChainContent() {
             symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
 
   const spotPrice = React.useMemo(() => {
-    if (!underlyingId) return 0;
-    return (quotes[underlyingId] || quotes[underlyingId.split(':')[1] || ''])?.lastPrice || 0;
-  }, [underlyingId, quotes]);
+    if (underlyingId) {
+      const q = quotes[underlyingId] || quotes[underlyingId.split(':')[1] || ''];
+      if (q && q.lastPrice) return q.lastPrice;
+    }
+    return data?.underlyingPrice || 0;
+  }, [underlyingId, quotes, data]);
 
   const handleTrade = (instrSymbol: string, side: 'BUY' | 'SELL') => {
     const strikeMatch = data?.strikes.find(s => s.ce?.symbol === instrSymbol || s.pe?.symbol === instrSymbol);

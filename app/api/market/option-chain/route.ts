@@ -141,6 +141,32 @@ export async function GET(request: Request) {
           atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
         }
         
+        if (!atmPrice && isMcx) {
+          let baseSymbol = symbol;
+          if (symbol === 'GOLDM') baseSymbol = 'GOLD';
+          else if (symbol === 'SILVERM') baseSymbol = 'SILVER';
+          else if (symbol === 'CRUDEOILM') baseSymbol = 'CRUDEOIL';
+          else if (symbol === 'NATGASMINI') baseSymbol = 'NATURALGAS';
+
+          const futRes = await supabase
+            .from('instruments')
+            .select('tradingsymbol')
+            .eq('name', baseSymbol)
+            .eq('segment', 'MCX-FUT')
+            .gte('expiry', today)
+            .order('expiry', { ascending: true })
+            .limit(1);
+
+          if (futRes.data && futRes.data.length > 0) {
+            const futSymbol = futRes.data[0].tradingsymbol;
+            const futCached = await redis.hget('market:quotes', `MCX:${futSymbol}`);
+            if (futCached) {
+              const q = JSON.parse(futCached);
+              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            }
+          }
+        }
+
         if (!atmPrice) {
           const altKey = kiteId.split(':')[1] || symbol;
           const altCached = await redis.hget('market:quotes', altKey);
@@ -198,7 +224,8 @@ export async function GET(request: Request) {
       symbol,
       expiry: selectedExpiry,
       expiries: uniqueExpiries,
-      strikes: sortedStrikes
+      strikes: sortedStrikes,
+      underlyingPrice: atmPrice
     };
 
     // Store in cache only if we got a real spot price

@@ -118,9 +118,12 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     let totalUnrealised = 0;
     let totalLockedMargin = 0;
     let totalPositionValue = 0;
+    let totalLossOnlyPnl = 0;
 
     enrichedPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
-      totalUnrealised += (p.total_pnl ?? 0);
+      const pnl = p.total_pnl ?? 0;
+      totalUnrealised += pnl;
+      if (pnl < 0) totalLossOnlyPnl += pnl;
       totalLockedMargin += Number(p.locked_margin || p.margin_required || 0);
       totalPositionValue += Math.abs(p.qty_open) * p.current_ltp;
     });
@@ -129,6 +132,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
 
     return {
       floatingPnl: totalUnrealised,
+      lossOnlyPnl: totalLossOnlyPnl,
       usedMargin: totalLockedMargin,
       positionValue: totalPositionValue,
       liquidationLevel: liqLevel,
@@ -138,8 +142,9 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   // Equity = sum of (LTP × open qty) across all open positions
   // This reflects the total market value of held positions.
   const equity = positionValue;
-  // Free Margin = Balance - Used Margin (locked margins, no floating PnL)
-  const freeMargin = balance - usedMargin;
+  // Free Margin = Balance + lossOnlyPnl - Used Margin
+  // Unrealized profit does not increase free margin, but unrealized loss decreases it.
+  const freeMargin = balance + lossOnlyPnl - usedMargin;
   const fmt = (n: number) => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const [openHeight, setOpenHeight] = useState(0);
