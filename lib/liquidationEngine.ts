@@ -34,7 +34,7 @@ export function computeFreeMargin(
   walletBalance: number,
   totalLockedMargin: number,
 ): number {
-  return walletBalance - totalLockedMargin;
+  return walletBalance;
 }
 
 /**

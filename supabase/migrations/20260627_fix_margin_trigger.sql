@@ -104,11 +104,11 @@ BEGIN
     LIMIT 1;
 
     IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
-      IF NEW.symbol LIKE '%BANKNIFTY%' OR NEW.symbol LIKE '%BANKEX%' THEN v_lot_size := 30;
-      ELSIF NEW.symbol LIKE '%FINNIFTY%' THEN v_lot_size := 60;
-      ELSIF NEW.symbol LIKE '%MIDCP%' OR NEW.symbol LIKE '%MIDCAP%' THEN v_lot_size := 120;
-      ELSIF NEW.symbol LIKE '%SENSEX%' THEN v_lot_size := 20;
-      ELSIF NEW.symbol LIKE '%NIFTY%' THEN v_lot_size := 65;
+      IF NEW.symbol LIKE '%BANKNIFTY%' OR NEW.symbol LIKE '%BANKEX%' THEN v_lot_size := 15;
+      ELSIF NEW.symbol LIKE '%FINNIFTY%' THEN v_lot_size := 25;
+      ELSIF NEW.symbol LIKE '%MIDCP%' OR NEW.symbol LIKE '%MIDCAP%' THEN v_lot_size := 50;
+      ELSIF NEW.symbol LIKE '%SENSEX%' THEN v_lot_size := 10;
+      ELSIF NEW.symbol LIKE '%NIFTY%' THEN v_lot_size := 25;
       ELSIF NEW.symbol LIKE '%GOLDM%' THEN v_lot_size := 10;
       ELSIF NEW.symbol LIKE '%GOLD%' THEN v_lot_size := 100;
       ELSIF NEW.symbol LIKE '%SILVERM%' THEN v_lot_size := 5;

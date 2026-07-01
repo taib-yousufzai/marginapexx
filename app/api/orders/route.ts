@@ -843,7 +843,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return sum + (pnl < 0 ? pnl : 0);
     }, 0
   );
-  const freeMargin = balance + totalFloatingLoss - totalLockedMargin;
+  const freeMargin = balance + totalFloatingLoss;
 
   if (freeMargin < requiredMargin) {
     return NextResponse.json({

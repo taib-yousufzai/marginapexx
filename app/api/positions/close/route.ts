@@ -322,42 +322,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               ? (segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0)
               : (segSetting?.commission_value ?? 0));
             
+            // Brokerage is collected 2x (round trip) on entry. Exit trades should not be charged again.
             let brokerage = 0;
-            if (commType === 'Per Crore') {
-              brokerage = ((entryExposure + exitExposure) * commVal) / 10000000;
-            } else if (commType === 'Per Lot') {
-              const { data: inst } = await admin.from('instruments').select('lot_size').eq('tradingsymbol', pos.symbol).single();
-              const symbolLotSize = inst?.lot_size || 1;
-              const lotsUsed = Number(pos.qty_open) / symbolLotSize;
-              brokerage = lotsUsed * commVal * 2;
-            } else if (commType === 'Per Trade' || commType === 'Flat') {
-              brokerage = commVal * 2;
-            } else {
-              brokerage = (entryExposure + exitExposure) * 0.001; // fallback
-            }
-
-            if (brokerage > 0) {
-              await admin.from('transactions').insert({
-                user_id: user.id,
-                type: 'BROKERAGE',
-                amount: brokerage,
-                status: 'APPROVED',
-                ref_id: pos.id
-              });
-
-              const { data: latestOrder } = await admin.from('orders')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('symbol', pos.symbol)
-                .eq('is_exit', true)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
-              
-              if (latestOrder) {
-                await admin.from('orders').update({ brokerage }).eq('id', latestOrder.id);
-              }
-            }
           } catch (brokErr) {
             console.error(`[POST /api/positions/close] Brokerage error for position ${pos.id}:`, brokErr);
           }

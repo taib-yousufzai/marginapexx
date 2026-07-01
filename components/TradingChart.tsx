@@ -48,11 +48,11 @@ function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: n
     const match = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
     if (match) return Number(match.lot_size);
   }
-  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 30;
-  if (n.includes('FINNIFTY')) return 60;
-  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 120;
-  if (n.includes('SENSEX')) return 20;
-  if (n.includes('NIFTY')) return 65;
+  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
+  if (n.includes('FINNIFTY')) return 25;
+  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 50;
+  if (n.includes('SENSEX')) return 10;
+  if (n.includes('NIFTY')) return 25;
   if (n.includes('GOLDM')) return 10;
   if (n.includes('GOLD')) return 100;
   if (n.includes('SILVERM')) return 5;
@@ -434,7 +434,7 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
   );
 };
 
-export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote }: TradingChartProps) {
+export default function TradingChart({ symbol: propSymbol, segment: propSegment = '', liveQuote: propLiveQuote }: TradingChartProps) {
   const [symbol, setSymbol] = useState(propSymbol);
   const [segment, setSegment] = useState(propSegment);
 
@@ -565,16 +565,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const chainExpiry = chainData?.selectedExpiry || '';
 
   const symbolsToFetch = useMemo(() => {
-    if (activeSegment !== 'chain' || !chainStrikes.length) return [];
-    const syms: string[] = [];
-    chainStrikes.forEach((s: any) => {
-      if (s.ce?.id) syms.push(s.ce.id);
-      if (s.pe?.id) syms.push(s.pe.id);
-    });
+    const syms: string[] = [symbol];
+    if (activeSegment === 'chain' && chainStrikes.length) {
+      chainStrikes.forEach((s: any) => {
+        if (s.ce?.id) syms.push(s.ce.id);
+        if (s.pe?.id) syms.push(s.pe.id);
+      });
+    }
     return syms;
-  }, [activeSegment, chainStrikes]);
+  }, [symbol, activeSegment, chainStrikes]);
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
+  const activeLiveQuote = marketQuotes[symbol] || (symbol === propSymbol ? propLiveQuote : null);
 
   const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number, kiteId?: string) => {
     setIsPanelExpanded(false);
@@ -816,23 +818,23 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     return () => { isMounted = false; };
   }, [symbol, timeframe, isCrypto]);
 
-  // Update with live quote — only when the chart is showing an underlying (index/equity),
-  // not a derivative. When viewing an option/futures chart, liveQuote is the underlying's
+  // Update with activeLiveQuote — only when the chart is showing an underlying (index/equity),
+  // not a derivative. When viewing an option/futures chart, activeLiveQuote is the underlying's
   // price and must not overwrite currentPrice (which comes from the option's candle data).
   useEffect(() => {
-    if (!liveQuote || loading) return;
+    if (!activeLiveQuote || loading) return;
     if (symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT')) return;
 
-    const lastPrice = liveQuote.lastPrice || liveQuote.last_price;
+    const lastPrice = activeLiveQuote.lastPrice || activeLiveQuote.last_price;
     if (!lastPrice) return;
 
     setCurrentPrice(lastPrice);
     if (limitPrice === '') setLimitPrice(lastPrice.toFixed(2));
 
     const lastCandle = historicalCandles.length > 0 ? historicalCandles[historicalCandles.length - 1] : null;
-    setPriceChange(liveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
-    setPriceChangePct(liveQuote.changePercent || 0);
-  }, [liveQuote, loading, historicalCandles]);
+    setPriceChange(activeLiveQuote.change || (lastPrice - (lastCandle?.open || lastPrice)));
+    setPriceChangePct(activeLiveQuote.changePercent || 0);
+  }, [activeLiveQuote, loading, historicalCandles]);
 
   const displayExchange = isCrypto ? 'BINANCE' : (symbol.includes('SENSEX') || symbol.includes('BANKEX')) ? 'BSE' : 'NSE';
   const isUp = priceChange >= 0;
@@ -1207,14 +1209,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Calculated Required Margin for current order block state
   // Determine if the current chart symbol is itself an option/futures contract
-  // (not the underlying index). In that case, liveQuote belongs to the underlying
-  // and must not be used for price — use currentPrice (set from candle data) instead.
+  // (not the underlying index). In that case, activeLiveQuote belongs to the underlying
+  // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
-  const rawBid = (!symbolIsDerivative && liveQuote)
-    ? (liveQuote.bid || liveQuote.lastPrice || liveQuote.last_price || currentPrice)
+  const rawBid = (!symbolIsDerivative && activeLiveQuote)
+    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
     : currentPrice;
-  const rawAsk = (!symbolIsDerivative && liveQuote)
-    ? (liveQuote.ask || liveQuote.lastPrice || liveQuote.last_price || currentPrice)
+  const rawAsk = (!symbolIsDerivative && activeLiveQuote)
+    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
     : currentPrice;
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
@@ -1223,7 +1225,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : underlyingPriceOfScript;
 
   const orderQty = useLots ? (parseFloat(String(qtyValue)) || 0) * lotSize : (parseFloat(String(qtyValue)) || 0);
-  // Fall back to currentPrice if liveQuote bid/ask is missing or zero
+  // Fall back to currentPrice if activeLiveQuote bid/ask is missing or zero
   const resolvedPrice = priceOfScript > 0 ? priceOfScript : currentPrice;
   const executionPrice = orderType === 'limit'
     ? (parseFloat(limitPrice) > 0 ? parseFloat(limitPrice) : resolvedPrice)
@@ -1238,7 +1240,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : rawBid;
   const liveLTP = chainContract
     ? (liveOptionQuote?.lastPrice || liveOptionQuote?.last_price || chainContract.ltp)
-    : (!symbolIsDerivative && liveQuote ? (liveQuote.lastPrice || liveQuote.last_price || currentPrice) : currentPrice);
+    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice) : currentPrice);
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
@@ -1672,12 +1674,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           {/* BUY/price/SELL widget — HIDDEN */}
 
           <ChartContainer
+            key={`${symbol}-${segment}`}
             symbol={symbol}
             segment={segment}
             timeframe={timeframe}
             chartType={chartType}
             candles={historicalCandles}
-            liveQuote={liveQuote}
+            liveQuote={activeLiveQuote}
             loading={loading && !hasLoadedData.current}
             error={error}
             activeIndicators={activeIndicators}

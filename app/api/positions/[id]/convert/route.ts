@@ -116,7 +116,7 @@ export async function POST(
         return acc + (pnl < 0 ? pnl : 0);
       }, 0);
       const balance = Number(profile.balance || 0);
-      const freeMargin = (balance + totalFloatingLoss) - totalUsedMargin;
+      const freeMargin = (balance + totalFloatingLoss);
 
       if (freeMargin < marginDifference) {
         return NextResponse.json({
