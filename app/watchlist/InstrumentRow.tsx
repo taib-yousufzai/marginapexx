@@ -48,14 +48,15 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
   const [priceView, setPriceView] = useState<'kite' | 'comex'>('kite');
 
   const isCrypto = !!item.binanceSymbol;
-  const isComex = item.segment.toUpperCase().includes('COMEX') || !!item.comexSymbol;
+  const hasDualView = !!item.kiteSymbol && !!item.comexSymbol;
+  const showComex = hasDualView && priceView === 'comex';
 
   let ltp = 0;
   let prevClose = 0;
   if (isCrypto) {
     ltp = binanceQuote?.lastPrice ?? 0;
     prevClose = binanceQuote?.close ?? 0;
-  } else if (isComex) {
+  } else if (showComex) {
     ltp = comexQuote?.lastPrice ?? 0;
     prevClose = comexQuote?.close ?? 0;
   } else {
@@ -65,11 +66,11 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
 
   const absoluteChange = ltp - prevClose;
   const percentChange = prevClose !== 0 ? ((ltp - prevClose) / prevClose) * 100 : 0;
-  const isLoading = isCrypto ? !binanceQuote : (isComex && !comexQuote);
+  const isLoading = isCrypto ? !binanceQuote : (showComex && !comexQuote);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // If clicking a sub-button like delete or view toggle, don't trigger trade
-    if ((e.target as HTMLElement).closest('.wc-action-btn')) {
+    if ((e.target as HTMLElement).closest('.wc-action-btn') || (e.target as HTMLElement).closest('.dual-view-toggle')) {
       return;
     }
     onTrade(item);
@@ -88,9 +89,9 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
             <span className="instr-row__name">{item.name}</span>
             <span className="exchange-badge" style={
               isCrypto ? { background: '#F0A500', color: '#fff' } :
-                isComex ? { background: '#4A148C', color: '#fff' } : {}
+                showComex ? { background: '#4A148C', color: '#fff' } : {}
             }>
-              {isCrypto ? 'CRYPTO' : isComex ? 'COMEX' : getExchangeBadge(item.segment)}
+              {isCrypto ? 'CRYPTO' : showComex ? 'COMEX' : getExchangeBadge(item.segment)}
             </span>
           </div>
           {item.contractDate && (
@@ -99,7 +100,15 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
           {isCrypto && (
             <div className="instr-row__date" style={{ color: '#6B7280', fontSize: '0.7rem' }}>{item.binanceSymbol}</div>
           )}
-
+          {hasDualView && (
+            <div
+              className="dual-view-toggle"
+              onClick={(e) => { e.stopPropagation(); setPriceView(v => v === 'kite' ? 'comex' : 'kite'); }}
+              style={{ fontSize: '0.62rem', fontWeight: '700', color: showComex ? '#4A148C' : '#2C8E5A', background: showComex ? '#EDE7F6' : '#E9F6EF', padding: '2px 8px', borderRadius: '20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '3px', userSelect: 'none' }}
+            >
+              {showComex ? '₹ COMEX ⇄ ₹ MCX' : '₹ MCX ⇄ ₹ COMEX'}
+            </div>
+          )}
         </div>
         <div className="instr-row__right">
           {isLoading ? (
