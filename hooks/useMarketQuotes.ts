@@ -260,7 +260,7 @@ export function useMarketQuotes(symbols: string[]) {
 
     return () => {
       clearInterval(flushInterval);
-      clearInterval(fakeLiveInterval);
+      
       wsManager.unsubscribe(currentSymbols, onMessage);
     };
   }, [symbolsKey]);
