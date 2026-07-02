@@ -249,7 +249,13 @@ export async function GET(request: NextRequest) {
 
     // Filter rows to ensure they actually match the search terms in a meaningful way.
     // This avoids matching "25" to all 2025 options because of "25" in their internal Zerodha tradingsymbol (e.g. NIFTY2532822300PE).
-    const searchTerms = q.toLowerCase().split(/\s+/);
+    let searchTerms = q.toLowerCase().split(/\s+/);
+    if (parsed) {
+      // Re-construct the search terms based on the parse to ensure correct filtering
+      // e.g. "banknifty55400ce" -> ["banknifty", "55400", "ce"]
+      const newQ = `${parsed.underlying} ${parsed.strike} ${parsed.optionType || ''}`.toLowerCase().trim();
+      searchTerms = newQ.split(/\s+/);
+    }
 
     function wordStartMatch(text: string, term: string): boolean {
       if (!text) return false;

@@ -382,7 +382,9 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
               )
             ) : (
               (() => {
-                const q = searchQuery.toLowerCase();
+                // Normalize query: 'banknifty55400ce' -> 'banknifty 55400 ce'
+                const normalizedQuery = searchQuery.replace(/^([a-zA-Z]+)(\d+(?:\.\d+)?)(ce|pe)?$/i, (m, p1, p2, p3) => `${p1} ${p2} ${p3 || ''}`.trim());
+                const q = normalizedQuery.toLowerCase();
                 const wordStartMatch = (txt: string) => {
                   if (!txt) return false;
                   const t = txt.toLowerCase();
