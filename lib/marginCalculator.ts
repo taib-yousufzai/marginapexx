@@ -19,16 +19,12 @@ export function calculateMarginPortion({
   lotSize,
   baseExposure,
 }: MarginCalculationParams): number {
-  const isOption = segment.toUpperCase().includes('OPT');
-
-  // Options (both Buy and Sell) must always use fixed template margins, irrespective of leverageType setting.
-  // It should not depend on dynamic variables like baseExposure (which uses premium/LTP).
-  if (isOption) {
-    // Uses the fixed margin value (leverage) configured in the admin panel
-    return (totalQty / lotSize) * leverage;
-  } else if (leverageType === 'Fixed') {
+  // Use the leverageType setting from the admin panel to determine calculation method
+  if (leverageType === 'Fixed') {
+    // Fixed margin per lot
     return (totalQty / lotSize) * leverage;
   } else if (leverageType === '%') {
+    // Percentage of exposure
     return baseExposure * (leverage / 100);
   } else {
     // Default / Multiplier
