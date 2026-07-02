@@ -58,17 +58,6 @@ function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
   if (!s && !symbol) return '';
   const trimmed = (s || '').trim().toUpperCase();
   
-  if (['NSE - FUTURES', 'BSE - FUTURES', 'NFO - FUTURES', 'BFO - FUTURES'].includes(trimmed)) return 'INDEX-FUT';
-  if (['NSE - OPTIONS', 'BSE - OPTIONS', 'NFO - OPTIONS', 'BFO - OPTIONS'].includes(trimmed)) return 'INDEX-OPT';
-  if (['NSE - STOCK FUTURES', 'BSE - STOCK FUTURES', 'NFO - STOCK FUTURES', 'BFO - STOCK FUTURES'].includes(trimmed)) return 'STOCK-FUT';
-  if (['NSE - STOCK OPTIONS', 'BSE - STOCK OPTIONS', 'NFO - STOCK OPTIONS', 'BFO - STOCK OPTIONS'].includes(trimmed)) return 'STOCK-OPT';
-  if (trimmed === 'MCX - FUTURES') return 'MCX-FUT';
-  if (trimmed === 'MCX - OPTIONS') return 'MCX-OPT';
-  if (['NSE - EQUITY', 'BSE - EQUITY'].includes(trimmed)) return 'NSE-EQ';
-  if (trimmed === 'CRYPTO') return 'CRYPTO';
-  if (trimmed === 'FOREX' || trimmed === 'CDS - FUTURES' || trimmed === 'CDS - OPTIONS') return 'FOREX';
-  if (trimmed === 'COMEX - FUTURES' || trimmed === 'COMEX - OPTIONS' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
-
   const n = symbol.toUpperCase();
   if (n) {
     if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS')) {
@@ -84,6 +73,18 @@ function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
     if (n.includes('-') || n.includes('/')) return 'FOREX';
     if (trimmed === 'NSE') return 'NSE-EQ';
   }
+
+  if (['NSE - FUTURES', 'BSE - FUTURES', 'NFO - FUTURES', 'BFO - FUTURES'].includes(trimmed)) return 'INDEX-FUT';
+  if (['NSE - OPTIONS', 'BSE - OPTIONS', 'NFO - OPTIONS', 'BFO - OPTIONS'].includes(trimmed)) return 'INDEX-OPT';
+  if (['NSE - STOCK FUTURES', 'BSE - STOCK FUTURES', 'NFO - STOCK FUTURES', 'BFO - STOCK FUTURES'].includes(trimmed)) return 'STOCK-FUT';
+  if (['NSE - STOCK OPTIONS', 'BSE - STOCK OPTIONS', 'NFO - STOCK OPTIONS', 'BFO - STOCK OPTIONS'].includes(trimmed)) return 'STOCK-OPT';
+  if (trimmed === 'MCX - FUTURES') return 'MCX-FUT';
+  if (trimmed === 'MCX - OPTIONS') return 'MCX-OPT';
+  if (['NSE - EQUITY', 'BSE - EQUITY'].includes(trimmed)) return 'NSE-EQ';
+  if (trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'FOREX' || trimmed === 'CDS - FUTURES' || trimmed === 'CDS - OPTIONS') return 'FOREX';
+  if (trimmed === 'COMEX - FUTURES' || trimmed === 'COMEX - OPTIONS' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+
 
   return trimmed;
 }
