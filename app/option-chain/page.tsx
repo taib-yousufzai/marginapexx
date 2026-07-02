@@ -972,7 +972,7 @@ function OptionChainContent() {
           const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
           const isIndexOption = symbol === 'NIFTY' || symbol === 'BANKNIFTY' || symbol === 'FINNIFTY' || symbol === 'SENSEX' || symbol === 'BANKEX' || symbol === 'MIDCPNIFTY';
           const dbSeg = isIndexOption ? 'INDEX-OPT' : 'STOCK-OPT';
-          const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+          const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === sheetSide);
 
           const priceToUse = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
             ? parseFloat(limitPrice)
@@ -1014,8 +1014,8 @@ function OptionChainContent() {
           
           const totalBrokerage = (orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge)) * 2;
           const marginPortion = calculateMarginPortion({
-            segment: 'INDEX-OPT',
-            side: actionSide,
+            segment: dbSeg,
+            side: sheetSide,
             leverageType,
             leverage,
             totalQty,
