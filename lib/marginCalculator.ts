@@ -19,12 +19,6 @@ export function calculateMarginPortion({
   lotSize,
   baseExposure,
 }: MarginCalculationParams): number {
-  // Option BUYs always require 100% of the premium (no leverage)
-  const isOption = segment.includes('OPT');
-  if (isOption && side === 'BUY') {
-    return baseExposure;
-  }
-
   // Use the leverageType setting from the admin panel to determine calculation method
   if (leverageType === 'Fixed') {
     // Fixed margin per lot
