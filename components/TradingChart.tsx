@@ -382,7 +382,9 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
               )
             ) : (
               (() => {
-                const q = searchQuery.toLowerCase();
+                // Normalize query: 'banknifty55400ce' -> 'banknifty 55400 ce'
+                const normalizedQuery = searchQuery.replace(/^([a-zA-Z]+)(\d+(?:\.\d+)?)(ce|pe)?$/i, (m, p1, p2, p3) => `${p1} ${p2} ${p3 || ''}`.trim());
+                const q = normalizedQuery.toLowerCase();
                 const wordStartMatch = (txt: string) => {
                   if (!txt) return false;
                   const t = txt.toLowerCase();
@@ -1868,77 +1870,75 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
                 </span>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ 
-                    color: orderSide === 'BUY' ? '#1db954' : '#e53935', 
-                    background: orderSide === 'BUY' ? 'rgba(29, 185, 84, 0.1)' : 'rgba(229, 57, 53, 0.1)',
-                    border: `1px solid ${orderSide === 'BUY' ? 'rgba(29, 185, 84, 0.3)' : 'rgba(229, 57, 53, 0.3)'}`,
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontWeight: '600', 
-                    fontSize: '10px' 
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+                  <span style={{
+                    color: orderSide === 'BUY' ? '#1db954' : '#e53935',
+                    background: 'transparent',
+                    padding: '0',
+                    fontWeight: '600',
+                    fontSize: '11px'
                   }}>
                     {orderSide === 'BUY' ? 'Ask' : 'Bid'}: ₹{Number(orderSide === 'BUY' ? liveAsk : liveBid).toFixed(2)}
                   </span>
+                  <span style={{ color: '#8b949e', fontSize: '11px', fontWeight: '500' }}>
+                    LTP: <span style={{ color: 'var(--text-primary)', fontWeight: '700' }}>₹{Number(liveLTP).toFixed(2)}</span>
+                  </span>
                   {chainContract && chainContract.expiry && (
-                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
                       {chainContract.expiry}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div style={{ marginRight: '12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                <span style={{ fontSize: '10px', color: '#8b949e', fontWeight: 500, lineHeight: 1 }}>Stock Price</span>
-                <span style={{ fontSize: '13px', color: '#f8fafc', fontWeight: 600, marginTop: '4px' }}>₹{Number(liveLTP).toFixed(2)}</span>
-              </div>
-
-              <div
-                style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1.2px solid var(--green, #1db954)' }}
-                onClick={() => {
-                  const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
-                  setSymbol(targetSymbol);
-                  // Derive the correct display segment so mapSegmentToDbSegment works
-                  if (chainContract) {
-                    const n = chainContract.name.toUpperCase();
-                    const isBse = n.includes('SENSEX') || n.includes('BANKEX');
-                    const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
-                    if (isMcx) {
-                      setSegment('MCX - Options');
-                    } else if (isBse) {
-                      setSegment('BSE - Options');
-                    } else {
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div
+                  style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1.2px solid var(--green, #1db954)' }}
+                  onClick={() => {
+                    const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
+                    setSymbol(targetSymbol);
+                    // Derive the correct display segment so mapSegmentToDbSegment works
+                    if (chainContract) {
+                      const n = chainContract.name.toUpperCase();
+                      const isBse = n.includes('SENSEX') || n.includes('BANKEX');
+                      const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
+                      if (isMcx) {
+                        setSegment('MCX - Options');
+                      } else if (isBse) {
+                        setSegment('BSE - Options');
+                      } else {
+                        setSegment('NSE - Options');
+                      }
+                    } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
                       setSegment('NSE - Options');
                     }
-                  } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
-                    setSegment('NSE - Options');
-                  }
-                  setIsPanelExpanded(false);
+                    setIsPanelExpanded(false);
+                    setIsOrderBlockVisible(false);
+                    setChainContract(null);
+                  }}
+                  title="Open Chart"
+                >
+                  <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', display: 'block' }}>
+                    <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                    <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                    <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                    <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                    <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+
+                <div className="close-order-block" onClick={() => {
                   setIsOrderBlockVisible(false);
                   setChainContract(null);
-                }}
-                title="Open Chart"
-              >
-                <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', display: 'block' }}>
-                  <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
-                  <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
-                  <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
-                  <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                  <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-
-              <div className="close-order-block" onClick={() => {
-                setIsOrderBlockVisible(false);
-                setChainContract(null);
-                if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
-                setIsExitFlow(false);
-                setIsAddMoreFlow(false);
-                setExitPositionId(null);
-                setOrderBlockTitle(symbol);
-              }}>
-                <i className="ti ti-x"></i>
+                  if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
+                  setIsExitFlow(false);
+                  setIsAddMoreFlow(false);
+                  setExitPositionId(null);
+                  setOrderBlockTitle(symbol);
+                }}>
+                  <i className="ti ti-x"></i>
+                </div>
               </div>
             </div>
             <div className="order-block-content">

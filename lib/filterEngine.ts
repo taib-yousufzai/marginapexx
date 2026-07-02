@@ -213,7 +213,7 @@ export function applyStrikeRangeFilter(
 
   // Extract unique strikes and sort them
   const strikes = Array.from(new Set(options.map((i) => i.strike_price ?? 0))).sort((a, b) => a - b);
-  
+
   if (strikes.length === 0) return others;
 
   // Find the exact closest strike index
@@ -244,7 +244,7 @@ export function applyStrikeRangeFilter(
   }
 
   const selectedStrikes = new Set(strikes.slice(startIdx, endIdx + 1));
-  
+
   const kept = options.filter((i) => selectedStrikes.has(i.strike_price ?? 0));
   const excluded = options.filter((i) => !selectedStrikes.has(i.strike_price ?? 0));
 

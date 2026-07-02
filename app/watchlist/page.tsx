@@ -2100,10 +2100,10 @@ function WatchlistContent() {
                   <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--text-primary)', background: 'var(--bg-card)', padding: '3px 10px', borderRadius: '20px' }}>{selectedItem.contractDate}</div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem, 'BUY')}>
+                  <button style={{ flex: 1, background: '#15803D', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', touchAction: 'manipulation' }} onClick={() => openTradeSheet(selectedItem, 'BUY')} onTouchEnd={(e) => { e.preventDefault(); openTradeSheet(selectedItem, 'BUY'); }}>
                     <i className="fas fa-arrow-up"></i> BUY
                   </button>
-                  <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }} onClick={() => openTradeSheet(selectedItem, 'SELL')}>
+                  <button style={{ flex: 1, background: '#B91C1C', color: 'white', border: 'none', padding: '11px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', touchAction: 'manipulation' }} onClick={() => openTradeSheet(selectedItem, 'SELL')} onTouchEnd={(e) => { e.preventDefault(); openTradeSheet(selectedItem, 'SELL'); }}>
                     <i className="fas fa-arrow-down"></i> SELL
                   </button>
                 </div>

@@ -31,6 +31,32 @@ const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', '
  */
 function parseOptionQuery(q: string): { underlying: string; strike: number; optionType?: string } | null {
   const upper = q.toUpperCase().trim();
+
+  // Smart guesser for pure numeric queries like "23600" or "48500 ce"
+  const numOnlyMatch = upper.match(/^(\d+(?:\.\d+)?)\s*(CE|PE)?$/);
+  if (numOnlyMatch) {
+    const num = parseFloat(numOnlyMatch[1]);
+    const optType = numOnlyMatch[2];
+
+    let guessed = '';
+    // Nifty is around 21k - 27k
+    if (num >= 20000 && num <= 27000) guessed = 'NIFTY';
+    // BankNifty is around 40k - 60k
+    else if (num >= 40000 && num <= 60000) guessed = 'BANKNIFTY';
+    // Sensex is around 70k - 90k
+    else if (num >= 70000 && num <= 90000) guessed = 'SENSEX';
+    // Midcap Nifty is around 9k - 15k
+    else if (num >= 9000 && num <= 15000) guessed = 'MIDCPNIFTY';
+
+    if (guessed) {
+      return {
+        underlying: guessed,
+        strike: num,
+        optionType: optType || undefined,
+      };
+    }
+  }
+
   const underlying = UNDERLYINGS.find(u => upper.startsWith(u));
   if (!underlying) return null;
   const rest = upper.slice(underlying.length).trim();
@@ -189,7 +215,7 @@ export async function GET(request: NextRequest) {
 
     // Smart parse: "nifty 24040" → underlying + strike query
     const parsed = parseOptionQuery(q);
-    
+
     const applyTabFilter = (query: any) => {
       if (tab === 'All') return query;
       if (tab.includes('-OPT')) return query.not('option_type', 'is', null);
@@ -216,7 +242,7 @@ export async function GET(request: NextRequest) {
       if (parsed.optionType) {
         dbQuery = dbQuery.eq('option_type', parsed.optionType);
       }
-      
+
       dbQuery = applyTabFilter(dbQuery);
 
       ({ data, error } = await dbQuery);
@@ -226,7 +252,7 @@ export async function GET(request: NextRequest) {
     if (!data || data.length === 0) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
       const today = new Date().toISOString().split('T')[0];
-      
+
       let dbQuery = supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
@@ -234,9 +260,9 @@ export async function GET(request: NextRequest) {
         .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
-        
+
       dbQuery = applyTabFilter(dbQuery);
-      
+
       ({ data, error } = await dbQuery);
     }
 
@@ -249,7 +275,13 @@ export async function GET(request: NextRequest) {
 
     // Filter rows to ensure they actually match the search terms in a meaningful way.
     // This avoids matching "25" to all 2025 options because of "25" in their internal Zerodha tradingsymbol (e.g. NIFTY2532822300PE).
-    const searchTerms = q.toLowerCase().split(/\s+/);
+    let searchTerms = q.toLowerCase().split(/\s+/);
+    if (parsed) {
+      // Re-construct the search terms based on the parse to ensure correct filtering
+      // e.g. "banknifty55400ce" -> ["banknifty", "55400", "ce"]
+      const newQ = `${parsed.underlying} ${parsed.strike} ${parsed.optionType || ''}`.toLowerCase().trim();
+      searchTerms = newQ.split(/\s+/);
+    }
 
     function wordStartMatch(text: string, term: string): boolean {
       if (!text) return false;
