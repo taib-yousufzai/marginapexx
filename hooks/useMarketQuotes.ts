@@ -223,7 +223,23 @@ export function useMarketQuotes(symbols: string[]) {
         const close = q.ohlc?.close || q.close || 0;
         // Add a tiny micro-jitter (+0.05 or -0.05) to simulate high liquidity 
         // and force the UI to flash even if the real exchange price is stuck.
-        const jitter = (Math.random() > 0.5 ? 0.05 : -0.05);
+        // Only apply this jitter during active market hours to prevent values changing when closed.
+        let jitter = 0;
+        const now = new Date();
+        const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const hours = istTime.getHours();
+        const minutes = istTime.getMinutes();
+        const day = istTime.getDay();
+        const isWeekend = day === 0 || day === 6;
+        const isMarketHours = !isWeekend && (
+          (hours > 9 || (hours === 9 && minutes >= 15)) && 
+          (hours < 15 || (hours === 15 && minutes <= 30))
+        );
+
+        if (isMarketHours) {
+          jitter = (Math.random() > 0.5 ? 0.05 : -0.05);
+        }
+        
         const jitteredPrice = q.last_price + jitter;
         const changePercent = close > 0 ? ((jitteredPrice - close) / close) * 100 : 0;
 
