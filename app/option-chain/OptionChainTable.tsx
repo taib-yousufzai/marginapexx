@@ -136,10 +136,10 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const ceLtpVal = ceQuote ? ceQuote.lastPrice : s.ce?.price;
             const peLtpVal = peQuote ? peQuote.lastPrice : s.pe?.price;
 
-            const ceBid = ceLtpVal ? (ceLtpVal - 0.05).toFixed(1) : '---';
-            const ceAsk = ceLtpVal ? (ceLtpVal + 0.05).toFixed(1) : '---';
-            const peBid = peLtpVal ? (peLtpVal - 0.05).toFixed(1) : '---';
-            const peAsk = peLtpVal ? (peLtpVal + 0.05).toFixed(1) : '---';
+            const ceBid = ceLtpVal ? ceLtpVal.toFixed(1) : '---';
+            const ceAsk = ceLtpVal ? ceLtpVal.toFixed(1) : '---';
+            const peBid = peLtpVal ? peLtpVal.toFixed(1) : '---';
+            const peAsk = peLtpVal ? peLtpVal.toFixed(1) : '---';
 
             const ceLtp = ceLtpVal ? `₹${ceLtpVal.toFixed(1)}` : '---';
             const peLtp = peLtpVal ? `₹${peLtpVal.toFixed(1)}` : '---';
