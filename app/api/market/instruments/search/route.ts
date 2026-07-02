@@ -37,7 +37,7 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
   if (numOnlyMatch) {
     const num = parseFloat(numOnlyMatch[1]);
     const optType = numOnlyMatch[2];
-    
+
     let guessed = '';
     // Nifty is around 21k - 27k
     if (num >= 20000 && num <= 27000) guessed = 'NIFTY';
@@ -47,7 +47,7 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
     else if (num >= 70000 && num <= 90000) guessed = 'SENSEX';
     // Midcap Nifty is around 9k - 15k
     else if (num >= 9000 && num <= 15000) guessed = 'MIDCPNIFTY';
-    
+
     if (guessed) {
       return {
         underlying: guessed,
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
 
     // Smart parse: "nifty 24040" → underlying + strike query
     const parsed = parseOptionQuery(q);
-    
+
     const applyTabFilter = (query: any) => {
       if (tab === 'All') return query;
       if (tab.includes('-OPT')) return query.not('option_type', 'is', null);
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
       if (parsed.optionType) {
         dbQuery = dbQuery.eq('option_type', parsed.optionType);
       }
-      
+
       dbQuery = applyTabFilter(dbQuery);
 
       ({ data, error } = await dbQuery);
@@ -252,7 +252,7 @@ export async function GET(request: NextRequest) {
     if (!data || data.length === 0) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
       const today = new Date().toISOString().split('T')[0];
-      
+
       let dbQuery = supabase
         .from('instruments')
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
@@ -260,9 +260,9 @@ export async function GET(request: NextRequest) {
         .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
-        
+
       dbQuery = applyTabFilter(dbQuery);
-      
+
       ({ data, error } = await dbQuery);
     }
 
