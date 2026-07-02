@@ -144,7 +144,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
   const equity = positionValue;
   // Free Margin = Balance + lossOnlyPnl - Used Margin
   // Unrealized profit does not increase free margin, but unrealized loss decreases it.
-  const freeMargin = balance + lossOnlyPnl;
+  const freeMargin = balance + lossOnlyPnl - usedMargin;
   const fmt = (n: number) => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const [openHeight, setOpenHeight] = useState(0);
