@@ -798,26 +798,32 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   return (
     <>
       <style>{`
-        .ts2-overlay {
-          position: absolute; inset: 0;
-          background: rgba(0,0,0,0.55);
-          z-index: 9998;
-          opacity: 0; visibility: hidden;
-          transition: opacity 0.3s ease, visibility 0.3s ease;
+        @keyframes fadeIn {
+          from { opacity: 0; visibility: hidden; }
+          to { opacity: 1; visibility: visible; }
         }
-        .ts2-overlay.active { opacity: 1; visibility: visible; }
+        @keyframes slideUp {
+          from { transform: translateY(100%) !important; }
+          to { transform: translateY(0) !important; }
+        }
+        .ts2-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.55);
+          z-index: 100000;
+          opacity: 1; visibility: visible;
+          animation: fadeIn 0.3s ease forwards;
+        }
 
         .ts2-sheet {
-          position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
           width: 100%; max-width: 100%; margin: 0;
           background: var(--bg-body, #F5F7FB);
-          z-index: 9999;
-          transform: translateY(100%);
-          transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05);
+          z-index: 100001;
+          transform: translateY(0) !important;
+          animation: slideUp 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05) forwards;
           display: flex; flex-direction: column;
           overflow: hidden;
         }
-        .ts2-sheet.open { transform: translateY(0); }
 
 
         .ts2-header {
@@ -1059,9 +1065,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         }
       `}</style>
 
-      <div className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
+      <div id="tradeSheetOverlay" className={`ts2-overlay${isOpen ? ' active' : ''}`} onClick={onClose} />
 
-      <div className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''} ts2-sheet--${activeSide.toLowerCase()}`}>
+      <div id="tradeSheet" className={`ts2-sheet${isOpen ? ' open' : ''}${exitMode ? ' ts2-exit-mode' : ''} ts2-sheet--${activeSide.toLowerCase()}`}>
         {item && (
           <>
             {/* Header */}
