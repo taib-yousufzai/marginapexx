@@ -264,201 +264,6 @@ export function getPctClass(pct: number): 'pct-positive' | 'pct-negative' {
 interface SegmentTabBarProps {
   activeTab: TabLabel;
   onTabChange: (tab: TabLabel) => void;
-const DEFAULT_CRYPTO_ITEMS: WatchlistItem[] = [
-  { name: 'Bitcoin', symbol: 'BTC', kiteSymbol: '', binanceSymbol: 'BTCUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
-  { name: 'Ethereum', symbol: 'ETH', kiteSymbol: '', binanceSymbol: 'ETHUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
-  { name: 'Dogecoin', symbol: 'DOGE', kiteSymbol: '', binanceSymbol: 'DOGEUSDT', price: 0, change: '0%', segment: 'Crypto', contractDate: '', open: 0, high: 0, low: 0, close: 0, category: 'CRYPTO' },
-];
-
-// ── Default Forex Items (Zerodha CDS segment — INR pairs) ──────────────────
-// Update expiry month as contracts roll (format: CDS:XYZINR26MONFUT)
-
-const DEFAULT_FOREX_ITEMS: WatchlistItem[] = [
-  { name: 'USD/INR', symbol: 'USDINR_FUT', kiteSymbol: 'CDS:USDINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'EUR/INR', symbol: 'EURINR_FUT', kiteSymbol: 'CDS:EURINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'GBP/INR', symbol: 'GBPINR_FUT', kiteSymbol: 'CDS:GBPINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-  { name: 'JPY/INR', symbol: 'JPYINR_FUT', kiteSymbol: 'CDS:JPYINR26JULFUT', price: 0, change: '0%', segment: 'CDS - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'FOREX' },
-];
-
-// ── Default COMEX Items (MCX ₹ via Kite + COMEX $ via Yahoo proxy) ──────────────
-// Rows with both kiteSymbol + comexSymbol show a ₹⇄$ toggle pill
-
-const DEFAULT_COMEX_ITEMS: WatchlistItem[] = [
-  { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-];
-
-function getDefaultWatchlistItems(): WatchlistItem[] {
-  return [
-    {
-      name: 'NIFTY 50 INDEX',
-      symbol: 'NIFTY_INDEX',
-      kiteSymbol: 'NSE:NIFTY 50',
-      price: 22456.80,
-      change: '+0.45%',
-      segment: 'NSE - Futures',
-      contractDate: '28 Mar 2025',
-      open: 22350,
-      high: 22580,
-      low: 22320,
-      close: 22456.80
-    },
-    {
-      name: 'BANKNIFTY INDEX',
-      symbol: 'BANKNIFTY_INDEX',
-      kiteSymbol: 'NSE:NIFTY BANK',
-      price: 48210.50,
-      change: '-0.21%',
-      segment: 'NSE - Futures',
-      contractDate: '28 Mar 2025',
-      open: 48350,
-      high: 48500,
-      low: 48100,
-      close: 48210.50
-    },
-    {
-      name: 'SENSEX INDEX',
-      symbol: 'SENSEX_INDEX',
-      kiteSymbol: 'BSE:SENSEX',
-      price: 74230.15,
-      change: '+0.32%',
-      segment: 'BSE - Futures',
-      contractDate: '28 Mar 2025',
-      open: 73950,
-      high: 74500,
-      low: 73800,
-      close: 74230.15
-    },
-    ...DEFAULT_CRYPTO_ITEMS,
-    ...DEFAULT_FOREX_ITEMS,
-    ...DEFAULT_COMEX_ITEMS,
-  ];
-}
-
-// ── Tab Labels ──────────────────────────────────────────────────────────────
-
-export type TabLabel =
-  | 'All'
-  | 'INDEX-FUT'
-  | 'INDEX-OPT'
-  | 'MCX-FUT'
-  | 'MCX-OPT'
-  | 'STOCK-FUT'
-  | 'STOCK-OPT'
-  | 'NSE-EQ'
-  | 'CRYPTO'
-  | 'COMEX'
-  | 'FOREX';
-
-export const TAB_LABELS: TabLabel[] = [
-  'All',
-  'INDEX-FUT',
-  'INDEX-OPT',
-  'MCX-FUT',
-  'MCX-OPT',
-  'STOCK-FUT',
-  'STOCK-OPT',
-  'NSE-EQ',
-  'CRYPTO',
-  'COMEX',
-  'FOREX'
-];
-
-// ── Segment → Tab Mapping ────────────────────────────────────────────────────
-
-export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
-  'NSE - Futures': 'INDEX-FUT',
-  'BSE - Futures': 'INDEX-FUT',
-  'NSE - Options': 'INDEX-OPT',
-  'BSE - Options': 'INDEX-OPT',
-  'NSE - Stock Futures': 'STOCK-FUT',
-  'BSE - Stock Futures': 'STOCK-FUT',
-  'NSE - Stock Options': 'STOCK-OPT',
-  'BSE - Stock Options': 'STOCK-OPT',
-  'MCX - Futures': 'MCX-FUT',
-  'MCX - Options': 'MCX-OPT',
-  'NSE - Equity': 'NSE-EQ',
-  'BSE - Equity': 'NSE-EQ',
-  'Crypto': 'CRYPTO',
-  'CRYPTO': 'CRYPTO',
-  'Forex': 'FOREX',
-  'FOREX': 'FOREX',
-  'CDS - Futures': 'FOREX',
-  'CDS - Options': 'FOREX',
-  'COMEX - Futures': 'COMEX',
-  'COMEX - Options': 'COMEX',
-  'COMEX': 'COMEX',
-  'COI': 'COMEX',
-};
-
-// ── Pure Helper Functions ────────────────────────────────────────────────────
-
-/** Maps a WatchlistItem to its TabLabel. Checks category first, then segment. */
-export function getTabForItem(item: WatchlistItem): TabLabel {
-  if (item.category) {
-    const c = item.category.toUpperCase();
-    if (c.includes('INDEX - FUTURE')) return 'INDEX-FUT';
-    if (c.includes('INDEX - OPTIONS')) return 'INDEX-OPT';
-    if (c.includes('STOCKS - FUTURE')) return 'STOCK-FUT';
-    if (c.includes('MCX - FUTURE')) return 'MCX-FUT';
-    if (c.includes('MCX - OPTIONS')) return 'MCX-OPT';
-    if (c.includes('CRYPTO')) return 'CRYPTO';
-    if (c.includes('FOREX')) return 'FOREX';
-    if (c.includes('COMEX')) return 'COMEX';
-  }
-
-  if (item.segment && SEGMENT_TAB_MAP[item.segment]) {
-    return SEGMENT_TAB_MAP[item.segment];
-  }
-  return 'INDEX-FUT'; // Fallback
-}
-
-/** Filters items to those belonging to the active tab. */
-export function filterByTab(items: WatchlistItem[], tab: TabLabel): WatchlistItem[] {
-  if (tab === 'All') return items;
-  return items.filter(item => getTabForItem(item) === tab);
-}
-
-/** Filters items by word-start match on name/symbol. "Nif" matches "NIFTY" but not "FINNIFTY". */
-export function filterBySearch(items: WatchlistItem[], query: string): WatchlistItem[] {
-  if (!query.trim()) return items;
-  const q = query.toLowerCase();
-
-  function wordStartMatch(text: string): boolean {
-    const t = text.toLowerCase();
-    if (t.startsWith(q)) return true;
-    const words = t.split(/[\s\-_\/]/);
-    return words.some(w => w.startsWith(q));
-  }
-
-  return items.filter(
-    item => wordStartMatch(item.name) || wordStartMatch(item.symbol)
-  );
-}
-
-/** Derives the exchange badge string from a segment string. */
-export function getExchangeBadge(segment: string): string {
-  if (segment.startsWith('NSE') && segment !== 'NSE - Equity') return 'NFO';
-  if (segment.startsWith('BSE') && segment !== 'BSE - Equity') return 'BFO';
-  if (segment.startsWith('MCX')) return 'MCX';
-  if (segment.startsWith('CDS')) return 'CDS';
-  if (segment === 'NSE - Equity') return 'NSE';
-  if (segment === 'BSE - Equity') return 'BSE';
-  return 'OTH';
-}
-
-/** Returns the CSS class for a percentage change value. */
-export function getPctClass(pct: number): 'pct-positive' | 'pct-negative' {
-  return pct < 0 ? 'pct-negative' : 'pct-positive';
-}
-
-// ── SegmentTabBar Component ──────────────────────────────────────────────────
-
-interface SegmentTabBarProps {
-  activeTab: TabLabel;
-  onTabChange: (tab: TabLabel) => void;
 }
 
 function SegmentTabBar({ activeTab, onTabChange }: SegmentTabBarProps) {
@@ -836,6 +641,816 @@ function WatchlistContent() {
     .filter((s): s is string => !!s);
   const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 1000);
 
+  // ── Detail sheet: resolve live quote from correct source ─────────────────
+  const isCrypto = !!(selectedItem?.binanceSymbol);
+  const isComex  = !!(selectedItem?.comexSymbol);
+
+  const currentKiteQuote    = selectedItem?.kiteSymbol   ? marketQuotes[selectedItem.kiteSymbol]           : null;
+  const currentBinanceQuote = selectedItem?.binanceSymbol ? marketQuotes[selectedItem.binanceSymbol] : null;
+  const currentComexQuote   = selectedItem?.comexSymbol   ? comexQuotes[selectedItem.comexSymbol]     : null;
+
+  let currentLtp           = 0;
+  let currentChangePercent = 0;
+
+  if (isCrypto && currentBinanceQuote) {
+    currentLtp           = currentBinanceQuote.lastPrice;
+    currentChangePercent = currentBinanceQuote.changePercent;
+  } else if (isComex && currentComexQuote) {
+    currentLtp           = currentComexQuote.lastPrice;
+    currentChangePercent = currentComexQuote.changePercent;
+  } else if (currentKiteQuote) {
+    currentLtp           = currentKiteQuote.lastPrice;
+    currentChangePercent = currentKiteQuote.changePercent;
+  } else {
+    currentLtp = selectedItem?.price ?? 0;
+  }
+
+  const formatPrice = (price: number | undefined | null) => {
+    if (price === undefined || price === null || isNaN(price as number)) return '--';
+    return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const dbSeg = selectedItem ? mapSegmentToDbSegment(selectedItem.segment) : '';
+  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+
+  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
+  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
+
+  let rawBid = currentLtp;
+  let rawAsk = currentLtp;
+
+  if (isCrypto && currentBinanceQuote) {
+    rawBid = currentBinanceQuote.bid || currentLtp;
+    rawAsk = currentBinanceQuote.ask || currentLtp;
+  } else if (isComex && currentComexQuote) {
+    rawBid = currentComexQuote.bid || currentLtp;
+    rawAsk = currentComexQuote.ask || currentLtp;
+  } else if (currentKiteQuote) {
+    rawBid = currentKiteQuote.bid || currentLtp;
+    rawAsk = currentKiteQuote.ask || currentLtp;
+  }
+
+
+
+  // ── Mobile Back Button Interception ──
+  useMobileBack(isFolderDrawerOpen, () => setIsFolderDrawerOpen(false), 'segments');
+  useMobileBack(!!selectedItem, () => {
+    const sheet = document.getElementById('detailSheet');
+    const overlay = document.getElementById('detailSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setSelectedItem(null);
+  }, 'details');
+  useMobileBack(isTradeSheetOpen, () => {
+    const sheet = document.getElementById('tradeSheet');
+    const overlay = document.getElementById('tradeSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setIsTradeSheetOpen(false);
+  }, 'trade');
+  useMobileBack(!!chartItem, () => {
+    const sheet = document.getElementById('chartSheet');
+    const overlay = document.getElementById('chartSheetOverlay');
+    if (sheet) sheet.classList.remove('open');
+    if (overlay) overlay.classList.remove('active');
+    setChartItem(null);
+    setIsBenchmarkChart(false);
+  }, 'chart');
+
+  // --- Global Modal History Manager ---
+  useEffect(() => {
+    let isPopping = false;
+
+    const handlePopState = () => {
+      if (window.location.hash !== '#modal') {
+        isPopping = true;
+        setIsTradeSheetOpen(false);
+        setChartItem(null);
+        setIsFolderDrawerOpen(false);
+        
+        const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer', 'tradeSheetOverlay', 'detailSheetOverlay', 'chartSheetOverlay', 'drawerOverlay'];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.classList.remove('open');
+            el.classList.remove('active');
+          }
+        });
+        setTimeout(() => { isPopping = false; }, 50);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    const ids = ['tradeSheet', 'detailSheet', 'chartSheet', 'scriptsFolderDrawer'];
+
+    const observer = new MutationObserver(() => {
+      if (isPopping) return;
+      
+      const isAnyModalOpen = ids.some(id => {
+        const el = document.getElementById(id);
+        return el && el.classList.contains('open');
+      });
+
+      if (isAnyModalOpen && window.location.hash !== '#modal') {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + '#modal');
+      } else if (!isAnyModalOpen && window.location.hash === '#modal') {
+        isPopping = true;
+        // Check if there is history to go back to, otherwise just replace state to remove hash
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+        setTimeout(() => { isPopping = false; }, 50);
+      }
+    });
+
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      observer.disconnect();
+    };
+  }, []);
+
+  // Basket Mode State
+  const [basketMode, setBasketMode] = useState(false);
+  const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
+  const [showBasketConfirm, setShowBasketConfirm] = useState(false);
+  const [isSelectionActive, setIsSelectionActive] = useState(false);
+
+  useEffect(() => {
+    (window as any).__isBasketModeActive = basketMode;
+    if (basketMode) {
+      if (isSelectionActive) setIsSelectionActive(false);
+      (window as any).exitSelectionMode?.();
+    }
+  }, [basketMode]);
+
+  // Map a segment label to DB key segment
+  function mapSegmentToDbSegment(s: string): string {
+    if (!s) return '';
+    const trimmed = s.trim();
+    if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
+    if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
+    if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
+    if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
+    if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+    if (trimmed === 'MCX - Options') return 'MCX-OPT';
+    if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
+    if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+    if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+    if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+    return trimmed;
+  };
+
+  const filteredItems = filterBySearch(filterByTab(watchlistItems, activeTab), searchText);
+  const scriptMountedRef = useRef(false);
+  const deepLinkHandledRef = useRef(false);
+  const watchlistItemsRef = useRef<WatchlistItem[]>([]);
+
+  // Available Balance State
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    (window as any).__activeTab = activeTab;
+  }, [activeTab]);
+
+  // Search results overlay: show search results library whenever search input has text
+  useEffect(() => {
+    const area = document.getElementById('searchResultsArea');
+    if (!area) return;
+
+    if (!searchText.trim()) {
+      area.style.display = 'none';
+      return;
+    }
+
+    // Pre-show the area so it's visible before inline script renders results
+    area.style.display = 'flex';
+
+    // Use the exposed search function directly — avoids the fragile synthetic
+    // input event that could fire before the inline script has attached its listener
+    if (typeof (window as any).__triggerSearch === 'function') {
+      (window as any).__triggerSearch(searchText.trim());
+    } else {
+      // Script not mounted yet — dispatch input event as fallback
+      const input = document.getElementById('globalSearchInput') as HTMLInputElement | null;
+      if (input) {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }, [searchText]);
+
+  useEffect(() => {
+    async function fetchBalance() {
+      try {
+        const { supabase: sb } = await import('@/lib/supabaseClient');
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) return;
+        const res = await fetch('/api/pay/balance', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        if (res.ok) {
+          const text = await res.text();
+          try {
+            const { balance } = JSON.parse(text);
+            setAvailableBalance(balance);
+          } catch (e) {
+            console.error('Failed to parse balance JSON:', text.substring(0, 100));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch available balance', err);
+      }
+    }
+    fetchBalance();
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('marginApexTheme');
+    document.body.classList.remove('dark', 'black', 'blue');
+    if (saved === 'dark' || saved === 'black' || saved === 'blue') document.body.classList.add(saved);
+  }, []);
+
+  // Keep a ref to activePositions so the side-change effect reads the latest
+  // without re-triggering on every positions data update
+  const activePositionsRef = useRef(activePositions);
+  useEffect(() => { activePositionsRef.current = activePositions; }, [activePositions]);
+
+  // Sync maximum position quantity when side changes to SELL
+  useEffect(() => {
+    const positions = activePositionsRef.current;
+    if (selectedItem && positions) {
+      if (tradeSide === 'SELL') {
+        const existingPos = positions.find(
+          p => p.symbol === selectedItem.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY'
+        );
+        if (existingPos) {
+          setOrderQty(existingPos.qty_open);
+          setQtyInput(String(existingPos.qty_open));
+        }
+      } else if (tradeSide === 'BUY') {
+        const computedLot = getWatchlistLotSize(selectedItem);
+        setOrderQty(computedLot);
+        setQtyInput(String(computedLot));
+      }
+    }
+  }, [tradeSide, selectedItem?.symbol]);
+
+  // Handle deep linking from other screens (e.g. Home)
+  const deepLinkSymbol = searchParams.get('symbol');
+  useEffect(() => {
+    if (!deepLinkSymbol || !hasLoaded) return;
+    // Only process the deep-link once — re-running on every watchlistItems change
+    // would re-open the deep-linked chart whenever a new item is added from the library.
+    if (deepLinkHandledRef.current) return;
+    deepLinkHandledRef.current = true;
+    const query = deepLinkSymbol.toUpperCase();
+
+    const tryOpen = (items: WatchlistItem[]) => {
+      let item = items.find(i =>
+        i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') ||
+        i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') ||
+        (i.kiteSymbol && i.kiteSymbol.toUpperCase().includes(query))
+      );
+
+      // Fallback: Try to find in master segments lists first
+      if (!item) {
+        let masterFound: any = null;
+        for (const seg of tradingSegmentsRef.current) {
+          if (seg.instruments) {
+            const found = seg.instruments.find(i => 
+              i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') || 
+              i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') || 
+              (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
+              (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
+            );
+            if (found) { masterFound = found; break; }
+          }
+          if (seg.subCategories) {
+            for (const sub of seg.subCategories) {
+              const found = sub.instruments.find(i => 
+                i.symbol.toUpperCase().replace(/\s/g, '') === query.replace(/\s/g, '') || 
+                i.name.toUpperCase().replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') === query.replace(/\s/g, '').replace('INDEX', '').replace('FUT', '') || 
+                (i.kiteSymbol && i.kiteSymbol.toUpperCase() === query) ||
+                (i.kiteSymbol && i.kiteSymbol.toUpperCase().split(':').pop() === query)
+              );
+              if (found) { masterFound = found; break; }
+            }
+            if (masterFound) break;
+          }
+        }
+
+        if (masterFound) {
+          item = { ...masterFound };
+        } else {
+          item = {
+            name: deepLinkSymbol,
+            symbol: deepLinkSymbol,
+            kiteSymbol: deepLinkSymbol,
+            segment: 'INR',
+            price: 0,
+          } as WatchlistItem;
+        }
+
+        // Auto-add fallback/master item to watchlist state and storage
+        const dashboardBenchmarks = ['NIFTY 50', 'SENSEX', 'BANK NIFTY', 'USD/INR', 'CRUDE OIL', 'GOLD', 'SILVER', 'NAT GAS'];
+        if (!dashboardBenchmarks.includes(deepLinkSymbol)) {
+          setWatchlistItems(prev => {
+            const newItem = { ...item!, category: activeTab };
+            if (prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab)) return prev;
+            const next = [...prev, newItem];
+            saveWatchlistToStorage(next, userId);
+            return next;
+          });
+        }
+      }
+
+      const itemTab = getTabForItem(item!);
+      if (itemTab !== activeTab) setActiveTab(itemTab);
+
+      const timer = setTimeout(() => {
+        const dashboardBenchmarks = ['NIFTY 50', 'SENSEX', 'BANK NIFTY', 'USD/INR', 'CRUDE OIL', 'GOLD', 'SILVER', 'NAT GAS'];
+        if (dashboardBenchmarks.includes(deepLinkSymbol)) {
+          setChartItem(item!);
+          setIsBenchmarkChart(true);
+          const chartSheet = document.getElementById('chartSheet');
+          const chartOverlay = document.getElementById('chartSheetOverlay');
+          if (chartSheet) chartSheet.classList.add('open');
+          if (chartOverlay) chartOverlay.classList.add('active');
+        } else {
+          openTradeSheet(item!);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    };
+
+    return tryOpen(watchlistItemsRef.current);
+  }, [deepLinkSymbol, hasLoaded]);
+
+  useEffect(() => {
+    if (allowedSegments === null) return; // Wait until session/allowedSegments are resolved to avoid premature loading/defaulting
+
+    const userKey = userId ? `${WATCHLIST_KEY}_${userId}` : WATCHLIST_KEY;
+    let rawUser = null;
+    try {
+      rawUser = localStorage.getItem(userKey);
+    } catch (e) {
+      console.warn("localStorage.getItem userKey failed", e);
+    }
+
+    let itemsToLoad: WatchlistItem[];
+
+    if (rawUser === null) {
+      // User-specific key doesn't exist yet. Check if we should migrate from the legacy global key
+      let rawLegacy = null;
+      try {
+        rawLegacy = localStorage.getItem(WATCHLIST_KEY);
+      } catch (e) {
+        console.warn("localStorage.getItem legacy failed", e);
+      }
+      
+      if (rawLegacy !== null && rawLegacy !== "null") {
+        try {
+          itemsToLoad = JSON.parse(rawLegacy) as WatchlistItem[];
+          if (!Array.isArray(itemsToLoad)) itemsToLoad = getDefaultWatchlistItems();
+        } catch {
+          itemsToLoad = getDefaultWatchlistItems();
+        }
+      } else {
+        itemsToLoad = getDefaultWatchlistItems();
+      }
+      // Save it to the user-specific key
+      try {
+        localStorage.setItem(userKey, JSON.stringify(itemsToLoad));
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      try {
+        itemsToLoad = JSON.parse(rawUser) as WatchlistItem[];
+        if (!Array.isArray(itemsToLoad)) itemsToLoad = [];
+      } catch {
+        itemsToLoad = [];
+      }
+    }
+
+    // Apply migrations/upgrades on the loaded items
+    let migrated = false;
+    const updated = itemsToLoad.map(item => {
+      // Clean up broken dummy deep link items (e.g. symbol "NIFTY 50" with segment "INR")
+      if (item.symbol === 'NIFTY 50' || item.segment === 'INR') {
+        const defaults = getDefaultWatchlistItems();
+        const match = defaults.find(d => d.symbol === 'NIFTY_FUT');
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade legacy Forex (Frankfurter) to new CDS pairs
+      if ((item.category === 'FOREX' || item.segment === 'Forex') && !item.kiteSymbol.startsWith('CDS:')) {
+        const match = DEFAULT_FOREX_ITEMS.find(d => d.name === item.name || d.symbol === item.symbol);
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade legacy COMEX to dual-source MCX pairs
+      if (item.category === 'COI' && (!item.kiteSymbol || !item.kiteSymbol.startsWith('MCX:') || !item.comexSymbol)) {
+        const match = DEFAULT_COMEX_ITEMS.find(d => d.name === item.name || d.name.includes(item.name) || item.name.includes(d.name));
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade expired May 2026 contracts to active June 2026 contracts
+      if (item.kiteSymbol && (item.kiteSymbol.includes('26MAYFUT') || item.kiteSymbol.includes('26MAY'))) {
+        const allDefaults = [...DEFAULT_FOREX_ITEMS, ...DEFAULT_COMEX_ITEMS, ...getDefaultWatchlistItems()];
+        const match = allDefaults.find(d => d.name === item.name || d.symbol === item.symbol);
+        if (match) { migrated = true; return { ...match }; }
+      }
+      return item;
+    });
+
+    if (migrated) {
+      setWatchlistItems(updated);
+      try {
+        localStorage.setItem(userKey, JSON.stringify(updated));
+      } catch (e) {}
+    } else {
+      setWatchlistItems(itemsToLoad);
+    }
+    setHasLoaded(true);
+  }, [userId, allowedSegments]);
+
+
+
+  const getLegPrice = (legItem: WatchlistItem) => {
+    if (legItem.binanceSymbol) {
+      return marketQuotes?.[legItem.binanceSymbol]?.lastPrice ?? legItem.price;
+    }
+    if (legItem.comexSymbol) {
+      return comexQuotes?.[legItem.comexSymbol]?.lastPrice ?? legItem.price;
+    }
+    return marketQuotes?.[legItem.kiteSymbol]?.lastPrice ?? legItem.price;
+  };
+
+  useEffect(() => {
+    window.__kiteQuotes = marketQuotes;
+    window.__binanceQuotes = marketQuotes;
+    window.__comexQuotes = comexQuotes;
+    window.__watchlistItems = watchlistItems;
+    watchlistItemsRef.current = watchlistItems;
+    if (scriptMountedRef.current && typeof (window as any).attachSwipeHandlers === 'function') {
+      (window as any).attachSwipeHandlers();
+    }
+  }, [marketQuotes, comexQuotes, watchlistItems]);
+
+  useEffect(() => {
+    window.__addToWatchlistCallback = (item: WatchlistItem) => {
+      setWatchlistItems(prev => {
+        const newItem = { ...item, category: activeTab };
+        let isDuplicate = false;
+        if (activeTab === 'All') {
+          isDuplicate = prev.some(i => i.symbol === newItem.symbol);
+        } else {
+          isDuplicate = prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab);
+        }
+        if (isDuplicate) return prev;
+        const next = [...prev, newItem];
+        saveWatchlistToStorage(next, userId);
+        // Keep inline script symbol set in sync
+        if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+          (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+        }
+        return next;
+      });
+    };
+    window.__removeFromWatchlistCallback = (symbol: string) => {
+      setWatchlistItems(prev => {
+        const next = prev.filter(i => {
+          if (activeTab === 'All') return i.symbol !== symbol;
+          return !(i.symbol === symbol && getTabForItem(i) === activeTab);
+        });
+        saveWatchlistToStorage(next, userId);
+        // Keep inline script symbol set in sync
+        if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+          (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+        }
+        return next;
+      });
+    };
+    // Expose React handlers to window for legacy scripts
+    (window as any).__reactOpenTradeSheet = (symbol: string) => {
+      let item: WatchlistItem | undefined = window.__watchlistItems?.find((i: WatchlistItem) => i.symbol === symbol)
+        || watchlistItems.find(i => i.symbol === symbol);
+
+      if (!item) {
+        for (const seg of tradingSegmentsRef.current) {
+          const insts = [
+            ...(seg.instruments || []),
+            ...(seg.subCategories?.flatMap(s => s.instruments) || [])
+          ];
+          const found = insts.find(i => i.symbol === symbol);
+          if (found) {
+            item = {
+              name: found.name,
+              symbol: found.symbol,
+              kiteSymbol: found.kiteSymbol,
+              price: found.price,
+              change: found.change,
+              segment: found.segment,
+              contractDate: found.contractDate,
+              open: found.open,
+              high: found.high,
+              low: found.low,
+              close: found.close,
+              binanceSymbol: found.binanceSymbol,
+              comexSymbol: found.comexSymbol,
+            } as WatchlistItem;
+            break;
+          }
+        }
+      }
+
+      if (item) {
+        // Directly set state - avoid stale closure
+        setSelectedItem(item);
+        const computedLot = getWatchlistLotSize(item);
+        setOrderQty(computedLot);
+        setQtyInput(String(computedLot));
+        setOrderUnit('qty');
+        setOrderType('MARKET');
+        setProductType('INTRADAY');
+        const detailSheet = document.getElementById('detailSheet');
+        const detailOverlay = document.getElementById('detailSheetOverlay');
+        if (detailSheet) detailSheet.classList.remove('open');
+        if (detailOverlay) detailOverlay.classList.remove('active');
+        setIsTradeSheetOpen(true);
+      }
+    };
+
+    // Open trade sheet with a pre-built item object (used by position page "Add More")
+    (window as any).__reactOpenTradeSheetWithItem = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BUY') => {
+      setSelectedItem(item);
+      setTradeSide(side);
+      const computedLot = getWatchlistLotSize(item);
+      setOrderQty(computedLot);
+      setQtyInput(String(computedLot));
+      setOrderUnit('qty');
+      setOrderType('MARKET');
+      setProductType('INTRADAY');
+      const detailSheet = document.getElementById('detailSheet');
+      const detailOverlay = document.getElementById('detailSheetOverlay');
+      if (detailSheet) detailSheet.classList.remove('open');
+      if (detailOverlay) detailOverlay.classList.remove('active');
+      setIsTradeSheetOpen(true);
+    };
+
+    (window as any).__reactOpenDetailSheet = (symbol: string) => {
+      // Search in user watchlist first
+      let item: WatchlistItem | undefined = window.__watchlistItems?.find((i: WatchlistItem) => i.symbol === symbol)
+        || watchlistItems.find(i => i.symbol === symbol);
+
+      if (!item) {
+        for (const seg of tradingSegmentsRef.current) {
+          const insts = [
+            ...(seg.instruments || []),
+            ...(seg.subCategories?.flatMap(s => s.instruments) || [])
+          ];
+          const found = insts.find(i => i.symbol === symbol);
+          if (found) {
+            item = {
+              name: found.name,
+              symbol: found.symbol,
+              kiteSymbol: found.kiteSymbol,
+              price: found.price,
+              change: found.change,
+              segment: found.segment,
+              contractDate: found.contractDate,
+              open: found.open,
+              high: found.high,
+              low: found.low,
+              close: found.close,
+              binanceSymbol: found.binanceSymbol,
+              comexSymbol: found.comexSymbol,
+            } as WatchlistItem;
+            break;
+          }
+        }
+      }
+
+      if (item) {
+        // Directly set state - avoid stale closure
+        setSelectedItem(item);
+        const tradeSheet = document.getElementById('tradeSheet');
+        const tradeOverlay = document.getElementById('tradeSheetOverlay');
+        if (tradeSheet) tradeSheet.classList.remove('open');
+        if (tradeOverlay) tradeOverlay.classList.remove('active');
+        const detailSheet = document.getElementById('detailSheet');
+        const detailOverlay = document.getElementById('detailSheetOverlay');
+        if (detailSheet) detailSheet.classList.add('open');
+        if (detailOverlay) detailOverlay.classList.add('active');
+      }
+    };
+  }, [watchlistItems, activeTab, userId]);
+
+  const openTradeSheet = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BOTH') => {
+    setTradeSide(side);
+    setSelectedItem(item);
+    // Reset defaults or set based on item type
+    const computedLot = getWatchlistLotSize(item);
+    setOrderQty(computedLot);
+    setQtyInput(String(computedLot));
+    setOrderUnit('qty');
+    setOrderType('MARKET');
+    setProductType('INTRADAY');
+    setSlTpOpen(false);
+    setSlPrice('');
+    setTpPrice('');
+
+    // Close detail sheet if open
+    const detailSheet = document.getElementById('detailSheet');
+    const detailOverlay = document.getElementById('detailSheetOverlay');
+    if (detailSheet) detailSheet.classList.remove('open');
+    if (detailOverlay) detailOverlay.classList.remove('active');
+
+    setIsTradeSheetOpen(true);
+  };
+
+  const closeTradeSheet = () => {
+    setIsTradeSheetOpen(false);
+    setSelectedItem(null);
+  };
+
+  useEffect(() => {
+    // Wait until segments have loaded before injecting the inline script
+    if (allowedSegments === null) return;
+
+    window.__kiteQuotes = window.__kiteQuotes || {};
+    window.__watchlistItems = window.__watchlistItems || [];
+    (window as any).__reactSetSelectionActive = setIsSelectionActive;
+
+    // Reset any stale search state from previous mount
+    if (typeof (window as any).__triggerSearch === 'function') {
+      (window as any).__triggerSearch = null;
+    }
+
+    const script = document.createElement('script');
+    script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
+    document.body.appendChild(script);
+    scriptMountedRef.current = true;
+
+    // Re-attach swipe handlers after script mounts (items may already be rendered)
+    requestAnimationFrame(() => {
+      if (typeof (window as any).attachSwipeHandlers === 'function') {
+        (window as any).attachSwipeHandlers();
+      }
+    });
+
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+      scriptMountedRef.current = false;
+      // Clean up global state that persists across navigation and blocks other pages
+      window.__selectionModeActive = false;
+      window.__watchlistEventsAttached = false;
+      window.__isBasketModeActive = false;
+      document.body.style.overflow = '';
+      document.body.style.overflowY = '';
+      // Force close any open drawers/overlays left behind
+      const drawerOverlay = document.getElementById('drawerOverlay');
+      const folderDrawer = document.getElementById('scriptsFolderDrawer');
+      if (drawerOverlay) drawerOverlay.classList.remove('active');
+      if (folderDrawer) folderDrawer.classList.remove('open');
+    };
+  }, [allowedSegments, segmentSettings]);
+
+  return (
+    <div className="desktop-layout">
+      <Sidebar />
+      <main className="main-viewport">
+        <div className="mobile-app" suppressHydrationWarning>
+      <div className="app-header">
+        <div className="header-top">
+          <div className="logo-area">
+            <div className="logo-text">Watchlist</div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <div className="folder-btn" id="openFolderMobileBtn" onClick={() => setIsFolderDrawerOpen(true)}>
+              <span>Scripts Library</span>
+              <i className="fas fa-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+        <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
+        <div className={`search-wrapper${searchText ? ' has-text' : ''}`}>
+          <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.8"/>
+            <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            id="globalSearchInput"
+            placeholder="Search instruments…"
+            autoComplete="off"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            suppressHydrationWarning
+          />
+          {!searchText && (
+            <span className="search-shortcut">
+              <kbd>/</kbd>
+            </span>
+          )}
+          {searchText && (
+            <button
+              className="clear-search-btn"
+              onClick={() => setSearchText('')}
+              aria-label="Clear search"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="watchlist-layout">
+        <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
+          <div className="section-subtitle">
+            <i className="fas fa-plus-circle"></i> ADD FROM LIBRARY <span id="searchResultCount"></span>
+          </div>
+          <div id="searchResultsList"></div>
+        </div>
+
+        <div className="main-content">
+
+        <div className="watchlist-section">
+          <div className="watchlist-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '4px', marginTop: '-4px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="watchlist-title-section">
+                <div className="watchlist-title">MY WATCHLIST</div>
+                <div className="watchlist-count" id="mobileWatchlistCounter">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}</div>
+              </div>
+              <div className="action-hint" style={{ padding: 0, background: 'transparent' }}>Swipe | Tap to trade</div>
+            </div>
+          </div>
+          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span className="add-hint">Add scripts to watchlist from Scripts Library</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="folder-btn basket-btn" id="basketModeBtn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    if (typeof (window as any).__reactDeleteSelected === 'function') (window as any).__reactDeleteSelected();
+                  } else {
+                    setBasketMode(b => !b);
+                  }
+                }}
+                style={{ cursor: 'pointer', background: isSelectionActive ? '#FEF0F0' : '#E9F6EF', color: isSelectionActive ? '#C62E2E' : '#006400', border: isSelectionActive ? '1px solid #FCD4D4' : '1px solid #C3E6D4', padding: '6px 14px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '30px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {isSelectionActive ? <span>Delete</span> : <span>Basket</span>}
+              </div>
+              <div className="folder-btn dustbin-btn"
+                onClick={() => {
+                  if (isSelectionActive) {
+                    setIsSelectionActive(false);
+                    if (typeof (window as any).exitSelectionMode === 'function') (window as any).exitSelectionMode();
+                  } else {
+                    setIsSelectionActive(true);
+                    setBasketMode(false);
+                    if (typeof (window as any).enterSelectionMode === 'function') (window as any).enterSelectionMode();
+                  }
+                }}
+                style={{ cursor: 'pointer', background: '#F3F4F6', color: '#4B5563', border: '1px solid #D1D5DB', padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '30px', flexShrink: 0 }}>
+                <i className={isSelectionActive ? "fas fa-times" : "fas fa-trash-alt"}></i>
+              </div>
+            </div>
+          </div>
+          <div className="watchlist-card-list" style={{ paddingBottom: basketMode ? '120px' : '0px' }}>
+            {allowedSegments === null ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', gap: '12px', color: 'var(--text-secondary, #6B7280)' }}>
+                <i className="fas fa-circle-notch fa-spin" style={{ fontSize: '1.5rem', color: '#C62E2E', opacity: 0.6 }} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Loading watchlist…</span>
+              </div>
+            ) : filteredItems.length === 0 ? <EmptyState /> : filteredItems.map((item, index) => (
+              <InstrumentRow
+                key={`${item.symbol}_${index}`}
+                item={item}
+                quote={marketQuotes[item.kiteSymbol]}
+                binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
+                comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
+                onTrade={openTradeSheet}
+                onDetail={openTradeSheet}
+                basketMode={basketMode}
+                onBasketBuy={(it) => setBasketLegs(prev => {
+                  // If BUY leg already exists for this symbol, remove it (toggle off)
+                  const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'BUY');
+                  if (exists) {
+                    showToast(`${it.name} BUY removed`, false);
+                    return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'BUY'));
+                  }
+                  showToast(`${it.name} BUY added to basket ✓`, false);
+                  return [...prev, { item: it, side: 'BUY', qty: 1, unit: 'qty' }];
+                })}
                 onBasketSell={(it) => setBasketLegs(prev => {
                   // If SELL leg already exists for this symbol, remove it (toggle off)
                   const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'SELL');
@@ -846,6 +1461,18 @@ function WatchlistContent() {
                   showToast(`${it.name} SELL added to basket ✓`, false);
                   return [...prev, { item: it, side: 'SELL', qty: 1, unit: 'qty' }];
                 })}
+                onChart={(item) => {
+                  setChartItem(item);
+                  setIsBenchmarkChart(false);
+                  const detailSheet = document.getElementById('detailSheet');
+                  const detailOverlay = document.getElementById('detailSheetOverlay');
+                  if (detailSheet) detailSheet.classList.remove('open');
+                  if (detailOverlay) detailOverlay.classList.remove('active');
+                  const chartSheet = document.getElementById('chartSheet');
+                  const chartOverlay = document.getElementById('chartSheetOverlay');
+                  if (chartSheet) chartSheet.classList.add('open');
+                  if (chartOverlay) chartOverlay.classList.add('active');
+                }}
               />
             ))}
             <div id="watchlistMobileContainer"></div>
