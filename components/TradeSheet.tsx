@@ -5,7 +5,7 @@ import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
-
+import { calculateMarginPortion } from '@/lib/marginCalculator';
 export interface TradeSheetItem {
   name: string;
   symbol: string;
@@ -235,13 +235,15 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   let marginPortion = 0;
   if (!exitMode) {
-    if (leverageType === '%') {
-      marginPortion = baseExposure * (leverage / 100);
-    } else if (leverageType === 'Fixed') {
-      marginPortion = (totalQty / lotSize) * leverage;
-    } else {
-      marginPortion = baseExposure / leverage;
-    }
+    marginPortion = calculateMarginPortion({
+      segment: dbSeg,
+      side: activeSide,
+      leverageType,
+      leverage,
+      totalQty,
+      lotSize,
+      baseExposure
+    });
   }
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
   const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);

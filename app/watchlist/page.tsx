@@ -11,6 +11,7 @@ import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMobileBack } from '@/hooks/useMobileBack';
 import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
+import { calculateMarginPortion } from '@/lib/marginCalculator';
 import './page.css';
 
 interface WatchlistItem {
@@ -1462,9 +1463,15 @@ function WatchlistContent() {
   const leverageType = productType === 'CARRY' ? holdingType : intradayType;
 
   const calcMarginPortion = (price: number, qty: number) => {
-    if (leverageType === '%') return (qty * price) * (leverage / 100);
-    if (leverageType === 'Fixed') return (qty / lotSize) * leverage;
-    return (qty * price) / leverage;
+    return calculateMarginPortion({
+      segment: dbSeg,
+      side: tradeSide,
+      leverageType,
+      leverage,
+      totalQty: qty,
+      lotSize,
+      baseExposure: qty * price
+    });
   };
 
   const calculatedRequiredMargin = Math.round(calcMarginPortion(

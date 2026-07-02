@@ -12,6 +12,7 @@ import OptionChainTable from '@/app/option-chain/OptionChainTable';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import useSWR from 'swr';
 import { parseOptionSymbol } from '@/lib/parseOptionSymbol';
+import { calculateMarginPortion } from '@/lib/marginCalculator';
 import './trading-chart.css';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -1303,7 +1304,15 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     (orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0) +
     (orderType === 'gtt' ? gttCharge : 0)
   );
-  const marginPortion = leverageType === '%' ? (executionPrice * orderQty) * (leverage / 100) : (leverageType === 'Fixed' ? (orderQty / lotSize) * leverage : (executionPrice * orderQty) / leverage);
+  const marginPortion = calculateMarginPortion({
+    segment: dbSeg,
+    side: activeSide,
+    leverageType,
+    leverage,
+    totalQty: orderQty,
+    lotSize,
+    baseExposure: executionPrice * orderQty
+  });
   const reqMargin = Math.round(marginPortion + totalBrokerage);
 
   // Render collapsible panel tabs content

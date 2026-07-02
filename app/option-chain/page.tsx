@@ -8,6 +8,7 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import OptionChainTable from './OptionChainTable';
 import Footer from '@/components/Footer';
 import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
+import { calculateMarginPortion } from '@/lib/marginCalculator';
 import './option-chain.css';
 import dynamic from 'next/dynamic';
 
@@ -1012,7 +1013,15 @@ function OptionChainContent() {
           const leverageType = productType === 'CARRY' ? holdingType : intradayType;
           
           const totalBrokerage = (orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge)) * 2;
-          const marginPortion = leverageType === '%' ? (priceToUse * totalQty) * (leverage / 100) : (leverageType === 'Fixed' ? (totalQty / lotSize) * leverage : (priceToUse * totalQty) / leverage);
+          const marginPortion = calculateMarginPortion({
+            segment: 'INDEX-OPT',
+            side: actionSide,
+            leverageType,
+            leverage,
+            totalQty,
+            lotSize,
+            baseExposure: priceToUse * totalQty
+          });
           const calculatedRequiredMargin = Math.round(marginPortion) + totalBrokerage;
 
           return (

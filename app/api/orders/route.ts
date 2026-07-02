@@ -16,6 +16,7 @@ import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
+import { calculateMarginPortion } from '@/lib/marginCalculator';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -777,14 +778,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   
   let marginPortion = 0;
   if (!is_exit) {
-    if (leverageType === '%') {
-      marginPortion = exposure * (leverageVal / 100);
-    } else if (leverageType === 'Fixed') {
-      const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
-      marginPortion = lotsUsed * leverageVal;
-    } else {
-      marginPortion = exposure / leverageVal;
-    }
+    marginPortion = calculateMarginPortion({
+      segment: segment.toUpperCase(),
+      side,
+      leverageType,
+      leverage: leverageVal,
+      totalQty: qty,
+      lotSize: symbolLotSize,
+      baseExposure: exposure
+    });
   }
 
   const entryBufferRatio = ((side === 'SELL' ? sellSetting.entry_buffer : buySetting.entry_buffer) ?? 0) / 100;
