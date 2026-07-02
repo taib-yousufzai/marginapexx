@@ -31,6 +31,32 @@ const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', '
  */
 function parseOptionQuery(q: string): { underlying: string; strike: number; optionType?: string } | null {
   const upper = q.toUpperCase().trim();
+
+  // Smart guesser for pure numeric queries like "23600" or "48500 ce"
+  const numOnlyMatch = upper.match(/^(\d+(?:\.\d+)?)\s*(CE|PE)?$/);
+  if (numOnlyMatch) {
+    const num = parseFloat(numOnlyMatch[1]);
+    const optType = numOnlyMatch[2];
+    
+    let guessed = '';
+    // Nifty is around 21k - 27k
+    if (num >= 20000 && num <= 27000) guessed = 'NIFTY';
+    // BankNifty is around 40k - 60k
+    else if (num >= 40000 && num <= 60000) guessed = 'BANKNIFTY';
+    // Sensex is around 70k - 90k
+    else if (num >= 70000 && num <= 90000) guessed = 'SENSEX';
+    // Midcap Nifty is around 9k - 15k
+    else if (num >= 9000 && num <= 15000) guessed = 'MIDCPNIFTY';
+    
+    if (guessed) {
+      return {
+        underlying: guessed,
+        strike: num,
+        optionType: optType || undefined,
+      };
+    }
+  }
+
   const underlying = UNDERLYINGS.find(u => upper.startsWith(u));
   if (!underlying) return null;
   const rest = upper.slice(underlying.length).trim();
