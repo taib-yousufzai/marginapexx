@@ -23,7 +23,10 @@ export function calculateMarginPortion({
 
   // Options (both Buy and Sell) must always use fixed template margins, irrespective of leverageType setting.
   // It should not depend on dynamic variables like baseExposure (which uses premium/LTP).
-  if (isOption || leverageType === 'Fixed') {
+  if (isOption) {
+    // Temporary hardcode: ALL options (Buy and Sell) use exactly 10,000 as margin per lot
+    return (totalQty / lotSize) * 10000;
+  } else if (leverageType === 'Fixed') {
     return (totalQty / lotSize) * leverage;
   } else if (leverageType === '%') {
     return baseExposure * (leverage / 100);
