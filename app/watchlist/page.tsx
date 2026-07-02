@@ -621,7 +621,17 @@ function WatchlistContent() {
   const [slTpOpen, setSlTpOpen] = useState(false);
   const [slPrice, setSlPrice] = useState('');
   const [tpPrice, setTpPrice] = useState('');
-  const openDetailSheet = (item: any) => {};
+  const openDetailSheet = (item: any) => {
+    setSelectedItem(item);
+    const tradeSheet = document.getElementById('tradeSheet');
+    const tradeOverlay = document.getElementById('tradeSheetOverlay');
+    if (tradeSheet) tradeSheet.classList.remove('open');
+    if (tradeOverlay) tradeOverlay.classList.remove('active');
+    const detailSheet = document.getElementById('detailSheet');
+    const detailOverlay = document.getElementById('detailSheetOverlay');
+    if (detailSheet) detailSheet.classList.add('open');
+    if (detailOverlay) detailOverlay.classList.add('active');
+  };
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
 
 
@@ -986,7 +996,7 @@ function WatchlistContent() {
           if (chartSheet) chartSheet.classList.add('open');
           if (chartOverlay) chartOverlay.classList.add('active');
         } else {
-          openTradeSheet(item!);
+          openDetailSheet(item!);
         }
       }, 500);
       return () => clearTimeout(timer);
@@ -1439,7 +1449,7 @@ function WatchlistContent() {
                 binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
                 onTrade={openTradeSheet}
-                onDetail={openTradeSheet}
+                onDetail={openDetailSheet}
                 basketMode={basketMode}
                 onBasketBuy={(it) => setBasketLegs(prev => {
                   // If BUY leg already exists for this symbol, remove it (toggle off)
