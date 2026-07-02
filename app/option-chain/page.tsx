@@ -11,6 +11,7 @@ import TradingSegmentsDrawer from '@/components/TradingSegmentsDrawer';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
 import './option-chain.css';
 import dynamic from 'next/dynamic';
+import TradeSheet from '@/components/TradeSheet';
 
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 
@@ -104,20 +105,11 @@ function OptionChainContent() {
 
   const [selectedContract, setSelectedContract] = useState<{ symbol: string, type: 'CE' | 'PE', strike: number } | null>(null);
   const [chartItem, setChartItem] = useState<any>(null);
-  const [orderQty, setOrderQty] = useState(25);
   const { positions: activePositions, refreshPositions } = useActivePositions();
-  const [orderType, setOrderType] = useState<OrderType>('MARKET');
-  const [productType, setProductType] = useState<ProductType>('INTRADAY');
-  const [limitPrice, setLimitPrice] = useState('');
 
   // Dual popup and Trade Sheet States
   const [sheetView, setSheetView] = useState<'DETAILS' | 'ORDER'>('DETAILS');
   const [sheetSide, setSheetSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
-  const [qtyInput, setQtyInput] = useState('25');
-  const [triggerPrice, setTriggerPrice] = useState('');
-  const [slPrice, setSlPrice] = useState('');
-  const [tpPrice, setTpPrice] = useState('');
 
   const [userId, setUserId] = useState<string>('');
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
@@ -184,22 +176,7 @@ function OptionChainContent() {
     return 1;
   })();
 
-  const stepQty = (dir: number) => {
-    const step = orderUnit === 'lot' ? 0.1 : lotSize;
-    const currentVal = parseFloat(qtyInput) || lotSize;
-    const newVal = Math.max(step, parseFloat((currentVal + dir * step).toFixed(2)));
-    setOrderQty(newVal);
-    setQtyInput(String(newVal));
-  };
-
-  const handleQtyChange = (val: string) => {
-    if (val !== '' && !/^\d*\.?\d*$/.test(val)) return;
-    setQtyInput(val);
-    const parsed = parseFloat(val) || 0;
-    if (parsed > 0) {
-      setOrderQty(parsed);
-    }
-  };
+  // Removed handleQtyChange as it is handled by TradeSheet
 
   const handleAddToWatchlistClick = () => {
     if (!selectedContract) return;
@@ -373,68 +350,13 @@ function OptionChainContent() {
     if (strikeMatch) {
       const type = strikeMatch.ce?.symbol === instrSymbol ? 'CE' : 'PE';
       setSelectedContract({ symbol: instrSymbol, type, strike: strikeMatch.strike });
-      const defaultQty = lotSize;
-      setOrderQty(defaultQty);
-      setQtyInput(String(defaultQty));
-      setOrderUnit('qty');
       setSheetView('DETAILS');
-      setSheetSide(side);
       setSheetSide(side);
     }
   };
 
   const closeTradeSheet = () => {
     setSelectedContract(null);
-    setSelectedContract(null);
-  };
-
-  const handlePlaceOrder = async (side: OrderSide) => {
-    if (!selectedContract) return;
-    
-    const activePos = activePositions.find(p =>
-      ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.qty_open > 0 && p.symbol === selectedContract.symbol
-    );
-    const isExitOrder = (side === 'BUY' && activePos?.side === 'SELL') || (side === 'SELL' && activePos?.side === 'BUY');
-
-    const kiteId = data?.strikes.find(s => s.ce?.symbol === selectedContract.symbol || s.pe?.symbol === selectedContract.symbol)?.[selectedContract.type.toLowerCase()]?.id;
-    const currentPrice = kiteId ? (quotes[kiteId]?.lastPrice || 0) : 0;
-    const actualQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-    const actualLots = orderUnit === 'lot' ? orderQty : Math.floor(orderQty / lotSize);
-    if (orderType === 'SL' || orderType === 'SLM') {
-      const trigPrice = parseFloat(triggerPrice);
-      if (!isNaN(trigPrice)) {
-        if (side === 'BUY' && trigPrice <= currentPrice) {
-          showToast('Trigger price must be above the current market price.', true);
-          return;
-        }
-        if (side === 'SELL' && trigPrice >= currentPrice) {
-          showToast('Trigger price must be below the current market price.', true);
-          return;
-        }
-      }
-    }
-
-    const result = await placeOrder({
-      symbol: selectedContract.symbol,
-      kite_instrument: kiteId || selectedContract.symbol,
-      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
-      side,
-      qty: actualQty,
-      lots: actualLots,
-      order_type: orderType,
-      product_type: productType,
-      client_price: (orderType === 'LIMIT' || orderType === 'GTT') ? parseFloat(limitPrice) : currentPrice,
-      trigger_price: (orderType === 'SL' || orderType === 'SLM' || orderType === 'GTT') ? parseFloat(triggerPrice) : undefined,
-      stop_loss: orderType === 'GTT' ? parseFloat(slPrice) : undefined,
-      target: orderType === 'GTT' ? parseFloat(tpPrice) : undefined,
-      is_exit: isExitOrder
-    });
-    if (result.success) {
-      showToast(result.order?.message || `${side} Order Executed!`, false);
-      closeTradeSheet();
-    } else {
-      showToast(`Order Failed: ${result.error}`, true);
-    }
   };
 
   const [priceMode, setPriceMode] = useState<'BA' | 'LTP'>('BA');
@@ -969,319 +891,28 @@ function OptionChainContent() {
           }
 
           // ORDER / TRADE SHEET VIEW
-          const totalQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-          const isIndexOption = symbol === 'NIFTY' || symbol === 'BANKNIFTY' || symbol === 'FINNIFTY' || symbol === 'SENSEX' || symbol === 'BANKEX' || symbol === 'MIDCPNIFTY';
-          const dbSeg = isIndexOption ? 'INDEX-OPT' : 'STOCK-OPT';
-          const matchingSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === sheetSide);
-
-          const priceToUse = (orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && !isNaN(parseFloat(limitPrice))
-            ? parseFloat(limitPrice)
-            : (ltp || 0);
-
-          const commType = matchingSetting?.commission_type || 'Per Crore';
-          const commVal = matchingSetting?.commission_value ?? 0;
-          const calculatedIntradayCharge = (() => {
-            if (commType === 'Per Crore') return (totalQty * priceToUse * commVal) / 10000000;
-            if (commType === 'Per Lot') return (totalQty / lotSize) * commVal;
-            if (commType === 'Per Trade' || commType === 'Flat') return commVal;
-            return totalQty * priceToUse * 0.001;
-          })();
-
-          const calculatedCarryCharges = productType === 'CARRY' && matchingSetting ? (() => {
-            const carryCommType = matchingSetting.carry_commission_type || commType;
-            const carryCommVal = matchingSetting.carry_commission_value ?? commVal;
-            if (carryCommType === 'Per Crore') return (totalQty * priceToUse * carryCommVal) / 10000000;
-            if (carryCommType === 'Per Lot') return (totalQty / lotSize) * carryCommVal;
-            if (carryCommType === 'Per Trade' || carryCommType === 'Flat') return carryCommVal;
-            return totalQty * priceToUse * 0.001;
-          })() : 0;
-
-          const gttCharge = orderType === 'GTT' && matchingSetting ? (() => {
-            const gttCommType = matchingSetting.gtt_commission_type || 'Per Trade';
-            const gttCommVal = matchingSetting.gtt_commission_value ?? 10;
-            if (gttCommType === 'Per Crore') return (totalQty * priceToUse * gttCommVal) / 10000000;
-            if (gttCommType === 'Per Lot') return (totalQty / lotSize) * gttCommVal;
-            if (gttCommType === 'Per Trade' || gttCommType === 'Flat') return gttCommVal;
-            return totalQty * priceToUse * 0.001;
-          })() : 0;
-
-          const intradayLeverage = matchingSetting?.intraday_leverage ?? 10;
-          const holdingLeverage = matchingSetting?.holding_leverage ?? 10;
-          const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
-          const intradayType = matchingSetting?.intraday_type ?? 'Multiplier';
-          const holdingType = matchingSetting?.holding_type ?? 'Multiplier';
-          const leverageType = productType === 'CARRY' ? holdingType : intradayType;
-          
-          const totalBrokerage = (orderType === 'GTT' ? gttCharge : (productType === 'CARRY' ? calculatedCarryCharges : calculatedIntradayCharge)) * 2;
-          const marginPortion = calculateMarginPortion({
-            segment: dbSeg,
-            side: sheetSide,
-            leverageType,
-            leverage,
-            totalQty,
-            lotSize,
-            baseExposure: priceToUse * totalQty
-          });
-          const calculatedRequiredMargin = Math.round(marginPortion) + totalBrokerage;
+          const tradeSheetItem = {
+            name: `${symbol} ${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
+            symbol: selectedContract.symbol,
+            kiteSymbol: kiteId || selectedContract.symbol,
+            segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
+            price: ltp // Passed down to let TradeSheet know the initial price, but it will fetch live
+          };
 
           return (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <div className="ts-header">
-                <button className="ts-back-btn" onClick={() => setSheetView('DETAILS')} suppressHydrationWarning>
-                  <i className="fas fa-chevron-left"></i>
+              <div className="ts-header" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-light)' }}>
+                <button className="ts-back-btn" onClick={() => setSheetView('DETAILS')} suppressHydrationWarning style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <i className="fas fa-chevron-left" style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}></i> <span style={{ marginLeft: '4px', fontSize: '0.85rem', fontWeight: 600 }}>Back to Details</span>
                 </button>
-                <div className="ts-name-block">
-                  <div className="ts-instr-name">{selectedContract.strike.toLocaleString('en-IN')} {selectedContract.type}</div>
-                  <span className="ts-segment-badge">{selectedContract.symbol}</span>
-                </div>
-                <div className="ts-price-block">
-                  <div className="ts-price-value">₹{ltp.toFixed(2)}</div>
-                  <span className={`ts-change-badge ${chgPct < 0 ? 'negative' : 'positive'}`}>
-                    {chgPct >= 0 ? '+' : ''}{chgPct.toFixed(2)}%
-                  </span>
-                </div>
               </div>
-
-              <div className="ts-bidask-row">
-                <div className="ts-ba-cell">
-                  <span className="ts-ba-label">BID</span>
-                  <span className="ts-ba-val bid-val">₹{bid.toFixed(2)}</span>
-                </div>
-                <div className="ts-ba-divider"></div>
-                <div className="ts-ba-cell">
-                  <span className="ts-ba-label">ASK</span>
-                  <span className="ts-ba-val ask-val">₹{ask.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="sheet-content-scroll">
-                <div className="ts-body">
-                  {/* QTY / LOT Switch card */}
-                  <div className="ts-section-card">
-                    <div className="ts-qty-lot-row">
-                      <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
-                      <div className="ts-toggle-switch">
-                        <button
-                          className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
-                          onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); setQtyInput(String(lotSize)); }}
-                          suppressHydrationWarning
-                        >QTY</button>
-                        <button
-                          className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
-                          onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
-                          suppressHydrationWarning
-                        >LOT</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Lot Info summary */}
-                  <div className="ts-info-cards-wrap">
-                    <div className="ts-info-cards">
-                      <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val">{lotSize}</div></div>
-                      <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val">{matchingSetting?.max_lot ?? '--'}</div></div>
-                      <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val">{matchingSetting?.max_order_lot ?? '--'}</div></div>
-                      <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val">{totalQty}</div></div>
-                    </div>
-                  </div>
-
-                  {/* Stepper Card */}
-                  <div className="ts-qty-container">
-                    <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
-                    <div className="ts-qty-stepper">
-                      <button className="ts-qty-btn" onClick={() => stepQty(-1)} suppressHydrationWarning><i className="fas fa-minus"></i></button>
-                      <input
-                        className="ts-qty-val"
-                        type="number"
-                        step="any"
-                        value={qtyInput}
-                        onChange={e => handleQtyChange(e.target.value)}
-                        onBlur={() => {
-                          const n = parseFloat(qtyInput);
-                          if (!qtyInput || isNaN(n) || n <= 0) {
-                            setQtyInput(String(orderQty));
-                          } else {
-                            setQtyInput(String(n));
-                            setOrderQty(n);
-                          }
-                        }}
-                        suppressHydrationWarning
-                      />
-                      <button className="ts-qty-btn" onClick={() => stepQty(1)} suppressHydrationWarning><i className="fas fa-plus"></i></button>
-                    </div>
-                    <div className="ts-qty-hint">
-                      {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
-                    </div>
-                  </div>
-
-                  {/* Order Type pills */}
-                  <div className="ts-section-card">
-                    <div className="ts-section-label">Order Type</div>
-                    <div className="ts-pill-group">
-                      {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as OrderType[]).map(type => (
-                        <button
-                          key={type}
-                          className={`ts-pill ${orderType === type ? 'active' : ''}`}
-                          onClick={() => setOrderType(type)}
-                        >{type}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Limit Price Input Card */}
-                  {(orderType === 'LIMIT' || orderType === 'GTT') && (
-                    <div className="ts-section-card">
-                      <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        className="price-input"
-                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
-                        value={limitPrice}
-                        onChange={(e) => setLimitPrice(e.target.value)}
-                        suppressHydrationWarning
-                      />
-                    </div>
-                  )}
-
-                  {/* Trigger Price Card */}
-                  {orderType === 'SLM' && (
-                    <div className="ts-section-card">
-                      <div className="ts-section-label">Trigger Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        className="price-input"
-                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
-                        value={triggerPrice}
-                        onChange={e => setTriggerPrice(e.target.value)}
-                        suppressHydrationWarning
-                      />
-                    </div>
-                  )}
-
-                  {/* SL / TP inputs for GTT order */}
-                  {orderType === 'GTT' && (
-                    <div className="ts-section-card">
-                      <div className="ts-section-label">SL / Limit / Target</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
-                          <div style={{ flex: 1 }}>
-                            <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              className="price-input"
-                              value={slPrice}
-                              onChange={e => setSlPrice(e.target.value)}
-                              style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
-                              suppressHydrationWarning
-                            />
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                            <input
-                              type="number"
-                              placeholder="0.00"
-                              className="price-input"
-                              value={tpPrice}
-                              onChange={e => setTpPrice(e.target.value)}
-                              style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700, border: '1px solid #E5E7EB', background: 'var(--card-bg)' }}
-                              suppressHydrationWarning
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Product Type Card */}
-                  <div className="ts-section-card">
-                    <div className="ts-section-label">Product Type</div>
-                    <div className="ts-pill-group">
-                      <button
-                        className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`}
-                        onClick={() => setProductType('INTRADAY')}
-                      >INTRADAY</button>
-                      <button
-                        className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`}
-                        onClick={() => setProductType('CARRY')}
-                      >CARRY</button>
-                    </div>
-                  </div>
-
-                  {/* Margin Info Card */}
-                  <div className="ts-margin-card">
-                    <div className="ts-margin-row">
-                      <span className="ts-ml">Available</span>
-                      <span className="ts-mv avail">₹ 30,670.32</span>
-                    </div>
-                    <div className="ts-margin-row">
-                      <span className="ts-ml">Required Margin</span>
-                      <span className="ts-mv required">₹ {calculatedRequiredMargin.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div 
-                      className="ts-margin-row" 
-                      style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #EEF2F8)' }}
-                      onClick={() => setShowCharges(!showCharges)}
-                    >
-                      <span className="ts-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-                        Charges Breakdown {showCharges ? '▲' : '▼'}
-                      </span>
-                      <span className="ts-mv required" style={{ color: '#15803D', fontWeight: 800 }}>
-                        ₹ {(
-                          calculatedIntradayCharge +
-                          (productType === 'CARRY' || orderType === 'GTT' ? calculatedCarryCharges : 0) +
-                          (orderType === 'GTT' ? gttCharge : 0)
-                        ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    {showCharges && (
-                      <>
-                        <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
-                          <span className="ts-ml">Intraday Brokerage</span>
-                          <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
-                            ₹ {calculatedIntradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="ts-margin-row">
-                          <span className="ts-ml">Carry Charges</span>
-                          <span className="ts-mv carry" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                            ₹ {(productType === 'CARRY' || orderType === 'GTT' ? calculatedCarryCharges : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                        <div className="ts-margin-row">
-                          <span className="ts-ml">GTT Charges</span>
-                          <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                            ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div style={{ height: '8px' }}></div>
-                </div>
-              </div>
-
-              {/* Sticky Execution Button */}
-              <div className="ts-sticky-footer visible" style={{ flexShrink: 0 }}>
-                {sheetSide === 'BUY' ? (
-                  <button
-                    className="ts-btn ts-btn-buy"
-                    disabled={placingOrder}
-                    onClick={() => handlePlaceOrder('BUY')}
-                  >
-                    {placingOrder ? 'PLACING...' : activePos?.side === 'SELL' ? 'EXIT SELL' : 'BUY'}
-                  </button>
-                ) : (
-                  <button
-                    className="ts-btn ts-btn-sell"
-                    disabled={placingOrder}
-                    onClick={() => handlePlaceOrder('SELL')}
-                  >
-                    {placingOrder ? 'PLACING...' : activePos?.side === 'BUY' ? 'EXIT BUY' : 'SELL'}
-                  </button>
-                )}
+              <div style={{ flex: 1, position: 'relative' }}>
+                <TradeSheet 
+                  item={tradeSheetItem} 
+                  side={sheetSide} 
+                  onClose={closeTradeSheet} 
+                  productType="INTRADAY"
+                />
               </div>
             </div>
           );

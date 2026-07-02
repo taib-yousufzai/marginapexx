@@ -11,7 +11,7 @@ import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMobileBack } from '@/hooks/useMobileBack';
 import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
-import { calculateMarginPortion } from '@/lib/marginCalculator';
+import TradeSheet from '@/components/TradeSheet';
 import './page.css';
 
 interface WatchlistItem {
@@ -596,37 +596,63 @@ function WatchlistContent() {
 
   // Trade Sheet State
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
-  const [orderQty, setOrderQty] = useState<number>(25);
-  const [qtyInput, setQtyInput] = useState<string>('25');
   const [isBenchmarkChart, setIsBenchmarkChart] = useState<boolean>(false);
-
-  const handleQtyChange = (val: string) => {
-    setQtyInput(val);
-    const n = parseFloat(val);
-    if (!isNaN(n) && n > 0) setOrderQty(n);
-  };
-
   const [chartItem, setChartItem] = useState<WatchlistItem | null>(null);
-
-  const stepQtyWl = (delta: number) => {
-    const step = orderUnit === 'qty' ? lotSize : 0.1;
-    const next = Math.max(step, parseFloat((orderQty + delta * step).toFixed(2)));
-    setOrderQty(next);
-    setQtyInput(String(next));
-  };
-  const [orderType, setOrderType] = useState<OrderType>('MARKET');
-  const [productType, setProductType] = useState<ProductType>('INTRADAY');
-  const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
-  const [limitPrice, setLimitPrice] = useState<string>('');
-  const [triggerPrice, setTriggerPrice] = useState<string>('');
-  const [slTpOpen, setSlTpOpen] = useState<boolean>(false);
-  const [slPrice, setSlPrice] = useState<string>('');
-  const [tpPrice, setTpPrice] = useState<string>('');
-  const [slTpMode, setSlTpMode] = useState<'price' | 'points'>('price');
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
-  const [showCharges, setShowCharges] = useState(false);
+
+  // ── Detail sheet: resolve live quote from correct source ─────────────────
+  const isCrypto = !!(selectedItem?.binanceSymbol);
+  const isComex  = !!(selectedItem?.comexSymbol);
+
+  const currentKiteQuote    = selectedItem?.kiteSymbol   ? marketQuotes[selectedItem.kiteSymbol]           : null;
+  const currentBinanceQuote = selectedItem?.binanceSymbol ? marketQuotes[selectedItem.binanceSymbol] : null;
+  const currentComexQuote   = selectedItem?.comexSymbol   ? comexQuotes[selectedItem.comexSymbol]     : null;
+
+  let currentLtp           = 0;
+  let currentChangePercent = 0;
+
+  if (isCrypto && currentBinanceQuote) {
+    currentLtp           = currentBinanceQuote.lastPrice;
+    currentChangePercent = currentBinanceQuote.changePercent;
+  } else if (isComex && currentComexQuote) {
+    currentLtp           = currentComexQuote.lastPrice;
+    currentChangePercent = currentComexQuote.changePercent;
+  } else if (currentKiteQuote) {
+    currentLtp           = currentKiteQuote.lastPrice;
+    currentChangePercent = currentKiteQuote.changePercent;
+  } else {
+    currentLtp = selectedItem?.price ?? 0;
+  }
+
+  const formatPrice = (price: number | undefined | null) => {
+    if (price === undefined || price === null || isNaN(price as number)) return '--';
+    return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const dbSeg = selectedItem ? mapSegmentToDbSegment(selectedItem.segment) : '';
+  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
+  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
+
+  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
+  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
+
+  let rawBid = currentLtp;
+  let rawAsk = currentLtp;
+
+  if (isCrypto && currentBinanceQuote) {
+    rawBid = currentBinanceQuote.bid || currentLtp;
+    rawAsk = currentBinanceQuote.ask || currentLtp;
+  } else if (isComex && currentComexQuote) {
+    rawBid = currentComexQuote.bid || currentLtp;
+    rawAsk = currentComexQuote.ask || currentLtp;
+  } else if (currentKiteQuote) {
+    rawBid = currentKiteQuote.bid || currentLtp;
+    rawAsk = currentKiteQuote.ask || currentLtp;
+  }
+
+
 
   // ── Mobile Back Button Interception ──
   useMobileBack(isFolderDrawerOpen, () => setIsFolderDrawerOpen(false), 'segments');
@@ -1230,259 +1256,6 @@ function WatchlistContent() {
     setSelectedItem(null);
   };
 
-  const openDetailSheet = (item: WatchlistItem) => {
-    setSelectedItem(item);
-    // Close trade sheet if open
-    const tradeSheet = document.getElementById('tradeSheet');
-    const tradeOverlay = document.getElementById('tradeSheetOverlay');
-    if (tradeSheet) tradeSheet.classList.remove('open');
-    if (tradeOverlay) tradeOverlay.classList.remove('active');
-    // Open detail sheet
-    const detailSheet = document.getElementById('detailSheet');
-    const detailOverlay = document.getElementById('detailSheetOverlay');
-    if (detailSheet) detailSheet.classList.add('open');
-    if (detailOverlay) detailOverlay.classList.add('active');
-  };
-
-  let lotSize = 1;
-  if (selectedItem) {
-    lotSize = getWatchlistLotSize(selectedItem);
-  }
-
-  const handlePlaceOrder = async (side: OrderSide) => {
-    if (!selectedItem) return;
-
-    const existingPos = activePositions.find(p => p.symbol === selectedItem.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN'));
-    const hasBuyPos = existingPos?.side === 'BUY';
-    const hasSellPos = existingPos?.side === 'SELL';
-    const isExitOrder = (side === 'BUY' && hasSellPos) || (side === 'SELL' && hasBuyPos);
-
-    // Resolve live LTP from correct source (mirrors the trade sheet display logic)
-    const isCryptoItem = !!(selectedItem.binanceSymbol);
-    let livePrice = selectedItem.price;
-    if (isCryptoItem && selectedItem.binanceSymbol) {
-      livePrice = marketQuotes[selectedItem.binanceSymbol]?.lastPrice ?? selectedItem.price;
-    } else if (selectedItem.kiteSymbol) {
-      livePrice = marketQuotes[selectedItem.kiteSymbol]?.lastPrice ?? selectedItem.price;
-    }
-
-    // ── Convert points → absolute prices if needed ────────────────────────
-    let resolvedTrigger = parseFloat(triggerPrice) || undefined;
-    let resolvedSl = parseFloat(slPrice) || undefined;
-    let resolvedTp = parseFloat(tpPrice) || undefined;
-
-    if (slTpMode === 'points') {
-      if (resolvedTrigger !== undefined) {
-        // SLM/SL: BUY trigger below LTP, SELL trigger above LTP
-        resolvedTrigger = side === 'BUY' ? livePrice - resolvedTrigger : livePrice + resolvedTrigger;
-      }
-      if (resolvedSl !== undefined) {
-        resolvedSl = side === 'BUY' ? livePrice - resolvedSl : livePrice + resolvedSl;
-      }
-      if (resolvedTp !== undefined) {
-        resolvedTp = side === 'BUY' ? livePrice + resolvedTp : livePrice - resolvedTp;
-      }
-    }
-
-    if (orderType === 'SL' || orderType === 'SLM') {
-      if (resolvedTrigger !== undefined) {
-        if (side === 'BUY' && resolvedTrigger >= livePrice) {
-          showToast('Stop loss price must be below the current market price.', true);
-          return;
-        }
-        if (side === 'SELL' && resolvedTrigger <= livePrice) {
-          showToast('Stop loss price must be above the current market price.', true);
-          return;
-        }
-      }
-    }
-
-    if (orderType === 'GTT') {
-      const limit = parseFloat(limitPrice);
-
-      if (side === 'BUY') {
-        if (!isNaN(limit) && limit >= livePrice) {
-          showToast('Buy at limit price must be below the current market price.', true);
-          return;
-        }
-        const referencePrice = !isNaN(limit) ? limit : livePrice;
-        if (resolvedSl !== undefined && resolvedSl >= referencePrice) {
-          showToast(`Stop loss price must be below the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
-          return;
-        }
-        if (resolvedTp !== undefined && resolvedTp <= livePrice) {
-          showToast('Target price must be above the current market price.', true);
-          return;
-        }
-      } else if (side === 'SELL') {
-        if (!isNaN(limit) && limit <= livePrice) {
-          showToast('Sell at limit price must be above the current market price.', true);
-          return;
-        }
-        const referencePrice = !isNaN(limit) ? limit : livePrice;
-        if (resolvedSl !== undefined && resolvedSl <= referencePrice) {
-          showToast(`Stop loss price must be above the ${!isNaN(limit) ? 'limit' : 'market'} price.`, true);
-          return;
-        }
-        if (resolvedTp !== undefined && resolvedTp >= livePrice) {
-          showToast('Target price must be below the current market price.', true);
-          return;
-        }
-      }
-    }
-
-    const result = await placeOrder({
-      symbol: selectedItem.symbol,
-      kite_instrument: selectedItem.kiteSymbol || selectedItem.symbol,
-      segment: selectedItem.segment,
-      side,
-      order_type: orderType,
-      product_type: productType,
-      qty: orderUnit === 'lot' ? orderQty * lotSize : orderQty,
-      lots: orderUnit === 'lot' ? orderQty : 0,
-      client_price: ['LIMIT', 'SL', 'GTT'].includes(orderType) ? parseFloat(limitPrice) : livePrice,
-      trigger_price: resolvedTrigger,
-      stop_loss: resolvedSl,
-      target: resolvedTp,
-      is_exit: isExitOrder
-    });
-
-    if (result.success) {
-      closeTradeSheet();
-      showToast(result.order?.message || `Order Executed: ${side} ${orderQty} ${selectedItem.name} @ ₹${result.order?.fill_price?.toLocaleString('en-IN') ?? '---'}`, false);
-    } else {
-      showToast(`Order Failed: ${result.error}`, true);
-    }
-  };
-
-  // ── Trade sheet: resolve live quote from correct source ─────────────────
-  // Crypto  → useBinanceQuotes  (kiteSymbol is '' for crypto)
-  // COMEX   → useComexQuotes    (has both kiteSymbol + comexSymbol)
-  // All else→ useKiteQuotes
-  const isCrypto = !!(selectedItem?.binanceSymbol);
-  const isComex  = !!(selectedItem?.comexSymbol);
-
-  const currentKiteQuote    = selectedItem?.kiteSymbol   ? marketQuotes[selectedItem.kiteSymbol]           : null;
-  const currentBinanceQuote = selectedItem?.binanceSymbol ? marketQuotes[selectedItem.binanceSymbol] : null;
-  const currentComexQuote   = selectedItem?.comexSymbol   ? comexQuotes[selectedItem.comexSymbol]     : null;
-
-  let currentLtp           = 0;
-  let currentChangePercent = 0;
-  let currentChangePts     = 0;
-
-  if (isCrypto && currentBinanceQuote) {
-    currentLtp           = currentBinanceQuote.lastPrice;
-    currentChangePercent = currentBinanceQuote.changePercent;
-    currentChangePts     = currentBinanceQuote.change;
-  } else if (isComex && currentComexQuote) {
-    currentLtp           = currentComexQuote.lastPrice;
-    currentChangePercent = currentComexQuote.changePercent;
-    currentChangePts     = currentComexQuote.change;
-  } else if (currentKiteQuote) {
-    currentLtp           = currentKiteQuote.lastPrice;
-    currentChangePercent = currentKiteQuote.changePercent;
-    currentChangePts     = currentKiteQuote.change;
-  } else {
-    // Fallback to static item price (before any live data arrives)
-    currentLtp = selectedItem?.price ?? 0;
-  }
-
-  const formatPrice = (price: number | undefined | null) => {
-    if (price === undefined || price === null || isNaN(price as number)) return '--';
-    return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const dbSeg = selectedItem ? mapSegmentToDbSegment(selectedItem.segment) : '';
-  const buySetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'BUY');
-  const sellSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === 'SELL');
-  const segSetting = tradeSide === 'SELL' ? sellSetting : buySetting;
-
-  const buyEntryBuffer = buySetting ? buySetting.entry_buffer : 0.003;
-  const sellEntryBuffer = sellSetting ? sellSetting.entry_buffer : 0.003;
-
-  let rawBid = currentLtp;
-  let rawAsk = currentLtp;
-
-  if (isCrypto && currentBinanceQuote) {
-    rawBid = currentBinanceQuote.bid || currentLtp;
-    rawAsk = currentBinanceQuote.ask || currentLtp;
-  } else if (isComex && currentComexQuote) {
-    rawBid = currentComexQuote.bid || currentLtp;
-    rawAsk = currentComexQuote.ask || currentLtp;
-  } else if (currentKiteQuote) {
-    rawBid = currentKiteQuote.bid || currentLtp;
-    rawAsk = currentKiteQuote.ask || currentLtp;
-  }
-
-  const bidPrice = rawBid * (1 - sellEntryBuffer);
-  const askPrice = rawAsk * (1 + buyEntryBuffer);
-
-  const intradayLeverage = segSetting?.intraday_leverage ?? 10;
-  const holdingLeverage  = segSetting?.holding_leverage  ?? 10;
-  const leverage = productType === 'CARRY' ? holdingLeverage : intradayLeverage;
-
-  const priceOfScript = tradeSide === 'SELL' ? rawBid : rawAsk;
-  // Best available price for margin: limit price if set, else live bid/ask, else lastPrice
-  const effectiveMarginPrice = (() => {
-    if ((orderType === 'LIMIT' || orderType === 'GTT') && limitPrice && parseFloat(limitPrice) > 0) {
-      return parseFloat(limitPrice);
-    }
-    // Use live bid/ask when available (already falls back to lastPrice inside rawBid/rawAsk)
-    const livePrice = tradeSide === 'SELL' ? rawBid : rawAsk;
-    return livePrice > 0 ? livePrice : currentLtp;
-  })();
-
-  const chargePrice = effectiveMarginPrice;
-  const chargeQty = orderUnit === 'lot' ? orderQty * lotSize : orderQty;
-  const chargeExposure = chargeQty * chargePrice;
-
-  const computeCharge = (commType: string, commVal: number) => {
-    if (commType === 'Per Crore') return (chargeExposure * commVal) / 10000000;
-    if (commType === 'Per Lot') return (chargeQty / lotSize) * commVal;
-    if (commType === 'Per Trade' || commType === 'Flat') return commVal;
-    return chargeExposure * 0.001;
-  };
-
-  const intradayCharge = segSetting ? computeCharge(
-    segSetting.commission_type || 'Per Crore',
-    segSetting.commission_value ?? 0
-  ) : 0;
-
-  const carryCharge = segSetting ? computeCharge(
-    segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
-    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0;
-
-  const gttCharge = segSetting ? computeCharge(
-    segSetting.gtt_commission_type || 'Per Trade',
-    segSetting.gtt_commission_value ?? 10
-  ) : 0;
-
-  const intradayType = segSetting?.intraday_type ?? 'Multiplier';
-  const holdingType = segSetting?.holding_type ?? 'Multiplier';
-  const leverageType = productType === 'CARRY' ? holdingType : intradayType;
-
-  const calcMarginPortion = (price: number, qty: number) => {
-    return calculateMarginPortion({
-      segment: dbSeg,
-      side: tradeSide,
-      leverageType,
-      leverage,
-      totalQty: qty,
-      lotSize,
-      baseExposure: qty * price
-    });
-  };
-
-  const calculatedRequiredMargin = Math.round(calcMarginPortion(
-    effectiveMarginPrice,
-    orderUnit === 'lot' ? orderQty * lotSize : orderQty
-  ) + ((
-    intradayCharge +
-    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
-    (orderType === 'GTT' ? gttCharge : 0)
-  ) * 2));
-
   useEffect(() => {
     // Wait until segments have loaded before injecting the inline script
     if (allowedSegments === null) return;
@@ -1706,288 +1479,21 @@ function WatchlistContent() {
         </div>
       )}
 
-      <div id="tradeSheetOverlay" className={`trade-sheet-overlay ${isTradeSheetOpen ? 'active' : ''}`} onClick={closeTradeSheet}></div>
-      <div id="tradeSheet" className={`trade-sheet ts-sheet--${tradeSide === 'SELL' ? 'sell' : 'buy'} ${isTradeSheetOpen ? 'open' : ''}`}>
-        <div className="sheet-handle"><div className="handle-bar"></div></div>
-        <div className="ts-header">
-          <button className="ts-back-btn" id="sheetBackBtn" aria-label="Close" onClick={closeTradeSheet} suppressHydrationWarning>
-            <i className="fas fa-chevron-down"></i>
-          </button>
-          <div className="ts-name-block">
-            <div className="ts-instr-name" id="sheetScriptName">{selectedItem?.name || '---'}</div>
-            <span className="ts-segment-badge" id="sheetSegment">{selectedItem?.segment || '---'}</span>
-          </div>
-          <div className="ts-price-block">
-            <div className="ts-price-value" id="sheetCmpValue">{formatPrice(currentLtp)}</div>
-            <span className={`ts-change-badge ${currentChangePercent < 0 ? 'negative' : ''}`} id="sheetChange">
-              {currentLtp > 0 ? (currentChangePercent >= 0 ? '+' : '') + currentChangePercent.toFixed(2) + '%' : '0.00%'}
-            </span>
-          </div>
-        </div>
-        <div className="ts-bidask-row">
-          <div className="ts-ba-cell">
-            <span className="ts-ba-label">BID</span>
-            <span className="ts-ba-val bid-val" id="sheetBid">{formatPrice(rawBid)}</span>
-          </div>
-          <div className="ts-ba-divider"></div>
-          <div className="ts-ba-cell">
-            <span className="ts-ba-label">ASK</span>
-            <span className="ts-ba-val ask-val" id="sheetAsk">{formatPrice(rawAsk)}</span>
-          </div>
-        </div>
-        <div className="sheet-content-scroll">
-          <div className="ts-body">
-            <div className="ts-section-card">
-              <div className="ts-qty-lot-row">
-                <span className="ts-section-label" style={{ marginBottom: 0 }}>Order Unit</span>
-                <div className="ts-toggle-switch" id="qtyLotToggle">
-                  <button
-                    className={`ts-toggle-opt ${orderUnit === 'qty' ? 'active' : ''}`}
-                    onClick={() => { setOrderUnit('qty'); setOrderQty(lotSize); setQtyInput(String(lotSize)); }}
-                    suppressHydrationWarning
-                  >QTY</button>
-                  <button
-                    className={`ts-toggle-opt ${orderUnit === 'lot' ? 'active' : ''}`}
-                    onClick={() => { setOrderUnit('lot'); setOrderQty(1); setQtyInput('1'); }}
-                    suppressHydrationWarning
-                  >LOT</button>
-                </div>
-              </div>
-            </div>
-            <div className="ts-info-cards-wrap">
-              <div className="ts-info-cards">
-                <div className="ts-info-card"><div className="ts-ic-label">Lot Size</div><div className="ts-ic-val" id="icLotSize">{lotSize}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Max Lots</div><div className="ts-ic-val" id="icMaxLots">{segSetting?.max_lot ?? '--'}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Order Lots</div><div className="ts-ic-val" id="icOrderLots">{segSetting?.max_order_lot ?? '--'}</div></div>
-                <div className="ts-info-card"><div className="ts-ic-label">Total Qty</div><div className="ts-ic-val" id="icTotalQty">{orderUnit === 'lot' ? orderQty * lotSize : orderQty}</div></div>
-              </div>
-            </div>
-            <div className="ts-qty-container">
-              <div className="ts-section-label">{orderUnit === 'lot' ? 'Lot' : 'Quantity'}</div>
-              <div className="ts-qty-stepper">
-                <button className="ts-qty-btn" id="tsQtyMinus" aria-label="Decrease" onClick={() => stepQtyWl(-1)} suppressHydrationWarning><i className="fas fa-minus"></i></button>
-                <input
-                  className="ts-qty-val"
-                  id="tradeQtyDisplay"
-                  type="number"
-                  step="any"
-                  value={qtyInput}
-                  onChange={e => handleQtyChange(e.target.value)}
-                  onBlur={() => {
-                    if (!qtyInput || parseFloat(qtyInput) <= 0 || isNaN(parseFloat(qtyInput))) setQtyInput(String(orderQty));
-                  }}
-                  suppressHydrationWarning
-                />
-                <button className="ts-qty-btn" id="tsQtyPlus" aria-label="Increase" onClick={() => stepQtyWl(1)} suppressHydrationWarning><i className="fas fa-plus"></i></button>
-              </div>
-              <div className="ts-qty-hint" id="sheetLotHint">
-                {orderUnit === 'lot' ? `${orderQty} Lots` : `${orderQty} Qty`}
-              </div>
-            </div>
-            <div className="ts-section-card">
-              <div className="ts-section-label">Order Type</div>
-              <div className="ts-pill-group" id="orderTypeContainer">
-                {(['MARKET', 'LIMIT', 'SLM', 'GTT'] as const).map(type => (
-                  <button
-                    key={type}
-                    className={`ts-pill ${orderType === type ? 'active' : ''}`}
-                    onClick={() => setOrderType(type)}
-                  >{type}</button>
-                ))}
-              </div>
-            </div>
-            <div className="ts-section-card" id="priceInputCard" style={{ display: (orderType === 'LIMIT' || orderType === 'SL') ? 'block' : 'none' }}>
-              <div className="ts-section-label">Price <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-              <input
-                type="number"
-                id="tradePriceInput"
-                placeholder="0.00"
-                className="price-input"
-                style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
-                suppressHydrationWarning
-              />
-            </div>
-            <div className="ts-section-card" id="triggerCard" style={{ display: (orderType === 'SLM' || orderType === 'SL') ? 'block' : 'none' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div className="ts-section-label" style={{ marginBottom: 0 }}>Stop Loss {slTpMode === 'points' ? 'Points' : 'Price'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
-                <div className="ts-toggle-switch" style={{ minWidth: 'auto' }}>
-                  <button className={`ts-toggle-opt ${slTpMode === 'price' ? 'active' : ''}`} onClick={() => setSlTpMode('price')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>₹ PRICE</button>
-                  <button className={`ts-toggle-opt ${slTpMode === 'points' ? 'active' : ''}`} onClick={() => setSlTpMode('points')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>POINTS</button>
-                </div>
-              </div>
-              <input type="number" id="tradeTriggerInput" placeholder={slTpMode === 'points' ? 'e.g. 50' : '0.00'} className="price-input" style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }} value={triggerPrice} onChange={e => setTriggerPrice(e.target.value)} suppressHydrationWarning />
-              {slTpMode === 'points' && triggerPrice && !isNaN(parseFloat(triggerPrice)) && currentLtp > 0 && (
-                <div style={{ fontSize: '0.7rem', color: '#6B7280', marginTop: '6px', fontWeight: 600 }}>
-                  ≈ ₹{(tradeSide === 'SELL' ? currentLtp + parseFloat(triggerPrice) : currentLtp - parseFloat(triggerPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </div>
-              )}
-            </div>
-
-            {/* SL / TP / Limit inputs for GTT order */}
-            {orderType === 'GTT' && (
-              <div className="ts-section-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div className="ts-section-label" style={{ marginBottom: 0 }}>SL / Limit / Target</div>
-                  <div className="ts-toggle-switch" style={{ minWidth: 'auto' }}>
-                    <button className={`ts-toggle-opt ${slTpMode === 'price' ? 'active' : ''}`} onClick={() => setSlTpMode('price')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>₹ PRICE</button>
-                    <button className={`ts-toggle-opt ${slTpMode === 'points' ? 'active' : ''}`} onClick={() => setSlTpMode('points')} style={{ padding: '3px 10px', fontSize: '0.6rem' }}>POINTS</button>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'row', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div className="ts-section-label">Stop Loss <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
-                      <input
-                        type="number"
-                        placeholder={slTpMode === 'points' ? 'e.g. 50' : '0.00'}
-                        className="price-input"
-                        value={slPrice}
-                        onChange={e => setSlPrice(e.target.value)}
-                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
-                        suppressHydrationWarning
-                      />
-                      {slTpMode === 'points' && slPrice && !isNaN(parseFloat(slPrice)) && currentLtp > 0 && (
-                        <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px', fontWeight: 600 }}>
-                          ≈ ₹{(tradeSide === 'SELL' ? currentLtp + parseFloat(slPrice) : currentLtp - parseFloat(slPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="ts-section-label">Target <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>{slTpMode === 'points' ? '(pts)' : '(₹)'}</span></div>
-                      <input
-                        type="number"
-                        placeholder={slTpMode === 'points' ? 'e.g. 100' : '0.00'}
-                        className="price-input"
-                        value={tpPrice}
-                        onChange={e => setTpPrice(e.target.value)}
-                        style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
-                        suppressHydrationWarning
-                      />
-                      {slTpMode === 'points' && tpPrice && !isNaN(parseFloat(tpPrice)) && currentLtp > 0 && (
-                        <div style={{ fontSize: '0.65rem', color: '#6B7280', marginTop: '4px', fontWeight: 600 }}>
-                          ≈ ₹{(tradeSide === 'SELL' ? currentLtp - parseFloat(tpPrice) : currentLtp + parseFloat(tpPrice)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="ts-section-label">{tradeSide === 'SELL' ? 'Sell at Limit' : 'Buy at Limit'} <span style={{ color: '#9CA3AF', textTransform: 'none', fontWeight: 500 }}>(₹)</span></div>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      className="price-input"
-                      value={limitPrice}
-                      onChange={e => setLimitPrice(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', borderRadius: '12px', padding: '12px 14px', fontSize: '1rem', fontWeight: 700 }}
-                      suppressHydrationWarning
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="ts-section-card">
-              <div className="ts-section-label">Product Type</div>
-              <div className="ts-pill-group" id="productTypeContainer">
-                <button
-                  className={`ts-pill ${productType === 'INTRADAY' ? 'active' : ''}`}
-                  onClick={() => setProductType('INTRADAY')}
-                >INTRADAY</button>
-                <button
-                  className={`ts-pill ${productType === 'CARRY' ? 'active' : ''}`}
-                  onClick={() => setProductType('CARRY')}
-                >CARRY</button>
-              </div>
-            </div>
-            <div className="ts-margin-card">
-              <div className="ts-margin-row"><span className="ts-ml">Available</span><span className="ts-mv avail">{availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}</span></div>
-              <div className="ts-margin-row"><span className="ts-ml">Required Margin</span><span className="ts-mv required" id="calculatedMargin">₹ {calculatedRequiredMargin.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-              
-              <div 
-                className="ts-margin-row" 
-                style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #EEF2F8)' }}
-                onClick={() => setShowCharges(!showCharges)}
-              >
-                <span className="ts-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-                  Charges Breakdown {showCharges ? '▲' : '▼'}
-                </span>
-                <span className="ts-mv required" style={{ color: '#15803D', fontWeight: 800 }}>
-                  ₹ {(
-                    intradayCharge +
-                    (productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0) +
-                    (orderType === 'GTT' ? gttCharge : 0)
-                  ).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              {showCharges && (
-                <>
-                  <div className="ts-margin-row" style={{ borderTop: '1px solid var(--border-light, #EEF2F8)' }}>
-                    <span className="ts-ml">Intraday Brokerage</span>
-                    <span className="ts-mv carry" style={{ color: '#15803D', fontWeight: 700 }}>
-                      ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="ts-margin-row">
-                    <span className="ts-ml">Carry Charges</span>
-                    <span className="ts-mv carry" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                      ₹ {(productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="ts-margin-row">
-                    <span className="ts-ml">GTT Charges</span>
-                    <span className="ts-mv carry" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                      ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-            <div style={{ height: '8px' }}></div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`ts-sticky-footer ${isTradeSheetOpen ? 'visible' : ''}`} id="tsStickyFooter">
-        {(() => {
-          const existingPos = activePositions.find(p => p.symbol === selectedItem?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN'));
-          const hasBuyPos = existingPos?.side === 'BUY';
-          const hasSellPos = existingPos?.side === 'SELL';
-
-          return (
-            <>
-              {(tradeSide === 'BUY' || tradeSide === 'BOTH') && (
-                <button
-                  className="ts-btn ts-btn-buy"
-                  id="sheetBuyBtn"
-                  disabled={placingOrder}
-                  onClick={() => handlePlaceOrder('BUY')}
-                >
-                  {placingOrder ? 'PLACING...' : hasSellPos ? 'EXIT POSITION' : 'BUY'}
-                </button>
-              )}
-              {(tradeSide === 'SELL' || tradeSide === 'BOTH') && (
-                <button
-                  className="ts-btn ts-btn-sell"
-                  id="sheetSellBtn"
-                  disabled={placingOrder}
-                  onClick={() => handlePlaceOrder('SELL')}
-                >
-                  {placingOrder ? 'PLACING...' : hasBuyPos ? 'EXIT POSITION' : 'SELL'}
-                </button>
-              )}
-            </>
-          );
-        })()}
-      </div>
+      {isTradeSheetOpen && selectedItem && (
+        <TradeSheet
+          item={selectedItem as any}
+          side={tradeSide === 'BOTH' ? 'BUY' : tradeSide}
+          onClose={closeTradeSheet}
+        />
+      )}
 
       <div id="detailSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('detailSheet'); const overlay = document.getElementById('detailSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
       <div id="detailSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '72dvh', paddingBottom: '16px' }}>
         <div className="sheet-handle"><div className="handle-bar"></div></div>
         {selectedItem && (() => {
           const ltp = currentLtp;
-          const bid = bidPrice;
-          const ask = askPrice;
+          const bid = rawBid;
+          const ask = rawAsk;
           const chgPct = currentChangePercent;
           const fmt = (v: number) => formatPrice(v);
           return (

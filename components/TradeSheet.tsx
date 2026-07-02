@@ -5,11 +5,14 @@ import { useOrderEntry, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { supabase } from '@/lib/supabaseClient';
 import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import { useComexQuotes } from '@/hooks/useComexQuotes';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
 export interface TradeSheetItem {
   name: string;
   symbol: string;
   kiteSymbol: string;
+  binanceSymbol?: string;
+  comexSymbol?: string;
   segment: string;
   price: number;
   change?: string;
@@ -110,9 +113,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const lotSize = item ? getLotSize(item.name, scriptSettings) : 1;
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
-  const isCrypto = dbSeg.toUpperCase().includes('CRYPTO');
+  const isCrypto = dbSeg.toUpperCase().includes('CRYPTO') || !!item?.binanceSymbol;
+  const isComex = dbSeg.toUpperCase().includes('COMEX') || !!item?.comexSymbol;
 
-  let bSymbol = item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '';
+  let bSymbol = item?.binanceSymbol || (item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '');
   if (bSymbol && !bSymbol.endsWith('USDT')) {
     bSymbol = bSymbol + 'USDT';
   }
@@ -138,13 +142,25 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     return list;
   }, [computedKiteSymbol, bSymbol]);
 
+  const comexSymbols = useMemo(() => {
+    if (item?.comexSymbol) return [item.comexSymbol];
+    return [];
+  }, [item?.comexSymbol]);
+
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
+  const { quotes: comexQuotes } = useComexQuotes(comexSymbols);
 
   let currentLtp = item?.price ?? 0;
+  let currentChangePercent = parseFloat(item?.change?.replace(/[%+]/g, '') || '0') || 0;
   if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
     currentLtp = marketQuotes[bSymbol].lastPrice;
+    currentChangePercent = marketQuotes[bSymbol].changePercent;
+  } else if (isComex && item?.comexSymbol && comexQuotes[item.comexSymbol]) {
+    currentLtp = comexQuotes[item.comexSymbol].lastPrice;
+    currentChangePercent = comexQuotes[item.comexSymbol].changePercent;
   } else if (computedKiteSymbol && marketQuotes[computedKiteSymbol]) {
     currentLtp = marketQuotes[computedKiteSymbol].lastPrice;
+    currentChangePercent = marketQuotes[computedKiteSymbol].changePercent;
   }
 
   const activeSide: 'BUY' | 'SELL' = (side === 'SELL' || side === 'BUY') ? side : 'BUY';
@@ -166,6 +182,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
       rawBid = marketQuotes[bSymbol].bid || currentLtp;
       rawAsk = marketQuotes[bSymbol].ask || currentLtp;
+    } else if (isComex && item?.comexSymbol && comexQuotes[item.comexSymbol]) {
+      rawBid = comexQuotes[item.comexSymbol].bid || currentLtp;
+      rawAsk = comexQuotes[item.comexSymbol].ask || currentLtp;
     } else if (computedKiteSymbol && marketQuotes[computedKiteSymbol]) {
       rawBid = marketQuotes[computedKiteSymbol].bid || currentLtp;
       rawAsk = marketQuotes[computedKiteSymbol].ask || currentLtp;

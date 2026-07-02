@@ -941,7 +941,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const p = positions.find(x => x.id === exitPositionId);
       if (p) {
         orderSymbol = p.symbol;
-        orderSegment = p.settlement || p.segment || segment;
+        orderSegment = p.settlement || segment;
       }
     }
 
@@ -1306,7 +1306,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   );
   const marginPortion = calculateMarginPortion({
     segment: dbSeg,
-    side: activeSide,
+    side: orderSide,
     leverageType,
     leverage,
     totalQty: orderQty,
@@ -2017,6 +2017,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   </div>
                 </div>
                 <div className="carry-box" id="carryGroup">
+
                   <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Intraday</div>
                   <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
                 </div>

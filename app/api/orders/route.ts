@@ -455,7 +455,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Quantity must be positive' }, { status: 400 });
   }
 
-  const dbSegment = mapSegmentToDbSegment(segment);
+  let dbSegment = mapSegmentToDbSegment(segment);
+  const symUp = symbol.toUpperCase();
+  if (symUp.includes('GOLD') || symUp.includes('SILVER') || symUp.includes('CRUDE') || symUp.includes('NATGAS') || symUp.includes('NATURALGAS')) {
+    dbSegment = 'COMEX';
+  }
+  
   const admin = getAdminClient();
 
   // ── Step A: Fetch profile first (we need parent_id + trading_mode for the next batch) ──
