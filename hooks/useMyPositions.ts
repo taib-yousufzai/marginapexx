@@ -209,14 +209,14 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
     rawPositions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
       const seg = (p.settlement || '').toUpperCase();
-      if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
+      if (seg.includes('CRYPTO') || seg === 'USDT' || (p.symbol && p.symbol.endsWith('USDT'))) {
         // Binance API expects symbols without slashes like BTCUSDT
-        let sym = p.symbol.replace('/', '');
+        let sym = (p.symbol || '').replace('/', '');
         if (!sym.endsWith('USDT')) {
           sym = sym + 'USDT';
         }
         binance.push(sym);
-      } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+      } else if (seg.includes('COMEX') || (p.symbol && p.symbol.endsWith('=F'))) {
         comex.push(p.symbol);
       } else {
         kite.push(resolveKitePrefix(p.kite_instrument || p.symbol, p.settlement || ''));
@@ -259,13 +259,13 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       // Expired futures have no feed — using their last stored LTP is the
       // best we can do and avoids 0-price flicker.
       if (!contractExpired) {
-        if (seg.includes('CRYPTO') || seg === 'USDT' || p.symbol.endsWith('USDT')) {
-          let binanceKey = p.symbol.replace('/', '');
+        if (seg.includes('CRYPTO') || seg === 'USDT' || (p.symbol && p.symbol.endsWith('USDT'))) {
+          let binanceKey = (p.symbol || '').replace('/', '');
           if (!binanceKey.endsWith('USDT')) {
             binanceKey = binanceKey + 'USDT';
           }
           ltp = marketQuotes[binanceKey]?.lastPrice ?? ltp;
-        } else if (seg.includes('COMEX') || p.symbol.endsWith('=F')) {
+        } else if (seg.includes('COMEX') || (p.symbol && p.symbol.endsWith('=F'))) {
           ltp = comexQuotes[p.symbol]?.lastPrice ?? ltp;
         } else {
           const kiteKey = resolveKitePrefix(p.kite_instrument || p.symbol, p.settlement || '');

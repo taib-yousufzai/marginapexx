@@ -130,7 +130,7 @@ export default function OrderPage() {
 
   const activeList = tab === 'open' ? openOrders : closedOrders;
   const filtered = activeList.filter(o => 
-    o.symbol.toLowerCase().includes(search.toLowerCase())
+    (o.symbol || '').toLowerCase().includes((search || '').toLowerCase())
   );
 
   const fmtPrice = (val: number | null) => {
