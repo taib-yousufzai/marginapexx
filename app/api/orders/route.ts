@@ -458,7 +458,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let dbSegment = mapSegmentToDbSegment(segment);
   const symUp = symbol.toUpperCase();
   if (symUp.includes('GOLD') || symUp.includes('SILVER') || symUp.includes('CRUDE') || symUp.includes('NATGAS') || symUp.includes('NATURALGAS')) {
-    dbSegment = 'COMEX';
+    const isOptionSymbol = symUp.endsWith('CE') || symUp.endsWith('PE');
+    dbSegment = isOptionSymbol ? 'MCX-OPT' : 'COMEX';
   }
   
   const admin = getAdminClient();

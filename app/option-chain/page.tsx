@@ -199,7 +199,7 @@ function OptionChainContent() {
       kiteSymbol: kiteId || selectedContract.symbol,
       price,
       change,
-      segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
+      segment: (symbol.includes('GOLD') || symbol.includes('SILVER') || symbol.includes('CRUDE') || symbol.includes('NATGAS') || symbol.includes('NATURALGAS')) ? 'MCX - Options' : (symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options'),
       contractDate: selectedExpiry ? selectedExpiry : '',
       open,
       high,
@@ -895,7 +895,7 @@ function OptionChainContent() {
             name: `${symbol} ${selectedContract.strike.toLocaleString('en-IN')} ${selectedContract.type}`,
             symbol: selectedContract.symbol,
             kiteSymbol: kiteId || selectedContract.symbol,
-            segment: symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options',
+            segment: (symbol.includes('GOLD') || symbol.includes('SILVER') || symbol.includes('CRUDE') || symbol.includes('NATGAS') || symbol.includes('NATURALGAS')) ? 'MCX - Options' : (symbol.includes('SENSEX') || symbol.includes('BANKEX') ? 'BSE - Options' : 'NSE - Options'),
             price: ltp // Passed down to let TradeSheet know the initial price, but it will fetch live
           };
 
