@@ -249,6 +249,9 @@ function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: num
 
 function mapSymbolToSegment(symbol: string): string {
   const n = symbol.toUpperCase();
+  if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDE') || n.includes('NATGAS') || n.includes('NATURALGAS')) {
+    return 'COMEX';
+  }
   if (n.includes('FUT') || n.includes('FUTURES')) {
     if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX') || n.includes('FINNIFTY') || n.includes('MIDCP') || n.includes('MIDCAP')) {
       return 'INDEX-FUT';
@@ -489,10 +492,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // LTP fetch, script settings, blocked scripts, and market hours — all at once.
   const segUpper = dbSegment.toUpperCase();
   let segmentId = 'nse';
-  if (segUpper.includes('MCX')) segmentId = 'mcx';
+  if (segUpper.includes('MCX') || segUpper.includes('COMEX')) segmentId = 'mcx';
   else if (segUpper.includes('BSE') || segUpper.includes('BFO')) segmentId = 'bse';
   else if (segUpper.includes('CDS') || segUpper.includes('FOREX')) segmentId = 'forex';
-  else if (segUpper.includes('COMEX')) segmentId = 'comex';
 
   const [
     segSettingsResult,
