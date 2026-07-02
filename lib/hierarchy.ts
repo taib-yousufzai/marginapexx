@@ -56,7 +56,7 @@ export async function isUserInHierarchy(
       .from('profiles')
       .select('parent_id')
       .eq('id', currentTargetId)
-      .single();
+      .single() as { data: any, error: any };
 
     if (targetError || !targetData) {
       break;

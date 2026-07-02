@@ -206,27 +206,7 @@ export async function GET(request: Request): Promise<Response> {
     // Step 8: Map database rows to ActLogItem[]
     // Validates: Requirement 9.5
     const logs: ActLogItem[] = (data ?? []).map(
-      (row: {
-        id: string;
-        type: string;
-        user_id: string | null;
-        target_user_id: string | null;
-        symbol: string | null;
-        qty: number | null;
-        price: number | null;
-        reason: string | null;
-        ip: string | null;
-        created_at: string;
-        original_price: number | null;
-        margin_used: number | null;
-        buffer: number | null;
-        brokerage_value: number | null;
-        brokerage_mode: 'per_crore' | 'per_lot' | null;
-        trade_mode: 'carry' | 'intraday' | null;
-        edited_by: string | null;
-        edited_at: string | null;
-        edit_remark: string | null;
-      }) => ({
+      (row: any) => ({
         id: row.id,
         type: row.type,
         time: row.created_at,

@@ -16,6 +16,7 @@ export type SegmentSettingsType = {
   exitBuffer: string; tradeAllowed: boolean;
   topLimit: string; minLimit: string;
   useCustomCalc: boolean;
+  bidBuffer: string;
 };
 
 export interface SegmentRow {
@@ -36,6 +37,7 @@ export interface SegmentRow {
   intraday_type: string;
   holding_leverage: number;
   holding_type: string;
+  bid_buffer?: number;
   entry_buffer: number;
   exit_buffer: number;
   trade_allowed: boolean;

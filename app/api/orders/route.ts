@@ -558,7 +558,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           
     // Pending orders for lot-limit checks
     admin.from('orders')
-      .select('id, symbol, qty, lots, status, side, segment')
+      .select('id, symbol, qty, lots, status, side, segment, is_exit')
       .eq('user_id', user.id)
       .eq('status', 'PENDING'),
   ]);

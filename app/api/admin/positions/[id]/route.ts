@@ -17,7 +17,7 @@
  * Validates: Requirements 7.8–7.9, 12.1–12.6
  */
 
-import { requireAuth } from '../../_auth'; // keep using _auth wrapper for now if it exports requireAuth, or better, import from lib
+import { requireAdmin } from '../../_auth';
 import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 import { checkAndExecuteAccountLiquidation } from '@/lib/liquidationEngine';
 import {

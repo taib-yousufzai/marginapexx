@@ -13,12 +13,13 @@ const defaultSeg = (): SegmentSettingsType => ({
   strikeRange: '0', maxLot: '50',
   maxOrderLot: '50', intradayLeverage: '50',
   intradayType: 'Multiplier',
-  holdingLeverage: '5', entryBuffer: '0',
-  holdingType: 'Multiplier',
+  holdingLeverage: '5', holdingType: 'Multiplier',
+  entryBuffer: '0.003', exitBuffer: '0.0017',
   bidBuffer: '0',
-  exitBuffer: '0', tradeAllowed: true,
+  tradeAllowed: true,
   topLimit: '0',
   minLimit: '0',
+  useCustomCalc: false,
 });
 
 export default function UpdateMultipleSettings({ selectedUser: _selectedUser }: { selectedUser?: { id: string } }) {

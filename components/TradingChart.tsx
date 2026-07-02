@@ -13,6 +13,7 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import useSWR from 'swr';
 import { parseOptionSymbol } from '@/lib/parseOptionSymbol';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
+import TradeSheet from '@/components/TradeSheet';
 import './trading-chart.css';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -521,6 +522,63 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const { placeOrder, closePosition } = useOrderEntry();
 
   // --- Dashboard States ---
+  const [isTradeSheetOpen, setIsTradeSheetOpen] = useState<boolean>(false);
+  const [tradeSheetSide, setTradeSheetSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BUY');
+  const [tradeSheetItem, setTradeSheetItem] = useState<any>(null);
+  const [tradeSheetMode, setTradeSheetMode] = useState<'normal' | 'exit'>('normal');
+  const [tradeSheetProduct, setTradeSheetProduct] = useState<any>(null);
+
+  const openTradeSheet = (side: 'BUY' | 'SELL') => {
+    let orderSymbol = symbol;
+    let orderSegment = segment;
+    let price = currentPrice;
+
+    if (isAddMoreFlow && addMoreSymbol) {
+      orderSymbol = addMoreSymbol;
+      orderSegment = addMoreSegment || segment;
+      price = addMoreLtp || currentPrice;
+    } else if (isExitFlow && exitPositionId) {
+      const p = positions.find(x => x.id === exitPositionId);
+      if (p) {
+        orderSymbol = p.symbol;
+        orderSegment = p.settlement || segment;
+        price = p.ltp || currentPrice;
+      }
+    }
+
+    let orderKiteInstrument = orderSymbol;
+
+    if (chainContract) {
+      orderSymbol = chainContract.name;
+      const underlying = symbol.toUpperCase().replace('_INDEX', '').replace('NSE:', '').replace('INDEX', '').trim();
+      let prefix = 'NFO';
+      if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
+      else if (['GOLD', 'SILVER', 'CRUDEOIL', 'NATURALGAS'].some(x => underlying.includes(x))) prefix = 'MCX';
+
+      orderKiteInstrument = chainContract.kiteId || `${prefix}:${orderSymbol}`;
+      orderSegment = 'INDEX-OPT'; // or MCX-OPT based on symbol, TradeSheet handles mapSegmentToDbSegment
+      price = chainContract.ltp;
+    }
+
+    let productType = undefined;
+    if (exitPositionId) {
+      const p = positions.find(x => x.id === exitPositionId);
+      if (p) productType = p.product_type;
+    }
+
+    setTradeSheetSide(side);
+    setTradeSheetMode(isExitFlow ? 'exit' : 'normal');
+    setTradeSheetProduct(productType);
+    setTradeSheetItem({
+      name: orderSymbol,
+      symbol: orderSymbol,
+      kiteSymbol: orderKiteInstrument,
+      segment: orderSegment,
+      price: price,
+      change: '0%'
+    });
+    setIsTradeSheetOpen(true);
+  };
   const [isOrderBlockVisible, setIsOrderBlockVisible] = useState<boolean>(false);
   const [isTradeOnChartActive, setIsTradeOnChartActive] = useState<boolean>(false);
   const [orderSide, setOrderSide] = useState<'BUY' | 'SELL'>('BUY');
@@ -828,7 +886,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     if (!activeLiveQuote || loading) return;
     if (symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT')) return;
 
-    const lastPrice = activeLiveQuote.lastPrice || activeLiveQuote.last_price;
+    const lastPrice = activeLiveQuote.lastPrice || activeLiveQuote.lastPrice;
     if (!lastPrice) return;
 
     setCurrentPrice(lastPrice);
@@ -1216,10 +1274,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
   const rawBid = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
+    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || activeLiveQuote.lastPrice || currentPrice)
     : currentPrice;
   const rawAsk = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
+    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || activeLiveQuote.lastPrice || currentPrice)
     : currentPrice;
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
@@ -1242,8 +1300,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     ? (liveOptionQuote?.bid || chainContract.bid)
     : rawBid;
   const liveLTP = chainContract
-    ? (liveOptionQuote?.lastPrice || liveOptionQuote?.last_price || chainContract.ltp)
-    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice) : currentPrice);
+    ? (liveOptionQuote?.lastPrice || liveOptionQuote?.lastPrice || chainContract.ltp)
+    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || activeLiveQuote.lastPrice || currentPrice) : currentPrice);
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
@@ -1779,20 +1837,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             <div className="trade-buttons" id="tradeButtons">
               {currentInstrumentPosition.side === 'BUY' ? (
                 <>
-                  <button id="buyButton" className="trade-btn buy" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
-                      handleQuickMarketOrder('BUY');
-                    } else {
-                      setIsPanelExpanded(false);
-                      setIsExitFlow(false);
-                      setIsAddMoreFlow(false);
-                      setExitPositionId(null);
-                      setOrderBlockTitle(symbol);
-                      setPostOrderSegment('main');
-                      setIsOrderBlockVisible(true);
-                      setOrderSide('BUY');
-                    }
-                  }}>
+                  <button id="buyButton" className="trade-btn buy" onClick={() => { if (isPanelExpanded && activeSegment === 'chain') { handleQuickMarketOrder('BUY'); } else { openTradeSheet('BUY'); } }}>
                     <span className="btn-label">BUY</span>
                   </button>
                   <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
@@ -1814,20 +1859,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       EXIT SHORT
                     </span>
                   </button>
-                  <button id="sellButton" className="trade-btn sell" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
-                      handleQuickMarketOrder('SELL');
-                    } else {
-                      setIsPanelExpanded(false);
-                      setIsExitFlow(false);
-                      setIsAddMoreFlow(false);
-                      setExitPositionId(null);
-                      setOrderBlockTitle(symbol);
-                      setPostOrderSegment('main');
-                      setIsOrderBlockVisible(true);
-                      setOrderSide('SELL');
-                    }
-                  }}>
+                  <button id="sellButton" className="trade-btn sell" onClick={() => { if (isPanelExpanded && activeSegment === 'chain') { handleQuickMarketOrder('SELL'); } else { openTradeSheet('SELL'); } }}>
                     <span className="btn-label">SELL</span>
                   </button>
                 </>
@@ -1835,36 +1867,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </div>
           ) : (
             <div className="trade-buttons" id="tradeButtons">
-              <button id="buyButton" className="trade-btn buy" onClick={() => {
-                if (isPanelExpanded && activeSegment === 'chain') {
-                  handleQuickMarketOrder('BUY');
-                } else {
-                  setIsPanelExpanded(false);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                  setPostOrderSegment('main');
-                  setIsOrderBlockVisible(true);
-                  setOrderSide('BUY');
-                }
-              }}>
+              <button id="buyButton" className="trade-btn buy" onClick={() => { if (isPanelExpanded && activeSegment === 'chain') { handleQuickMarketOrder('BUY'); } else { openTradeSheet('BUY'); } }}>
                 <span className="btn-label">BUY</span>
               </button>
-              <button id="sellButton" className="trade-btn sell" onClick={() => {
-                if (isPanelExpanded && activeSegment === 'chain') {
-                  handleQuickMarketOrder('SELL');
-                } else {
-                  setIsPanelExpanded(false);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                  setPostOrderSegment('main');
-                  setIsOrderBlockVisible(true);
-                  setOrderSide('SELL');
-                }
-              }}>
+              <button id="sellButton" className="trade-btn sell" onClick={() => { if (isPanelExpanded && activeSegment === 'chain') { handleQuickMarketOrder('SELL'); } else { openTradeSheet('SELL'); } }}>
                 <span className="btn-label">SELL</span>
               </button>
             </div>
@@ -1872,274 +1878,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         )}
 
         {/* Order Block */}
-        {isOrderBlockVisible && (
-          <div className="order-block visible" id="orderBlock">
-            <div className="order-block-header">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
-                </span>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
-                  <span style={{
-                    color: orderSide === 'BUY' ? '#1db954' : '#e53935',
-                    background: 'transparent',
-                    padding: '0',
-                    fontWeight: '600',
-                    fontSize: '11px'
-                  }}>
-                    {orderSide === 'BUY' ? 'Ask' : 'Bid'}: ₹{Number(orderSide === 'BUY' ? liveAsk : liveBid).toFixed(2)}
-                  </span>
-                  <span style={{ color: '#8b949e', fontSize: '11px', fontWeight: '500' }}>
-                    LTP: <span style={{ color: 'var(--text-primary)', fontWeight: '700' }}>₹{Number(liveLTP).toFixed(2)}</span>
-                  </span>
-                  {chainContract && chainContract.expiry && (
-                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                      {chainContract.expiry}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1.2px solid var(--green, #1db954)' }}
-                  onClick={() => {
-                    const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
-                    setSymbol(targetSymbol);
-                    // Derive the correct display segment so mapSegmentToDbSegment works
-                    if (chainContract) {
-                      const n = chainContract.name.toUpperCase();
-                      const isBse = n.includes('SENSEX') || n.includes('BANKEX');
-                      const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
-                      if (isMcx) {
-                        setSegment('MCX - Options');
-                      } else if (isBse) {
-                        setSegment('BSE - Options');
-                      } else {
-                        setSegment('NSE - Options');
-                      }
-                    } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
-                      setSegment('NSE - Options');
-                    }
-                    setIsPanelExpanded(false);
-                    setIsOrderBlockVisible(false);
-                    setChainContract(null);
-                  }}
-                  title="Open Chart"
-                >
-                  <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', display: 'block' }}>
-                    <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
-                    <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
-                    <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
-                    <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                    <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-
-                <div className="close-order-block" onClick={() => {
-                  setIsOrderBlockVisible(false);
-                  setChainContract(null);
-                  if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                }}>
-                  <i className="ti ti-x"></i>
-                </div>
-              </div>
-            </div>
-            <div className="order-block-content">
-              {chainContract && (
-                <div id="chainBSToggle" style={{ display: 'flex', gap: '6px', padding: '0 0 8px' }}>
-                  <button
-                    onClick={() => {
-                      setOrderSide('BUY');
-                      const ask = chainContract.ask;
-                      setLimitPrice(ask.toFixed(2));
-                      setTriggerPrice(ask.toFixed(2));
-                    }}
-                    style={{
-                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
-                      background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
-                    }}
-                  >
-                    BUY
-                  </button>
-                  <button
-                    onClick={() => {
-                      setOrderSide('SELL');
-                      const bid = chainContract.bid;
-                      setLimitPrice(bid.toFixed(2));
-                      setTriggerPrice(bid.toFixed(2));
-                    }}
-                    style={{
-                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
-                      background: orderSide === 'SELL' ? '#e53935' : '#F0F2F5', color: orderSide === 'SELL' ? '#fff' : '#8B92A8'
-                    }}
-                  >
-                    SELL
-                  </button>
-                </div>
-              )}
-
-              {/* chainContractDetail moved to header */}
-
-              <div className="top-row">
-                <div className="quantity-box">
-                  <div className="qty-controls">
-                    <button className="qty-btn" onClick={() => handleQtyStep(-1)}>−</button>
-                    <input
-                      type="number"
-                      className="qty-value"
-                      value={qtyValue}
-                      step={useLots ? 0.5 : lotSize}
-                      min={useLots ? 0.5 : lotSize}
-                      onChange={(e) => {
-                        setQtyValue(e.target.value);
-                      }}
-                      onBlur={() => {
-                        const val = parseFloat(String(qtyValue));
-                        if (useLots) {
-                          setQtyValue(isNaN(val) || val <= 0 ? 0.5 : val);
-                        } else {
-                          const minVal = isCrypto ? 0.01 : lotSize;
-                          setQtyValue(isNaN(val) || val <= 0 ? minVal : val);
-                        }
-                      }}
-                    />
-                    <button className="qty-btn" onClick={() => handleQtyStep(1)}>+</button>
-                  </div>
-                  <div className="unit-toggle" id="unitSwitch">
-                    <div className={`unit-btn ${!useLots ? 'active' : ''}`} onClick={() => handleUnitChange(false)}>Qty</div>
-                    <div className={`unit-btn ${useLots ? 'active' : ''}`} onClick={() => handleUnitChange(true)}>Lot</div>
-                  </div>
-                </div>
-                <div className="carry-box" id="carryGroup">
-
-                  <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Intraday</div>
-                  <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
-                </div>
-              </div>
-
-              <div className="bottom-row">
-                <div className="market-limit-box" id="orderTypeGroup" style={{ flex: 6 }}>
-                  <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
-                  <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>{isExitFlow ? 'Tgt' : 'Lmt'}</div>
-                  {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
-                  {isExitFlow && <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>}
-                  <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
-                </div>
-                {(orderType === 'limit' || (orderType === 'gtt' && !isExitFlow)) && (
-                  <div className="limit-price-box visible" id="limitPriceBox" style={{ flex: 4 }}>
-                    <span className="price-symbol">₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={limitPrice}
-                      onChange={(e) => setLimitPrice(e.target.value)}
-                      placeholder="price"
-                    />
-                  </div>
-                )}
-                {(orderType === 'sl' || orderType === 'slm') && (
-                  <div className="limit-price-box visible" id="triggerPriceBox" style={{ flex: 4 }}>
-                    <span className="price-symbol" style={{ fontSize: '9px', color: '#8B92A8', fontWeight: 'bold', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>Trigger ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={triggerPrice}
-                      onChange={(e) => setTriggerPrice(e.target.value)}
-                      placeholder="trigger"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {orderType === 'gtt' && (
-                <div className="gtt-row visible">
-                  <div className="gtt-field sl-field">
-                    <span className="gtt-tag">SL ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttSlPrice}
-                      onChange={(e) => setGttSlPrice(e.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div className="gtt-field tgt-field">
-                    <span className="gtt-tag">Target ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttTargetPrice}
-                      onChange={(e) => setGttTargetPrice(e.target.value)}
-                      placeholder="Optional"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 4px', marginBottom: '8px' }}>
-                <span style={{ color: '#8b949e', fontWeight: 500 }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
-                <span style={{ color: '#8b949e', fontWeight: 500 }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
-              </div>
-              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--pill-bg, rgba(139, 148, 158, 0.1))', border: 'none', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
-                    onClick={() => setShowCharges(!showCharges)}
-                  >
-                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      Charges Breakdown {showCharges ? '▲' : '▼'}
-                    </span>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)' }}>
-                      ₹{totalBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  {showCharges && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
-                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
-                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
-                        <span style={{ color: orderType === 'gtt' ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                className={`submit-btn ${orderSide === 'BUY' ? 'submit-buy' : 'submit-sell'}`}
-                onClick={handleSubmitOrder}
-              >
-                {modifyOrderId ? 'Update Order' : `${orderSide} ${useLots ? `${qtyValue} Lot` : `${qtyValue} Qty`}`}
-              </button>
-            </div>
-          </div>
+        
+        {isTradeSheetOpen && tradeSheetItem && (
+          <TradeSheet
+            item={tradeSheetItem}
+            side={tradeSheetSide}
+            onClose={() => setIsTradeSheetOpen(false)}
+            exitMode={tradeSheetMode === 'exit'}
+            productType={tradeSheetProduct}
+            onSuccess={() => {
+              setIsTradeSheetOpen(false);
+              setIsExitFlow(false);
+              setIsAddMoreFlow(false);
+              setExitPositionId(null);
+              setChainContract(null);
+            }}
+          />
         )}
 
         {/* Segment Row */}

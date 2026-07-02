@@ -230,7 +230,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
 
   return (
     <>
-      <div style={show('telegram')}><TelegramPage isDemoMode={isDemoMode} /></div>
+      <div style={show('telegram')}><TelegramPage /></div>
       <div style={show('settings')}><SettingsPage /></div>
       <div style={show('marketwatch')}><MarketWatchPage /></div>
       <div style={show('dashboard')}><DashboardPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>

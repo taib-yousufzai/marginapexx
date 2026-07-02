@@ -4,10 +4,8 @@ const nextConfig: NextConfig = {
   output: 'standalone', // enables minimal Docker image via Dockerfile.nextjs
   experimental: {
     scrollRestoration: false,
-  },
-  // @ts-ignore
-  eslint: {
-    ignoreDuringBuilds: true,
+    workerThreads: false,
+    cpus: 4,
   },
   typescript: {
     ignoreBuildErrors: true,

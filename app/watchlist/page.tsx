@@ -600,7 +600,33 @@ function WatchlistContent() {
   const [chartItem, setChartItem] = useState<WatchlistItem | null>(null);
 
   const [tradeSide, setTradeSide] = useState<'BUY' | 'SELL' | 'BOTH'>('BOTH');
+  const [orderQty, setOrderQty] = useState(1);
+  const [qtyInput, setQtyInput] = useState('1');
+  const [orderUnit, setOrderUnit] = useState('qty');
+  const [orderType, setOrderType] = useState('MARKET');
+  const [productType, setProductType] = useState('INTRADAY');
+  const [slTpOpen, setSlTpOpen] = useState(false);
+  const [slPrice, setSlPrice] = useState('');
+  const [tpPrice, setTpPrice] = useState('');
+  const openDetailSheet = (item: any) => {};
   const [isTradeSheetOpen, setIsTradeSheetOpen] = useState(false);
+
+
+  const marketSymbols = useMemo(() => {
+    const list: string[] = [];
+    watchlistItems.forEach(i => {
+      if (i.kiteSymbol) list.push(i.kiteSymbol);
+      if (i.binanceSymbol) list.push(i.binanceSymbol);
+    });
+    return list;
+  }, [watchlistItems]);
+
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
+
+  const comexSymbols = watchlistItems
+    .map(i => i.comexSymbol)
+    .filter((s): s is string => !!s);
+  const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 1000);
 
   // ── Detail sheet: resolve live quote from correct source ─────────────────
   const isCrypto = !!(selectedItem?.binanceSymbol);
@@ -755,7 +781,7 @@ function WatchlistContent() {
   }, [basketMode]);
 
   // Map a segment label to DB key segment
-  const mapSegmentToDbSegment = (s: string): string => {
+  function mapSegmentToDbSegment(s: string): string {
     if (!s) return '';
     const trimmed = s.trim();
     if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
@@ -1041,22 +1067,7 @@ function WatchlistContent() {
     }
     setHasLoaded(true);
   }, [userId, allowedSegments]);
-
-  const marketSymbols = useMemo(() => {
-    const list: string[] = [];
-    watchlistItems.forEach(i => {
-      if (i.kiteSymbol) list.push(i.kiteSymbol);
-      if (i.binanceSymbol) list.push(i.binanceSymbol);
-    });
-    return list;
-  }, [watchlistItems]);
-
-  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
-
-  const comexSymbols = watchlistItems
-    .map(i => i.comexSymbol)
-    .filter((s): s is string => !!s);
-  const { quotes: comexQuotes } = useComexQuotes(comexSymbols, 1000);
+
 
   const getLegPrice = (legItem: WatchlistItem) => {
     if (legItem.binanceSymbol) {
@@ -1414,7 +1425,7 @@ function WatchlistContent() {
                 binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
                 onTrade={openTradeSheet}
-                onDetail={openDetailSheet}
+                onDetail={openTradeSheet}
                 basketMode={basketMode}
                 onBasketBuy={(it) => setBasketLegs(prev => {
                   // If BUY leg already exists for this symbol, remove it (toggle off)

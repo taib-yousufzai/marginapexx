@@ -125,28 +125,7 @@ export async function GET(
     // Step 8: Return PositionItem[]
     // Validates: Requirement 7.1
     const positions: PositionItem[] = (data ?? []).map(
-      (row: {
-        id: string;
-        user_id: string;
-        profiles: { email: string; client_id: string; full_name: string } | null;
-        symbol: string;
-        side: string;
-        status: string;
-        pnl: number;
-        qty_open: number;
-        qty_total: number;
-        avg_price: number;
-        entry_price: number;
-        ltp: number | null;
-        exit_price: number | null;
-        duration_seconds: number;
-        brokerage: number;
-        sl: number | null;
-        tp: number | null;
-        entry_time: string;
-        exit_time: string | null;
-        settlement: string | null;
-      }) => ({
+      (row: any) => ({
         id: row.id,
         user_id: row.user_id,
         profiles: row.profiles,

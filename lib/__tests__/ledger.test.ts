@@ -17,8 +17,7 @@ function makeEntry(overrides: Partial<LedgerEntry> & Pick<LedgerEntry, 'directio
     id: 'test-id',
     user_id: 'user-1',
     entry_type: 'DEPOSIT',
-    direction: overrides.direction,
-    amount: overrides.amount,
+
     remarks: null,
     pay_request_id: null,
     created_at: '2024-01-01T00:00:00Z',

@@ -19,6 +19,7 @@ export type SegmentSettingsType = {
   exitBuffer: string; tradeAllowed: boolean;
   topLimit: string;
   minLimit: string;
+  useCustomCalc: boolean;
 };
 
 export interface SegmentRow {
@@ -40,6 +41,7 @@ export interface SegmentRow {
   holding_leverage: number;
   entry_buffer: number;
   holding_type: string;
+  use_custom_calc?: boolean;
   bid_buffer: number;
   exit_buffer: number;
   trade_allowed: boolean;
@@ -55,12 +57,11 @@ const defaultSeg = (): SegmentSettingsType => ({
   strikeRange: '0', maxLot: '50',
   maxOrderLot: '50', intradayLeverage: '50',
   intradayType: 'Multiplier',
-  holdingLeverage: '5', entryBuffer: '0',
-  holdingType: 'Multiplier',
-  bidBuffer: '0',
-  exitBuffer: '0', tradeAllowed: true,
-  topLimit: '0',
-  minLimit: '0',
+  holdingLeverage: '5', holdingType: 'Multiplier',
+  entryBuffer: '0', exitBuffer: '0',
+  bidBuffer: '0', tradeAllowed: true,
+  topLimit: '0', minLimit: '0',
+  useCustomCalc: false
 });
 
 function SegmentBlock({ 
