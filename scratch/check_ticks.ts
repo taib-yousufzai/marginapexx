@@ -10,28 +10,22 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl!, supabaseKey!);
 
 async function main() {
-  const symbols = [
-    'MCX:CRUDEOIL26JULFUT',
-    'MCX:GOLD26AUGFUT',
-    'MCX:SILVER26JULFUT',
-    'MCX:NATURALGAS26JULFUT',
-  ];
+  console.log('Querying instruments for SILVER...');
+  const { data, error } = await supabase
+    .from('instruments')
+    .select('id, name, tradingsymbol, instrument_token, segment')
+    .like('id', 'MCX:SILVER%')
+    .limit(50);
 
-  for (const sym of symbols) {
-    const { data, error } = await supabase
-      .from('ticks')
-      .select('*')
-      .eq('symbol', sym)
-      .order('timestamp', { ascending: false })
-      .limit(3);
-    
-    console.log(`Ticks for ${sym}:`);
-    if (error) {
-      console.error(error);
-    } else {
-      console.log(data);
-    }
+  if (error) {
+    console.error(error);
+    return;
   }
+
+  // Filter to futures
+  const futures = data.filter(i => i.id.endsWith('FUT'));
+  console.log('Silver Futures contracts in database:');
+  console.log(JSON.stringify(futures, null, 2));
 }
 
 main();
