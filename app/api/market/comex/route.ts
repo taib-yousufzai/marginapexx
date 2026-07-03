@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 interface YahooQuote {
   symbol: string;
@@ -64,8 +65,9 @@ export async function GET(req: NextRequest) {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               'Accept': 'application/json',
+              'Cookie': '',
             },
-            next: { revalidate: 30 },
+            cache: 'no-store',
           });
 
           if (!res.ok) {
@@ -106,7 +108,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ quotes }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     });
   } catch (err) {
