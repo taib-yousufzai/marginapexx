@@ -63,7 +63,7 @@ export function useComexQuotes(
 
     try {
       const res = await fetch(
-        `/api/market/comex?symbols=${encodeURIComponent(symbols.join(','))}`,
+        `/api/market/comex?symbols=${symbols.map(s => encodeURIComponent(s)).join(',')}`,
         { cache: 'no-store' },
       );
 

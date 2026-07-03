@@ -828,7 +828,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     if (!activeLiveQuote || loading) return;
     if (symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT')) return;
 
-    const lastPrice = activeLiveQuote.lastPrice || activeLiveQuote.last_price;
+    const lastPrice = activeLiveQuote.lastPrice;
     if (!lastPrice) return;
 
     setCurrentPrice(lastPrice);
@@ -941,7 +941,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const p = positions.find(x => x.id === exitPositionId);
       if (p) {
         orderSymbol = p.symbol;
-        orderSegment = p.settlement || p.segment || segment;
+        orderSegment = p.settlement || segment;
       }
     }
 
@@ -1216,10 +1216,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
   const rawBid = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
+    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || currentPrice)
     : currentPrice;
   const rawAsk = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
+    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || currentPrice)
     : currentPrice;
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
@@ -1242,8 +1242,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     ? (liveOptionQuote?.bid || chainContract.bid)
     : rawBid;
   const liveLTP = chainContract
-    ? (liveOptionQuote?.lastPrice || liveOptionQuote?.last_price || chainContract.ltp)
-    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice) : currentPrice);
+    ? (liveOptionQuote?.lastPrice || chainContract.ltp)
+    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || currentPrice) : currentPrice);
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).

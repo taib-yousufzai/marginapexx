@@ -227,7 +227,7 @@ export function useMarketQuotes(symbols: string[]) {
           }
         }
         
-        const res = await fetch(`${baseUrl}/quotes?symbols=${encodeURIComponent(currentSymbols.join(','))}`);
+        const res = await fetch(`${baseUrl}/quotes?symbols=${currentSymbols.map(s => encodeURIComponent(s)).join(',')}`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data && Object.keys(json.data).length > 0) {
