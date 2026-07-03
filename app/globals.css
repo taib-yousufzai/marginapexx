@@ -891,6 +891,24 @@ body.dark .ew-arrow--today {
   color: #ffffff;
 }
 
+.desktop-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-body);
+}
+
+.main-viewport {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-body);
+}
+
 @media (min-width: 1024px) {
   html,
   body {
@@ -899,25 +917,19 @@ body.dark .ew-arrow--today {
   }
 
   .desktop-layout {
-    display: flex;
-    width: 100%;
+    flex-direction: row;
     height: 100vh;
-    overflow: hidden;
-    background: var(--bg-body);
   }
 
   .sidebar-container {
+
     width: 260px;
     height: 100vh;
     flex-shrink: 0;
   }
 
   .main-viewport {
-    flex: 1;
     height: 100vh;
-    overflow: hidden;
-    position: relative;
-    background: var(--bg-body);
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -925,6 +937,7 @@ body.dark .ew-arrow--today {
   .main-viewport::-webkit-scrollbar {
     display: none;
   }
+
 
   .app-container,
   .mobile-app,
