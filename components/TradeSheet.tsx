@@ -1112,16 +1112,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               <div className="ts2-ba-col">
                 <span className="ts2-ba-label">BID</span>
                 <span className="ts2-ba-bid">
-                  {(isCrypto ? marketQuotes[bSymbol || '']?.bid : marketQuotes[item?.kiteSymbol || '']?.bid)
-                    ? fmt(bidPrice) : '--'}
+                  {currentLtp > 0 ? fmt(bidPrice) : '--'}
                 </span>
               </div>
               <div className="ts2-ba-divider" />
               <div className="ts2-ba-col" style={{ alignItems: 'flex-end' }}>
                 <span className="ts2-ba-label">ASK</span>
                 <span className="ts2-ba-ask">
-                  {(isCrypto ? marketQuotes[bSymbol || '']?.ask : marketQuotes[item?.kiteSymbol || '']?.ask)
-                    ? fmt(askPrice) : '--'}
+                  {currentLtp > 0 ? fmt(askPrice) : '--'}
                 </span>
               </div>
             </div>
