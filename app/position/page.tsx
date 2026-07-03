@@ -104,7 +104,7 @@ export default function PositionPage() {
           setSettlementAmount(sett);
           pageCache.set('funds:balance', bal);
         })
-        .catch(() => {});
+        .catch(() => { });
     });
 
     const fetchOrders = () => {
@@ -117,7 +117,7 @@ export default function PositionPage() {
               setRawOrders(data.orders);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       });
     };
     fetchOrders();
@@ -192,7 +192,7 @@ export default function PositionPage() {
     if (overlay) overlay.classList.remove('active');
     setTimeout(() => setSelectedPos(null), 300);
   }, 'posdetail');
-  
+
   useMobileBack(!!chartItem, () => {
     setChartItem(null);
     const chartSheet = document.getElementById('chartSheet');
@@ -200,11 +200,11 @@ export default function PositionPage() {
     if (chartSheet) chartSheet.classList.remove('open');
     if (chartOverlay) chartOverlay.classList.remove('active');
   }, 'poschart');
-  
+
   useMobileBack(!!tradeSheetItem, () => {
     setTradeSheetItem(null);
   }, 'postrade');
-  
+
   useMobileBack(isExitAllModalOpen, () => {
     setIsExitAllModalOpen(false);
   }, 'posexitall');
@@ -447,22 +447,22 @@ export default function PositionPage() {
   const handleExitAllConfirm = async () => {
     if (!hasOpenPositions) return;
     setIsExitingAll(true);
-    
+
     let successCount = 0;
     let failCount = 0;
-    
+
     // Filter out locked positions from bulk exit
     const exitablePositions = openPositions.filter(p => !p.hold_lock_active);
-    
+
     if (exitablePositions.length === 0) {
       showToast('All open positions are currently locked due to holding rules.');
       setIsExitingAll(false);
       setIsExitAllModalOpen(false);
       return;
     }
-    
+
     const result = await closePositionsBatch(exitablePositions.map(p => p.id));
-    
+
     if (result.success && result.results) {
       let firstError = '';
       result.results.forEach((res: any) => {
@@ -473,10 +473,10 @@ export default function PositionPage() {
           if (!firstError && res.error) firstError = res.error;
         }
       });
-      
+
       setIsExitingAll(false);
       setIsExitAllModalOpen(false);
-      
+
       if (failCount === 0) {
         showToast(`Successfully closed ${successCount} position(s).`);
       } else {
@@ -507,7 +507,7 @@ export default function PositionPage() {
   return (
     <div className="desktop-layout">
       <Sidebar />
-      
+
       <main className="main-viewport">
         <div className="app-container">
           <div className="pos-root">
@@ -817,7 +817,7 @@ export default function PositionPage() {
                                 </div>
                               )}
                             </div>
- 
+
                             {/* Right Side: P&L and Status Badge */}
                             <div className="pos-detail-right-col">
                               <div className="pos-detail-pnl-group">
@@ -846,11 +846,11 @@ export default function PositionPage() {
                               </button>
                               <button
                                 className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => { 
+                                onClick={() => {
                                   if (pos.hold_lock_active) {
                                     setLockModalPos(actualPos);
                                   } else {
-                                    openExitSheet(actualPos); 
+                                    openExitSheet(actualPos);
                                   }
                                 }}
                               >
@@ -926,8 +926,8 @@ export default function PositionPage() {
                           }}
                           onClick={() => openChart(selectedPos)}
                         >
-                          <svg 
-                            viewBox="0 0 24 24" 
+                          <svg
+                            viewBox="0 0 24 24"
                             style={{
                               width: '1.25rem',
                               height: '1.25rem',
@@ -939,21 +939,21 @@ export default function PositionPage() {
                             <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
                             <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
                             <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                            <path 
-                              d="M 4 14 L 8 9 L 13 12 L 20 4" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
+                            <path
+                              d="M 4 14 L 8 9 L 13 12 L 20 4"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             />
-                            <polyline 
-                              points="15 4 20 4 20 9" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
+                            <polyline
+                              points="15 4 20 4 20 9"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             />
                           </svg>
                         </button>
@@ -1001,7 +1001,7 @@ export default function PositionPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', width: '100%', marginBottom: '8px' }}>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Avg Price</div>
-                           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * selectedPos.qty_total, selectedPos.settlement)}</div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * selectedPos.qty_total, selectedPos.settlement)}</div>
                         </div>
                         <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '6px 10px', borderRadius: '12px' }}>
                           <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Quantity</div>
@@ -1137,8 +1137,8 @@ export default function PositionPage() {
                             onClick={() => openChart(selectedPos)}
                             title="Open Chart"
                           >
-                            <svg 
-                              viewBox="0 0 24 24" 
+                            <svg
+                              viewBox="0 0 24 24"
                               style={{ width: '1.1rem', height: '1.1rem', display: 'inline-block' }}
                             >
                               <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
@@ -1156,7 +1156,7 @@ export default function PositionPage() {
                       <div className="ps-meta-row">
                         <div>
                           <div className="ps-meta-label">Avg Price</div>
-                           <div className="ps-meta-val">{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * (selectedPos.qty_open || selectedPos.qty_total), selectedPos.settlement)}</div>
+                          <div className="ps-meta-val">{fmtPrice((selectedPos.avg_price || selectedPos.entry_price) * (selectedPos.qty_open || selectedPos.qty_total), selectedPos.settlement)}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div className="ps-meta-label">Quantity</div>
@@ -1186,7 +1186,7 @@ export default function PositionPage() {
                           {exitingSet.has(selectedPos.id) ? <><i className="fas fa-circle-notch fa-spin" style={{ marginRight: 6 }} />Closing…</> : 'Exit All'}
                         </button>
                       </div>
- 
+
                       {/* Add More / Partial Exit */}
                       <div className="ps-action-row">
                         <button className="ps-btn-add" onClick={() => openAddMore(selectedPos)}>Add More</button>
@@ -1219,7 +1219,7 @@ export default function PositionPage() {
                 <div className="pos-modal-desc">
                   This position is currently in profit. You must hold profitable trades for a minimum period before exiting.
                 </div>
-                
+
                 {lockModalPos && (
                   <div style={{
                     margin: '20px 0', padding: '16px', background: '#F8F9FA',
@@ -1233,10 +1233,10 @@ export default function PositionPage() {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="pos-modal-actions">
-                  <button 
-                    className="pos-modal-btn cancel" 
+                  <button
+                    className="pos-modal-btn cancel"
                     style={{ width: '100%' }}
                     onClick={() => setLockModalPos(null)}
                   >
@@ -1257,15 +1257,15 @@ export default function PositionPage() {
                   Are you sure you want to exit all <strong>{openPositions.length}</strong> open positions? This action will execute market orders immediately and cannot be undone.
                 </div>
                 <div className="pos-modal-actions">
-                  <button 
-                    className="pos-modal-btn cancel" 
+                  <button
+                    className="pos-modal-btn cancel"
                     onClick={() => setIsExitAllModalOpen(false)}
                     disabled={isExitingAll}
                   >
                     Cancel
                   </button>
-                  <button 
-                    className="pos-modal-btn confirm" 
+                  <button
+                    className="pos-modal-btn confirm"
                     onClick={handleExitAllConfirm}
                     disabled={isExitingAll}
                   >

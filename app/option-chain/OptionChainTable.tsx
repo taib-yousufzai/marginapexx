@@ -115,14 +115,14 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           </div>
         )}
 
-        {/* â”€â”€ Sub-header: sticky â”€â”€ */}
+        {/* ── Sub-header: sticky ── */}
         <div className={`oct-subhead${subheadFloating ? ' floating' : ''}`}>
           <div className="oct-sub-calls">
-            {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>LTP</span>}
+            {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>{hideMainHeader ? 'CALL' : 'LTP'}</span>}
           </div>
           <div className="oct-sub-strike">&#8377;</div>
           <div className="oct-sub-puts">
-            {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>LTP</span>}
+            {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>{hideMainHeader ? 'PUT' : 'LTP'}</span>}
           </div>
         </div>
 

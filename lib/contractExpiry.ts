@@ -43,9 +43,9 @@ export function parseContractExpiry(kiteSymbol: string): Date | null {
   // Format: SYMBOL + YY + DD + MON + YY (different year encoding)
   const weeklyMatch = sym.match(/\d{2}(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)(\d{2})(FUT|CE|PE)/i);
   if (weeklyMatch) {
-    const day   = parseInt(weeklyMatch[1], 10);
+    const day = parseInt(weeklyMatch[1], 10);
     const month = MONTH_MAP[weeklyMatch[2].toUpperCase()];
-    const year  = 2000 + parseInt(weeklyMatch[3], 10);
+    const year = 2000 + parseInt(weeklyMatch[3], 10);
     return new Date(year, month, day);
   }
 
@@ -67,11 +67,11 @@ export function isContractExpired(kiteSymbol: string): boolean {
   if (!expiry) return false;
 
   const today = new Date();
-  const todayYear  = today.getFullYear();
+  const todayYear = today.getFullYear();
   const todayMonth = today.getMonth();
-  const todayDate  = today.getDate();
+  const todayDate = today.getDate();
 
-  const expiryYear  = expiry.getFullYear();
+  const expiryYear = expiry.getFullYear();
   const expiryMonth = expiry.getMonth();
 
   // Definitely expired once we are in a later month/year

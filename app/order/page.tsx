@@ -38,7 +38,7 @@ export default function OrderPage() {
     if (overlay) overlay.classList.remove('active');
     setTimeout(() => setSelectedOrder(null), 300);
   }, 'orderdetail');
-  
+
   useMobileBack(!!chartItem, () => {
     setChartItem(null);
     const chartSheet = document.getElementById('chartSheet');
@@ -46,7 +46,7 @@ export default function OrderPage() {
     if (chartSheet) chartSheet.classList.remove('open');
     if (chartOverlay) chartOverlay.classList.remove('active');
   }, 'orderchart');
-  
+
   useMobileBack(!!tradeSheetItem, () => {
     setTradeSheetItem(null);
   }, 'ordertrade');
@@ -129,7 +129,7 @@ export default function OrderPage() {
   const closedOrders = orders.filter(o => o.status !== 'PENDING');
 
   const activeList = tab === 'open' ? openOrders : closedOrders;
-  const filtered = activeList.filter(o => 
+  const filtered = activeList.filter(o =>
     (o.symbol || '').toLowerCase().includes((search || '').toLowerCase())
   );
 
@@ -153,7 +153,7 @@ export default function OrderPage() {
   return (
     <div className="desktop-layout">
       <Sidebar />
-      
+
       <main className="main-viewport">
         <div className="app-container">
           <div className="ord-root">
@@ -249,15 +249,15 @@ export default function OrderPage() {
 
                 {/* List of My Orders */}
                 {!ordersLoading && filtered.map(order => {
-                  const isBuy       = order.side === 'BUY';
-                  const isExecuted  = order.status === 'EXECUTED';
-                  const isRejected  = order.status === 'REJECTED';
+                  const isBuy = order.side === 'BUY';
+                  const isExecuted = order.status === 'EXECUTED';
+                  const isRejected = order.status === 'REJECTED';
                   const isCancelled = order.status === 'CANCELLED';
-                  const isPending   = order.status === 'PENDING';
+                  const isPending = order.status === 'PENDING';
 
                   return (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       className="ord-card"
                       onClick={() => {
                         if (!isPending) {
@@ -337,10 +337,10 @@ export default function OrderPage() {
                       </div>
                       <div className="ord-row ord-row-status">
                         <div className={`ord-status-text ${isPending ? 'status-open' : isExecuted ? 'status-filled' : isCancelled ? 'status-cancelled' : 'status-rejected'}`}>
-                          {isPending   && <><i className="fas fa-circle" /> PENDING</>}
-                          {isExecuted  && <><i className="fas fa-check-circle" /> EXECUTED</>}
+                          {isPending && <><i className="fas fa-circle" /> PENDING</>}
+                          {isExecuted && <><i className="fas fa-check-circle" /> EXECUTED</>}
                           {isCancelled && <><i className="fas fa-ban" /> CANCELLED</>}
-                          {isRejected  && <><i className="fas fa-times-circle" /> REJECTED</>}
+                          {isRejected && <><i className="fas fa-times-circle" /> REJECTED</>}
                         </div>
                         {isPending && (
                           <div style={{ display: 'flex', gap: '6px' }}>
@@ -403,8 +403,8 @@ export default function OrderPage() {
                       }}
                       onClick={() => openChart(selectedOrder)}
                     >
-                      <svg 
-                        viewBox="0 0 24 24" 
+                      <svg
+                        viewBox="0 0 24 24"
                         style={{
                           width: '1.25rem',
                           height: '1.25rem',
@@ -416,21 +416,21 @@ export default function OrderPage() {
                         <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
                         <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
                         <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                        <path 
-                          d="M 4 14 L 8 9 L 13 12 L 20 4" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
+                        <path
+                          d="M 4 14 L 8 9 L 13 12 L 20 4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
-                        <polyline 
-                          points="15 4 20 4 20 9" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round" 
+                        <polyline
+                          points="15 4 20 4 20 9"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
                       </svg>
                     </button>
@@ -452,7 +452,7 @@ export default function OrderPage() {
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Status</div>
-                      <div 
+                      <div
                         className={selectedOrder.status === 'EXECUTED' ? 'os-status-executed' : (selectedOrder.status === 'REJECTED' ? 'os-status-rejected' : selectedOrder.status === 'CANCELLED' ? 'os-status-cancelled' : 'os-status-other')}
                         style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1 }}
                       >
@@ -540,9 +540,9 @@ export default function OrderPage() {
               <span>{toast}</span>
             </div>
 
-            <TradeSheet 
-              item={tradeSheetItem} 
-              side={tradeSheetSide} 
+            <TradeSheet
+              item={tradeSheetItem}
+              side={tradeSheetSide}
               onClose={() => {
                 setTradeSheetItem(null);
                 setTradeSheetInitialOrder(null);
@@ -563,7 +563,7 @@ export default function OrderPage() {
                     const isSl = modifyingOrderId.startsWith('pos-sl-');
                     const isTarget = modifyingOrderId.startsWith('pos-target-');
                     const isGtt = modifyingOrderId.startsWith('pos-gtt-');
-                    
+
                     let clearData: any = {};
                     if (isSl) clearData = { stop_loss: null };
                     else if (isTarget) clearData = { target: null };

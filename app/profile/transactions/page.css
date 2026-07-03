@@ -3,10 +3,11 @@
 .th-root {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    height: 100dvh;
     width: 100%;
     background: #F8FAFF;
     align-self: stretch;
+    overflow: hidden;
 }
 
 .th-header {
@@ -20,6 +21,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    flex-shrink: 0;
 }
 
 .th-back-btn {
@@ -55,7 +57,7 @@
     padding: 20px;
     background: #F8FAFF;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -66,8 +68,15 @@
     background: #FFFFFF;
     border-radius: 20px;
     border: 1px solid #EEF2F8;
-    overflow: hidden;
+    overflow-y: auto;
+    flex: 1;
     box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.th-list-container::-webkit-scrollbar {
+    display: none;
 }
 
 .th-item {

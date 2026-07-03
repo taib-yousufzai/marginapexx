@@ -677,9 +677,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   };
 
   const fetchBalance = async () => {
+    let token = '';
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
+      token = sessionData.session?.access_token || '';
       if (!token) return;
 
       const res = await fetch('/api/pay/balance', {
@@ -691,7 +692,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       if (typeof data.balance === 'number') {
         setBalance(data.balance);
       }
+    } catch (err) {
+      // Use console.warn to avoid Next.js error overlay when adblockers block /api/pay/
+      console.warn('Failed to fetch balance (possibly blocked by adblocker):', err);
+    }
 
+    try {
+      if (!token) return;
       // Fetch segment settings and script settings
       const profileRes = await supabase.from('profiles').select('trading_mode').single();
       const mode = profileRes.data?.trading_mode || 'normal';
@@ -708,7 +715,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         setScriptSettings(ssData || []);
       }
     } catch (err) {
-      console.error('Failed to fetch balance or segment settings:', err);
+      console.warn('Failed to fetch segment or script settings:', err);
     }
   };
 
@@ -1445,7 +1452,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 <span style={{ color: 'var(--pill-text)', fontSize: '11px' }}>{pos.qty_open} qty</span>
               </div>
             </div>
-            <div style={{ color: 'var(--pill-text)', fontSize: '11px' }}>Entry ₹{entryPrice.toFixed(2)}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', rowGap: '2px', columnGap: '6px', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Entry</span>
+              <span style={{ color: 'var(--text-primary)', fontSize: '11px', fontWeight: 500 }}>₹{entryPrice.toFixed(2)}</span>
+              <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>LTP</span>
+              <span style={{ color: 'var(--text-primary)', fontSize: '11px', fontWeight: 500 }}>₹{(pos.current_ltp ?? pos.ltp ?? pos.avg_price ?? pos.entry_price ?? 0).toFixed(2)}</span>
+            </div>
             <div style={{ color: pnlColor, fontWeight: 700 }}>
               {pnl >= 0 ? '+' : '-'}₹{Math.abs(pnl).toFixed(2)}
             </div>

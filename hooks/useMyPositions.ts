@@ -26,9 +26,9 @@ export interface EnrichedPosition extends MyPosition {
 
 interface UseMyPositionsResult {
   positions: EnrichedPosition[];
-  loading:   boolean;
-  error:     string | null;
-  refresh:   () => Promise<void>;
+  loading: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
   updatePositionLocally?: (posId: string, updatedFields: Partial<MyPosition>) => void;
   startConversion?: (posId: string, newType: string) => void;
   endConversion?: (posId: string) => void;
@@ -193,11 +193,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
     else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
     else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
-    
+
     // Catch base indexes
     if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';
     if (prefix === 'NFO:' && !key.match(/\d/)) prefix = 'NSE:';
-    
+
     return `${prefix}${key}`;
   }, []);
 
@@ -306,11 +306,11 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
       // Only lock if settings have loaded — prevents spurious 120s lock on first render.
       // Also never lock an expired contract — it has no live feed and the user
       // may need to close it manually without a hold-timer obstacle.
-      const isLocked     = segmentSettingsLoaded
-                          && !contractExpired
-                          && (p.status === 'open' || p.status === 'active')
-                          && elapsedSec < profitHoldSec
-                          && isInProfit;
+      const isLocked = segmentSettingsLoaded
+        && !contractExpired
+        && (p.status === 'open' || p.status === 'active')
+        && elapsedSec < profitHoldSec
+        && isInProfit;
       const remainingSec = isLocked ? (profitHoldSec - elapsedSec) : 0;
 
       return {
