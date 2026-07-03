@@ -22,7 +22,7 @@ const KITE_INSTRUMENTS_ROW1 = [
 const KITE_INSTRUMENTS_ROW2 = [
   'MCX:CRUDEOIL26JULFUT',
   'MCX:GOLD26AUGFUT',
-  'MCX:SILVER26JULFUT',
+  'MCX:SILVER26SEPFUT',
   'MCX:NATURALGAS26JULFUT',
 ];
 
@@ -33,7 +33,7 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'CDS:USDINR26JULFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
   'MCX:CRUDEOIL26JULFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
   'MCX:GOLD26AUGFUT': { name: 'GOLD', icon: 'fas fa-coins' },
-  'MCX:SILVER26JULFUT': { name: 'SILVER', icon: 'fas fa-gem' },
+  'MCX:SILVER26SEPFUT': { name: 'SILVER', icon: 'fas fa-gem' },
   'MCX:NATURALGAS26JULFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 

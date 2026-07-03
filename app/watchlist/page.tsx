@@ -90,7 +90,7 @@ const DEFAULT_FOREX_ITEMS: WatchlistItem[] = [
 
 const DEFAULT_COMEX_ITEMS: WatchlistItem[] = [
   { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
-  { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
+  { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26SEPFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Sep 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
   { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
   { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
 ];
@@ -1075,6 +1075,11 @@ function WatchlistContent() {
       if (item.kiteSymbol && (item.kiteSymbol.includes('26MAYFUT') || item.kiteSymbol.includes('26MAY'))) {
         const allDefaults = [...DEFAULT_FOREX_ITEMS, ...DEFAULT_COMEX_ITEMS, ...getDefaultWatchlistItems()];
         const match = allDefaults.find(d => d.name === item.name || d.symbol === item.symbol);
+        if (match) { migrated = true; return { ...match }; }
+      }
+      // Upgrade expired July 2026 Silver contract to September 2026
+      if (item.kiteSymbol && item.kiteSymbol === 'MCX:SILVER26JULFUT') {
+        const match = DEFAULT_COMEX_ITEMS.find(d => d.symbol === 'SILVER_FUT');
         if (match) { migrated = true; return { ...match }; }
       }
       return item;
@@ -2068,7 +2073,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           icon: 'fa-coins',
           instruments: [
             { name: 'GOLD FUT', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
-            { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+            { name: 'SILVER FUT', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26SEPFUT', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Sep 2026', open: 0, high: 0, low: 0, close: 0 },
             { name: 'CRUDEOIL FUT', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', price: 6120.50, change: '+1.2%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 6045, high: 6140, low: 6040, close: 6120.50 }
           ]
         },
@@ -2112,7 +2117,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           icon: 'fa-gem',
           instruments: [
             { name: 'Gold', symbol: 'GOLD_FUT', kiteSymbol: 'MCX:GOLD26AUGFUT', comexSymbol: 'GC=F', price: 72450, change: '+0.28%', segment: 'MCX - Futures', contractDate: 'Aug 2026', open: 72150, high: 72450, low: 72100, close: 72450 },
-            { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26JULFUT', comexSymbol: 'SI=F', price: 82230, change: '-0.15%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 82350, high: 82450, low: 82100, close: 82230 },
+            { name: 'Silver', symbol: 'SILVER_FUT', kiteSymbol: 'MCX:SILVER26SEPFUT', comexSymbol: 'SI=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Sep 2026', open: 0, high: 0, low: 0, close: 0 },
             { name: 'Crude Oil', symbol: 'CRUDEOIL_FUT', kiteSymbol: 'MCX:CRUDEOIL26JULFUT', comexSymbol: 'CL=F', price: 6120, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0 },
             { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 780, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0 }
           ]

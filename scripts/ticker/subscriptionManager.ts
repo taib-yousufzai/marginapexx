@@ -38,7 +38,7 @@ export class SubscriptionManager {
         'CDS:USDINR26JULFUT',
         'MCX:CRUDEOIL26JULFUT',
         'MCX:GOLD26AUGFUT',
-        'MCX:SILVER26JULFUT',
+        'MCX:SILVER26SEPFUT',
         'MCX:NATURALGAS26JULFUT',
         'NSE:NIFTY FIN SERVICE',
         'NSE:NIFTY MID SELECT',
