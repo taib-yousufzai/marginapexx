@@ -569,6 +569,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   const symbolsToFetch = useMemo(() => {
     const syms: string[] = [symbol];
+    // When in add-more flow for a different instrument, also subscribe to its quotes
+    if (isAddMoreFlow && addMoreSymbol && addMoreSymbol !== symbol) {
+      syms.push(addMoreSymbol);
+    }
     if (activeSegment === 'chain' && chainStrikes.length) {
       chainStrikes.forEach((s: any) => {
         if (s.ce?.id) syms.push(s.ce.id);
@@ -576,7 +580,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       });
     }
     return syms;
-  }, [symbol, activeSegment, chainStrikes]);
+  }, [symbol, activeSegment, chainStrikes, isAddMoreFlow, addMoreSymbol]);
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
   const activeLiveQuote = marketQuotes[symbol] || (symbol === propSymbol ? propLiveQuote : null);
@@ -1222,12 +1226,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // (not the underlying index). In that case, activeLiveQuote belongs to the underlying
   // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
-  const rawBid = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || currentPrice)
-    : currentPrice;
-  const rawAsk = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || currentPrice)
-    : currentPrice;
+
+  // When in add-more flow for a different instrument, use that instrument's live quote
+  // instead of the chart's current symbol's quote for bid/ask/LTP/margin
+  const addMoreQuote = (isAddMoreFlow && addMoreSymbol && addMoreSymbol !== symbol)
+    ? marketQuotes[addMoreSymbol] : null;
+
+  const rawBid = addMoreQuote
+    ? (addMoreQuote.bid || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+    : ((!symbolIsDerivative && activeLiveQuote)
+      ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || currentPrice)
+      : currentPrice);
+  const rawAsk = addMoreQuote
+    ? (addMoreQuote.ask || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+    : ((!symbolIsDerivative && activeLiveQuote)
+      ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || currentPrice)
+      : currentPrice);
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
   const priceOfScript = chainContract
@@ -1242,15 +1256,21 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : resolvedPrice;
 
   const liveOptionQuote = (chainContract && chainContract.kiteId) ? marketQuotes[chainContract.kiteId] : null;
-  const liveAsk = chainContract
-    ? (liveOptionQuote?.ask || chainContract.ask)
-    : rawAsk;
-  const liveBid = chainContract
-    ? (liveOptionQuote?.bid || chainContract.bid)
-    : rawBid;
-  const liveLTP = chainContract
-    ? (liveOptionQuote?.lastPrice || chainContract.ltp)
-    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || currentPrice) : currentPrice);
+  const liveAsk = addMoreQuote
+    ? (addMoreQuote.ask || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+    : (chainContract
+      ? (liveOptionQuote?.ask || chainContract.ask)
+      : rawAsk);
+  const liveBid = addMoreQuote
+    ? (addMoreQuote.bid || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+    : (chainContract
+      ? (liveOptionQuote?.bid || chainContract.bid)
+      : rawBid);
+  const liveLTP = addMoreQuote
+    ? (addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+    : (chainContract
+      ? (liveOptionQuote?.lastPrice || chainContract.ltp)
+      : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || currentPrice) : currentPrice));
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
@@ -1261,6 +1281,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const indexOptSymbols = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'];
       const isIndexOpt = indexOptSymbols.some(s => name.includes(s)) || !stockOptSymbols.some(s => name.includes(s));
       return isIndexOpt ? 'INDEX-OPT' : 'STOCK-OPT';
+    }
+    // When in add-more flow, use the position's segment for settings lookup
+    if (isAddMoreFlow && addMoreSegment) {
+      return mapSegmentToDbSegment(addMoreSegment);
     }
     return mapSegmentToDbSegment(segment);
   })();
@@ -1516,11 +1540,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               setExitPositionId(null);
               setActiveSegment('orders');
 
-              // Set new symbol/segment
-              setSymbol(res.kiteSymbol);
-              setSegment(res.segment);
+              // Set new symbol/segment — use binanceSymbol for crypto, kiteSymbol for others
+              const isCryptoRes = !!res.binanceSymbol || (res.segment || '').toUpperCase().includes('CRYPTO');
+              const newSymbol = isCryptoRes
+                ? (res.binanceSymbol || res.kiteSymbol || res.symbol)
+                : (res.kiteSymbol || res.symbol);
+              const newSegment = isCryptoRes ? 'CRYPTO' : res.segment;
+              setSymbol(newSymbol);
+              setSegment(newSegment);
               setIsSearchActive(false);
-              setOrderBlockTitle(res.kiteSymbol);
+              setOrderBlockTitle(newSymbol);
             }}
           />
         ) : (
