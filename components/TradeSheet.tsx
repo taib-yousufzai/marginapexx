@@ -57,7 +57,7 @@ function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: n
 function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
   if (!s && !symbol) return '';
   const trimmed = (s || '').trim().toUpperCase();
-  
+
   if (['COMEX - FUTURES', 'COMEX - OPTIONS', 'COMEX', 'COI'].includes(trimmed)) return 'COMEX';
 
   const n = symbol.toUpperCase();
