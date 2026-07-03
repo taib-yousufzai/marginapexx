@@ -172,11 +172,27 @@ export function useMarketQuotes(symbols: string[]) {
         for (const [key, quote] of Object.entries(data)) {
           const q = quote as any;
           const close = q.ohlc?.close || q.close || 0;
-          const changePercent = close > 0 ? ((q.last_price - close) / close) * 100 : 0;
+          
+          let jitteredPrice = q.last_price;
+          
+          // Ensure LTP is between bid and ask if they exist
+          if (q.bid > 0 && q.ask > 0) {
+            if (jitteredPrice > q.ask) jitteredPrice = q.ask;
+            if (jitteredPrice < q.bid) jitteredPrice = q.bid;
+          }
+          
+          // Only jitter if the tick is recent (market is live, within 5 minutes)
+          // This prevents jittering after market hours when loading stale quotes
+          const isRecent = q.timestamp && (Date.now() - new Date(q.timestamp).getTime() < 300000);
+          if (isRecent) {
+            jitteredPrice = jitteredPrice + (jitteredPrice * 0.00005 * (Math.random() - 0.5));
+          }
+          
+          const changePercent = close > 0 ? ((jitteredPrice - close) / close) * 100 : 0;
           
           const quoteData: QuoteData = {
-            lastPrice: q.last_price,
-            change: q.last_price - close,
+            lastPrice: parseFloat(jitteredPrice.toFixed(2)),
+            change: jitteredPrice - close,
             changePercent: parseFloat(changePercent.toFixed(2)),
             open: q.ohlc?.open || q.open || 0,
             high: q.ohlc?.high || q.high || 0,
@@ -195,7 +211,22 @@ export function useMarketQuotes(symbols: string[]) {
 
         const q = quote as any;
         const close = q.ohlc?.close || q.close || 0;
-        const jitteredPrice = q.last_price;
+        
+        let jitteredPrice = q.last_price;
+        
+        // Ensure LTP is between bid and ask if they exist
+        if (q.bid > 0 && q.ask > 0) {
+          if (jitteredPrice > q.ask) jitteredPrice = q.ask;
+          if (jitteredPrice < q.bid) jitteredPrice = q.bid;
+        }
+        
+        // Only jitter if the tick is recent (market is live, within 5 minutes)
+        // This prevents jittering after market hours when loading stale quotes
+        const isRecent = q.timestamp && (Date.now() - new Date(q.timestamp).getTime() < 300000);
+        if (isRecent) {
+          jitteredPrice = jitteredPrice + (jitteredPrice * 0.00005 * (Math.random() - 0.5));
+        }
+        
         const changePercent = close > 0 ? ((jitteredPrice - close) / close) * 100 : 0;
 
         const quoteData: QuoteData = {
