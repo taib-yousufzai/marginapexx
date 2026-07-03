@@ -256,11 +256,14 @@ export function useMarketQuotes(symbols: string[]) {
       }
     }, 50);
 
- // Apply jitter every 1 second
+    // Polling fallback — re-fetch REST snapshot every 3s so prices stay fresh
+    // even if WebSocket ticks are slow, connection drops, or the browser is on
+    // a network that blocks persistent WS connections (e.g. some mobile proxies).
+    const pollInterval = setInterval(fetchInitialQuotes, 3000);
 
     return () => {
       clearInterval(flushInterval);
-      
+      clearInterval(pollInterval);
       wsManager.unsubscribe(currentSymbols, onMessage);
     };
   }, [symbolsKey]);
