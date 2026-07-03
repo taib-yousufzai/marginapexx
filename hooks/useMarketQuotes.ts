@@ -166,31 +166,6 @@ export function useMarketQuotes(symbols: string[]) {
     const currentSymbols = symbolsKey.split(',').filter(Boolean).filter(s => !isContractExpired(s));
     if (currentSymbols.length === 0) return;
 
-    // Fetch initial REST snapshot to avoid empty values if WS doesn't push immediately
-    const fetchInitialQuotes = async () => {
-      try {
-        let baseUrl = process.env.NEXT_PUBLIC_TICKER_URL;
-        if (!baseUrl) {
-          if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            baseUrl = 'https://marginapexx-production.up.railway.app';
-          } else {
-            baseUrl = 'http://localhost:8080';
-          }
-        }
-        
-        const res = await fetch(`${baseUrl}/quotes?symbols=${currentSymbols.join(',')}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data && Object.keys(json.data).length > 0) {
-            onMessage('quotes', json.data);
-          }
-        }
-      } catch (err) {
-        console.warn('[MarketQuotes] Initial fetch failed:', err);
-      }
-    };
-    fetchInitialQuotes();
-
     const onMessage = (type: string, data: any) => {
       if (type === 'quotes') {
         const mapped: Record<string, QuoteData> = {};
@@ -208,7 +183,6 @@ export function useMarketQuotes(symbols: string[]) {
             low: q.ohlc?.low || q.low || 0,
             close: close,
             volume: q.volume || 0,
-            // Guard against null/undefined/0 from stale Redis cache entries
             bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
             ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
           };
@@ -233,7 +207,6 @@ export function useMarketQuotes(symbols: string[]) {
           low: q.ohlc?.low || q.low || 0,
           close: close,
           volume: q.volume || 0,
-          // Guard against null/undefined/0 from stale Redis cache entries
           bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
           ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
         };
@@ -241,6 +214,33 @@ export function useMarketQuotes(symbols: string[]) {
         pendingUpdatesRef.current[symbol] = quoteData;
       }
     };
+
+    // Fetch REST snapshot — onMessage must be defined before this is called
+    const fetchInitialQuotes = async () => {
+      try {
+        let baseUrl = process.env.NEXT_PUBLIC_TICKER_URL;
+        if (!baseUrl) {
+          if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            baseUrl = 'https://marginapexx-production.up.railway.app';
+          } else {
+            baseUrl = 'http://localhost:8080';
+          }
+        }
+        
+        const res = await fetch(`${baseUrl}/quotes?symbols=${encodeURIComponent(currentSymbols.join(','))}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data && Object.keys(json.data).length > 0) {
+            onMessage('quotes', json.data);
+          }
+        }
+      } catch (err) {
+        console.warn('[MarketQuotes] Initial fetch failed:', err);
+      }
+    };
+
+    // Initial fetch
+    fetchInitialQuotes();
 
     wsManager.subscribe(currentSymbols, onMessage);
 
