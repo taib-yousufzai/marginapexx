@@ -184,8 +184,8 @@ export default function TransactionHistoryPage() {
     <div className="desktop-layout">
       <Sidebar />
       <main className="main-viewport">
-        <div className="app-container th-root">
-          <div className="th-header">
+        <div className="app-container th-root home-isolated-container">
+          <div className="th-header home-isolated-header">
             <Link href="/profile" className="th-back-btn" suppressHydrationWarning>
               <i className="fas fa-chevron-left"></i>
             </Link>
@@ -220,7 +220,7 @@ export default function TransactionHistoryPage() {
                 <p>{filter === 'ALL' ? 'No transactions found.' : `No ${filter.toLowerCase()} transactions found.`}</p>
               </div>
             ) : (
-              <div className="th-list-container">
+              <div className="th-list-container home-isolated-scroll">
                 {filteredTransactions.map(tx => (
                   <div key={tx.id} className="th-item">
                     <div className="th-info">
