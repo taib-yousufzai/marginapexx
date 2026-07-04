@@ -55,7 +55,7 @@
 }
 
 .th-content {
-    padding: 20px;
+    padding: 20px 20px 90px 20px; /* Increased bottom padding */
     background: #F8FAFF;
     flex: 1;
     min-height: 0;
@@ -72,7 +72,6 @@
     overflow-y: auto;
     flex: 1;
     min-height: 0;
-    padding-bottom: 90px; /* Clearance for mobile bottom navigation */
     box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     scrollbar-width: none;
     -ms-overflow-style: none;
