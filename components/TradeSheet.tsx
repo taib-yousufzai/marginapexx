@@ -29,6 +29,7 @@ interface TradeSheetProps {
   initialOrder?: any;
   isModify?: boolean;
   modifyingOrderId?: string | null;
+  isFromPositions?: boolean;
 }
 
 function getLotSize(name: string, scriptSettings?: { symbol: string; lot_size: number }[]): number {
@@ -91,7 +92,7 @@ function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
   return trimmed;
 }
 
-export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder, isModify = false, modifyingOrderId }: TradeSheetProps) {
+export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = false, productType: propProductType, initialOrder, isModify = false, modifyingOrderId, isFromPositions = false }: TradeSheetProps) {
   const { placeOrder, loading: placingOrder } = useOrderEntry();
 
   const [orderUnit, setOrderUnit] = useState<'qty' | 'lot'>('qty');
@@ -1098,7 +1099,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   {exitMode && (
                     <span className="ts2-status-badge neg">Exit Position</span>
                   )}
-                  {!exitMode && (
+                  {!exitMode && isFromPositions && (
                     <span className="ts2-status-badge pos">Add More</span>
                   )}
                 </div>
