@@ -204,14 +204,16 @@ export const SEGMENT_TAB_MAP: Record<string, TabLabel> = {
 export function getTabForItem(item: WatchlistItem): TabLabel {
   if (item.category) {
     const c = item.category.toUpperCase();
-    if (c.includes('INDEX - FUTURE')) return 'INDEX-FUT';
-    if (c.includes('INDEX - OPTIONS')) return 'INDEX-OPT';
-    if (c.includes('STOCKS - FUTURE')) return 'STOCK-FUT';
-    if (c.includes('MCX - FUTURE')) return 'MCX-FUT';
-    if (c.includes('MCX - OPTIONS')) return 'MCX-OPT';
+    if (c.includes('INDEX-FUT') || c.includes('INDEX - FUTURE')) return 'INDEX-FUT';
+    if (c.includes('INDEX-OPT') || c.includes('INDEX - OPTIONS')) return 'INDEX-OPT';
+    if (c.includes('STOCK-FUT') || c.includes('STOCKS - FUTURE')) return 'STOCK-FUT';
+    if (c.includes('STOCK-OPT') || c.includes('STOCKS - OPTIONS')) return 'STOCK-OPT';
+    if (c.includes('MCX-FUT') || c.includes('MCX - FUTURE')) return 'MCX-FUT';
+    if (c.includes('MCX-OPT') || c.includes('MCX - OPTIONS')) return 'MCX-OPT';
+    if (c.includes('NSE-EQ') || c.includes('EQUITY')) return 'NSE-EQ';
     if (c.includes('CRYPTO')) return 'CRYPTO';
     if (c.includes('FOREX')) return 'FOREX';
-    if (c.includes('COMEX')) return 'COMEX';
+    if (c.includes('COMEX') || c === 'COI') return 'COMEX';
   }
 
   if (item.segment && SEGMENT_TAB_MAP[item.segment]) {
@@ -2355,14 +2357,16 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
       function getTabForSearchItem(seg, cat) {
         if (cat) {
           var c = cat.toUpperCase();
-          if (c.indexOf('INDEX - FUTURE') >= 0) return 'INDEX-FUT';
-          if (c.indexOf('INDEX - OPTIONS') >= 0) return 'INDEX-OPT';
-          if (c.indexOf('STOCKS - FUTURE') >= 0) return 'STOCK-FUT';
-          if (c.indexOf('MCX - FUTURE') >= 0) return 'MCX-FUT';
-          if (c.indexOf('MCX - OPTIONS') >= 0) return 'MCX-OPT';
+          if (c.indexOf('INDEX-FUT') >= 0 || c.indexOf('INDEX - FUTURE') >= 0) return 'INDEX-FUT';
+          if (c.indexOf('INDEX-OPT') >= 0 || c.indexOf('INDEX - OPTIONS') >= 0) return 'INDEX-OPT';
+          if (c.indexOf('STOCK-FUT') >= 0 || c.indexOf('STOCKS - FUTURE') >= 0) return 'STOCK-FUT';
+          if (c.indexOf('STOCK-OPT') >= 0 || c.indexOf('STOCKS - OPTIONS') >= 0) return 'STOCK-OPT';
+          if (c.indexOf('MCX-FUT') >= 0 || c.indexOf('MCX - FUTURE') >= 0) return 'MCX-FUT';
+          if (c.indexOf('MCX-OPT') >= 0 || c.indexOf('MCX - OPTIONS') >= 0) return 'MCX-OPT';
+          if (c.indexOf('NSE-EQ') >= 0 || c.indexOf('EQUITY') >= 0) return 'NSE-EQ';
           if (c.indexOf('CRYPTO') >= 0) return 'CRYPTO';
           if (c.indexOf('FOREX') >= 0) return 'FOREX';
-          if (c.indexOf('COMEX') >= 0) return 'COMEX';
+          if (c.indexOf('COMEX') >= 0 || c === 'COI') return 'COMEX';
         }
         if (!seg) return 'INDEX-FUT';
         var m = {
@@ -2504,7 +2508,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           currentSearchController = new AbortController();
           var signal = currentSearchController.signal;
 
-          fetch('/api/market/instruments/search?q=' + encodeURIComponent(query), {
+          fetch('/api/market/instruments/search?q=' + encodeURIComponent(query) + '&tab=' + encodeURIComponent(activeTab), {
             headers: { 'Authorization': 'Bearer ' + (window.__accessToken || '') },
             signal: signal
           })
@@ -2530,7 +2534,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               var merged = filteredLive.concat(hardcodedExtra);
               var activeTabLive = window.__activeTab || 'All';
               if (activeTabLive !== 'All') {
-                merged = merged.filter(function(r) { return getTabForSearchItem(r.segment) === activeTabLive; });
+                merged = merged.filter(function(r) { return getTabForSearchItem(r.segment, r.category) === activeTabLive; });
               }
               renderSearchResults(merged);
             })

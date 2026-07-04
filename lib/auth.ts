@@ -168,37 +168,49 @@ if (typeof window !== 'undefined') {
  *
  * Validates: Requirements 3.2
  */
+let _sessionPromise: Promise<Session | null> | null = null;
+
 export async function getSession(): Promise<Session | null> {
-  try {
-    // Return cached session if still fresh
-    if (_cachedSession && Date.now() - _cacheTimestamp < SESSION_CACHE_TTL_MS) {
-      return _cachedSession;
-    }
-
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !sessionData?.session) {
-      _cachedSession = null;
-      return null;
-    }
-
-    // Refresh user data from server to get latest user_metadata (e.g. role)
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !userData?.user) {
-      _cachedSession = null;
-      return null;
-    }
-
-    // Merge fresh user into session and cache it
-    const freshSession = { ...sessionData.session, user: userData.user };
-    _cachedSession = freshSession;
-    _cacheTimestamp = Date.now();
-    return freshSession;
-  } catch (err) {
-    console.error('getSession unexpected error:', err);
-    _cachedSession = null;
-    return null;
+  if (_sessionPromise) {
+    return _sessionPromise;
   }
+
+  _sessionPromise = (async () => {
+    try {
+      // Return cached session if still fresh
+      if (_cachedSession && Date.now() - _cacheTimestamp < SESSION_CACHE_TTL_MS) {
+        return _cachedSession;
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        _cachedSession = null;
+        return null;
+      }
+
+      // Refresh user data from server to get latest user_metadata (e.g. role)
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !userData?.user) {
+        _cachedSession = null;
+        return null;
+      }
+
+      // Merge fresh user into session and cache it
+      const freshSession = { ...sessionData.session, user: userData.user };
+      _cachedSession = freshSession;
+      _cacheTimestamp = Date.now();
+      return freshSession;
+    } catch (err) {
+      console.error('getSession unexpected error:', err);
+      _cachedSession = null;
+      return null;
+    } finally {
+      _sessionPromise = null;
+    }
+  })();
+
+  return _sessionPromise;
 }
 
