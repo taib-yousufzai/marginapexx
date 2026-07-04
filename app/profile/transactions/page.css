@@ -19,9 +19,11 @@
     padding: 14px 20px;
     background: #FFFFFF;
     border-bottom: 1px solid #EEF2F8;
-    position: sticky;
+    position: fixed;
     top: 0;
-    z-index: 10;
+    left: 0;
+    right: 0;
+    z-index: 100;
     flex-shrink: 0;
 }
 
@@ -56,6 +58,7 @@
 
 .th-content {
     padding: 20px;
+    margin-top: 65px;
     background: #F8FAFF;
     flex: 1;
     min-height: 0;
