@@ -155,8 +155,10 @@ class MarketWSManager {
 
 const wsManager = new MarketWSManager();
 
+let globalMarketQuotesCache: Record<string, QuoteData> = {};
+
 export function useMarketQuotes(symbols: string[]) {
-  const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
+  const [quotes, setQuotes] = useState<Record<string, QuoteData>>(globalMarketQuotesCache);
   const symbolsKey = symbols.join(',');
   const pendingUpdatesRef = useRef<Record<string, QuoteData>>({});
 
@@ -204,6 +206,7 @@ export function useMarketQuotes(symbols: string[]) {
           };
           mapped[key] = quoteData;
         }
+        Object.assign(globalMarketQuotesCache, mapped);
         setQuotes(prev => ({ ...prev, ...mapped }));
       } else if (type === 'update') {
         const { symbol, quote } = data;
@@ -242,6 +245,7 @@ export function useMarketQuotes(symbols: string[]) {
           ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
         };
 
+        globalMarketQuotesCache[symbol] = quoteData;
         pendingUpdatesRef.current[symbol] = quoteData;
       }
     };

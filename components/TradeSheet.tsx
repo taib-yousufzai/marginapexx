@@ -117,7 +117,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
   const isCrypto = dbSeg.toUpperCase().includes('CRYPTO') || !!item?.binanceSymbol;
-  const isComex = dbSeg.toUpperCase().includes('COMEX') || !!item?.comexSymbol;
+  const isComex = item && (item as any).preferredView 
+    ? (item as any).preferredView === 'comex' 
+    : (dbSeg.toUpperCase().includes('COMEX') || !!item?.comexSymbol);
 
   let bSymbol = item?.binanceSymbol || (item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '');
   if (bSymbol && !bSymbol.endsWith('USDT')) {
@@ -153,7 +155,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexSymbols);
 
-  let currentLtp = item?.price ?? 0;
+  let currentLtp = typeof item?.price === 'string' 
+    ? parseFloat((item.price as string).replace(/,/g, '')) 
+    : (item?.price ?? 0);
   let currentChangePercent = parseFloat(item?.change?.replace(/[%+]/g, '') || '0') || 0;
   if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
     currentLtp = marketQuotes[bSymbol].lastPrice;
@@ -230,7 +234,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const isExitTrade = exitMode || (activeSide === 'BUY' && hasSellPos) || (activeSide === 'SELL' && hasBuyPos);
   const multiplier = isExitTrade ? 1 : 2;
 
-  const intradayCharge = (productType === 'INTRADAY' && orderType !== 'GTT' && segSetting ? computeCharge(
+  // Brokerage is cumulative: INTRADAY = intraday, CARRY = intraday + carry, GTT = intraday + carry + GTT
+  const intradayCharge = (segSetting ? computeCharge(
     segSetting.commission_type || 'Per Crore',
     segSetting.commission_value ?? 0
   ) : 0) * multiplier;

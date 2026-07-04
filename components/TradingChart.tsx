@@ -569,8 +569,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   const symbolsToFetch = useMemo(() => {
     const syms: string[] = [symbol];
-    // When in add-more flow for a different instrument, also subscribe to its quotes
-    if (isAddMoreFlow && addMoreSymbol && addMoreSymbol !== symbol) {
+    // When in add-more or exit flow for a different instrument, also subscribe to its quotes
+    if ((isAddMoreFlow || isExitFlow) && addMoreSymbol && addMoreSymbol !== symbol) {
       syms.push(addMoreSymbol);
     }
     if (activeSegment === 'chain' && chainStrikes.length) {
@@ -580,7 +580,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       });
     }
     return syms;
-  }, [symbol, activeSegment, chainStrikes, isAddMoreFlow, addMoreSymbol]);
+  }, [symbol, activeSegment, chainStrikes, isAddMoreFlow, isExitFlow, addMoreSymbol]);
 
   const { quotes: marketQuotes } = useMarketQuotes(symbolsToFetch);
   const activeLiveQuote = marketQuotes[symbol] || (symbol === propSymbol ? propLiveQuote : null);
@@ -896,9 +896,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
 
     // Determine the base execution price
-    // For add-more flow on a different instrument, use that position's LTP not the chart price
+    // For add-more/exit flow on a different instrument, use that position's LTP not the chart price
     // For chain contract orders, use the option contract's LTP not the underlying index price
-    const basePrice = (isAddMoreFlow && addMoreLtp) ? addMoreLtp : (chainContract ? chainContract.ltp : currentPrice);
+    const basePrice = ((isAddMoreFlow || isExitFlow) && addMoreLtp) ? addMoreLtp : (chainContract ? chainContract.ltp : currentPrice);
     let finalPrice = basePrice;
     if (orderType === 'limit' || orderType === 'gtt') {
       finalPrice = parseFloat(limitPrice);
@@ -1073,6 +1073,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setIsExitFlow(true);
     setIsAddMoreFlow(false);
     setExitPositionId(pos.id);
+    
+    // Also set the target symbol info so the order block UI shows the correct position prices
+    // instead of the chart's current instrument prices
+    setAddMoreSymbol(pos.symbol);
+    setAddMoreSegment(pos.settlement || segment);
+    setAddMoreLtp(pos.current_ltp || pos.avg_price || pos.entry_price);
+    
     setOrderSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
     setQtyValue(pos.qty_open);
     setUseLots(false);
@@ -1227,18 +1234,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
 
-  // When in add-more flow for a different instrument, use that instrument's live quote
+  // When in add-more or exit flow for a different instrument, use that instrument's live quote
   // instead of the chart's current symbol's quote for bid/ask/LTP/margin
-  const addMoreQuote = (isAddMoreFlow && addMoreSymbol && addMoreSymbol !== symbol)
-    ? marketQuotes[addMoreSymbol] : null;
+  const isTargetFlow = ((isAddMoreFlow || isExitFlow) && addMoreSymbol && addMoreSymbol !== symbol);
+  const addMoreQuote = isTargetFlow ? marketQuotes[addMoreSymbol!] : null;
 
-  const rawBid = addMoreQuote
-    ? (addMoreQuote.bid || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+  const rawBid = isTargetFlow
+    ? (addMoreQuote?.bid || addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : ((!symbolIsDerivative && activeLiveQuote)
       ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || currentPrice)
       : currentPrice);
-  const rawAsk = addMoreQuote
-    ? (addMoreQuote.ask || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+  const rawAsk = isTargetFlow
+    ? (addMoreQuote?.ask || addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : ((!symbolIsDerivative && activeLiveQuote)
       ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || currentPrice)
       : currentPrice);
@@ -1256,18 +1263,18 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : resolvedPrice;
 
   const liveOptionQuote = (chainContract && chainContract.kiteId) ? marketQuotes[chainContract.kiteId] : null;
-  const liveAsk = addMoreQuote
-    ? (addMoreQuote.ask || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+  const liveAsk = isTargetFlow
+    ? (addMoreQuote?.ask || addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : (chainContract
       ? (liveOptionQuote?.ask || chainContract.ask)
       : rawAsk);
-  const liveBid = addMoreQuote
-    ? (addMoreQuote.bid || addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+  const liveBid = isTargetFlow
+    ? (addMoreQuote?.bid || addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : (chainContract
       ? (liveOptionQuote?.bid || chainContract.bid)
       : rawBid);
-  const liveLTP = addMoreQuote
-    ? (addMoreQuote.lastPrice || addMoreLtp || currentPrice)
+  const liveLTP = isTargetFlow
+    ? (addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : (chainContract
       ? (liveOptionQuote?.lastPrice || chainContract.ltp)
       : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || currentPrice) : currentPrice));
@@ -1282,8 +1289,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const isIndexOpt = indexOptSymbols.some(s => name.includes(s)) || !stockOptSymbols.some(s => name.includes(s));
       return isIndexOpt ? 'INDEX-OPT' : 'STOCK-OPT';
     }
-    // When in add-more flow, use the position's segment for settings lookup
-    if (isAddMoreFlow && addMoreSegment) {
+    // When in add-more or exit flow, use the position's segment for settings lookup
+    if ((isAddMoreFlow || isExitFlow) && addMoreSegment) {
       return mapSegmentToDbSegment(addMoreSegment);
     }
     return mapSegmentToDbSegment(segment);

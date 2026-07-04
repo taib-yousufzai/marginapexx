@@ -337,12 +337,12 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
 
   const handleLeftClick = () => {
     if (basketMode) return;
-    onDetail(item);
+    onDetail({ ...item, preferredView: priceView });
   };
 
   const handleRightClick = () => {
     if (basketMode) return;
-    onDetail(item);
+    onDetail({ ...item, preferredView: priceView });
   };
 
   return (
@@ -653,7 +653,9 @@ function WatchlistContent() {
 
   // ── Detail sheet: resolve live quote from correct source ─────────────────
   const isCrypto = !!(selectedItem?.binanceSymbol);
-  const isComex  = !!(selectedItem?.comexSymbol);
+  const isComex = selectedItem && (selectedItem as any).preferredView 
+    ? (selectedItem as any).preferredView === 'comex' 
+    : !!(selectedItem?.comexSymbol);
 
   const currentKiteQuote    = selectedItem?.kiteSymbol   ? marketQuotes[selectedItem.kiteSymbol]           : null;
   const currentBinanceQuote = selectedItem?.binanceSymbol ? marketQuotes[selectedItem.binanceSymbol] : null;
@@ -672,7 +674,9 @@ function WatchlistContent() {
     currentLtp           = currentKiteQuote.lastPrice;
     currentChangePercent = currentKiteQuote.changePercent;
   } else {
-    currentLtp = selectedItem?.price ?? 0;
+    currentLtp = typeof selectedItem?.price === 'string'
+      ? parseFloat((selectedItem.price as string).replace(/,/g, ''))
+      : (selectedItem?.price ?? 0);
   }
 
   const formatPrice = (price: number | undefined | null) => {

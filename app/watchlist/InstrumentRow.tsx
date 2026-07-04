@@ -73,7 +73,7 @@ export default function InstrumentRow({ item, quote, binanceQuote, comexQuote, o
     if ((e.target as HTMLElement).closest('.wc-action-btn') || (e.target as HTMLElement).closest('.dual-view-toggle')) {
       return;
     }
-    onTrade(item);
+    onTrade({ ...item, preferredView: priceView } as any);
   };
 
   return (
