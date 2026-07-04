@@ -1773,10 +1773,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button className="trade-btn sell" onClick={() => showToast('SL mode activated')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--red, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                <button className="trade-btn sell" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--red, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                   <span className="btn-label" style={{ color: 'var(--red, #e53935)', fontSize: '11px', fontWeight: 600 }}>SL</span>
                 </button>
-                <button className="trade-btn buy" onClick={() => showToast('Target mode activated')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--green, #1db954)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                <button className="trade-btn buy" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--green, #1db954)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
                   <span className="btn-label" style={{ color: 'var(--green, #1db954)', fontSize: '11px', fontWeight: 600 }}>TP</span>
                 </button>
                 <div className="pnl-toggle-btn" onClick={() => setIsTradeOnChartActive(false)} style={{ background: 'var(--pill-bg, #1a2432)', color: 'var(--text-primary)', cursor: 'pointer', marginLeft: '4px' }}>
