@@ -3,7 +3,7 @@
 .th-root {
     display: flex;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -55,7 +55,7 @@
 }
 
 .th-content {
-    padding: 20px; /* Restored normal padding */
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 20px)) 20px;
     background: #F8FAFF;
     flex: 1;
     min-height: 0;
