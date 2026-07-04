@@ -198,11 +198,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
 
     if (exitMode) {
-      bidPrice = rawBid * (1 - buyExitBuffer);
-      askPrice = rawAsk * (1 + sellExitBuffer);
+      bidPrice = rawBid * (1 - buyExitBuffer / 100);
+      askPrice = rawAsk * (1 + sellExitBuffer / 100);
     } else {
-      bidPrice = rawBid * (1 - sellEntryBuffer);
-      askPrice = rawAsk * (1 + buyEntryBuffer);
+      bidPrice = rawBid * (1 - sellEntryBuffer / 100);
+      askPrice = rawAsk * (1 + buyEntryBuffer / 100);
     }
   }
 
@@ -342,18 +342,17 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     }
   }, [item?.symbol, propProductType, exitMode, initialOrder]);
 
-  // Sync maximum position quantity when side is SELL on initial open only
+  // Sync maximum position quantity when opening against an existing position
   useEffect(() => {
     if (isOpen && item && !initialOrder) {
-      if (side === 'SELL' && exitMode) {
-        const targetPT = propProductType || productType;
-        const existingPos = activePositionsRef.current?.find(
-          p => p.symbol === item.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === 'BUY' && p.product_type === targetPT
-        );
-        if (existingPos && !userHasEditedQty.current) {
-          setOrderQty(existingPos.qty_open);
-          setQtyInput(String(existingPos.qty_open));
-        }
+      const targetPT = propProductType || productType;
+      const oppositeSide = side === 'SELL' ? 'BUY' : 'SELL';
+      const existingPos = activePositionsRef.current?.find(
+        p => p.symbol === item.symbol && ((p.status as string) === 'open' || (p.status as string) === 'active') && p.side === oppositeSide && p.product_type === targetPT
+      );
+      if (existingPos && !userHasEditedQty.current) {
+        setOrderQty(existingPos.qty_open);
+        setQtyInput(String(existingPos.qty_open));
       }
     }
     // Intentionally exclude activePositions — only run when sheet opens or side changes,
