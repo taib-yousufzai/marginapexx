@@ -8,7 +8,6 @@
     background: #F8FAFF;
     align-self: stretch;
     overflow: hidden;
-    overscroll-behavior-y: none;
 }
 
 .th-header {
@@ -74,8 +73,6 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     scrollbar-width: none;
     -ms-overflow-style: none;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
 }
 
 .th-list-container::-webkit-scrollbar {
