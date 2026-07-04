@@ -3,11 +3,14 @@
 .th-root {
     display: flex;
     flex-direction: column;
-    height: 100dvh;
-    max-height: 100dvh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     background: #F8FAFF;
-    align-self: stretch;
+    z-index: 100;
     overflow: hidden;
 }
 
@@ -19,9 +22,6 @@
     padding: 14px 20px;
     background: #FFFFFF;
     border-bottom: 1px solid #EEF2F8;
-    position: sticky;
-    top: 0;
-    z-index: 100;
     flex-shrink: 0;
 }
 
@@ -253,12 +253,6 @@ body.black .th-back-btn { background: #111111; border-color: #222; }
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  position: sticky;
-  top: 65px;
-  z-index: 90;
-  background: #F8FAFF;
-  padding: 4px;
-  margin: -4px;
 }
 
 .th-filter-chip {
@@ -315,7 +309,6 @@ body.black .th-back-btn { background: #111111; border-color: #222; }
 }
 
 /* Dark mode chips */
-body.dark .th-filters { background: #121212; }
 body.dark .th-filter-chip {
   background: #1E1E1E;
   border-color: #3A3A3A;
@@ -328,7 +321,6 @@ body.dark .th-filter-chip.withdrawal.active { background: #2A2A2A; color: #CBD5E
 body.dark .th-filter-chip.pending.active { background: rgba(217,119,6,0.12); color: #FBBF24; border-color: #FBBF24; }
 
 /* Black theme chips */
-body.black .th-filters { background: #000; }
 body.black .th-filter-chip { background: #0A0A0A; border-color: #1a1a1a; color: #555; }
 body.black .th-filter-chip:hover { background: #111; }
 body.black .th-filter-chip.active { background: #F5F5F5; color: #000; border-color: #F5F5F5; }
@@ -579,7 +571,6 @@ body.blue .th-back-btn { background: #131C27; border-color: #1C2A3A; }
 
 
 /* Black theme chips */
-body.blue .th-filters { background: #0B141E; }
 body.blue .th-filter-chip { background: #131C27; border-color: #131C27; color: #555; }
 
 body.blue .th-filter-chip:hover { background: #131C27; }
