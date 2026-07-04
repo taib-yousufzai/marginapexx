@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { calculateCarryBrokerage } from './carryBrokerage';
 
 export async function checkAndSquareOffPositionsForMargin(userId: string, adminClient: SupabaseClient) {
   try {
@@ -97,6 +98,19 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
         }
         exitPrice = Math.round(exitPrice * 100) / 100;
 
+        // Carry brokerage deferred to exit
+        const key = `${pos.settlement}_${pos.side}`;
+        const setting = userSettingsMap.get(key) || parentSettingsMap.get(key);
+        const carryBrokerage = calculateCarryBrokerage({
+          productType: pos.product_type,
+          qty: Number(pos.qty_open),
+          entryPrice: Number(pos.entry_price),
+          carryCommissionType: setting?.carry_commission_type,
+          carryCommissionValue: setting?.carry_commission_value != null ? Number(setting.carry_commission_value) : null,
+          commissionType: setting?.commission_type,
+          commissionValue: setting?.commission_value != null ? Number(setting.commission_value) : null,
+        });
+
         // Call RPC close_position
         const { error: rpcErr } = await adminClient.rpc('close_position', {
           p_position_id: pos.id,
@@ -104,7 +118,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
           p_ltp: baseLtp,
           p_exit_price: exitPrice,
           p_closed_by: 'SYSTEM',
-          p_brokerage: 0,
+          p_brokerage: carryBrokerage,
         });
 
         if (!rpcErr) {

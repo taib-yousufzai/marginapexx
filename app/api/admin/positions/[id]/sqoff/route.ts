@@ -17,6 +17,7 @@
  */
 
 import { requireAdmin } from '../../../_auth';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 
 export async function POST(
   request: Request,
@@ -50,7 +51,7 @@ export async function POST(
     // Step 5: Fetch exit buffer from segment_settings (user's own settings first)
     const { data: segSetting } = await adminClient
       .from('segment_settings')
-      .select('exit_buffer')
+      .select('exit_buffer, carry_commission_type, carry_commission_value, commission_type, commission_value')
       .eq('user_id', position.user_id)
       .eq('segment', position.settlement ?? '')
       .eq('side', position.side)
@@ -72,13 +73,24 @@ export async function POST(
     //   - Inserting PNL_CREDIT / PNL_DEBIT transaction (wallet updated via trigger)
     //   - Inserting exit order row
     //   - Writing to act_logs
+    // Carry brokerage deferred to exit
+    const carryBrokerage = calculateCarryBrokerage({
+      productType: position.product_type,
+      qty: Number(position.qty_open),
+      entryPrice: Number(position.entry_price),
+      carryCommissionType: segSetting?.carry_commission_type,
+      carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+      commissionType: segSetting?.commission_type,
+      commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+    });
+
     const { data: pnl, error: rpcErr } = await adminClient.rpc('close_position', {
       p_position_id: id,
       p_user_id: position.user_id,
       p_ltp: baseLtp,
       p_exit_price: exitPrice,
       p_closed_by: 'ADMIN',
-      p_brokerage: 0, // no brokerage on admin-forced close
+      p_brokerage: carryBrokerage,
     });
 
     if (rpcErr) {

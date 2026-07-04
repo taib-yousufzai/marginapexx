@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 
 /**
  * Fetch LTPs for a mixed batch of instruments (Kite + Binance crypto).
@@ -276,6 +277,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             continue;
           }
 
+          // --- CARRY BROKERAGE (deferred from entry to exit) ---
+          const carryBrokerage = calculateCarryBrokerage({
+            productType: pos.product_type,
+            qty: Number(pos.qty_open),
+            entryPrice: Number(pos.entry_price),
+            lots: Number(pos.lots || 0) || undefined,
+            carryCommissionType: segSetting?.carry_commission_type,
+            carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+            commissionType: segSetting?.commission_type,
+            commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+          });
+
           // Call RPC with retry logic for deadlocks
           let pnl: any;
           let rpcErr: any;
@@ -287,7 +300,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               p_ltp:         baseLtp,
               p_exit_price:  exitPrice,
               p_closed_by:   'USER',
-              p_brokerage:   0,
+              p_brokerage:   carryBrokerage,
             });
             
             pnl = result.data;
@@ -309,23 +322,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             console.error(`[POST /api/positions/close] RPC error for position ${pos.id}:`, rpcErr);
             results.push({ positionId: pos.id, success: false, error: `RPC Error: ${rpcErr.message || JSON.stringify(rpcErr)}` });
             continue;
-          }
-
-          // --- BROKERAGE CALCULATION & POST-PROCESSING ---
-          try {
-            const entryExposure = Number(pos.entry_price) * Number(pos.qty_open);
-            const exitExposure = exitPrice * Number(pos.qty_open);
-            const commType = pos.product_type === 'CARRY' 
-              ? (segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore')
-              : (segSetting?.commission_type || 'Per Crore');
-            const commVal = Number(pos.product_type === 'CARRY'
-              ? (segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0)
-              : (segSetting?.commission_value ?? 0));
-            
-            // Brokerage is collected 2x (round trip) on entry. Exit trades should not be charged again.
-            let brokerage = 0;
-          } catch (brokErr) {
-            console.error(`[POST /api/positions/close] Brokerage error for position ${pos.id}:`, brokErr);
           }
 
           results.push({ positionId: pos.id, success: true, pnl: Number(pnl), exit_price: exitPrice });

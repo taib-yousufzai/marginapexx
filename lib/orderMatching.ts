@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getAdminClient } from './adminClient.ts';
 import { telemetry } from './metrics.ts';
 import { checkAndExecuteAccountLiquidation } from './liquidationEngine.ts';
+import { calculateCarryBrokerage } from './carryBrokerage';
 import { isContractExpired } from './contractExpiry.ts';
 
 export interface Quote {
@@ -66,11 +67,11 @@ export class InMemoryMatchingEngine {
       const [segSettingsRes, scalperSegSettingsRes, profilesRes] = await Promise.all([
         admin
           .from('segment_settings')
-          .select('user_id, segment, side, entry_buffer, bid_buffer, exit_buffer')
+          .select('user_id, segment, side, entry_buffer, bid_buffer, exit_buffer, carry_commission_type, carry_commission_value, commission_type, commission_value')
           .in('user_id', userIds),
         admin
           .from('scalper_segment_settings')
-          .select('user_id, segment, side, entry_buffer, bid_buffer, exit_buffer')
+          .select('user_id, segment, side, entry_buffer, bid_buffer, exit_buffer, carry_commission_type, carry_commission_value, commission_type, commission_value')
           .in('user_id', userIds),
         admin
           .from('profiles')
@@ -100,7 +101,11 @@ export class InMemoryMatchingEngine {
           this.segmentSettings.set(key, {
             entry_buffer: Number(s.entry_buffer ?? 0.3),
             bid_buffer: Number(s.bid_buffer ?? 0.3),
-            exit_buffer: Number(s.exit_buffer ?? 0.17)
+            exit_buffer: Number(s.exit_buffer ?? 0.17),
+            carry_commission_type: s.carry_commission_type || null,
+            carry_commission_value: s.carry_commission_value != null ? Number(s.carry_commission_value) : null,
+            commission_type: s.commission_type || null,
+            commission_value: s.commission_value != null ? Number(s.commission_value) : null,
           });
         }
       }
@@ -113,7 +118,11 @@ export class InMemoryMatchingEngine {
           this.segmentSettings.set(key, {
             entry_buffer: Number(s.entry_buffer ?? 0.3),
             bid_buffer: Number(s.bid_buffer ?? 0.3),
-            exit_buffer: Number(s.exit_buffer ?? 0.17)
+            exit_buffer: Number(s.exit_buffer ?? 0.17),
+            carry_commission_type: s.carry_commission_type || null,
+            carry_commission_value: s.carry_commission_value != null ? Number(s.carry_commission_value) : null,
+            commission_type: s.commission_type || null,
+            commission_value: s.commission_value != null ? Number(s.commission_value) : null,
           });
         }
       }
@@ -179,7 +188,11 @@ export class InMemoryMatchingEngine {
             this.segmentSettings.set(key, {
               entry_buffer: Number(row.entry_buffer ?? 0.3),
               bid_buffer: Number(row.bid_buffer ?? 0.3),
-              exit_buffer: Number(row.exit_buffer ?? 0.17)
+              exit_buffer: Number(row.exit_buffer ?? 0.17),
+              carry_commission_type: row.carry_commission_type || null,
+              carry_commission_value: row.carry_commission_value != null ? Number(row.carry_commission_value) : null,
+              commission_type: row.commission_type || null,
+              commission_value: row.commission_value != null ? Number(row.commission_value) : null,
             });
           }
         }
@@ -194,7 +207,11 @@ export class InMemoryMatchingEngine {
             this.segmentSettings.set(key, {
               entry_buffer: Number(row.entry_buffer ?? 0.3),
               bid_buffer: Number(row.bid_buffer ?? 0.3),
-              exit_buffer: Number(row.exit_buffer ?? 0.17)
+              exit_buffer: Number(row.exit_buffer ?? 0.17),
+              carry_commission_type: row.carry_commission_type || null,
+              carry_commission_value: row.carry_commission_value != null ? Number(row.carry_commission_value) : null,
+              commission_type: row.commission_type || null,
+              commission_value: row.commission_value != null ? Number(row.commission_value) : null,
             });
           }
         }
@@ -635,13 +652,25 @@ export class InMemoryMatchingEngine {
 
         if (shouldClose) {
           let exitPrice = ltp;
-          const exitBuffer = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`)?.exit_buffer ?? 0.0017;
+          const segSettingForClose = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`);
+          const exitBuffer = segSettingForClose?.exit_buffer ?? 0.0017;
           if (pos.side === 'BUY') {
             exitPrice = ltp * (1 - exitBuffer);
           } else {
             exitPrice = ltp * (1 + exitBuffer);
           }
           exitPrice = Math.round(exitPrice * 10000) / 10000;
+
+          // Carry brokerage deferred to exit
+          const carryBrokerage = calculateCarryBrokerage({
+            productType: pos.product_type,
+            qty: Number(pos.qty_open),
+            entryPrice: Number(pos.entry_price),
+            carryCommissionType: segSettingForClose?.carry_commission_type,
+            carryCommissionValue: segSettingForClose?.carry_commission_value,
+            commissionType: segSettingForClose?.commission_type,
+            commissionValue: segSettingForClose?.commission_value,
+          });
 
           const dbStart = performance.now();
           const { error: closeRpcErr } = await admin.rpc('close_position', {
@@ -650,7 +679,7 @@ export class InMemoryMatchingEngine {
             p_ltp: ltp,
             p_exit_price: exitPrice,
             p_closed_by: closeReason,
-            p_brokerage: 0,
+            p_brokerage: carryBrokerage,
           });
 
           telemetry.recordDbCall('write', performance.now() - dbStart);

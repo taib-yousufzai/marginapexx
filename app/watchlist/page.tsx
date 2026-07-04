@@ -339,12 +339,12 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
 
   const handleLeftClick = () => {
     if (basketMode) return;
-    onDetail({ ...item, preferredView: priceView });
+    onDetail({ ...item, preferredView: priceView } as any);
   };
 
   const handleRightClick = () => {
     if (basketMode) return;
-    onDetail({ ...item, preferredView: priceView });
+    onDetail({ ...item, preferredView: priceView } as any);
   };
 
   return (

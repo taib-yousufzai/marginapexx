@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 import type { ClosePositionResponse } from '@/lib/types/order';
 
 /**
@@ -280,6 +281,20 @@ export async function POST(
     }, { status: 403 });
   }
 
+  // --- CARRY BROKERAGE (deferred from entry to exit) ---
+  // Intraday brokerage was already charged at entry time (×2).
+  // Carry brokerage is only charged at exit if the position is currently CARRY.
+  const carryBrokerage = calculateCarryBrokerage({
+    productType: pos.product_type,
+    qty: Number(pos.qty_open),
+    entryPrice: Number(pos.entry_price),
+    lots: Number(pos.lots || 0) || undefined,
+    carryCommissionType: segSetting?.carry_commission_type,
+    carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+    commissionType: segSetting?.commission_type,
+    commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+  });
+
   // Call the atomic RPC
   const { data: pnl, error: rpcErr } = await admin.rpc('close_position', {
     p_position_id: positionId,
@@ -287,29 +302,12 @@ export async function POST(
     p_ltp:         baseLtp,
     p_exit_price:  exitPrice,
     p_closed_by:   'USER',
-    p_brokerage:   0,
+    p_brokerage:   carryBrokerage,
   });
 
   if (rpcErr) {
     console.error('[POST /api/positions/[id]/close] RPC error:', rpcErr);
     return NextResponse.json({ error: 'Failed to close position. Please try again.' }, { status: 500 });
-  }
-
-  // --- BROKERAGE CALCULATION & POST-PROCESSING ---
-  try {
-    const entryExposure = Number(pos.entry_price) * Number(pos.qty_open);
-    const exitExposure = exitPrice * Number(pos.qty_open);
-    const commType = pos.product_type === 'CARRY' 
-      ? (segSetting?.carry_commission_type || segSetting?.commission_type || 'Per Crore')
-      : (segSetting?.commission_type || 'Per Crore');
-    const commVal = Number(pos.product_type === 'CARRY'
-      ? (segSetting?.carry_commission_value ?? segSetting?.commission_value ?? 0)
-      : (segSetting?.commission_value ?? 0));
-    
-    // Brokerage is collected 2x (round trip) on entry. Exit trades should not be charged again.
-    let brokerage = 0;
-  } catch (brokErr) {
-    console.error('[POST /api/positions/[id]/close] Brokerage error:', brokErr);
   }
 
   const response: ClosePositionResponse = {

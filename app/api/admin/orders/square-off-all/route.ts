@@ -12,6 +12,7 @@
  * No brokerage is charged on emergency admin square-offs.
  */
 import { requireAdmin } from '../../_auth';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 
 export async function POST(request: Request): Promise<Response> {
   try {
@@ -22,7 +23,7 @@ export async function POST(request: Request): Promise<Response> {
     // Fetch all open positions
     const { data: openPositions, error: fetchErr } = await adminClient
       .from('positions')
-      .select('id, user_id, symbol, side, settlement, qty_open, entry_price, ltp')
+      .select('id, user_id, symbol, side, settlement, qty_open, entry_price, ltp, product_type')
       .eq('status', 'open')
       .gt('qty_open', 0);
 
@@ -39,14 +40,20 @@ export async function POST(request: Request): Promise<Response> {
     const userIds = [...new Set(openPositions.map((p) => p.user_id))];
     const { data: settingsRows } = await adminClient
       .from('segment_settings')
-      .select('user_id, segment, side, exit_buffer')
+      .select('user_id, segment, side, exit_buffer, carry_commission_type, carry_commission_value, commission_type, commission_value')
       .in('user_id', userIds);
 
-    const exitBufferMap = new Map<string, number>();
+    const exitBufferMap = new Map<string, { exit_buffer: number, carry_commission_type?: string, carry_commission_value?: number, commission_type?: string, commission_value?: number }>();
     for (const row of settingsRows ?? []) {
       exitBufferMap.set(
         `${row.user_id}|${row.segment}|${row.side}`,
-        Number(row.exit_buffer ?? 0.0017),
+        {
+          exit_buffer: Number(row.exit_buffer ?? 0.0017),
+          carry_commission_type: row.carry_commission_type || undefined,
+          carry_commission_value: row.carry_commission_value != null ? Number(row.carry_commission_value) : undefined,
+          commission_type: row.commission_type || undefined,
+          commission_value: row.commission_value != null ? Number(row.commission_value) : undefined,
+        },
       );
     }
 
@@ -57,7 +64,8 @@ export async function POST(request: Request): Promise<Response> {
     for (const pos of openPositions) {
       const baseLtp = Number(pos.ltp ?? pos.entry_price);
       const bufKey = `${pos.user_id}|${pos.settlement}|${pos.side}`;
-      const exitBuffer = exitBufferMap.get(bufKey) ?? 0.0017;
+      const bufSettings = exitBufferMap.get(bufKey);
+      const exitBuffer = bufSettings?.exit_buffer ?? 0.0017;
 
       let exitPrice: number;
       if (pos.side === 'BUY') {
@@ -67,13 +75,24 @@ export async function POST(request: Request): Promise<Response> {
       }
       exitPrice = Math.round(exitPrice * 100) / 100;
 
+      // Carry brokerage deferred to exit
+      const carryBrokerage = calculateCarryBrokerage({
+        productType: pos.product_type,
+        qty: Number(pos.qty_open),
+        entryPrice: Number(pos.entry_price),
+        carryCommissionType: bufSettings?.carry_commission_type,
+        carryCommissionValue: bufSettings?.carry_commission_value,
+        commissionType: bufSettings?.commission_type,
+        commissionValue: bufSettings?.commission_value,
+      });
+
       const { error: rpcErr } = await adminClient.rpc('close_position', {
         p_position_id: pos.id,
         p_user_id: pos.user_id,
         p_ltp: baseLtp,
         p_exit_price: exitPrice,
         p_closed_by: 'ADMIN_SQOFF_ALL',
-        p_brokerage: 0,
+        p_brokerage: carryBrokerage,
       });
 
       if (rpcErr) {

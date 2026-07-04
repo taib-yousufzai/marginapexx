@@ -229,29 +229,47 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   };
   const targetPT = propProductType || productType;
   const existingPos = activePositions.find(p => p.symbol === item?.symbol && ((p.status as string) === 'open' || (p.status as string) === 'OPEN') && p.product_type === targetPT);
-  const hasBuyPos = existingPos?.side === 'BUY';
-  const hasSellPos = existingPos?.side === 'SELL';
+  const hasSellPos = existingPos?.side === 'SELL' || false;
+  const hasBuyPos = existingPos?.side === 'BUY' || false;
 
   const isExitTrade = exitMode || (activeSide === 'BUY' && hasSellPos) || (activeSide === 'SELL' && hasBuyPos);
   const multiplier = isExitTrade ? 1 : 2;
 
-  // Brokerage is cumulative: INTRADAY = intraday, CARRY = intraday + carry, GTT = intraday + carry + GTT
-  const intradayCharge = (segSetting ? computeCharge(
-    segSetting.commission_type || 'Per Crore',
-    segSetting.commission_value ?? 0
-  ) : 0) * multiplier;
+  const rawIntradayCharge = segSetting ? computeCharge(
+    segSetting.intraday_commission_type || segSetting.commission_type || 'Per Crore',
+    segSetting.intraday_commission_value ?? segSetting.commission_value ?? 0
+  ) : 0;
 
-  const carryCharge = ((productType === 'CARRY' || orderType === 'GTT') && segSetting ? computeCharge(
+  const rawCarryCharge = segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0) * multiplier;
+  ) : 0;
 
   const gttCharge = (orderType === 'GTT' && segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
   ) : 0) * multiplier;
 
-  const calculatedBrokerage = intradayCharge + carryCharge + gttCharge;
+  let displayIntraday = 0;
+  let displayCarry = 0;
+
+  if (targetPT === 'CARRY') {
+    if (isExitTrade) {
+      // At exit, user pays for both entry and exit legs of the CARRY position
+      displayCarry = rawCarryCharge * 2;
+    } else {
+      // At entry, carry charges are deferred to exit
+      displayCarry = 0;
+    }
+  } else {
+    if (isExitTrade) {
+      displayIntraday = rawIntradayCharge; // Already paid entry, now paying exit
+    } else {
+      displayIntraday = rawIntradayCharge * 2; // Preview of full round-trip
+    }
+  }
+
+  const calculatedBrokerage = displayIntraday + displayCarry + gttCharge;
 
   const intradayType = segSetting?.intraday_type ?? 'Multiplier';
   const holdingType = segSetting?.holding_type ?? 'Multiplier';
@@ -422,6 +440,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   ) : null;
 
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
+    showToast('Executing handlePlace');
     if (!item) return;
 
     // Parse qty fresh from the input string at submit time — avoids stale state issues
@@ -773,6 +792,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       }
     }
 
+    showToast('Calling placeOrder');
     const res = await placeOrder({
       symbol: item.symbol,
       kite_instrument: computedKiteSymbol || item.symbol,
@@ -793,6 +813,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       onSuccess?.();
       onClose();
     } else {
+      alert(`Order Failed:\n${res.error}`);
       showToast(`${res.error}`);
     }
   };
@@ -1368,14 +1389,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     <>
                       <div className="ts2-margin-row" style={{ paddingTop: '8px' }}>
                         <span className="ts2-ml">Intraday Brokerage</span>
-                        <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 700 }}>
-                          ₹ {intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span className="ts2-mv">
+                          ₹ {displayIntraday.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
-                        <span className="ts2-mv" style={(productType === 'CARRY' || orderType === 'GTT') ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                          ₹ {(productType === 'CARRY' || orderType === 'GTT' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        <span className="ts2-mv">
+                          {targetPT === 'CARRY' && !isExitTrade ? (
+                            <span style={{ opacity: 0.45, fontStyle: 'italic', fontSize: '0.72rem' }}>At Exit</span>
+                          ) : (
+                            `₹ ${displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                          )}
                         </span>
                       </div>
                       <div className="ts2-margin-row">

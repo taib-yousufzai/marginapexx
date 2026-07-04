@@ -349,15 +349,19 @@ export async function PATCH(
 
             const { data: settingsRows } = await adminClient
               .from(settingsTable)
-              .select('segment, side, exit_buffer, bid_buffer')
+              .select('segment, side, exit_buffer, bid_buffer, carry_commission_type, carry_commission_value, commission_type, commission_value')
               .eq('user_id', lookupId);
 
-            const exitBuffers = new Map<string, { exit_buffer: number, bid_buffer: number }>();
+            const exitBuffers = new Map<string, { exit_buffer: number, bid_buffer: number, carry_commission_type?: string | null, carry_commission_value?: number | null, commission_type?: string | null, commission_value?: number | null }>();
             for (const row of settingsRows ?? []) {
               const key = `${updatedPosition.user_id}|${row.segment}|${row.side}`;
               exitBuffers.set(key, { 
                 exit_buffer: Number(row.exit_buffer ?? 0.17),
-                bid_buffer: Number(row.bid_buffer ?? 0.3) 
+                bid_buffer: Number(row.bid_buffer ?? 0.3),
+                carry_commission_type: row.carry_commission_type || null,
+                carry_commission_value: row.carry_commission_value != null ? Number(row.carry_commission_value) : null,
+                commission_type: row.commission_type || null,
+                commission_value: row.commission_value != null ? Number(row.commission_value) : null,
               });
             }
 

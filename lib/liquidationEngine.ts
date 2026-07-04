@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { calculateCarryBrokerage } from './carryBrokerage';
 
 export interface LiquidationResult {
   liquidated: boolean;
@@ -55,7 +56,7 @@ export async function checkAndExecuteAccountLiquidation(
   autoSqoffPercent: number,
   positions: PositionForLiquidation[],
   totalFloatingPnl: number,
-  exitBuffers: Map<string, { exit_buffer: number, bid_buffer?: number }>,
+  exitBuffers: Map<string, { exit_buffer: number, bid_buffer?: number, carry_commission_type?: string | null, carry_commission_value?: number | null, commission_type?: string | null, commission_value?: number | null }>,
   admin: SupabaseClient,
 ): Promise<LiquidationResult> {
   if (autoSqoffPercent <= 0 || positions.length === 0) {
@@ -148,13 +149,25 @@ export async function checkAndExecuteAccountLiquidation(
     // must not silently leave positions open.
     let closed = false;
     for (let attempt = 1; attempt <= 2; attempt++) {
+      // Carry brokerage deferred to exit
+      const bufSettings = exitBuffers.get(exitBufferKey);
+      const carryBrokerage = calculateCarryBrokerage({
+        productType: pos.product_type,
+        qty: Number(pos.qty_open),
+        entryPrice: Number(pos.entry_price),
+        carryCommissionType: bufSettings?.carry_commission_type,
+        carryCommissionValue: bufSettings?.carry_commission_value,
+        commissionType: bufSettings?.commission_type,
+        commissionValue: bufSettings?.commission_value,
+      });
+
       const { error: closeErr } = await admin.rpc('close_position', {
         p_position_id: pos.id,
         p_user_id: userId,
         p_ltp: ltp,
         p_exit_price: exitPrice,
         p_closed_by: 'AUTO_LIQUIDATION',
-        p_brokerage: 0,
+        p_brokerage: carryBrokerage,
       });
 
       if (!closeErr) {

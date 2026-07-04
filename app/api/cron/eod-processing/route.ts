@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 mins
@@ -187,13 +188,24 @@ export async function GET(request: Request) {
              }
           }
           
+          // Carry brokerage deferred to exit
+          const carryBrokerage = calculateCarryBrokerage({
+            productType: pos.product_type,
+            qty: Number(pos.qty_open),
+            entryPrice: Number(pos.entry_price),
+            carryCommissionType: segSetting?.carry_commission_type,
+            carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+            commissionType: segSetting?.commission_type,
+            commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+          });
+          
           const { error: rpcErr } = await admin.rpc('close_position', {
             p_position_id: pos.id,
             p_user_id: userProfile.id,
             p_ltp: baseLtp,
             p_exit_price: exitPrice,
             p_closed_by: 'SYSTEM',
-            p_brokerage: 0,
+            p_brokerage: carryBrokerage,
           });
 
           if (!rpcErr) {
