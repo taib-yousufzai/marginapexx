@@ -288,14 +288,11 @@ export async function GET(request: NextRequest) {
         return applyTabFilter(qry);
       };
 
-      // We use .filter() here instead of .or() because the base query already has an .or() clause.
-      // Supabase JavaScript client `.or()` overrides previous `.or()` if we're not careful.
-      // To chain correctly in PostgREST, we can just use another `.or()` but it's safer to use `.not('expiry', 'lt', today)`
-      // Wait, `.or` overrides ONLY if we use the same foreign table. For the same table, multiple `.or` are ANDed together!
-      ({ data, error } = await buildBaseFallbackQuery().or(`expiry.gte.${today},expiry.is.null`));
+      // We use .gte() inside the query builder now to avoid overriding the .or() clause.
+      ({ data, error } = await buildBaseFallbackQuery(true));
 
       if (!error && (!data || data.length === 0)) {
-        ({ data, error } = await buildBaseFallbackQuery());
+        ({ data, error } = await buildBaseFallbackQuery(false));
       }
     }
 
