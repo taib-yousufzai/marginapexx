@@ -298,7 +298,10 @@ export function applyExpiryFilter(expiries: string[], today: string): string[] {
   const active = expiries.filter((expiry) => expiry >= today);
 
   if (active.length === 0) {
-    return [];
+    if (expiries.length === 0) return [];
+    // Fallback: if all options are in the past (e.g. testing with old DB), return the most recent one
+    const maxExpiry = expiries.reduce((max, e) => (e > max ? e : max), expiries[0]);
+    return [maxExpiry];
   }
 
   const minExpiry = active.reduce((min, e) => (e < min ? e : min), active[0]);

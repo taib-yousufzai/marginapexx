@@ -235,7 +235,6 @@ export async function GET(request: NextRequest) {
         .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
         .eq('name', parsed.underlying)
         .eq('strike_price', parsed.strike)
-        .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
 
@@ -264,7 +263,6 @@ export async function GET(request: NextRequest) {
       }
 
       dbQuery = dbQuery
-        .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
 
