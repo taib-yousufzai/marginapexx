@@ -1334,8 +1334,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     segSetting.gtt_commission_value ?? 10
   ) : 0) * multiplier;
 
+  const carryCharge = (segSetting ? computeCharge(
+    segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
+    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
+  ) : 0) * multiplier;
+
   const totalBrokerage = (
     intradayCharge +
+    (orderCarry === 'carry' ? carryCharge : 0) +
     (orderType === 'gtt' ? gttCharge : 0)
   );
   const marginPortion = calculateMarginPortion({
@@ -2160,8 +2166,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                          At Exit
+                        <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
+                          ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>

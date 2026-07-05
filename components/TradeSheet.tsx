@@ -261,8 +261,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       // At exit, user pays for both entry and exit legs of the CARRY position
       displayCarry = rawCarryCharge * 2;
     } else {
-      // At entry, carry charges are deferred to exit
-      displayCarry = 0;
+      // Preview of full round-trip
+      displayCarry = rawCarryCharge * 2;
     }
   } else {
     if (isExitTrade) {
@@ -1398,12 +1398,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
-                        <span className="ts2-mv">
-                          {targetPT === 'CARRY' && !isExitTrade ? (
-                            <span style={{ opacity: 0.45, fontStyle: 'italic', fontSize: '0.72rem' }}>At Exit</span>
-                          ) : (
-                            `₹ ${displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
-                          )}
+                        <span className="ts2-mv" style={targetPT === 'CARRY' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                          ₹ {displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
