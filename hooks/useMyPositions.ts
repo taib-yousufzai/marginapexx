@@ -274,9 +274,10 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         }
       }
 
-      // Retrieve segment-specific exit buffer (fallback to 0.0017)
+      // Retrieve segment-specific exit buffer (fallback to 0.17%)
+      // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
       const sideSetting = settingsMap.get(`${dbSeg}|${p.side}`);
-      const exitBuffer = sideSetting ? Number(sideSetting.exit_buffer ?? 0.0017) : 0.0017;
+      const exitBuffer = sideSetting ? Number(sideSetting.exit_buffer ?? 0.17) / 100 : 0.17 / 100;
 
       let unrealised = 0;
       if ((p.status === 'open' || p.status === 'active') && p.qty_open !== 0) {

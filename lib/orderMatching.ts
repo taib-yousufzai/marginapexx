@@ -552,8 +552,9 @@ export class InMemoryMatchingEngine {
             continue;
           }
 
-          const buyExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.0017;
-          const sellExitBuffer = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.0017;
+          // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
+          const buyExitBuffer = (this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.17) / 100;
+          const sellExitBuffer = (this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.17) / 100;
 
           // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
           const pnl = pos.side === 'BUY'
@@ -653,7 +654,8 @@ export class InMemoryMatchingEngine {
         if (shouldClose) {
           let exitPrice = ltp;
           const segSettingForClose = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`);
-          const exitBuffer = segSettingForClose?.exit_buffer ?? 0.0017;
+          // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
+          const exitBuffer = (segSettingForClose?.exit_buffer ?? 0.17) / 100;
           if (pos.side === 'BUY') {
             exitPrice = ltp * (1 - exitBuffer);
           } else {

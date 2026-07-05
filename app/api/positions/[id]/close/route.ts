@@ -249,7 +249,8 @@ export async function POST(
   ]);
 
   const { data: segSetting } = segSettingResult;
-  const exitBuffer = segSetting?.exit_buffer ?? 0.0017;
+  // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
+  const exitBuffer = (segSetting?.exit_buffer ?? 0.17) / 100;
   const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
   const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 

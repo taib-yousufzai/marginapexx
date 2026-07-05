@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
       exitBufferMap.set(
         `${row.user_id}|${row.segment}|${row.side}`,
         {
-          exit_buffer: Number(row.exit_buffer ?? 0.0017),
+          exit_buffer: Number(row.exit_buffer ?? 0.17),
           carry_commission_type: row.carry_commission_type || undefined,
           carry_commission_value: row.carry_commission_value != null ? Number(row.carry_commission_value) : undefined,
           commission_type: row.commission_type || undefined,
@@ -65,7 +65,8 @@ export async function POST(request: Request): Promise<Response> {
       const baseLtp = Number(pos.ltp ?? pos.entry_price);
       const bufKey = `${pos.user_id}|${pos.settlement}|${pos.side}`;
       const bufSettings = exitBufferMap.get(bufKey);
-      const exitBuffer = bufSettings?.exit_buffer ?? 0.0017;
+      // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
+      const exitBuffer = (bufSettings?.exit_buffer ?? 0.17) / 100;
 
       let exitPrice: number;
       if (pos.side === 'BUY') {

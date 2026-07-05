@@ -339,7 +339,12 @@ export default function HistoryPage() {
                           <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
                           {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
                             <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>
-                              <i className="fas fa-handshake"></i> Settled: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              <i className="fas fa-exclamation-triangle"></i> Deficit: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                          {currentTab === 'position' && item.closedBy && item.closedBy !== 'USER' && (
+                            <span className="detail-item" style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                              <i className="fas fa-robot"></i> {item.closedBy === 'AUTO_LIQUIDATION' ? 'Auto Sq-Off' : item.closedBy === 'ADMIN' ? 'Admin Sq-Off' : item.closedBy === 'AUTO_SL' ? 'Stop Loss' : item.closedBy === 'AUTO_TARGET' ? 'Target Hit' : item.closedBy}
                             </span>
                           )}
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}

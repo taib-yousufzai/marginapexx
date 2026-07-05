@@ -57,7 +57,7 @@ export async function POST(
       .eq('side', position.side)
       .maybeSingle();
 
-    const exitBuffer = Number(segSetting?.exit_buffer ?? 0.0017);
+    const exitBuffer = Number(segSetting?.exit_buffer ?? 0.17) / 100;
 
     // Step 6: Compute exit price (same formula as user-close and liquidation engine)
     let exitPrice: number;

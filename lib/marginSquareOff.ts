@@ -56,7 +56,8 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
 
       // Compute live floating PnL using exit-buffer-adjusted LTP (same formula as liquidationEngine)
       // This is more accurate than stale pos.pnl which is only updated on close.
-      const exitBuffer = setting?.exit_buffer ?? 0.0017;
+      // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
+      const exitBuffer = (setting?.exit_buffer ?? 0.17) / 100;
       const baseLtp = Number(pos.ltp || pos.entry_price);
       const entryPrice = Number(pos.entry_price || pos.avg_price);
       const qty = Number(pos.qty_open || 0);

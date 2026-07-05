@@ -189,20 +189,40 @@ export async function checkAndExecuteAccountLiquidation(
     if (closed) positionsClosed++;
   }
 
-  //  determine settlement amount
-  const { data: updatedProfile } = await admin
-    .from('profiles')
-    .select('balance, settlement_amount')
-    .eq('id', userId)
-    .single();
+  //  determine settlement amount — computed directly, not read-back from profile
+  // Sum up the actual PNL_DEBIT amounts for all positions we just closed.
+  // This avoids a race condition where profiles.settlement_amount may not yet
+  // reflect the trigger updates when we read it back immediately after closing.
+  let incrementalSettlement = 0;
+  if (positionsClosed > 0) {
+    const closedIds = positions.map(p => p.id);
+    const { data: pnlTxs } = await admin
+      .from('transactions')
+      .select('amount, type')
+      .in('ref_id', closedIds)
+      .eq('type', 'PNL_DEBIT')
+      .eq('status', 'APPROVED');
 
-  const totalProfileSettlement = Math.abs(Number(updatedProfile?.settlement_amount || 0));
-  // The incremental settlement caused strictly by this liquidation event
-  // previousBalance is the total balance before we started (could be negative if they already had debt)
-  const previousDebt = previousBalance < 0 ? Math.abs(previousBalance) : 0;
-  // If their previous balance was positive, but now they have a settlement amount, the incremental debt is the full settlement amount.
-  // If they already had debt, the incremental debt is the new debt minus the old debt.
-  const incrementalSettlement = Math.max(0, totalProfileSettlement - previousDebt);
+    const totalPnlDebit = (pnlTxs || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+    // Net loss from this liquidation = total PnL debits minus any PnL credits
+    const { data: pnlCredits } = await admin
+      .from('transactions')
+      .select('amount')
+      .in('ref_id', closedIds)
+      .eq('type', 'PNL_CREDIT')
+      .eq('status', 'APPROVED');
+
+    const totalPnlCredit = (pnlCredits || []).reduce((sum, tx) => sum + Number(tx.amount), 0);
+    const netLoss = totalPnlDebit - totalPnlCredit;
+
+    // Settlement is the amount by which balance went below zero.
+    // = max(0, netLoss - previousBalance)
+    // (If balance was ₹1000 and net loss is ₹1200, deficit = ₹200)
+    const previousPositiveBalance = Math.max(0, previousBalance);
+    incrementalSettlement = Math.max(0, Math.round((netLoss - previousPositiveBalance) * 100) / 100);
+  }
+
   const finalLoss = Math.abs(totalFloatingPnl);
 
   // Stamp settlement_amount onto every position that was just liquidated
