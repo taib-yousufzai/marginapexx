@@ -92,6 +92,7 @@ export async function GET(request: Request) {
         instrument_type: 'MAPPED_FUT',
         segment: frontMonth.segment,
         expiry: frontMonth.expiry,
+        lot_size: parseInt(frontMonth.lot_size || '0', 10),
       });
     }
 
@@ -139,6 +140,7 @@ export async function GET(request: Request) {
         strike_price: parseFloat(row.strike || row.strike_price || '0'),
         option_type: row.instrument_type,
         underlying_symbol: underlying,
+        lot_size: parseInt(row.lot_size || '0', 10),
       });
     }
 

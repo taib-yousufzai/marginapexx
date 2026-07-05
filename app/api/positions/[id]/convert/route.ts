@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { getLotSizeFromDB } from '@/lib/lotSize';
 
 export async function POST(
   request: NextRequest,
@@ -86,23 +87,9 @@ export async function POST(
     if (leverageType === '%') {
       newMarginRequired = exposure * (finalLeverage / 100);
     } else if (leverageType === 'Fixed') {
-      // For fixed leverage, it's based on lots. We fetch lot size if possible, or fallback to qty.
-      let symbolLotSize = 1;
-      const n = (pos.symbol || '').toUpperCase();
-      if (n.includes('BANKNIFTY') || n.includes('BANKEX')) symbolLotSize = 30;
-      else if (n.includes('FINNIFTY')) symbolLotSize = 60;
-      else if (n.includes('MIDCP') || n.includes('MIDCAP')) symbolLotSize = 120;
-      else if (n.includes('SENSEX')) symbolLotSize = 20;
-      else if (n.includes('NIFTY')) symbolLotSize = 65;
-      else if (n.includes('GOLDM')) symbolLotSize = 10;
-      else if (n.includes('GOLD')) symbolLotSize = 100;
-      else if (n.includes('SILVERM')) symbolLotSize = 5;
-      else if (n.includes('SILVER')) symbolLotSize = 30;
-      else if (n.includes('CRUDEOILM')) symbolLotSize = 10;
-      else if (n.includes('CRUDEOIL')) symbolLotSize = 100;
-      else if (n.includes('NATGASMINI')) symbolLotSize = 250;
-      else if (n.includes('NATURALGAS')) symbolLotSize = 1250;
-      
+      // Fetch lot size dynamically from DB, falling back to hardcoded values
+      const admin = getAdminClient();
+      const symbolLotSize = await getLotSizeFromDB(pos.symbol || '', admin);
       const lotsUsed = Number(pos.qty_open) / symbolLotSize;
       newMarginRequired = lotsUsed * finalLeverage;
     } else {

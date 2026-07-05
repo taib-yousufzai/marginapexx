@@ -17,6 +17,7 @@ import { requireAuth as apiRequireAuth } from '@/lib/api-middleware';
 import { getSharedKiteSession } from '@/lib/kiteSession';
 import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
+import { getLotSizeFallback } from '@/lib/lotSize';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -225,26 +226,7 @@ function mapSegmentToDbSegment(s: string): string {
 }
 
 function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: number }[]): number {
-  const n = symbol.toUpperCase();
-  if (dbSettings && Array.isArray(dbSettings)) {
-    const sortedSettings = [...dbSettings].sort((a, b) => b.symbol.length - a.symbol.length);
-    const match = sortedSettings.find(s => n.includes(s.symbol.toUpperCase()));
-    if (match) return Number(match.lot_size);
-  }
-  if (n.includes('BANKNIFTY') || n.includes('BANKEX')) return 15;
-  if (n.includes('FINNIFTY')) return 25;
-  if (n.includes('MIDCP') || n.includes('MIDCAP')) return 50;
-  if (n.includes('SENSEX')) return 10;
-  if (n.includes('NIFTY')) return 25;
-  if (n.includes('GOLDM')) return 10;
-  if (n.includes('GOLD')) return 100;
-  if (n.includes('SILVERM')) return 5;
-  if (n.includes('SILVER')) return 30;
-  if (n.includes('CRUDEOILM')) return 10;
-  if (n.includes('CRUDEOIL')) return 100;
-  if (n.includes('NATGASMINI')) return 250;
-  if (n.includes('NATURALGAS')) return 1250;
-  return 1;
+  return getLotSizeFallback(symbol, dbSettings);
 }
 
 function mapSymbolToSegment(symbol: string): string {
@@ -512,6 +494,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     positionsResult,
     quotesMap,
     scriptSettingsResult,
+    instrumentLotSizesResult,
     blockedScriptsResult,
     tradingHoursResult,
     pendingOrdersResult,
@@ -543,8 +526,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return fetchKiteQuotes(instrumentsToFetch);
     })(),
 
-    // Script settings for lot size lookup
+    // Script settings for lot size lookup (admin overrides)
     admin.from('script_settings').select('symbol, lot_size'),
+
+    // Instrument lot sizes from Zerodha CSV (more reliable than hardcoded fallbacks)
+    // Guarded: if lot_size column doesn't exist yet (migration pending), returns empty array
+    admin.from('instruments')
+      .select('name, lot_size')
+      .gt('lot_size', 0)
+      .limit(200)
+      .then(r => r.error?.code === '42703' ? { data: [], error: null } : r),
 
     // Blocked scripts for this user
     admin.from('user_blocked_scripts')
@@ -593,7 +584,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const openPositions = positionsResult?.data ?? [];
   const pendingOrders = pendingOrdersResult?.data ?? [];
-  const dbScriptSettings = (scriptSettingsResult?.data as any[]) ?? [];
+  // Merge script_settings overrides with instrument lot sizes from Zerodha CSV.
+  // script_settings takes priority (admin overrides); instruments table is the dynamic source.
+  const instrumentLotSizes = (instrumentLotSizesResult?.data as any[] ?? [])
+    .map((r: any) => ({ symbol: r.name, lot_size: Number(r.lot_size) }))
+    .filter((r: any) => r.symbol && r.lot_size > 0);
+  const dbScriptSettings = [
+    ...instrumentLotSizes,
+    ...(scriptSettingsResult?.data as any[] ?? []),  // script_settings wins on conflict (later entry wins in getLotSizeFallback)
+  ];
   const blockedScript = blockedScriptsResult?.data;
 
   // Resolve crypto symbol form: if exiting, we must match the exact form stored in the DB (e.g. 'BTC', 'BTCUSDT', or 'BTC/USDT')
