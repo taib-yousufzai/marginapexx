@@ -122,7 +122,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
           if (reqId && q) {
             const close = q.ohlc?.close || q.close || 0;
             finalMappedData[reqId] = {
-              timestamp: q.timestamp || new Date().toISOString(),
+              timestamp: q.last_trade_time || q.timestamp || new Date().toISOString(),
               last_price: q.last_price,
               volume: q.volume || 0,
               ohlc: {
@@ -158,7 +158,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
               const q = quote as any;
               const close = q.ohlc?.close || q.close || 0;
               finalMappedData[reqId] = {
-                timestamp: q.timestamp || new Date().toISOString(),
+                timestamp: q.last_trade_time || q.timestamp || new Date().toISOString(),
                 last_price: q.last_price,
                 volume: q.volume || 0,
                 ohlc: {
@@ -213,7 +213,7 @@ async function handleQuotesRequest(instruments: string[], request: NextRequest):
             const netChange = quote.net_change ?? (quote.last_price - closePrice);
 
             finalMappedData[reqId] = {
-              timestamp: quote.timestamp || new Date().toISOString(),
+              timestamp: quote.last_trade_time || quote.timestamp || new Date().toISOString(),
               last_price: quote.last_price,
               volume: quote.volume || 0,
               ohlc: {
