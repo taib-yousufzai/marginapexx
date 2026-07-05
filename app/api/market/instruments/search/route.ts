@@ -255,8 +255,15 @@ export async function GET(request: NextRequest) {
 
       let dbQuery = supabase
         .from('instruments')
-        .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-        .or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`)
+        .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol');
+        
+      if (/^\d+(\.\d+)?$/.test(q)) {
+        dbQuery = dbQuery.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%,strike_price.eq.${q}`);
+      } else {
+        dbQuery = dbQuery.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`);
+      }
+
+      dbQuery = dbQuery
         .or(`expiry.gte.${today},expiry.is.null`)
         .order('expiry', { ascending: true })
         .limit(150);
