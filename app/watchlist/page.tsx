@@ -45,6 +45,8 @@ declare global {
     __watchlistEventsAttached?: boolean;
     __isBasketModeActive?: boolean;
     __lastProcessedQuery?: string;
+    __searchPriceInterval?: ReturnType<typeof setInterval> | null;
+    __triggerSearch?: (query: string) => void;
   }
 }
 
@@ -2424,52 +2426,64 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         searchResultsList.innerHTML = html || '<div class="no-results">No results found in library</div>';
         searchResultsArea.style.display = 'flex';
 
-        // Fetch live prices for all results that have a kiteSymbol
-        var kiteIds = results.slice(0, 40)
-          .map(function(r) { return r.kiteSymbol || ''; })
-          .filter(function(id) { return id.includes(':') && !id.startsWith('CRYPTO:'); });
+        // Clear any existing price-refresh interval
+        if (window.__searchPriceInterval) { clearInterval(window.__searchPriceInterval); window.__searchPriceInterval = null; }
 
-        // For crypto items, pull prices from window.__binanceQuotes immediately
-        results.slice(0, 40).forEach(function(item) {
-          var isCrypto = (item.segment || '').toUpperCase().includes('CRYPTO') || (item.kiteSymbol || '').startsWith('CRYPTO:');
-          if (!isCrypto) return;
-          var binanceSym = item.symbol ? item.symbol.toUpperCase().replace(/USDT$/, '') + 'USDT' : '';
-          if (!binanceSym) return;
-          var binanceQuotes = window.__binanceQuotes || window.__kiteQuotes || {};
-          var quote = binanceQuotes[binanceSym];
-          var lp = quote && (quote.last_price || quote.lastPrice);
-          if (!lp) return;
-          var kiteId = item.kiteSymbol || item.symbol || '';
-          var el = searchResultsList && searchResultsList.querySelector('[data-kite-id="' + kiteId + '"]');
-          if (el) el.textContent = lp.toLocaleString('en-US', { maximumFractionDigits: 2 });
-        });
+        var activeResults = results.slice(0, 40);
 
-        if (kiteIds.length === 0) return;
+        function refreshSearchPrices() {
+          if (!searchResultsList || !document.contains(searchResultsList)) return;
 
-        fetch('/api/kite/quotes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ instruments: kiteIds })
-        })
-          .then(function(r) {
-            var ct = r.headers.get('content-type');
-            if (r.ok && ct && ct.indexOf('application/json') !== -1) {
-              return r.json();
+          // 1. Try window.__kiteQuotes for non-crypto, window.__binanceQuotes for crypto
+          var stillMissing = [];
+          activeResults.forEach(function(item) {
+            var kiteId = item.kiteSymbol || item.symbol || '';
+            var isCrypto = (item.segment || '').toUpperCase().includes('CRYPTO') || kiteId.startsWith('CRYPTO:');
+            var lp = 0;
+
+            if (isCrypto) {
+              var binanceSym = item.symbol ? item.symbol.toUpperCase().replace(/USDT$/, '') + 'USDT' : '';
+              var bq = (window.__binanceQuotes || window.__kiteQuotes || {})[binanceSym];
+              lp = bq && (bq.last_price || bq.lastPrice || 0);
+            } else {
+              var kq = (window.__kiteQuotes || {})[kiteId];
+              lp = kq && (kq.last_price || kq.lastPrice || 0);
             }
-            return { data: {} };
-          })
-          .then(function(json) {
-            var quoteData = (json && json.data) || {};
-            Object.entries(quoteData).forEach(function(entry) {
-              var kiteId = entry[0];
-              var quote = entry[1];
-              var lp = quote && quote.last_price;
-              if (!lp) return;
+
+            if (lp) {
               var el = searchResultsList.querySelector('[data-kite-id="' + kiteId + '"]');
               if (el) el.textContent = lp.toLocaleString('en-IN', { maximumFractionDigits: 2 });
-            });
-          })
-          .catch(function() {});
+            } else if (!isCrypto && kiteId.includes(':')) {
+              stillMissing.push(kiteId);
+            }
+          });
+
+          // 2. For any still missing — fetch from Kite REST via our API
+          if (stillMissing.length > 0) {
+            fetch('/api/kite/quotes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ instruments: stillMissing })
+            })
+              .then(function(r) { return r.ok ? r.json() : { data: {} }; })
+              .then(function(json) {
+                var quoteData = (json && json.data) || {};
+                Object.entries(quoteData).forEach(function(entry) {
+                  var kId = entry[0];
+                  var quote = entry[1];
+                  var lp = quote && quote.last_price;
+                  if (!lp) return;
+                  var el = searchResultsList && searchResultsList.querySelector('[data-kite-id="' + kId + '"]');
+                  if (el) el.textContent = lp.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+                });
+              })
+              .catch(function() {});
+          }
+        }
+
+        // Run immediately, then every 2 seconds while the panel is open
+        refreshSearchPrices();
+        window.__searchPriceInterval = setInterval(refreshSearchPrices, 2000);
       }
 
       function runSearch(query) {
@@ -2477,6 +2491,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         if (query.length === 0) {
           if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
           if (currentSearchController) { try { currentSearchController.abort(); } catch(e) {} }
+          if (window.__searchPriceInterval) { clearInterval(window.__searchPriceInterval); window.__searchPriceInterval = null; }
           var area = document.getElementById('searchResultsArea');
           if (area) area.style.display = 'none';
           var btn = document.getElementById('clearSearchBtn');
