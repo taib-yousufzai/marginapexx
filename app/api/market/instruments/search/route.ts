@@ -39,14 +39,14 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
     const optType = numOnlyMatch[2];
 
     let guessed = '';
-    // Nifty is around 21k - 27k
-    if (num >= 20000 && num <= 27000) guessed = 'NIFTY';
-    // BankNifty is around 40k - 60k
-    else if (num >= 40000 && num <= 60000) guessed = 'BANKNIFTY';
-    // Sensex is around 70k - 90k
-    else if (num >= 70000 && num <= 90000) guessed = 'SENSEX';
-    // Midcap Nifty is around 9k - 15k
-    else if (num >= 9000 && num <= 15000) guessed = 'MIDCPNIFTY';
+    // Nifty is around 21k - 29k
+    if (num >= 20000 && num <= 29000) guessed = 'NIFTY';
+    // BankNifty is around 40k - 62k
+    else if (num >= 40000 && num <= 62000) guessed = 'BANKNIFTY';
+    // Sensex is around 70k - 95k
+    else if (num >= 70000 && num <= 95000) guessed = 'SENSEX';
+    // Midcap Nifty is around 9k - 20k
+    else if (num >= 9000 && num <= 19999) guessed = 'MIDCPNIFTY';
 
     if (guessed) {
       return {
@@ -230,24 +230,28 @@ export async function GET(request: NextRequest) {
     if (parsed) {
       const today = new Date().toISOString().split('T')[0];
 
-      let buildBaseQuery = () => {
+      let buildBaseQuery = (includeExpiryFilter: boolean) => {
+        // Match by name OR underlying_symbol to handle different DB layouts
         let qry = supabase
           .from('instruments')
           .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-          .eq('name', parsed.underlying)
+          .or(`name.eq.${parsed.underlying},underlying_symbol.eq.${parsed.underlying}`)
           .eq('strike_price', parsed.strike)
           .order('expiry', { ascending: true })
           .limit(150);
         if (parsed.optionType) {
           qry = qry.eq('option_type', parsed.optionType);
         }
+        if (includeExpiryFilter) {
+          qry = (qry as any).or(`expiry.gte.${today},expiry.is.null`);
+        }
         return applyTabFilter(qry);
       };
 
-      ({ data, error } = await buildBaseQuery().or(`expiry.gte.${today},expiry.is.null`));
+      ({ data, error } = await buildBaseQuery(true));
       
       if (!error && (!data || data.length === 0)) {
-        ({ data, error } = await buildBaseQuery());
+        ({ data, error } = await buildBaseQuery(false));
       }
     }
 
@@ -269,14 +273,8 @@ export async function GET(request: NextRequest) {
           orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
         }
         if (/^\d+(\.\d+)?$/.test(q)) {
-          if (q.includes('.')) {
-            orParts.push(`strike_price.eq.${q}`);
-          } else {
-            const base = parseInt(q, 10);
-            for (let mult = 1; mult <= 10000; mult *= 10) {
-              orParts.push(`and(strike_price.gte.${base * mult},strike_price.lt.${(base + 1) * mult})`);
-            }
-          }
+          // Direct exact match on strike_price (handles e.g. "26500", "24050.5")
+          orParts.push(`strike_price.eq.${q}`);
         }
 
         qry = qry.or(orParts.join(','));
@@ -288,12 +286,7 @@ export async function GET(request: NextRequest) {
         return applyTabFilter(qry);
       };
 
-      // We use .gte() inside the query builder now to avoid overriding the .or() clause.
-      ({ data, error } = await buildBaseFallbackQuery(true));
-
-      if (!error && (!data || data.length === 0)) {
-        ({ data, error } = await buildBaseFallbackQuery(false));
-      }
+      ({ data, error } = await buildBaseFallbackQuery());
     }
 
     if (error) {
