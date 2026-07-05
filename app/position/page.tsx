@@ -1079,26 +1079,48 @@ export default function PositionPage() {
                       </div>
 
                       {/* Brokerage Breakdown for Closed Position */}
-                      <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '10px 12px', borderRadius: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage Paid</div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>₹ {selectedPos.brokerage?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}</div>
-                        </div>
-                        <div style={{ textAlign: 'right', display: 'flex', gap: '12px' }}>
-                          <div>
-                            <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Intraday</div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {((selectedPos.entry_intraday_brokerage || 0) + (selectedPos.exit_intraday_brokerage || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                      {(() => {
+                        const intraday = (selectedPos.entry_intraday_brokerage || 0) + (selectedPos.exit_intraday_brokerage || 0);
+                        const carry = (selectedPos.entry_carry_brokerage || 0) + (selectedPos.exit_carry_brokerage || 0);
+                        const gtt = (selectedPos.entry_gtt_brokerage || 0) + (selectedPos.exit_gtt_brokerage || 0);
+                        const total = intraday + carry + gtt;
+                        const brokerage = selectedPos.brokerage || 0;
+                        
+                        let dispIntraday = intraday;
+                        let dispCarry = carry;
+                        let dispGtt = gtt;
+
+                        if (total === 0 && brokerage > 0) {
+                          if (selectedPos.product_type === 'CARRY') {
+                            dispCarry = brokerage;
+                          } else {
+                            dispIntraday = brokerage;
+                          }
+                        }
+
+                        return (
+                          <div style={{ background: 'var(--card-alt-bg, #F8F9FB)', border: '1px solid var(--border-card, #E2E6EA)', padding: '10px 12px', borderRadius: '12px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Brokerage Paid</div>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary, #1A1A1A)' }}>₹ {brokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                            </div>
+                            <div style={{ textAlign: 'right', display: 'flex', gap: '12px' }}>
+                              <div>
+                                <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Intraday</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {dispIntraday.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Carry</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {dispCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>GTT</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {dispGtt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Carry</div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {((selectedPos.entry_carry_brokerage || 0) + (selectedPos.exit_carry_brokerage || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '0.58rem', fontWeight: 700, color: 'var(--text-secondary, #6B7280)', textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>GTT</div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary, #1A1A1A)' }}>₹ {((selectedPos.entry_gtt_brokerage || 0) + (selectedPos.exit_gtt_brokerage || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       {/* Trade Again button */}
                       <button
