@@ -186,7 +186,8 @@ export default function PositionPage() {
 
   // Conversion confirmation modal
   const [convertConfirmPos, setConvertConfirmPos] = useState<EnrichedPosition | null>(null);
-
+  const [convertPreviewBrokerage, setConvertPreviewBrokerage] = useState<number | null>(null);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   // ── Mobile Back Button Interception ──
   useMobileBack(isSheetOpen, () => {
     setIsSheetOpen(false);
@@ -293,11 +294,27 @@ export default function PositionPage() {
   };
 
   const toggleProductType = async (pos: EnrichedPosition) => {
-    if (pos.carry_brokerage_paid) {
-      // Direct conversion if already paid
-      await directConvert(pos);
+    // TEMPORARY: Always show popup (previously checked pos.carry_brokerage_paid)
+    setConvertConfirmPos(pos);
+    
+    // Fetch preview if converting to CARRY (to get the exact brokerage)
+    const newType = pos.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
+    if (newType === 'CARRY') {
+      setIsFetchingPreview(true);
+      setConvertPreviewBrokerage(null);
+      try {
+        const res = await fetch(`/api/positions/${pos.id}/convert-preview?product_type=${newType}`);
+        const data = await res.json();
+        if (data.carryBrokerage !== undefined) {
+          setConvertPreviewBrokerage(data.carryBrokerage);
+        }
+      } catch (err) {
+        console.error('Failed to fetch conversion preview', err);
+      } finally {
+        setIsFetchingPreview(false);
+      }
     } else {
-      setConvertConfirmPos(pos);
+      setConvertPreviewBrokerage(0);
     }
   };
 
@@ -1304,16 +1321,23 @@ export default function PositionPage() {
             {/* Convert Confirm Modal */}
             <div className={`pos-modal-overlay${convertConfirmPos ? ' open' : ''}`} onClick={() => setConvertConfirmPos(null)}>
               <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
-                <div className="pos-modal-icon" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
-                  <i className="fas fa-exchange-alt" />
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '16px', padding: '12px 16px', background: 'var(--card-alt-bg)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Brokerage</span>
+                  {isFetchingPreview ? (
+                    <i className="fas fa-circle-notch fa-spin" style={{ color: 'var(--text-muted)' }}></i>
+                  ) : (
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      ₹{convertPreviewBrokerage != null ? convertPreviewBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00'}
+                    </span>
+                  )}
                 </div>
+
                 <div className="pos-modal-title">Convert to {convertConfirmPos?.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY'}</div>
                 <div className="pos-modal-desc" style={{ color: 'var(--text-secondary)' }}>
                   {convertConfirmPos?.product_type === 'INTRADAY' ? (
                     <>
-                      When you convert an INTRADAY position to CARRY, you will have to pay CARRY brokerage.
-                      <br /><br />
-                      The CARRY brokerage will be deducted immediately.
+                      When you convert intraday to carry there's a deduction of carry brokerage, which would be deducted immediately.
                     </>
                   ) : (
                     <>
@@ -1332,6 +1356,7 @@ export default function PositionPage() {
                     className="pos-modal-btn confirm"
                     style={{ backgroundColor: '#D97706', color: '#fff', border: 'none' }}
                     onClick={confirmConvertProductType}
+                    disabled={isFetchingPreview}
                   >
                     Confirm Convert
                   </button>
