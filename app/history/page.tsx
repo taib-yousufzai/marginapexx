@@ -22,6 +22,15 @@ interface HistoryItem {
   exitDate?: string;
   status: string;
   brokerage: number;
+  intraday_brokerage?: number;
+  carry_brokerage?: number;
+  gtt_brokerage?: number;
+  entry_intraday_brokerage?: number;
+  entry_carry_brokerage?: number;
+  entry_gtt_brokerage?: number;
+  exit_intraday_brokerage?: number;
+  exit_carry_brokerage?: number;
+  exit_gtt_brokerage?: number;
   closedBy?: string;
   settlement?: string;
   settlementAmount?: number;
@@ -94,7 +103,10 @@ export default function HistoryPage() {
           pnl: 0,
           date: new Date(o.created_at).toLocaleString(),
           status: o.status,
-          brokerage: o.brokerage || 0
+          brokerage: o.brokerage || 0,
+          intraday_brokerage: o.intraday_brokerage || 0,
+          carry_brokerage: o.carry_brokerage || 0,
+          gtt_brokerage: o.gtt_brokerage || 0
         }));
 
         const formattedPos = (posData.positions || []).map((p: any) => {
@@ -122,6 +134,12 @@ export default function HistoryPage() {
             exitDate: p.updated_at ? new Date(p.updated_at).toLocaleDateString() : '---',
             status: 'closed',
             brokerage: p.brokerage || 0,
+            entry_intraday_brokerage: p.entry_intraday_brokerage || 0,
+            entry_carry_brokerage: p.entry_carry_brokerage || 0,
+            entry_gtt_brokerage: p.entry_gtt_brokerage || 0,
+            exit_intraday_brokerage: p.exit_intraday_brokerage || 0,
+            exit_carry_brokerage: p.exit_carry_brokerage || 0,
+            exit_gtt_brokerage: p.exit_gtt_brokerage || 0,
             closedBy: p.closed_by || 'USER',
             productType: p.product_type || 'INTRADAY',
             settlement,
@@ -336,7 +354,27 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div className="history-card-details" style={{ marginTop: '4px' }}>
-                          <span className="detail-item"><i className="fas fa-receipt"></i> ₹{item.brokerage}</span>
+                          <span className="detail-item tooltip" data-tooltip={currentTab === 'order' ? `Intraday: ₹${item.intraday_brokerage || 0}\nCarry: ₹${item.carry_brokerage || 0}\nGTT: ₹${item.gtt_brokerage || 0}` : `Intraday: ₹${(item.entry_intraday_brokerage || 0) + (item.exit_intraday_brokerage || 0)}\nCarry: ₹${(item.entry_carry_brokerage || 0) + (item.exit_carry_brokerage || 0)}\nGTT: ₹${(item.entry_gtt_brokerage || 0) + (item.exit_gtt_brokerage || 0)}`} style={{ position: 'relative' }}>
+                            <i className="fas fa-receipt"></i> ₹{item.brokerage}
+                            <style>{`
+                              .tooltip:hover::after {
+                                content: attr(data-tooltip);
+                                position: absolute;
+                                bottom: 100%;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                background: var(--bg-card);
+                                border: 1px solid var(--border-color);
+                                color: var(--text-primary);
+                                padding: 6px 10px;
+                                border-radius: 6px;
+                                font-size: 0.75rem;
+                                white-space: pre;
+                                z-index: 10;
+                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                              }
+                            `}</style>
+                          </span>
                           {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
                             <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>
                               <i className="fas fa-exclamation-triangle"></i> Deficit: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
