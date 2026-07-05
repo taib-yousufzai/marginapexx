@@ -1,19 +1,16 @@
 .pd-root {
     display: flex; flex-direction: column;
-    height: 100dvh !important; width: 100%;
-    background: #F8FAFF; align-self: stretch;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.pd-root::-webkit-scrollbar {
-    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    height: 100% !important; width: 100%;
+    background: #F8FAFF;
+    overflow: hidden !important; /* Root should NOT scroll */
+    z-index: 100;
 }
 
 .pd-header {
     background: #FFFFFF; border-bottom: 1px solid #EEF2F8;
-    position: sticky; top: 0; z-index: 10; flex-shrink: 0;
+    z-index: 10; flex-shrink: 0;
 }
 .pd-header-inner {
     display: flex; align-items: center; gap: 12px;
@@ -42,7 +39,12 @@
     flex: 1; padding: 20px;
     display: flex; flex-direction: column; gap: 20px;
     max-width: 900px; margin: 0 auto; width: 100%; box-sizing: border-box;
+    overflow-y: auto !important; /* Content area scrolls */
+    padding-bottom: 80px; /* Extra padding for mobile bottom nav */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+.pd-content::-webkit-scrollbar { display: none; }
 
 .pd-loading {
     display: flex; flex-direction: column; align-items: center;
