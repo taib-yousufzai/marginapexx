@@ -2507,8 +2507,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
 
           currentSearchController = new AbortController();
           var signal = currentSearchController.signal;
+          var timestamp = new Date().getTime();
 
-          fetch('/api/market/instruments/search?q=' + encodeURIComponent(query) + '&tab=' + encodeURIComponent(activeTab), {
+          fetch('/api/market/instruments/search?q=' + encodeURIComponent(query) + '&tab=' + encodeURIComponent(activeTab) + '&_t=' + timestamp, {
             headers: { 'Authorization': 'Bearer ' + (window.__accessToken || '') },
             signal: signal
           })
@@ -2523,7 +2524,7 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
               if (!liveResults || !Array.isArray(liveResults)) return;
               // Check query is still current (guard against tab changes mid-flight)
               var currentInput = document.getElementById('globalSearchInput');
-              if (!currentInput || currentInput.value.trim() !== query) return;
+              if (!currentInput || currentInput.value.trim() !== query.trim()) return;
               // Apply word-start filter to live results too
               var filteredLive = liveResults.filter(function(r) {
                 return wordStartMatch(r.name || '') || wordStartMatch(r.symbol || '');
