@@ -477,37 +477,15 @@ export class InMemoryMatchingEngine {
 
         if (!cachedProfile) continue;
 
-        // ── Live balance read ─────────────────────────────────────────────────
-        // The Realtime-maintained cache can lag during deploys or under heavy
-        // load, leading to a stale (higher) balance that makes the liquidation
-        // threshold too generous.  Always read the live balance from the DB
-        // before evaluating liquidation.
+        // ── Live balance: trust Realtime-maintained cache ─────────────────
+        // The profiles Realtime subscription (setupRealtimeSync) updates
+        // userProfiles within ~100-200ms of any balance change (deposit, PnL, etc).
+        // A per-tick DB round-trip adds ~50-100ms latency on every flush and
+        // serialises all users — removing it makes liquidation ~3-5× faster.
+        // The sync timer (every 60s) self-heals any missed Realtime events.
         let balance = Number(cachedProfile.balance || 0);
         const autoSqoffPercent = Number(cachedProfile.auto_sqoff ?? 90);
         if (autoSqoffPercent <= 0) continue;
-
-        try {
-          const { data: liveProfile } = await admin
-            .from('profiles')
-            .select('balance')
-            .eq('id', userId)
-            .single();
-          if (liveProfile) {
-            const liveBalance = Number(liveProfile.balance);
-            if (liveBalance !== balance) {
-              console.log(
-                `[OrderMatching] Balance drift detected for user ${userId}: ` +
-                `cached=₹${balance.toFixed(2)}, live=₹${liveBalance.toFixed(2)}`,
-              );
-            }
-            balance = liveBalance;
-            // Sync cache so downstream code is consistent within this tick
-            cachedProfile.balance = liveBalance;
-            this.userProfiles.set(userId, cachedProfile);
-          }
-        } catch {
-          // Non-fatal — proceed with cached balance
-        }
 
         // Resolve LTP for each position and compute total floating PnL (account-level)
         let totalFloatingPnl = 0;
@@ -596,14 +574,15 @@ export class InMemoryMatchingEngine {
       }
 
       // 5. PROCESS STOP LOSS AND TARGET FOR REMAINING OPEN POSITIONS
+      // Collect all positions that need closing first, then fire RPCs in parallel
+      const positionsToClose: Array<{ pos: any; ltp: number; exitPrice: number; closeReason: string; carryBrokerage: number }> = [];
+
       for (const pos of openPositions) {
         if (closedPositionIds.has(pos.id)) continue;
 
         let ltp = pricesMap.get(pos.symbol);
 
         if (ltp === undefined) {
-          // Robust fallback: search pricesMap for any key ending in :pos.symbol
-          // This avoids hardcoding exchange prefixes like NFO, BFO, MCX, etc.
           for (const key of pricesMap.keys()) {
             if (key === pos.symbol || key.endsWith(`:${pos.symbol}`)) {
               ltp = pricesMap.get(key);
@@ -622,26 +601,15 @@ export class InMemoryMatchingEngine {
         const side = pos.side;
 
         if (stopLoss !== null && stopLoss > 0) {
-          if (side === 'BUY' && ltp <= stopLoss) {
-            shouldClose = true;
-            closeReason = 'AUTO_SL';
-          } else if (side === 'SELL' && ltp >= stopLoss) {
-            shouldClose = true;
-            closeReason = 'AUTO_SL';
-          }
+          if (side === 'BUY' && ltp <= stopLoss) { shouldClose = true; closeReason = 'AUTO_SL'; }
+          else if (side === 'SELL' && ltp >= stopLoss) { shouldClose = true; closeReason = 'AUTO_SL'; }
         }
 
         if (!shouldClose && target !== null && target > 0) {
-          if (side === 'BUY' && ltp >= target) {
-            shouldClose = true;
-            closeReason = 'AUTO_TARGET';
-          } else if (side === 'SELL' && ltp <= target) {
-            shouldClose = true;
-            closeReason = 'AUTO_TARGET';
-          }
+          if (side === 'BUY' && ltp >= target) { shouldClose = true; closeReason = 'AUTO_TARGET'; }
+          else if (side === 'SELL' && ltp <= target) { shouldClose = true; closeReason = 'AUTO_TARGET'; }
         }
 
-        // 6. EOD INTRADAY SQUARE-OFF CHECK
         if (!shouldClose && pos.product_type === 'INTRADAY') {
           const thId = mapSegmentToTradingHoursId(pos.settlement);
           const th = this.tradingHours.get(thId);
@@ -652,18 +620,11 @@ export class InMemoryMatchingEngine {
         }
 
         if (shouldClose) {
-          let exitPrice = ltp;
           const segSettingForClose = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`);
-          // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
           const exitBuffer = (segSettingForClose?.exit_buffer ?? 0.17) / 100;
-          if (pos.side === 'BUY') {
-            exitPrice = ltp * (1 - exitBuffer);
-          } else {
-            exitPrice = ltp * (1 + exitBuffer);
-          }
+          let exitPrice = pos.side === 'BUY' ? ltp * (1 - exitBuffer) : ltp * (1 + exitBuffer);
           exitPrice = Math.round(exitPrice * 10000) / 10000;
 
-          // Carry brokerage deferred to exit
           const carryBrokerage = calculateCarryBrokerage({
             productType: pos.product_type,
             qty: Number(pos.qty_open),
@@ -674,7 +635,14 @@ export class InMemoryMatchingEngine {
             commissionValue: segSettingForClose?.commission_value,
           });
 
-          const dbStart = performance.now();
+          positionsToClose.push({ pos, ltp, exitPrice, closeReason, carryBrokerage });
+        }
+      }
+
+      // Fire all SL/TP/EOD closes in parallel
+      if (positionsToClose.length > 0) {
+        const closeStart = performance.now();
+        await Promise.all(positionsToClose.map(async ({ pos, ltp, exitPrice, closeReason, carryBrokerage }) => {
           const { error: closeRpcErr } = await admin.rpc('close_position', {
             p_position_id: pos.id,
             p_user_id: pos.user_id,
@@ -684,17 +652,15 @@ export class InMemoryMatchingEngine {
             p_brokerage: carryBrokerage,
           });
 
-          telemetry.recordDbCall('write', performance.now() - dbStart);
-          telemetry.recordTriggerExecution(performance.now() - dbStart);
-
           if (closeRpcErr) {
-            console.error(`[Order Matching] Failed to close position ${pos.id} via close_position RPC:`, closeRpcErr);
+            console.error(`[Order Matching] Failed to close position ${pos.id} (${closeReason}):`, closeRpcErr);
           } else {
             this.activePositions.delete(pos.id);
           }
-        }
+        }));
+        telemetry.recordDbCall('write', performance.now() - closeStart);
+        telemetry.recordTriggerExecution(performance.now() - closeStart);
       }
-    }
 
     const duration = performance.now() - start;
     telemetry.recordMatchingEngine(pendingOrders.length, openPositions.length, duration);

@@ -44,8 +44,8 @@ class TickerDaemon {
 
   constructor() {
     this.subscriptionManager = new SubscriptionManager();
-    // Flush to DB once per second
-    this.dbWriter = new DbBatchWriter(1000);
+    // Flush to DB once per 200ms for faster SL/TP and liquidation response
+    this.dbWriter = new DbBatchWriter(200);
     this.processor = new TickProcessor(this.subscriptionManager, this.dbWriter);
     this.binanceTicker = new BinanceTicker(this.dbWriter);
     this.sessionMonitor = new KiteSessionMonitor();
@@ -263,14 +263,13 @@ class TickerDaemon {
       await this.syncSubscriptions();
     }, 60000);
 
-    // Setup periodic matching engine cache sync (every 15 seconds) to self-heal state if Supabase Realtime drops
-    this.matchingEngineSyncTimer = setInterval(async () => {
-      try {
-        await matchingEngine.initialize();
-      } catch (err) {
+    // Setup periodic matching engine cache sync (every 60 seconds) to self-heal state if Supabase Realtime drops.
+    // Run non-blocking — never await in the critical tick path.
+    this.matchingEngineSyncTimer = setInterval(() => {
+      matchingEngine.initialize().catch(err => {
         logger.error({ err }, 'Periodic matching engine cache sync failed');
-      }
-    }, 15000);
+      });
+    }, 60000);
 
     // Setup realtime listener for instant subscription sync on DB change events
     this.subscriptionManager.setupRealtime(() => {

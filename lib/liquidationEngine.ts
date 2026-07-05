@@ -130,7 +130,8 @@ export async function checkAndExecuteAccountLiquidation(
   }
 
 
-  for (const pos of positions) {
+  // Close all positions in parallel — serial closes add ~100-200ms per position
+  const closeResults = await Promise.all(positions.map(async (pos) => {
     const ltp = Number(pos.ltp || pos.entry_price);
     const exitBufferKey = `${userId}|${pos.settlement}|${pos.side}`;
     const bufferSettings = exitBuffers.get(exitBufferKey);
@@ -145,22 +146,18 @@ export async function checkAndExecuteAccountLiquidation(
     }
     exitPrice = Math.round(exitPrice * 10000) / 10000;
 
-    // Attempt close with one retry — a transient DB error during liquidation
-    // must not silently leave positions open.
-    let closed = false;
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      // Carry brokerage deferred to exit
-      const bufSettings = exitBuffers.get(exitBufferKey);
-      const carryBrokerage = calculateCarryBrokerage({
-        productType: pos.product_type,
-        qty: Number(pos.qty_open),
-        entryPrice: Number(pos.entry_price),
-        carryCommissionType: bufSettings?.carry_commission_type,
-        carryCommissionValue: bufSettings?.carry_commission_value,
-        commissionType: bufSettings?.commission_type,
-        commissionValue: bufSettings?.commission_value,
-      });
+    const carryBrokerage = calculateCarryBrokerage({
+      productType: pos.product_type,
+      qty: Number(pos.qty_open),
+      entryPrice: Number(pos.entry_price),
+      carryCommissionType: bufferSettings?.carry_commission_type,
+      carryCommissionValue: bufferSettings?.carry_commission_value,
+      commissionType: bufferSettings?.commission_type,
+      commissionValue: bufferSettings?.commission_value,
+    });
 
+    // Attempt close with one retry
+    for (let attempt = 1; attempt <= 2; attempt++) {
       const { error: closeErr } = await admin.rpc('close_position', {
         p_position_id: pos.id,
         p_user_id: userId,
@@ -170,24 +167,19 @@ export async function checkAndExecuteAccountLiquidation(
         p_brokerage: carryBrokerage,
       });
 
-      if (!closeErr) {
-        closed = true;
-        break;
-      }
+      if (!closeErr) return true;
 
       if (attempt === 1) {
-        console.warn(
-          `[LiquidationEngine] close_position failed for ${pos.id} (attempt 1): ${closeErr.message}. Retrying in 200ms...`,
-        );
+        console.warn(`[LiquidationEngine] close_position failed for ${pos.id} (attempt 1): ${closeErr.message}. Retrying in 200ms...`);
         await new Promise(r => setTimeout(r, 200));
       } else {
-        console.error(
-          `[LiquidationEngine] close_position FAILED for ${pos.id} after 2 attempts: ${closeErr.message}. Position may remain open!`,
-        );
+        console.error(`[LiquidationEngine] close_position FAILED for ${pos.id} after 2 attempts: ${closeErr.message}. Position may remain open!`);
       }
     }
-    if (closed) positionsClosed++;
-  }
+    return false;
+  }));
+
+  positionsClosed = closeResults.filter(Boolean).length;
 
   //  determine settlement amount — computed directly, not read-back from profile
   // Sum up the actual PNL_DEBIT amounts for all positions we just closed.
