@@ -25,7 +25,7 @@ export default function RulesPage() {
                         </div>
                     </div>
 
-                    <section style={{ padding: '20px', paddingBottom: '40px', color: 'var(--text-color, #1e293b)' }}>
+                    <section className="sec-content" style={{ color: 'var(--text-color, #1e293b)' }}>
                         <p style={{ marginBottom: '20px', lineHeight: '1.5' }}>
                             <strong>Violation of any rule may result in trade cancellation, profit adjustment, account restrictions, temporary suspension, permanent termination, disqualification from competitions, forfeiture of rewards, or any other corrective action deemed appropriate by the Platform. The Platform's decision regarding violations shall be final and binding.</strong>
                         </p>

@@ -1,21 +1,19 @@
 .rp-root {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    height: 100% !important;
     width: 100%;
     background: var(--bg-body, #F0F2F5);
-    align-self: stretch;
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: 100dvh;
+    overflow: hidden !important;
+    z-index: 100;
 }
 
 /* ── Header ── */
 .rp-header {
     background: var(--container-bg, #FFFFFF);
     border-bottom: 1px solid var(--border-light, #E8ECF0);
-    position: sticky;
-    top: 0;
     z-index: 10;
     flex-shrink: 0;
 }
@@ -172,11 +170,15 @@ body.dark .rp-date-input { color-scheme: dark; }
 /* ── Content ── */
 .rp-content {
     flex: 1;
-    padding: 16px 16px 40px;
+    padding: 16px 16px 80px;
     display: flex; flex-direction: column; gap: 12px;
     max-width: 900px; margin: 0 auto;
     width: 100%; box-sizing: border-box;
+    overflow-y: auto !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+.rp-content::-webkit-scrollbar { display: none; }
 
 /* ── Loading / Error ── */
 .rp-loading {

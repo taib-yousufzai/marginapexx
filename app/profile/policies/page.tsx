@@ -25,7 +25,7 @@ export default function PoliciesPage() {
                         </div>
                     </div>
 
-                    <section style={{ padding: '20px', paddingBottom: '40px', color: 'var(--text-color, #1e293b)' }}>
+                    <section className="sec-content" style={{ color: 'var(--text-color, #1e293b)' }}>
                         <h2 style={{ fontSize: '18px', marginTop: '24px', marginBottom: '12px' }}>Risk Disclosure &amp; User Acknowledgment</h2>
                         <p style={{ marginBottom: '20px', lineHeight: '1.5' }}>
                             Please read these policies carefully. By accessing or using the Platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms of Use and Risk Disclosures.

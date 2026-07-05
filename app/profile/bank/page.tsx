@@ -368,7 +368,7 @@ export default function BankDetailsPage() {
     <div className="desktop-layout">
       <Sidebar />
       <main className="main-viewport">
-        <div className="app-container">
+        <div className="app-container bd-root">
           {/* Header */}
           <div className="bd-header">
             <Link href="/profile" className="bd-back-btn" suppressHydrationWarning>

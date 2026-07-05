@@ -1,12 +1,9 @@
 .refer-root {
-    height: 100dvh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.refer-root::-webkit-scrollbar {
-    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    height: 100% !important;
+    overflow: hidden !important;
+    z-index: 100;
 }
 
 .refer-header {
@@ -16,9 +13,8 @@
   background: white;
   border-bottom: 1px solid #f3f4f6;
   gap: 15px;
-  position: sticky;
-  top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 body.dark .refer-header,
@@ -49,12 +45,17 @@ body.black .back-btn {
 }
 
 .padding-bottom {
+  flex: 1;
   padding-bottom: 100px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.padding-bottom::-webkit-scrollbar { display: none; }
 
 .refer-balance-card {
   background: linear-gradient(135deg, #16a34a, #15803d);
