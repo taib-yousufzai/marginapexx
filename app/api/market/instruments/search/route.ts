@@ -269,7 +269,14 @@ export async function GET(request: NextRequest) {
           orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
         }
         if (/^\d+(\.\d+)?$/.test(q)) {
-          orParts.push(`strike_price.eq.${q}`);
+          if (q.includes('.')) {
+            orParts.push(`strike_price.eq.${q}`);
+          } else {
+            const base = parseInt(q, 10);
+            for (let mult = 1; mult <= 10000; mult *= 10) {
+              orParts.push(`and(strike_price.gte.${base * mult},strike_price.lt.${(base + 1) * mult})`);
+            }
+          }
         }
 
         qry = qry.or(orParts.join(','));
