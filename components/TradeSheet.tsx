@@ -238,20 +238,30 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const isExitTrade = exitMode || (activeSide === 'BUY' && hasSellPos) || (activeSide === 'SELL' && hasBuyPos);
   const multiplier = isExitTrade ? 1 : 2;
 
+  // Fallback defaults if segSetting is completely missing
+  const fallbackCommType = 'Per Crore';
+  let fallbackCommVal = 4500;
+  const sUpper2 = (settlement || '').toUpperCase();
+  if (sUpper2.includes('FOREX')) {
+    fallbackCommVal = 2000;
+  } else if (sUpper2.includes('CRYPTO')) {
+    fallbackCommVal = 1000;
+  }
+
   const rawIntradayCharge = segSetting ? computeCharge(
     segSetting.intraday_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.intraday_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0;
+  ) : computeCharge(fallbackCommType, fallbackCommVal);
 
   const rawCarryCharge = segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
     segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
-  ) : 0;
+  ) : computeCharge(fallbackCommType, fallbackCommVal);
 
   const gttCharge = (orderType === 'GTT' && segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
-  ) : 0) * multiplier;
+  ) : (orderType === 'GTT' ? computeCharge('Per Trade', 15) : 0)) * multiplier;
 
   let displayIntraday = 0;
   let displayCarry = 0;
