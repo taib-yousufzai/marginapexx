@@ -140,7 +140,7 @@ export default function HistoryPage() {
             exit_intraday_brokerage: p.exit_intraday_brokerage || 0,
             exit_carry_brokerage: p.exit_carry_brokerage || 0,
             exit_gtt_brokerage: p.exit_gtt_brokerage || 0,
-            closedBy: p.closed_by || 'USER',
+            closedBy: p.closed_by || 'USER_ACTION',
             productType: p.product_type || 'INTRADAY',
             settlement,
             settlementAmount: Math.abs(Number(p.settlement_amount || 0)),
@@ -401,9 +401,19 @@ export default function HistoryPage() {
                               <i className="fas fa-exclamation-triangle"></i> Deficit: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           )}
-                          {currentTab === 'position' && item.closedBy && item.closedBy !== 'USER' && (
+                          {currentTab === 'position' && item.closedBy && (
                             <span className="detail-item" style={{ color: '#64748b', fontSize: '0.7rem' }}>
-                              <i className="fas fa-robot"></i> {item.closedBy === 'AUTO_LIQUIDATION' ? 'Auto Sq-Off' : item.closedBy === 'ADMIN' ? 'Admin Sq-Off' : item.closedBy === 'AUTO_SL' ? 'Stop Loss' : item.closedBy === 'AUTO_TARGET' ? 'Target Hit' : item.closedBy}
+                              <i className={item.closedBy === 'USER_ACTION' ? 'fas fa-user' : 'fas fa-robot'}></i> {
+                                item.closedBy === 'AUTO_LIQUIDATION' ? 'Auto Sq-Off' : 
+                                item.closedBy === 'ADMIN_ACTION' ? 'Admin Sq-Off' : 
+                                item.closedBy === 'STOP_LOSS' ? 'Stop Loss' : 
+                                item.closedBy === 'TARGET_HIT' ? 'Target Hit' : 
+                                item.closedBy === 'SYSTEM_ACTION' ? 'System Sq-Off' : 
+                                item.closedBy === 'USER_ACTION' ? 'User Exit' : 
+                                item.closedBy === 'GTT_TARGET' ? 'GTT Target' :
+                                item.closedBy === 'GTT_STOP_LOSS' ? 'GTT SL' :
+                                item.closedBy
+                              }
                             </span>
                           )}
                           {currentTab === 'order' && <span className="detail-item"><i className="fas fa-hourglass-half"></i> {item.date.split(' ')[1] || ''}</span>}

@@ -72,6 +72,7 @@ export type PositionItem = {
   brokerage: number; sl: number | null; tp: number | null;
   entry_time: string; exit_time: string | null; settlement: string | null;
   status: 'open' | 'active' | 'closed';
+  closed_by?: string | null;
 };
 
 export type Position = {
@@ -94,6 +95,7 @@ export type Position = {
   exitTime?: string;
   settlement?: string;
   status: 'open' | 'active' | 'closed';
+  closed_by?: string;
 };
 
 export function formatDuration(seconds: number): string {
@@ -136,6 +138,7 @@ export function positionItemToPosition(item: PositionItem): Position {
     exitTime: item.exit_time ? new Date(item.exit_time).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : undefined,
     settlement: item.settlement ?? undefined,
     status: item.qty_open > 0 ? 'open' : 'closed',
+    closed_by: item.closed_by || undefined,
   };
 }
 export function downloadCSV(data: Record<string, unknown>[], filename: string) {

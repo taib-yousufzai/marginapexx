@@ -241,7 +241,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   // Fallback defaults if segSetting is completely missing
   const fallbackCommType = 'Per Crore';
   let fallbackCommVal = 4500;
-  const sUpper2 = (settlement || '').toUpperCase();
+  const sUpper2 = (item?.segment || '').toUpperCase();
   if (sUpper2.includes('FOREX')) {
     fallbackCommVal = 2000;
   } else if (sUpper2.includes('CRYPTO')) {

@@ -594,20 +594,20 @@ export class InMemoryMatchingEngine {
         if (ltp === undefined || ltp <= 0) continue;
 
         let shouldClose = false;
-        let closeReason = 'AUTO_SQOFF';
+        let closeReason = 'AUTO_LIQUIDATION';
 
         const stopLoss = pos.stop_loss ? Number(pos.stop_loss) : (pos.sl ? Number(pos.sl) : null);
         const target = pos.target ? Number(pos.target) : (pos.tp ? Number(pos.tp) : null);
         const side = pos.side;
 
         if (stopLoss !== null && stopLoss > 0) {
-          if (side === 'BUY' && ltp <= stopLoss) { shouldClose = true; closeReason = 'AUTO_SL'; }
-          else if (side === 'SELL' && ltp >= stopLoss) { shouldClose = true; closeReason = 'AUTO_SL'; }
+          if (side === 'BUY' && ltp <= stopLoss) { shouldClose = true; closeReason = 'STOP_LOSS'; }
+          else if (side === 'SELL' && ltp >= stopLoss) { shouldClose = true; closeReason = 'STOP_LOSS'; }
         }
 
         if (!shouldClose && target !== null && target > 0) {
-          if (side === 'BUY' && ltp >= target) { shouldClose = true; closeReason = 'AUTO_TARGET'; }
-          else if (side === 'SELL' && ltp <= target) { shouldClose = true; closeReason = 'AUTO_TARGET'; }
+          if (side === 'BUY' && ltp >= target) { shouldClose = true; closeReason = 'TARGET_HIT'; }
+          else if (side === 'SELL' && ltp <= target) { shouldClose = true; closeReason = 'TARGET_HIT'; }
         }
 
         if (!shouldClose && pos.product_type === 'INTRADAY') {
@@ -615,7 +615,7 @@ export class InMemoryMatchingEngine {
           const th = this.tradingHours.get(thId);
           if (th && th.end_time && istTimeStr >= th.end_time) {
             shouldClose = true;
-            closeReason = 'SYSTEM_EOD';
+            closeReason = 'SYSTEM_ACTION';
           }
         }
 

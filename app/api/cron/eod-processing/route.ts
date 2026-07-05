@@ -172,55 +172,7 @@ export async function GET(request: Request) {
             }
           }
         } else if (pos.product_type === 'INTRADAY' && userProfile.intraday_sq_off) {
-          // --- AUTO SQUARE OFF INTRADAY POSITIONS ---
-          const baseLtp = await fetchLtp(pos.symbol, pos.settlement) || pos.ltp || pos.entry_price;
-          
-          let exitPrice = baseLtp;
-          if (segSetting) {
-             const exitBuffer = (segSetting.exit_buffer ?? 0) / 100;
-             const bidBuffer = (segSetting.bid_buffer ?? 0) / 100;
-             if (pos.side === 'BUY') {
-               // Selling to close
-               exitPrice = baseLtp * (1 - bidBuffer);
-             } else {
-               // Buying to close
-               exitPrice = baseLtp * (1 + exitBuffer);
-             }
-          }
-          
-          // Carry brokerage deferred to exit
-          const carryBrokerage = calculateCarryBrokerage({
-            productType: pos.product_type,
-            qty: Number(pos.qty_open),
-            entryPrice: Number(pos.entry_price),
-            carryCommissionType: segSetting?.carry_commission_type,
-            carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
-            commissionType: segSetting?.commission_type,
-            commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
-          });
-          
-          const { error: rpcErr } = await admin.rpc('close_position', {
-            p_position_id: pos.id,
-            p_user_id: userProfile.id,
-            p_ltp: baseLtp,
-            p_exit_price: exitPrice,
-            p_closed_by: 'SYSTEM',
-            p_brokerage: carryBrokerage,
-          });
-
-          if (!rpcErr) {
-            await admin.from('notifications').insert({
-              user_id: userProfile.id,
-              type: 'GENERAL',
-              title: `[EOD Square Off] ${pos.symbol}`,
-              message: `Your Intraday position for ${pos.symbol} was automatically squared off at End of Day.`,
-              read: false,
-              created_at: new Date().toISOString()
-            });
-            results.intradayClosed++;
-          } else {
-            results.errors.push(`Failed to auto sq-off pos ${pos.id}`);
-          }
+          // Intraday auto-square-off has been moved to /api/cron/auto-square-off
         }
       } catch (e: any) {
         results.errors.push(`Error processing pos ${pos.id}: ${e.message}`);

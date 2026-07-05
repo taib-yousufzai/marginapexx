@@ -30,7 +30,7 @@ const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', '
  * into { underlying, strike, optionType }
  */
 function parseOptionQuery(q: string): { underlying: string; strike: number; optionType?: string } | null {
-  const upper = q.toUpperCase().trim();
+  const upper = q.toUpperCase().replace(/\s+/g, ' ').trim();
 
   // Smart guesser for pure numeric queries like "23600" or "48500 ce"
   const numOnlyMatch = upper.match(/^(\d+(?:\.\d+)?)\s*(CE|PE)?$/);
@@ -203,7 +203,9 @@ async function fetchLivePrices(kiteIds: string[], request: NextRequest): Promise
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const q = (searchParams.get('q') || '').trim();
+    const rawQ = searchParams.get('q') || '';
+    // Normalize: remove multiple spaces, trim
+    const q = rawQ.replace(/\s+/g, ' ').trim();
     const tab = searchParams.get('tab') || 'All';
 
     if (q.length < 1) {
@@ -227,56 +229,32 @@ export async function GET(request: NextRequest) {
       return query;
     };
 
+    const today = new Date().toISOString().split('T')[0];
+
     if (parsed) {
-      const today = new Date().toISOString().split('T')[0];
+      // Try fetching active expiries directly matching the underlying and strike
+      let qry = supabase
+        .from('instruments')
+        .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
+        .eq('strike_price', parsed.strike)
+        .gte('expiry', today)
+        .order('expiry', { ascending: true })
+        .limit(150);
 
-      // First try: active expiries only
-      {
-        let qry = supabase
-          .from('instruments')
-          .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-          .eq('strike_price', parsed.strike)
-          .gte('expiry', today)
-          .order('expiry', { ascending: true })
-          .limit(150);
+      if (parsed.optionType) qry = qry.eq('option_type', parsed.optionType);
 
-        if (parsed.optionType) qry = qry.eq('option_type', parsed.optionType);
+      let q1 = applyTabFilter(qry.eq('name', parsed.underlying));
+      ({ data, error } = await q1);
 
-        // Filter by underlying — try name first, then underlying_symbol via a second query if needed
-        let q1 = applyTabFilter(qry.eq('name', parsed.underlying));
-        ({ data, error } = await q1);
-
-        if (!error && (!data || data.length === 0)) {
-          let q2 = applyTabFilter(qry.eq('underlying_symbol', parsed.underlying));
-          ({ data, error } = await q2);
-        }
-      }
-
-      // Second try: all expiries (in case strike exists only in expired contracts)
       if (!error && (!data || data.length === 0)) {
-        let qry = supabase
-          .from('instruments')
-          .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-          .eq('strike_price', parsed.strike)
-          .order('expiry', { ascending: true })
-          .limit(150);
-
-        if (parsed.optionType) qry = qry.eq('option_type', parsed.optionType);
-
-        let q1 = applyTabFilter(qry.eq('name', parsed.underlying));
-        ({ data, error } = await q1);
-
-        if (!error && (!data || data.length === 0)) {
-          let q2 = applyTabFilter(qry.eq('underlying_symbol', parsed.underlying));
-          ({ data, error } = await q2);
-        }
+        let q2 = applyTabFilter(qry.eq('underlying_symbol', parsed.underlying));
+        ({ data, error } = await q2);
       }
     }
 
-    // Fallback: tradingsymbol ilike (spaces removed)
+    // Fallback: tradingsymbol ilike (spaces removed) or numeric strike
     if (!data || data.length === 0) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
-      const today = new Date().toISOString().split('T')[0];
 
       let buildBaseFallbackQuery = () => {
         let qry = supabase
@@ -290,16 +268,19 @@ export async function GET(request: NextRequest) {
           orParts.push(`strike_price.eq.${q}`);
         } else {
           // Text query — search by name and tradingsymbol
+          // Add ilike conditions that approximate exact, starts with, and contains
           orParts.push(`name.ilike.${q}%`);
           orParts.push(`name.ilike.% ${q}%`);
           orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
         }
 
         qry = qry.or(orParts.join(','));
+        // CRITICAL FIX: Only fetch live options to not exhaust the limit on dead contracts
+        qry = qry.or(`expiry.gte.${today},expiry.is.null`);
 
         qry = qry
           .order('expiry', { ascending: true })
-          .limit(150);
+          .limit(300); // Increased limit to ensure we get enough candidates for proper sorting
 
         return applyTabFilter(qry);
       };
@@ -315,11 +296,8 @@ export async function GET(request: NextRequest) {
     let rows: any[] = data ?? [];
 
     // Filter rows to ensure they actually match the search terms in a meaningful way.
-    // This avoids matching "25" to all 2025 options because of "25" in their internal Zerodha tradingsymbol (e.g. NIFTY2532822300PE).
     let searchTerms = q.toLowerCase().split(/\s+/);
     if (parsed) {
-      // Re-construct the search terms based on the parse to ensure correct filtering
-      // e.g. "banknifty55400ce" -> ["banknifty", "55400", "ce"]
       const newQ = `${parsed.underlying} ${parsed.strike} ${parsed.optionType || ''}`.toLowerCase().trim();
       searchTerms = newQ.split(/\s+/);
     }
@@ -344,8 +322,7 @@ export async function GET(request: NextRequest) {
       const name = (r.name || '').toLowerCase();
 
       return searchTerms.every(term => {
-        // If the term is numeric and it's an option instrument with a strike price, it should match the strike price
-        if (/^\d+$/.test(term) && r.strike_price !== null) {
+        if (/^\d+(\.\d+)?$/.test(term) && r.strike_price !== null) {
           return String(r.strike_price).startsWith(term);
         }
         return wordStartMatch(dispName, term) || wordStartMatch(name, term) || wordStartMatch(symbol, term);
@@ -353,9 +330,6 @@ export async function GET(request: NextRequest) {
     });
 
     // Apply Filter Engine rules server-side before returning results
-    const today = new Date().toISOString().split('T')[0];
-
-    // Split by segment type, filter, then reassemble
     const forexRows = rows.filter((r: any) => r.exchange === 'CDS' || r.segment === 'CDS');
     const cryptoRows = rows.filter((r: any) => r.segment === 'CRYPTO');
     const optionRows = rows.filter((r: any) =>
@@ -369,14 +343,10 @@ export async function GET(request: NextRequest) {
       r.option_type !== 'CE' && r.option_type !== 'PE'
     );
 
-    // 1. Forex: keep only futures (exclude CE/PE)
     const filteredForex = applyForexFilter(forexRows as Instrument[]);
-
-    // 2. Crypto: keep only whitelist (BTC, ETH, DOGE)
     const filteredCrypto = applyCryptoWhitelist(cryptoRows as Instrument[]);
-
-    // 3. Options: keep only current (nearest active) expiry
     let filteredOptions = optionRows as Instrument[];
+    
     if (filteredOptions.length > 0) {
       const expiries = [...new Set(filteredOptions.map((r: any) => r.expiry).filter(Boolean))] as string[];
       const activeExpiries = applyExpiryFilter(expiries, today);
@@ -386,26 +356,77 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Prioritize EQ and exact matches in otherRows
-    otherRows.sort((a: any, b: any) => {
-      const qLower = q.toLowerCase();
-      const aSym = (a.tradingsymbol || '').toLowerCase();
-      const bSym = (b.tradingsymbol || '').toLowerCase();
-      if (aSym === qLower && bSym !== qLower) return -1;
-      if (bSym === qLower && aSym !== qLower) return 1;
+    // Combine all valid rows
+    let validRows = [...otherRows, ...filteredCrypto, ...filteredForex, ...filteredOptions];
+
+    // Remove duplicates based on exchange:tradingsymbol
+    const uniqueMap = new Map();
+    for (const r of validRows) {
+      const key = `${r.exchange}:${r.tradingsymbol}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, r);
+      }
+    }
+    validRows = Array.from(uniqueMap.values());
+
+    // Ranking algorithm
+    const qLower = q.toLowerCase();
+    
+    function scoreInstrument(r: any): number {
+      const sym = (r.tradingsymbol || '').toLowerCase();
+      const name = (r.name || '').toLowerCase();
+      const dispName = buildDisplayName(
+        r.tradingsymbol,
+        r.underlying_symbol || r.name || r.tradingsymbol,
+        r.strike_price ?? null,
+        r.option_type ?? null,
+        null
+      ).toLowerCase();
+
+      // Rank 1: Exact match
+      if (sym === qLower || name === qLower || dispName === qLower) return 1;
+      
+      // Rank 2: Prefix match
+      if (sym.startsWith(qLower) || name.startsWith(qLower) || dispName.startsWith(qLower)) return 2;
+      
+      // Rank 3: Word Start match (e.g., "50" in "NIFTY 50")
+      if (wordStartMatch(name, qLower) || wordStartMatch(dispName, qLower) || wordStartMatch(sym, qLower)) return 3;
+
+      // Rank 4: Contains
+      if (sym.includes(qLower) || name.includes(qLower) || dispName.includes(qLower)) return 4;
+      
+      return 5; // Fallback
+    }
+
+    validRows.sort((a: any, b: any) => {
+      const scoreA = scoreInstrument(a);
+      const scoreB = scoreInstrument(b);
+      
+      // Sort by score
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      
+      // Tie-breaker 1: Prefer Equity
       if (a.instrument_type === 'EQ' && b.instrument_type !== 'EQ') return -1;
       if (b.instrument_type === 'EQ' && a.instrument_type !== 'EQ') return 1;
-      return 0;
+      
+      // Tie-breaker 2: Nearest expiry for derivatives
+      if (a.expiry && b.expiry && a.expiry !== b.expiry) {
+        return a.expiry.localeCompare(b.expiry);
+      }
+      
+      // Tie-breaker 3: Alphabetical by tradingsymbol
+      return (a.tradingsymbol || '').localeCompare(b.tradingsymbol || '');
     });
 
-    rows = [...otherRows, ...filteredCrypto, ...filteredForex, ...filteredOptions];
+    // We only need the top 50 matches for the UI to stay performant
+    validRows = validRows.slice(0, 50);
 
     // Fetch live prices for all results
-    const kiteIds = rows.map((inst: any) => `${inst.exchange}:${inst.tradingsymbol}`);
+    const kiteIds = validRows.map((inst: any) => `${inst.exchange}:${inst.tradingsymbol}`);
     const priceMap = await fetchLivePrices(kiteIds, request);
 
     // Map to watchlist-compatible shape
-    const results = rows.map((inst: any) => {
+    const results = validRows.map((inst: any) => {
       let segmentLabel = '';
       const exch = inst.exchange === 'NFO' ? 'NSE' : inst.exchange === 'BFO' ? 'BSE' : inst.exchange;
       const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(inst.name);
@@ -450,23 +471,6 @@ export async function GET(request: NextRequest) {
         close: 0,
       };
     });
-
-    // Helper function to map UI display segment to DB key segment
-    function mapSegmentToDbSegment(s: string): string {
-      if (!s) return '';
-      const trimmed = s.trim();
-      if (['NSE - Futures', 'BSE - Futures', 'NFO - Futures', 'BFO - Futures'].includes(trimmed)) return 'INDEX-FUT';
-      if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
-      if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
-      if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
-      if (trimmed === 'MCX - Futures') return 'MCX-FUT';
-      if (trimmed === 'MCX - Options') return 'MCX-OPT';
-      if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
-      if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
-      if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
-      if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
-      return trimmed;
-    }
 
     return NextResponse.json(results);
   } catch (err: any) {

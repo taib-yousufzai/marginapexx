@@ -781,11 +781,18 @@ export default function PositionPage() {
                               <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                               <span>Qty: <strong>{pos.qty_total}</strong></span>
                             </div>
-                            {pos.product_type && (
+                            {(pos.product_type || pos.closed_by) && (
                               <div style={{ marginTop: '5px' }}>
-                                <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`}>
-                                  {pos.product_type}
-                                </span>
+                                {pos.product_type && (
+                                  <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`}>
+                                    {pos.product_type}
+                                  </span>
+                                )}
+                                {pos.closed_by && (
+                                  <span className="pos-product-badge" style={{ marginLeft: pos.product_type ? '5px' : '0', background: 'var(--bg-secondary, #F1F5F9)', color: 'var(--text-secondary, #64748B)', border: '1px solid var(--border-card, #E2E8F0)' }}>
+                                    {pos.closed_by.replace(/_/g, ' ')}
+                                  </span>
+                                )}
                               </div>
                             )}
                           </div>

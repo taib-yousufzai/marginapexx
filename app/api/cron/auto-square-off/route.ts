@@ -1,0 +1,237 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { getSharedKiteSession } from '@/lib/kiteSession';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const admin = createClient(supabaseUrl, supabaseKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+// Helper for fetching LTP
+async function fetchLtp(symbol: string, settlement: string): Promise<number | null> {
+  const cleanSym = symbol.replace('/', '').toUpperCase();
+  const isCrypto = (settlement || '').toUpperCase().includes('CRYPTO') || cleanSym.endsWith('USDT');
+
+  if (isCrypto) {
+    try {
+      const sym = cleanSym.endsWith('USDT') ? cleanSym : `${cleanSym}USDT`;
+      const tickerUrl = process.env.NEXT_PUBLIC_TICKER_URL || (process.env.NODE_ENV === 'production' ? 'https://marginapexx-production.up.railway.app' : 'http://localhost:8080');
+      const params = new URLSearchParams({ symbols: sym });
+      const resTicker = await fetch(`${tickerUrl}/quotes?${params}`, { cache: 'no-store' });
+      if (resTicker.ok) {
+        const json = await resTicker.json();
+        if (json.success && json.data && json.data[sym]) {
+          return Number(json.data[sym].last_price);
+        }
+      }
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        return data.price ? parseFloat(data.price) : null;
+      }
+    } catch { return null; }
+  } else {
+    try {
+      let fullSymbol = symbol;
+      if (!symbol.includes(':')) {
+        let exchange = 'NSE';
+        const s = (settlement || '').toUpperCase();
+        if (s.includes('MCX')) exchange = 'MCX';
+        else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
+        else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+        else if (s.includes('BSE')) exchange = 'BSE';
+        fullSymbol = `${exchange}:${symbol}`;
+      }
+      const apiKey = process.env.KITE_API_KEY;
+      if (!apiKey) return null;
+      const session = await getSharedKiteSession();
+      if (!session) return null;
+
+      const params = new URLSearchParams({ i: fullSymbol });
+      const res = await fetch(`https://api.kite.trade/quote?${params}`, {
+        headers: {
+          'X-Kite-Version': '3',
+          Authorization: `token ${apiKey}:${session.accessToken}`,
+        },
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json() as any;
+        const quote = data.data?.[fullSymbol];
+        if (quote) return quote.last_price;
+      }
+    } catch { return null; }
+  }
+  return null;
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const secret = searchParams.get('secret');
+    if (secret !== process.env.AUTOLOGIN_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('[Auto Sq-Off] Starting...');
+
+    // 1. Fetch Trading Hours
+    const { data: tradingHours, error: thError } = await admin.from('trading_hours').select('*');
+    if (thError) throw thError;
+
+    // 2. Get current time in IST (HH:mm)
+    const nowStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"});
+    const nowIst = new Date(nowStr);
+    const currentHh = nowIst.getHours();
+    const currentMm = nowIst.getMinutes();
+    const currentTotalMinutes = currentHh * 60 + currentMm;
+
+    // Map segments that are closed
+    const closedSegments = new Set<string>();
+    
+    for (const th of (tradingHours || [])) {
+      if (!th.end_time || !th.is_active) continue;
+      // parse end_time "HH:mm"
+      const [h, m] = th.end_time.split(':').map(Number);
+      const endTotalMinutes = (h * 60) + m;
+      
+      // If current time >= end_time, the market is closed.
+      if (currentTotalMinutes >= endTotalMinutes) {
+        closedSegments.add(th.id.toLowerCase());
+      }
+    }
+
+    if (closedSegments.size === 0) {
+       return NextResponse.json({ success: true, message: 'No markets are currently closed.' });
+    }
+
+    // 3. Fetch open INTRADAY positions
+    const { data: openPositions, error: posError } = await admin
+      .from('positions')
+      .select('*')
+      .eq('status', 'open')
+      .eq('product_type', 'INTRADAY')
+      .gt('qty_open', 0);
+
+    if (posError) throw posError;
+    if (!openPositions || openPositions.length === 0) {
+      return NextResponse.json({ success: true, message: 'No open INTRADAY positions to process' });
+    }
+
+    const results = {
+      intradayClosed: 0,
+      errors: [] as string[]
+    };
+
+    const { data: profiles } = await admin.from('profiles').select('id, parent_id, trading_mode, balance, intraday_sq_off');
+    const { data: segmentSettings } = await admin.from('segment_settings').select('*');
+    const { data: scalperSettings } = await admin.from('scalper_segment_settings').select('*');
+
+    for (const pos of openPositions) {
+      try {
+        const userProfile = profiles?.find(p => p.id === pos.user_id);
+        if (!userProfile) continue;
+        
+        // Ensure user hasn't explicitly disabled auto-sq-off
+        if (!userProfile.intraday_sq_off) continue;
+
+        // Ensure this position's market is actually closed
+        // Default to 'nse' if settlement is missing
+        let settlementId = (pos.settlement || 'nse').toLowerCase();
+        
+        // Normalize common fallbacks if trading_hours doesn't have an exact match but has equivalent
+        if (settlementId.includes('crypto')) settlementId = 'crypto';
+        else if (settlementId.includes('comex')) settlementId = 'comex';
+        else if (settlementId.includes('mcx')) settlementId = 'mcx';
+        else if (settlementId.includes('nse')) settlementId = 'nse';
+        else if (settlementId.includes('bse')) settlementId = 'bse';
+        else if (settlementId.includes('nfo')) settlementId = 'nfo';
+        else if (settlementId.includes('cds')) settlementId = 'cds';
+
+        // Check if market is closed
+        if (!closedSegments.has(settlementId)) {
+            continue; // Market is still open
+        }
+
+        const isScalper = userProfile.trading_mode === 'scalper';
+        const settingsToUse = isScalper ? (scalperSettings || []) : (segmentSettings || []);
+        const lookupId = userProfile.parent_id ?? userProfile.id;
+
+        const segSetting = settingsToUse.find(
+          s => s.user_id === lookupId && s.segment === pos.settlement && s.side === pos.side
+        );
+
+        // --- AUTO SQUARE OFF INTRADAY POSITIONS ---
+        const baseLtp = await fetchLtp(pos.symbol, pos.settlement) || pos.ltp || pos.entry_price;
+        
+        let exitPrice = baseLtp;
+        if (segSetting) {
+            const exitBuffer = (segSetting.exit_buffer ?? 0) / 100;
+            const bidBuffer = (segSetting.bid_buffer ?? 0) / 100;
+            if (pos.side === 'BUY') {
+            // Selling to close
+            exitPrice = baseLtp * (1 - bidBuffer);
+            } else {
+            // Buying to close
+            exitPrice = baseLtp * (1 + exitBuffer);
+            }
+        }
+        
+        // Intraday brokerage is handled inside close_position based on entry/exit logic, 
+        // carryBrokerage should theoretically be 0 for INTRADAY product_type anyway, 
+        // but we compute it if needed by existing logic
+        const carryBrokerage = calculateCarryBrokerage({
+          productType: pos.product_type,
+          qty: Number(pos.qty_open),
+          entryPrice: Number(pos.entry_price),
+          carryCommissionType: segSetting?.carry_commission_type,
+          carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+          commissionType: segSetting?.commission_type,
+          commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+        });
+        
+        const { error: rpcErr } = await admin.rpc('close_position', {
+          p_position_id: pos.id,
+          p_user_id: userProfile.id,
+          p_ltp: baseLtp,
+          p_exit_price: exitPrice,
+          p_closed_by: 'SYSTEM_ACTION', // Use the standardized system action close reason
+          p_brokerage: carryBrokerage,
+        });
+
+        if (!rpcErr) {
+          await admin.from('notifications').insert({
+            user_id: userProfile.id,
+            type: 'GENERAL',
+            title: `[Auto Square Off] ${pos.symbol}`,
+            message: `Your Intraday position for ${pos.symbol} was automatically squared off at Market Close.`,
+            read: false,
+            created_at: new Date().toISOString()
+          });
+          results.intradayClosed++;
+        } else {
+          results.errors.push(`Failed to auto sq-off pos ${pos.id}`);
+        }
+        
+      } catch (e: any) {
+        results.errors.push(`Error processing pos ${pos.id}: ${e.message}`);
+      }
+    }
+
+    console.log('[Auto Sq-Off] Completed:', results);
+
+    return NextResponse.json({
+      success: true,
+      closedMarkets: Array.from(closedSegments),
+      results,
+    });
+  } catch (error: any) {
+    console.error('[Auto Sq-Off] Fatal Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

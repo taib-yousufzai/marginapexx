@@ -5,6 +5,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/auto-square-off?secret=qwertyuiopasdfghjklzxcvbnm",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/eod-processing?secret=qwertyuiopasdfghjklzxcvbnm",
       "schedule": "55 18 * * *"
     }

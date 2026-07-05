@@ -89,7 +89,7 @@ export async function POST(
       p_user_id: position.user_id,
       p_ltp: baseLtp,
       p_exit_price: exitPrice,
-      p_closed_by: 'ADMIN',
+      p_closed_by: 'ADMIN_ACTION',
       p_brokerage: carryBrokerage,
     });
 

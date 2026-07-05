@@ -424,10 +424,18 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
                 <span className="adm-pos-metric-value">{p.slTp}</span>
               </div>
               {tab === 'closed' && (
-                <div className="adm-pos-card-metric col-span-2">
-                  <span className="adm-pos-metric-label">Settlement</span>
-                  <span className="adm-pos-metric-value settlement">{p.settlement || '–'}</span>
-                </div>
+                <>
+                  <div className="adm-pos-card-metric col-span-2">
+                    <span className="adm-pos-metric-label">Settlement</span>
+                    <span className="adm-pos-metric-value settlement">{p.settlement || '-'}</span>
+                  </div>
+                  {p.closed_by && (
+                    <div className="adm-pos-card-metric col-span-2">
+                      <span className="adm-pos-metric-label">Closed By</span>
+                      <span className="adm-pos-metric-value" style={{ background: '#30363d', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>{p.closed_by.replace(/_/g, ' ')}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

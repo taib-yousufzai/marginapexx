@@ -300,7 +300,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               p_user_id:     user.id,
               p_ltp:         baseLtp,
               p_exit_price:  exitPrice,
-              p_closed_by:   'USER',
+              p_closed_by:   'USER_ACTION',
               p_brokerage:   carryBrokerage,
             });
             

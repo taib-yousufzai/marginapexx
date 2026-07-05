@@ -30,6 +30,7 @@ interface Position {
     status: string;
     created_at: string;
     closed_at: string | null;
+    closed_by?: string | null;
 }
 
 type Tab = 'pnl' | 'orders';
@@ -288,6 +289,11 @@ export default function ReportsPage() {
                                             <span className="rp-symbol">{pos.symbol}</span>
                                             <span className={`rp-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
                                             <span className="rp-chip">{pos.segment}</span>
+                                            {pos.closed_by && (
+                                                <span className="rp-chip" style={{ background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0' }}>
+                                                    {pos.closed_by.replace(/_/g, ' ')}
+                                                </span>
+                                            )}
                                         </div>
                                         <span className={`rp-pnl-val ${(pos.pnl ?? 0) >= 0 ? 'pos' : 'neg'}`}>
                                             {sign(pos.pnl ?? 0)}{fmtAmt(pos.pnl ?? 0)}
