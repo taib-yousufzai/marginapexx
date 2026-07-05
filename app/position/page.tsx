@@ -184,6 +184,9 @@ export default function PositionPage() {
   // Anti-scalping lock modal
   const [lockModalPos, setLockModalPos] = useState<EnrichedPosition | null>(null);
 
+  // Conversion confirmation modal
+  const [convertConfirmPos, setConvertConfirmPos] = useState<EnrichedPosition | null>(null);
+
   // ── Mobile Back Button Interception ──
   useMobileBack(isSheetOpen, () => {
     setIsSheetOpen(false);
@@ -290,6 +293,14 @@ export default function PositionPage() {
   };
 
   const toggleProductType = async (pos: EnrichedPosition) => {
+    setConvertConfirmPos(pos);
+  };
+
+  const confirmConvertProductType = async () => {
+    if (!convertConfirmPos) return;
+    const pos = convertConfirmPos;
+    setConvertConfirmPos(null);
+
     const originalType = pos.product_type;
     const newType = originalType === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
 
@@ -662,16 +673,15 @@ export default function PositionPage() {
                                 <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
                               {group.product_type && (
-                                <div
+                                <button
                                   className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
-                                  style={{ marginTop: '5px' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    await toggleProductType(group.representativePos);
+                                    setConvertConfirmPos(group.representativePos);
                                   }}
                                 >
                                   {group.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                                </div>
+                                </button>
                               )}
                             </div>
                             <div className="pos-card-right">
@@ -809,16 +819,16 @@ export default function PositionPage() {
                                 </div>
                               </div>
                               {pos.product_type && (
-                                <div
+                                <button
                                   className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
-                                  style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    await toggleProductType(actualPos);
+                                    setConvertConfirmPos(actualPos);
                                   }}
+                                  style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                 >
                                   {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                                </div>
+                                </button>
                               )}
                             </div>
 
@@ -1089,16 +1099,15 @@ export default function PositionPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                             <div className="ps-segment" style={{ margin: 0 }}>INTERNAL POSITION</div>
                             {selectedPos.product_type && (
-                              <div
+                              <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  await toggleProductType(selectedPos);
-                                  setSelectedPos(prev => prev ? { ...prev, product_type: prev.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY' } : null);
+                                  setConvertConfirmPos(selectedPos);
                                 }}
                                 className={`convert-type-btn${selectedPos.product_type === 'CARRY' ? ' carry' : ' intraday'}`}
                               >
                                 {selectedPos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                              </div>
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1282,6 +1291,45 @@ export default function PositionPage() {
                 </div>
               </div>
             </div>
+
+            {/* Convert Confirm Modal */}
+            <div className={`pos-modal-overlay${convertConfirmPos ? ' open' : ''}`} onClick={() => setConvertConfirmPos(null)}>
+              <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
+                <div className="pos-modal-icon" style={{ backgroundColor: 'rgba(217, 119, 6, 0.1)', color: '#D97706' }}>
+                  <i className="fas fa-exchange-alt" />
+                </div>
+                <div className="pos-modal-title">Convert to {convertConfirmPos?.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY'}</div>
+                <div className="pos-modal-desc" style={{ color: 'var(--text-secondary)' }}>
+                  {convertConfirmPos?.product_type === 'INTRADAY' ? (
+                    <>
+                      When you convert an INTRADAY position to CARRY, you will have to pay CARRY brokerage.
+                      <br /><br />
+                      The CARRY brokerage will be deducted immediately.
+                    </>
+                  ) : (
+                    <>
+                      When you convert a CARRY position back to INTRADAY, you will not be reimbursed for the CARRY brokerage you already paid.
+                    </>
+                  )}
+                </div>
+                <div className="pos-modal-actions">
+                  <button
+                    className="pos-modal-btn cancel"
+                    onClick={() => setConvertConfirmPos(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="pos-modal-btn confirm"
+                    style={{ backgroundColor: '#D97706', color: '#fff', border: 'none' }}
+                    onClick={confirmConvertProductType}
+                  >
+                    Confirm Convert
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>

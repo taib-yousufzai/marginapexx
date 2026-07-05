@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
+import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
 
 export async function POST(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function POST(
         .eq('user_id', user.id)
         .single(),
       admin.from('profiles')
-        .select('parent_id, balance')
+        .select('parent_id, balance, trading_mode')
         .eq('id', user.id)
         .single()
     ]);
@@ -44,10 +45,17 @@ export async function POST(
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
+    if (pos.product_type === product_type) {
+      return NextResponse.json({ error: `Position is already ${product_type}` }, { status: 400 });
+    }
+
     // 2. Calculate the new leverage and required margin
+    const isScalper = profile.trading_mode === 'scalper';
+    const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
+
     const lookupId = profile.parent_id ?? user.id;
-    const { data: segSetting } = await admin.from('segment_settings')
-      .select('holding_leverage, intraday_leverage, holding_type, intraday_type')
+    const { data: segSetting } = await admin.from(targetTable)
+      .select('holding_leverage, intraday_leverage, holding_type, intraday_type, commission_type, commission_value, carry_commission_type, carry_commission_value')
       .eq('user_id', lookupId)
       .eq('segment', pos.settlement || '')
       .eq('side', pos.side)
@@ -122,6 +130,59 @@ export async function POST(
         return NextResponse.json({
           error: `Insufficient margin. Available free margin: ₹${freeMargin.toFixed(2)}, Required additional margin: ₹${marginDifference.toFixed(2)}`
         }, { status: 400 });
+      }
+    }
+
+    // 3.5 Deduct Carry Brokerage immediately if converting to CARRY
+    if (product_type === 'CARRY') {
+      const carryBrokerage = calculateCarryBrokerage({
+        productType: 'CARRY',
+        qty: Number(pos.qty_open),
+        entryPrice: Number(pos.entry_price),
+        lots: Number(pos.lots || 0) || undefined,
+        carryCommissionType: segSetting?.carry_commission_type,
+        carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
+        commissionType: segSetting?.commission_type,
+        commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
+      });
+
+      if (carryBrokerage > 0) {
+        // We will insert a BROKERAGE_DEBIT transaction. The ref_id will uniquely mark it for this position's conversion.
+        const refIdStr = `CARRY_CONV_${positionId}`;
+
+        // Ensure we haven't already charged it
+        const { data: existingTx } = await admin.from('transactions')
+          .select('id')
+          .eq('ref_id', refIdStr)
+          .eq('type', 'BROKERAGE_DEBIT')
+          .limit(1);
+
+        if (!existingTx || existingTx.length === 0) {
+          const { error: txErr } = await admin.from('transactions').insert({
+            user_id: user.id,
+            type: 'BROKERAGE_DEBIT',
+            amount: carryBrokerage,
+            status: 'APPROVED',
+            ref_id: refIdStr,
+          });
+
+          if (txErr) {
+            console.error('[Positions Convert API] Error inserting carry brokerage transaction:', txErr);
+            return NextResponse.json({ error: 'Failed to process carry brokerage deduction.' }, { status: 500 });
+          }
+
+          // Deduct from balance
+          const { error: balErr } = await admin.rpc('decrement_balance', {
+            p_user_id: user.id,
+            p_amount: carryBrokerage
+          });
+          
+          if (balErr) {
+             console.error('[Positions Convert API] Error decrementing balance:', balErr);
+             // fallback to standard update if RPC fails
+             await admin.from('profiles').update({ balance: Number(profile.balance || 0) - carryBrokerage }).eq('id', user.id);
+          }
+        }
       }
     }
 

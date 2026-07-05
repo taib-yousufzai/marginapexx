@@ -284,7 +284,7 @@ export async function POST(
   // --- CARRY BROKERAGE (deferred from entry to exit) ---
   // Intraday brokerage was already charged at entry time (×2).
   // Carry brokerage is only charged at exit if the position is currently CARRY.
-  const carryBrokerage = calculateCarryBrokerage({
+  let carryBrokerage = calculateCarryBrokerage({
     productType: pos.product_type,
     qty: Number(pos.qty_open),
     entryPrice: Number(pos.entry_price),
@@ -294,6 +294,19 @@ export async function POST(
     commissionType: segSetting?.commission_type,
     commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
   });
+
+  // Check if carry brokerage was already deducted during an INTRADAY -> CARRY conversion
+  if (carryBrokerage > 0) {
+    const { data: convTx } = await admin.from('transactions')
+      .select('id')
+      .eq('ref_id', `CARRY_CONV_${positionId}`)
+      .eq('type', 'BROKERAGE_DEBIT')
+      .limit(1);
+    
+    if (convTx && convTx.length > 0) {
+      carryBrokerage = 0; // Already paid during conversion, don't double charge
+    }
+  }
 
   // Call the atomic RPC
   const { data: pnl, error: rpcErr } = await admin.rpc('close_position', {
