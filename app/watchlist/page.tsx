@@ -2427,7 +2427,23 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         // Fetch live prices for all results that have a kiteSymbol
         var kiteIds = results.slice(0, 40)
           .map(function(r) { return r.kiteSymbol || ''; })
-          .filter(function(id) { return id.includes(':'); });
+          .filter(function(id) { return id.includes(':') && !id.startsWith('CRYPTO:'); });
+
+        // For crypto items, pull prices from window.__binanceQuotes immediately
+        results.slice(0, 40).forEach(function(item) {
+          var isCrypto = (item.segment || '').toUpperCase().includes('CRYPTO') || (item.kiteSymbol || '').startsWith('CRYPTO:');
+          if (!isCrypto) return;
+          var binanceSym = item.symbol ? item.symbol.toUpperCase().replace(/USDT$/, '') + 'USDT' : '';
+          if (!binanceSym) return;
+          var binanceQuotes = window.__binanceQuotes || window.__kiteQuotes || {};
+          var quote = binanceQuotes[binanceSym];
+          var lp = quote && (quote.last_price || quote.lastPrice);
+          if (!lp) return;
+          var kiteId = item.kiteSymbol || item.symbol || '';
+          var el = searchResultsList && searchResultsList.querySelector('[data-kite-id="' + kiteId + '"]');
+          if (el) el.textContent = lp.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        });
+
         if (kiteIds.length === 0) return;
 
         fetch('/api/kite/quotes', {
