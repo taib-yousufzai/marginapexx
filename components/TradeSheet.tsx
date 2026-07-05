@@ -60,6 +60,7 @@ function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
   const trimmed = (s || '').trim().toUpperCase();
 
   if (['COMEX - FUTURES', 'COMEX - OPTIONS', 'COMEX', 'COI'].includes(trimmed)) return 'COMEX';
+  if (trimmed === 'CRYPTO') return 'CRYPTO';
 
   const n = symbol.toUpperCase();
   if (n) {
