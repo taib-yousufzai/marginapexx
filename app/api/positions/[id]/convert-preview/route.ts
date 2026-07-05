@@ -53,7 +53,7 @@ export async function GET(
     const { data: segSetting } = await admin.from(targetTable)
       .select('holding_leverage, intraday_leverage, holding_type, intraday_type, commission_type, commission_value, carry_commission_type, carry_commission_value')
       .eq('user_id', lookupId)
-      .eq('segment', pos.settlement || '')
+      .eq('segment', pos.segment || pos.settlement || '')
       .eq('side', pos.side)
       .maybeSingle();
 
