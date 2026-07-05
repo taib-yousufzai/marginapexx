@@ -216,7 +216,13 @@ BEGIN
   END IF;
 
   -- Fetch lot size dynamically if needed via ILIKE substring matching
-  SELECT lot_size INTO v_lot_size FROM public.script_settings WHERE v_order.symbol ILIKE '%' || symbol || '%' ORDER BY length(symbol) DESC LIMIT 1;
+  -- First try fetching exact lot size from instruments table
+  SELECT lot_size INTO v_lot_size FROM public.instruments WHERE tradingsymbol = v_order.instrument LIMIT 1;
+
+  IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
+    SELECT lot_size INTO v_lot_size FROM public.script_settings WHERE v_order.symbol ILIKE '%' || symbol || '%' ORDER BY length(symbol) DESC LIMIT 1;
+  END IF;
+
   IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
     IF v_order.symbol ILIKE '%BANKNIFTY%' OR v_order.symbol ILIKE '%BANKEX%' THEN
       v_lot_size := 15;

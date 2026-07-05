@@ -115,7 +115,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
-  const lotSize = item ? getLotSize(item.name, scriptSettings) : 1;
+  const lotSize = (item && (item as any).lot_size && (item as any).lot_size > 0) 
+    ? (item as any).lot_size 
+    : (item ? getLotSize(item.name, scriptSettings) : 1);
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
   const isCrypto = dbSeg.toUpperCase().includes('CRYPTO') || !!item?.binanceSymbol;

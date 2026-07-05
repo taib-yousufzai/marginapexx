@@ -61,6 +61,7 @@ export async function GET(request: Request) {
         exchange: row.exchange,
         instrument_type: row.instrument_type,
         segment: row.segment,
+        lot_size: parseInt(row.lot_size || '0', 10) || 0,
       });
     }
 
@@ -92,7 +93,7 @@ export async function GET(request: Request) {
         instrument_type: 'MAPPED_FUT',
         segment: frontMonth.segment,
         expiry: frontMonth.expiry,
-        lot_size: parseInt(frontMonth.lot_size || '0', 10),
+        lot_size: parseInt(frontMonth.lot_size || '0', 10) || 0,
       });
     }
 
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
         strike_price: parseFloat(row.strike || row.strike_price || '0'),
         option_type: row.instrument_type,
         underlying_symbol: underlying,
-        lot_size: parseInt(row.lot_size || '0', 10),
+        lot_size: parseInt(row.lot_size || '0', 10) || 0,
       });
     }
 
@@ -163,7 +164,8 @@ export async function GET(request: Request) {
             exchange: s.exchange,
             instrument_type: 'INDEX',
             segment: 'INDICES',
-            underlying_symbol: s.name 
+            underlying_symbol: s.name,
+            lot_size: 0
         });
     }
 
@@ -186,7 +188,8 @@ export async function GET(request: Request) {
             exchange: 'CRYPTO',
             instrument_type: 'CRYPTO',
             segment: 'CRYPTO',
-            underlying_symbol: pair.baseAsset
+            underlying_symbol: pair.baseAsset,
+            lot_size: 0
           });
           // Add the short symbol as well for legacy UI matching
           finalInstruments.push({
@@ -197,7 +200,8 @@ export async function GET(request: Request) {
             exchange: 'CRYPTO',
             instrument_type: 'CRYPTO',
             segment: 'CRYPTO',
-            underlying_symbol: pair.baseAsset
+            underlying_symbol: pair.baseAsset,
+            lot_size: 0
           });
           binanceCount++;
         }
