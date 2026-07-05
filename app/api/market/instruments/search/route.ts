@@ -230,28 +230,46 @@ export async function GET(request: NextRequest) {
     if (parsed) {
       const today = new Date().toISOString().split('T')[0];
 
-      let buildBaseQuery = (includeExpiryFilter: boolean) => {
-        // Match by name OR underlying_symbol to handle different DB layouts
+      // First try: active expiries only
+      {
         let qry = supabase
           .from('instruments')
           .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-          .or(`name.eq.${parsed.underlying},underlying_symbol.eq.${parsed.underlying}`)
+          .eq('strike_price', parsed.strike)
+          .gte('expiry', today)
+          .order('expiry', { ascending: true })
+          .limit(150);
+
+        if (parsed.optionType) qry = qry.eq('option_type', parsed.optionType);
+
+        // Filter by underlying — try name first, then underlying_symbol via a second query if needed
+        let q1 = applyTabFilter(qry.eq('name', parsed.underlying));
+        ({ data, error } = await q1);
+
+        if (!error && (!data || data.length === 0)) {
+          let q2 = applyTabFilter(qry.eq('underlying_symbol', parsed.underlying));
+          ({ data, error } = await q2);
+        }
+      }
+
+      // Second try: all expiries (in case strike exists only in expired contracts)
+      if (!error && (!data || data.length === 0)) {
+        let qry = supabase
+          .from('instruments')
+          .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
           .eq('strike_price', parsed.strike)
           .order('expiry', { ascending: true })
           .limit(150);
-        if (parsed.optionType) {
-          qry = qry.eq('option_type', parsed.optionType);
-        }
-        if (includeExpiryFilter) {
-          qry = (qry as any).or(`expiry.gte.${today},expiry.is.null`);
-        }
-        return applyTabFilter(qry);
-      };
 
-      ({ data, error } = await buildBaseQuery(true));
-      
-      if (!error && (!data || data.length === 0)) {
-        ({ data, error } = await buildBaseQuery(false));
+        if (parsed.optionType) qry = qry.eq('option_type', parsed.optionType);
+
+        let q1 = applyTabFilter(qry.eq('name', parsed.underlying));
+        ({ data, error } = await q1);
+
+        if (!error && (!data || data.length === 0)) {
+          let q2 = applyTabFilter(qry.eq('underlying_symbol', parsed.underlying));
+          ({ data, error } = await q2);
+        }
       }
     }
 
@@ -266,15 +284,15 @@ export async function GET(request: NextRequest) {
           .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol');
           
         let orParts = [];
-        orParts.push(`name.ilike.${q}%`);
-        orParts.push(`name.ilike.% ${q}%`);
-        
-        if (!/^\d+$/.test(q)) {
-          orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
-        }
+
         if (/^\d+(\.\d+)?$/.test(q)) {
-          // Direct exact match on strike_price (handles e.g. "26500", "24050.5")
+          // Pure numeric query — search only by exact strike_price match
           orParts.push(`strike_price.eq.${q}`);
+        } else {
+          // Text query — search by name and tradingsymbol
+          orParts.push(`name.ilike.${q}%`);
+          orParts.push(`name.ilike.% ${q}%`);
+          orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
         }
 
         qry = qry.or(orParts.join(','));
