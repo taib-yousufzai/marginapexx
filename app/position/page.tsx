@@ -293,14 +293,22 @@ export default function PositionPage() {
   };
 
   const toggleProductType = async (pos: EnrichedPosition) => {
-    setConvertConfirmPos(pos);
+    if (pos.carry_brokerage_paid) {
+      // Direct conversion if already paid
+      await directConvert(pos);
+    } else {
+      setConvertConfirmPos(pos);
+    }
   };
 
   const confirmConvertProductType = async () => {
     if (!convertConfirmPos) return;
     const pos = convertConfirmPos;
     setConvertConfirmPos(null);
+    await directConvert(pos);
+  };
 
+  const directConvert = async (pos: EnrichedPosition) => {
     const originalType = pos.product_type;
     const newType = originalType === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
 
@@ -677,7 +685,7 @@ export default function PositionPage() {
                                   className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    setConvertConfirmPos(group.representativePos);
+                                    await toggleProductType(group.representativePos);
                                   }}
                                   style={{ marginTop: '5px' }}
                                 >
@@ -824,7 +832,7 @@ export default function PositionPage() {
                                   className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
                                   onClick={async (e) => {
                                     e.stopPropagation();
-                                    setConvertConfirmPos(actualPos);
+                                    await toggleProductType(actualPos);
                                   }}
                                   style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                 >
@@ -1103,7 +1111,7 @@ export default function PositionPage() {
                               <div
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  setConvertConfirmPos(selectedPos);
+                                  await toggleProductType(selectedPos);
                                 }}
                                 className={`convert-type-btn${selectedPos.product_type === 'CARRY' ? ' carry' : ' intraday'}`}
                               >

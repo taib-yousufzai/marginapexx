@@ -187,12 +187,17 @@ export async function POST(
     }
 
     // 4. Update the position row itself in the positions table
+    const updateData: any = { 
+      product_type,
+      margin_required: newMarginRequired,
+      locked_margin: newMarginRequired
+    };
+    if (product_type === 'CARRY') {
+      updateData.carry_brokerage_paid = true;
+    }
+
     const { error: posUpdateErr } = await admin.from('positions')
-      .update({ 
-        product_type,
-        margin_required: newMarginRequired,
-        locked_margin: newMarginRequired
-      })
+      .update(updateData)
       .eq('id', positionId)
       .eq('user_id', user.id);
 
