@@ -673,15 +673,16 @@ export default function PositionPage() {
                                 <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
                               {group.product_type && (
-                                <button
+                                <div
                                   className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     setConvertConfirmPos(group.representativePos);
                                   }}
+                                  style={{ marginTop: '5px' }}
                                 >
                                   {group.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                                </button>
+                                </div>
                               )}
                             </div>
                             <div className="pos-card-right">
@@ -819,7 +820,7 @@ export default function PositionPage() {
                                 </div>
                               </div>
                               {pos.product_type && (
-                                <button
+                                <div
                                   className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
                                   onClick={async (e) => {
                                     e.stopPropagation();
@@ -828,7 +829,7 @@ export default function PositionPage() {
                                   style={{ marginTop: '5px', alignSelf: 'flex-start' }}
                                 >
                                   {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                                </button>
+                                </div>
                               )}
                             </div>
 
@@ -1099,7 +1100,7 @@ export default function PositionPage() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                             <div className="ps-segment" style={{ margin: 0 }}>INTERNAL POSITION</div>
                             {selectedPos.product_type && (
-                              <button
+                              <div
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   setConvertConfirmPos(selectedPos);
@@ -1107,7 +1108,7 @@ export default function PositionPage() {
                                 className={`convert-type-btn${selectedPos.product_type === 'CARRY' ? ' carry' : ' intraday'}`}
                               >
                                 {selectedPos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                              </button>
+                              </div>
                             )}
                           </div>
                         </div>
