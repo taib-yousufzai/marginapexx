@@ -187,6 +187,25 @@ export default function HistoryPage() {
       <Sidebar />
 
       <main className="main-viewport">
+        <div className="flex-1 flex flex-col min-h-0 bg-gray-50 dark:bg-[#0B0E14] relative">
+        <style>{`
+          .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            white-space: pre;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          }
+        `}</style>
         <div className="app-container">
           <div className="history-root">
             {/* ── Header (Mobile Only) ── */}
@@ -356,24 +375,6 @@ export default function HistoryPage() {
                         <div className="history-card-details" style={{ marginTop: '4px' }}>
                           <span className="detail-item tooltip" data-tooltip={currentTab === 'order' ? `Intraday: ₹${item.intraday_brokerage || 0}\nCarry: ₹${item.carry_brokerage || 0}\nGTT: ₹${item.gtt_brokerage || 0}` : `Intraday: ₹${(item.entry_intraday_brokerage || 0) + (item.exit_intraday_brokerage || 0)}\nCarry: ₹${(item.entry_carry_brokerage || 0) + (item.exit_carry_brokerage || 0)}\nGTT: ₹${(item.entry_gtt_brokerage || 0) + (item.exit_gtt_brokerage || 0)}`} style={{ position: 'relative' }}>
                             <i className="fas fa-receipt"></i> ₹{item.brokerage}
-                            <style>{`
-                              .tooltip:hover::after {
-                                content: attr(data-tooltip);
-                                position: absolute;
-                                bottom: 100%;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: var(--bg-card);
-                                border: 1px solid var(--border-color);
-                                color: var(--text-primary);
-                                padding: 6px 10px;
-                                border-radius: 6px;
-                                font-size: 0.75rem;
-                                white-space: pre;
-                                z-index: 10;
-                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                              }
-                            `}</style>
                           </span>
                           {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
                             <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>

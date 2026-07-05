@@ -162,12 +162,12 @@ BEGIN
   ELSE
     -- Open new position
     INSERT INTO public.positions (
-      user_id, symbol, kite_instrument, side, status,
+      user_id, symbol, side, status,
       qty_total, qty_open, avg_price, entry_price, ltp,
       settlement, product_type, brokerage, lots, entry_time
     )
     VALUES (
-      v_order.user_id, v_order.symbol, v_order.kite_instrument, v_order.side, 'open',
+      v_order.user_id, v_order.symbol, v_order.side, 'open',
       v_order.qty, v_order.qty, v_order.fill_price, v_order.fill_price, v_order.fill_price,
       v_order.segment, v_order.product_type, v_brokerage, v_lots, now()
     );
