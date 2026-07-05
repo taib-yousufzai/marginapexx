@@ -373,8 +373,28 @@ export default function HistoryPage() {
                           )}
                         </div>
                         <div className="history-card-details" style={{ marginTop: '4px' }}>
-                          <span className="detail-item tooltip" data-tooltip={currentTab === 'order' ? `Intraday: ₹${item.intraday_brokerage || 0}\nCarry: ₹${item.carry_brokerage || 0}\nGTT: ₹${item.gtt_brokerage || 0}` : `Intraday: ₹${(item.entry_intraday_brokerage || 0) + (item.exit_intraday_brokerage || 0)}\nCarry: ₹${(item.entry_carry_brokerage || 0) + (item.exit_carry_brokerage || 0)}\nGTT: ₹${(item.entry_gtt_brokerage || 0) + (item.exit_gtt_brokerage || 0)}`} style={{ position: 'relative' }}>
-                            <i className="fas fa-receipt"></i> ₹{item.brokerage}
+                          <span className="detail-item tooltip" data-tooltip={(() => {
+                            if (currentTab === 'order') {
+                              const total = (item.intraday_brokerage || 0) + (item.carry_brokerage || 0) + (item.gtt_brokerage || 0);
+                              if (total === 0 && (item.brokerage || 0) > 0) {
+                                return item.productType === 'CARRY' 
+                                  ? `Intraday: ₹0\nCarry: ₹${item.brokerage}\nGTT: ₹0` 
+                                  : `Intraday: ₹${item.brokerage}\nCarry: ₹0\nGTT: ₹0`;
+                              }
+                              return `Intraday: ₹${item.intraday_brokerage || 0}\nCarry: ₹${item.carry_brokerage || 0}\nGTT: ₹${item.gtt_brokerage || 0}`;
+                            } else {
+                              const intraday = (item.entry_intraday_brokerage || 0) + (item.exit_intraday_brokerage || 0);
+                              const carry = (item.entry_carry_brokerage || 0) + (item.exit_carry_brokerage || 0);
+                              const gtt = (item.entry_gtt_brokerage || 0) + (item.exit_gtt_brokerage || 0);
+                              if (intraday + carry + gtt === 0 && (item.brokerage || 0) > 0) {
+                                return item.productType === 'CARRY' 
+                                  ? `Intraday: ₹0\nCarry: ₹${item.brokerage}\nGTT: ₹0` 
+                                  : `Intraday: ₹${item.brokerage}\nCarry: ₹0\nGTT: ₹0`;
+                              }
+                              return `Intraday: ₹${intraday}\nCarry: ₹${carry}\nGTT: ₹${gtt}`;
+                            }
+                          })()} style={{ position: 'relative' }}>
+                            <i className="fas fa-receipt"></i> {formatPrice(item.brokerage || 0)}
                           </span>
                           {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
                             <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>
