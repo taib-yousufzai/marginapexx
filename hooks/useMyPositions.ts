@@ -140,6 +140,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
             p.avg_price !== cached.avg_price ||
             p.status !== cached.status ||
             p.product_type !== cached.product_type ||
+            p.carry_brokerage_paid !== cached.carry_brokerage_paid ||
             p.ltp !== cached.ltp
           );
         });
