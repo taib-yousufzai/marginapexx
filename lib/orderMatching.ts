@@ -661,6 +661,7 @@ export class InMemoryMatchingEngine {
         telemetry.recordDbCall('write', performance.now() - closeStart);
         telemetry.recordTriggerExecution(performance.now() - closeStart);
       }
+    }
 
     const duration = performance.now() - start;
     telemetry.recordMatchingEngine(pendingOrders.length, openPositions.length, duration);
