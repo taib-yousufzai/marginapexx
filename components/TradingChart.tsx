@@ -839,11 +839,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     if (!activeLiveQuote || loading) return;
     if (symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT')) return;
 
-<<<<<<< Updated upstream
     const lastPrice = activeLiveQuote.lastPrice;
-=======
-    const lastPrice = activeLiveQuote.lastPrice || activeLiveQuote.last_price;
->>>>>>> Stashed changes
     if (!lastPrice) return;
 
     setCurrentPrice(lastPrice);
@@ -1237,7 +1233,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // (not the underlying index). In that case, activeLiveQuote belongs to the underlying
   // so we must NOT use its bid/ask for placing an option order.
   const symbolIsDerivative = symbol.includes('CE') || symbol.includes('PE') || symbol.includes('FUT');
-<<<<<<< Updated upstream
 
   // When in add-more or exit flow for a different instrument, use that instrument's live quote
   // instead of the chart's current symbol's quote for bid/ask/LTP/margin
@@ -1254,14 +1249,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : ((!symbolIsDerivative && activeLiveQuote)
       ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || currentPrice)
       : currentPrice);
-=======
-  const rawBid = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.bid || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
-    : currentPrice;
-  const rawAsk = (!symbolIsDerivative && activeLiveQuote)
-    ? (activeLiveQuote.ask || activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice)
-    : currentPrice;
->>>>>>> Stashed changes
   const underlyingPriceOfScript = orderSide === 'SELL' ? rawBid : rawAsk;
   // When a chain contract is open, use the option's bid/ask price, not the underlying index price
   const priceOfScript = chainContract
@@ -1276,7 +1263,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : resolvedPrice;
 
   const liveOptionQuote = (chainContract && chainContract.kiteId) ? marketQuotes[chainContract.kiteId] : null;
-<<<<<<< Updated upstream
   const liveAsk = isTargetFlow
     ? (addMoreQuote?.ask || addMoreQuote?.lastPrice || addMoreLtp || currentPrice)
     : (chainContract
@@ -1292,17 +1278,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     : (chainContract
       ? (liveOptionQuote?.lastPrice || chainContract.ltp)
       : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || currentPrice) : currentPrice));
-=======
-  const liveAsk = chainContract
-    ? (liveOptionQuote?.ask || chainContract.ask)
-    : rawAsk;
-  const liveBid = chainContract
-    ? (liveOptionQuote?.bid || chainContract.bid)
-    : rawBid;
-  const liveLTP = chainContract
-    ? (liveOptionQuote?.lastPrice || liveOptionQuote?.last_price || chainContract.ltp)
-    : (!symbolIsDerivative && activeLiveQuote ? (activeLiveQuote.lastPrice || activeLiveQuote.last_price || currentPrice) : currentPrice);
->>>>>>> Stashed changes
 
   // When a chain contract is open, the option segment must be used for settings lookup,
   // not the chart's underlying segment (e.g. "NSE - Equity" for NIFTY 50).
@@ -2185,13 +2160,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
                         <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-<<<<<<< Updated upstream
                         <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
                           At Exit
-=======
-                        <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
->>>>>>> Stashed changes
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>

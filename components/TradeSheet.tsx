@@ -839,7 +839,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           position: fixed; inset: 0;
           background: rgba(0,0,0,0.55);
           z-index: 100000;
-<<<<<<< Updated upstream
           opacity: 0; visibility: hidden;
           pointer-events: none;
           transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -849,24 +848,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           pointer-events: auto;
           animation: fadeIn 0.3s ease forwards;
         }
-=======
-          opacity: 1; visibility: visible;
-          animation: fadeIn 0.3s ease forwards;
-        }
->>>>>>> Stashed changes
 
         .ts2-sheet {
           position: fixed; top: 0; left: 0; right: 0; bottom: 0;
           width: 100%; max-width: 100%; margin: 0;
           background: var(--bg-body, #F5F7FB);
           z-index: 100001;
-<<<<<<< Updated upstream
           transform: translateY(100%);
           transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05);
-=======
-          transform: translateY(0) !important;
-          animation: slideUp 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05) forwards;
->>>>>>> Stashed changes
           display: flex; flex-direction: column;
           overflow: hidden;
           pointer-events: none;
