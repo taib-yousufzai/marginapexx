@@ -1,10 +1,17 @@
 .notif-root {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    height: 100dvh !important;
     width: 100%;
-    background: var(--bg-body, #F0F2F5);
+    background: #F8FAFF;
     align-self: stretch;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.notif-root::-webkit-scrollbar {
+    display: none;
 }
 
 /* ── Header ── */

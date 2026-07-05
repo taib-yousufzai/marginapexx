@@ -89,7 +89,7 @@ export default function ReferAndEarnPage() {
     <div className="desktop-layout">
       <Sidebar />
       <main className="main-viewport">
-        <div className="mobile-app">
+        <div className="mobile-app refer-root">
           <div className="refer-header">
             <Link href="/profile" className="back-btn">
               <i className="fas fa-arrow-left"></i>
