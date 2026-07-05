@@ -398,6 +398,7 @@ export default function HistoryPage() {
             <Footer activeTab="history" />
           </div>
         </div>
+        </div>
       </main>
 
       {/* Summary fixed above footer nav - outside app-container so overflow:clip doesn't trap it */}
