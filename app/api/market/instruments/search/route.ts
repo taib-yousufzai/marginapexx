@@ -261,11 +261,18 @@ export async function GET(request: NextRequest) {
           .from('instruments')
           .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol');
           
-        if (/^\d+(\.\d+)?$/.test(q)) {
-          qry = qry.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%,strike_price.eq.${q}`);
-        } else {
-          qry = qry.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`);
+        let orParts = [];
+        orParts.push(`name.ilike.${q}%`);
+        orParts.push(`name.ilike.% ${q}%`);
+        
+        if (!/^\d+$/.test(q)) {
+          orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
         }
+        if (/^\d+(\.\d+)?$/.test(q)) {
+          orParts.push(`strike_price.eq.${q}`);
+        }
+
+        qry = qry.or(orParts.join(','));
 
         qry = qry
           .order('expiry', { ascending: true })
