@@ -230,21 +230,25 @@ export async function GET(request: NextRequest) {
     if (parsed) {
       const today = new Date().toISOString().split('T')[0];
 
-      let dbQuery = supabase
-        .from('instruments')
-        .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
-        .eq('name', parsed.underlying)
-        .eq('strike_price', parsed.strike)
-        .order('expiry', { ascending: true })
-        .limit(150);
+      let buildBaseQuery = () => {
+        let qry = supabase
+          .from('instruments')
+          .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol')
+          .eq('name', parsed.underlying)
+          .eq('strike_price', parsed.strike)
+          .order('expiry', { ascending: true })
+          .limit(150);
+        if (parsed.optionType) {
+          qry = qry.eq('option_type', parsed.optionType);
+        }
+        return applyTabFilter(qry);
+      };
 
-      if (parsed.optionType) {
-        dbQuery = dbQuery.eq('option_type', parsed.optionType);
+      ({ data, error } = await buildBaseQuery().or(`expiry.gte.${today},expiry.is.null`));
+      
+      if (!error && (!data || data.length === 0)) {
+        ({ data, error } = await buildBaseQuery());
       }
-
-      dbQuery = applyTabFilter(dbQuery);
-
-      ({ data, error } = await dbQuery);
     }
 
     // Fallback: tradingsymbol ilike (spaces removed)
@@ -252,23 +256,33 @@ export async function GET(request: NextRequest) {
       const qNoSpace = q.replace(/\s+/g, '').toUpperCase();
       const today = new Date().toISOString().split('T')[0];
 
-      let dbQuery = supabase
-        .from('instruments')
-        .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol');
-        
-      if (/^\d+(\.\d+)?$/.test(q)) {
-        dbQuery = dbQuery.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%,strike_price.eq.${q}`);
-      } else {
-        dbQuery = dbQuery.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`);
+      let buildBaseFallbackQuery = () => {
+        let qry = supabase
+          .from('instruments')
+          .select('tradingsymbol, name, exchange, instrument_type, segment, strike_price, option_type, expiry, underlying_symbol');
+          
+        if (/^\d+(\.\d+)?$/.test(q)) {
+          qry = qry.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%,strike_price.eq.${q}`);
+        } else {
+          qry = qry.or(`tradingsymbol.ilike.${qNoSpace}%,name.ilike.${q}%`);
+        }
+
+        qry = qry
+          .order('expiry', { ascending: true })
+          .limit(150);
+
+        return applyTabFilter(qry);
+      };
+
+      // We use .filter() here instead of .or() because the base query already has an .or() clause.
+      // Supabase JavaScript client `.or()` overrides previous `.or()` if we're not careful.
+      // To chain correctly in PostgREST, we can just use another `.or()` but it's safer to use `.not('expiry', 'lt', today)`
+      // Wait, `.or` overrides ONLY if we use the same foreign table. For the same table, multiple `.or` are ANDed together!
+      ({ data, error } = await buildBaseFallbackQuery().or(`expiry.gte.${today},expiry.is.null`));
+
+      if (!error && (!data || data.length === 0)) {
+        ({ data, error } = await buildBaseFallbackQuery());
       }
-
-      dbQuery = dbQuery
-        .order('expiry', { ascending: true })
-        .limit(150);
-
-      dbQuery = applyTabFilter(dbQuery);
-
-      ({ data, error } = await dbQuery);
     }
 
     if (error) {
