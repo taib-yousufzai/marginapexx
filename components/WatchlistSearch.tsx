@@ -132,22 +132,17 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
         onFocus={() => { if (query.trim()) setIsOpen(true); }}
         autoComplete="off"
       />
-      {!query && (
-        <span className="search-shortcut">
-          <kbd>Ctrl</kbd> + <kbd>K</kbd>
-        </span>
-      )}
-      {query && (
-        <button 
-          className="clear-search-btn"
-          onClick={handleClear}
-          aria-label="Clear search"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
+
+      <button 
+        className="clear-search-btn"
+        onClick={handleClear}
+        aria-label="Clear search"
+        style={{ opacity: query ? 1 : 0.35 }}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M10.5 3.5L3.5 10.5M3.5 3.5L10.5 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
 
       {/* Results Overlay */}
       {isOpen && (
