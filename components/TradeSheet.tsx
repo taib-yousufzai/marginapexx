@@ -1129,7 +1129,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               <div className="ts2-name-block">
                 <div className="ts2-instr-name">{item.name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span className="ts2-segment-badge">{computedKiteSymbol || item?.symbol}</span>
+
                   {exitMode && (
                     <span className="ts2-status-badge neg">Exit Position</span>
                   )}
