@@ -524,8 +524,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [isOrderBlockVisible, setIsOrderBlockVisible] = useState<boolean>(false);
   const [isTradeOnChartActive, setIsTradeOnChartActive] = useState<boolean>(false);
   const [orderSide, setOrderSide] = useState<'BUY' | 'SELL'>('BUY');
-  const [qtyValue, setQtyValue] = useState<number | string>(() => getLotSize(symbol));
-  const [useLots, setUseLots] = useState<boolean>(false);
+  const [useLots, setUseLots] = useState<boolean>(() => {
+    const s = (propSegment || '').toUpperCase();
+    return !(s.includes('EQUITY') || s === 'NSE-EQ' || s.includes('CRYPTO'));
+  });
+  const [qtyValue, setQtyValue] = useState<number | string>(1);
   const [orderCarry, setOrderCarry] = useState<'normal' | 'carry'>('normal');
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'slm' | 'gtt' | 'sl'>('market');
   const [limitPrice, setLimitPrice] = useState<string>('');
@@ -599,8 +602,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setGttTargetPrice((displayPrice * 1.01).toFixed(2));
     setOrderType('market');
     setOrderCarry('normal');
-    setUseLots(false);
-    setQtyValue(lotSize);
+    const isQtyDefault = segment.toUpperCase().includes('EQUITY') || segment.toUpperCase() === 'NSE-EQ' || segment.toUpperCase().includes('CRYPTO');
+    setUseLots(!isQtyDefault);
+    setQtyValue(1);
     setIsExitFlow(false);
     setIsAddMoreFlow(false);
     setExitPositionId(null);
@@ -728,10 +732,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     fetchBalance();
   }, []);
 
-  // Ensure default quantity is always the lowest allowed number when symbol or unit changes
+  // Ensure default quantity is reset to 1 when the symbol changes
   useEffect(() => {
-    setQtyValue(useLots ? 1 : lotSize);
-  }, [symbol, lotSize, useLots]);
+    const isQtyDefault = segment.toUpperCase().includes('EQUITY') || segment.toUpperCase() === 'NSE-EQ' || segment.toUpperCase().includes('CRYPTO');
+    setUseLots(!isQtyDefault);
+    setQtyValue(1);
+  }, [symbol]);
 
 
   // Fetch Historical Data

@@ -76,11 +76,14 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
  *      NIFTY2651924050CE  →  NIFTY 24050 CE  (19 May 26)
  */
 function buildDisplayName(tradingsymbol: string, underlying: string, strike: number | null, optionType: string | null, expiry: string | null): string {
-  if (strike && optionType) {
-    const expLabel = expiry ? ` (${expiry})` : '';
-    return `${underlying} ${strike} ${optionType}${expLabel}`;
+  const isRealValue = (v: any) => v !== null && v !== undefined && String(v).toLowerCase() !== 'null' && String(v).trim() !== '';
+  
+  if (isRealValue(strike) && isRealValue(optionType)) {
+    const expLabel = isRealValue(expiry) ? ` (${expiry})` : '';
+    const safeUnderlying = isRealValue(underlying) ? underlying : (isRealValue(tradingsymbol) ? tradingsymbol : '');
+    return `${safeUnderlying} ${strike} ${optionType}${expLabel}`.trim();
   }
-  return tradingsymbol;
+  return isRealValue(tradingsymbol) ? tradingsymbol : 'Unknown';
 }
 
 /**
@@ -279,7 +282,7 @@ export async function GET(request: NextRequest) {
 
         qry = qry.or(orParts.join(','));
         // CRITICAL FIX: Only fetch live options to not exhaust the limit on dead contracts
-        qry = qry.or(`expiry.gte.${today},expiry.is.null`);
+        qry = qry.or(`expiry.gte.${today},expiry.is.null,expiry.eq.""`);
 
         qry = qry
           .order('expiry', { ascending: true })

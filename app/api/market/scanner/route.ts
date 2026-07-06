@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
       `);
 
     // 2. Apply database filters (price, volume, segment)
+    const today = new Date().toISOString().split('T')[0];
+    dbQuery = dbQuery.or(`expiry.gte.${today},expiry.is.null,expiry.eq.""`, { foreignTable: 'instruments' });
+
     if (segment) {
       dbQuery = dbQuery.eq('instruments.segment', segment.toUpperCase());
     }
