@@ -1131,13 +1131,12 @@ function WatchlistContent() {
   useEffect(() => {
     window.__addToWatchlistCallback = (item: WatchlistItem) => {
       setWatchlistItems(prev => {
-        const newItem = { ...item, category: activeTab };
-        let isDuplicate = false;
-        if (activeTab === 'All') {
-          isDuplicate = prev.some(i => i.symbol === newItem.symbol);
-        } else {
-          isDuplicate = prev.some(i => i.symbol === newItem.symbol && getTabForItem(i) === activeTab);
-        }
+        // If on 'All' tab, determine actual category from item's segment/category
+        // so the item appears in both 'All' AND its specific category tab
+        const resolvedCategory = activeTab === 'All' ? getTabForItem(item) : activeTab;
+        const newItem = { ...item, category: resolvedCategory };
+        // Duplicate check: same symbol already exists anywhere
+        const isDuplicate = prev.some(i => i.symbol === newItem.symbol);
         if (isDuplicate) return prev;
         const next = [...prev, newItem];
         saveWatchlistToStorage(next, userId);
