@@ -800,7 +800,7 @@ function WatchlistContent() {
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
-  const [showBasketConfirm, setShowBasketConfirm] = useState(false);
+
   const [isSelectionActive, setIsSelectionActive] = useState(false);
 
   useEffect(() => {
@@ -1753,32 +1753,18 @@ function WatchlistContent() {
             })}
           </div>
 
-          <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{basketLegs.reduce((acc, leg) => {
-                const price = getLegPrice(leg.item);
-                const seg = mapSegmentToDbSegment(leg.item.segment);
-                const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
-                const lev = Number(setting?.intraday_leverage ?? 10);
-                const levType = setting?.intraday_type ?? 'Multiplier';
-                const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
-                const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
-                const exposure = qty * price;
-                let portion = 0;
-                if (levType === '%') portion = exposure * (lev / 100);
-                else if (levType === 'Fixed') portion = (qty / lotSz) * lev;
-                else portion = exposure / lev;
-                return acc + portion;
-              }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-            <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
-          </div>
+
           <div style={{ display: 'flex', gap: '12px', width: '100%', padding: '0 4px' }}>
             <button
               style={{ flex: 1, background: '#2C8E5A', color: 'white', border: 'none', padding: '17px 8px', borderRadius: '50px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', boxShadow: '0 6px 14px rgba(44,142,90,0.3)', minWidth: 0, whiteSpace: 'nowrap' }}
-              onClick={() => setShowBasketConfirm(true)}
+              onClick={() => {
+                const sheet = document.getElementById('checkoutSheet');
+                const overlay = document.getElementById('checkoutSheetOverlay');
+                if (sheet) sheet.classList.add('open');
+                if (overlay) overlay.classList.add('active');
+              }}
             >
-              <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '0.78rem' }}></i> Execute Basket
+              <i className="fas fa-bolt" style={{ lineHeight: 1, fontSize: '0.78rem' }}></i> Checkout
             </button>
             <button
               style={{ flex: 1, background: 'var(--icon-bg, #EFEFEF)', color: 'var(--text-secondary, #6B7280)', border: 'none', padding: '17px 8px', borderRadius: '50px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '7px', minWidth: 0, whiteSpace: 'nowrap' }}
@@ -1796,47 +1782,70 @@ function WatchlistContent() {
         </div>
       </div>
 
-      {/* Basket Execute Confirmation Dialog */}
-      {showBasketConfirm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-          <div style={{ background: '#FFFFFF', borderRadius: '24px', padding: '28px 24px', width: '100%', maxWidth: '360px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{ width: '56px', height: '56px', background: '#E9F6EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-                <i className="fas fa-bolt" style={{ fontSize: '1.4rem', color: '#2C8E5A' }}></i>
-              </div>
-              <div className="sri-name" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '8px' }}>Confirm Execution</div>
-              <div style={{ fontSize: '0.8rem', color: '#6B7280', lineHeight: '1.5' }}>
-                You are about to execute <strong>{basketLegs.length} order{basketLegs.length !== 1 ? 's' : ''}</strong> worth{' '}
-                <strong>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong>.
-                <br />Are you sure?
-              </div>
+      {/* Checkout Sheet */}
+      <div id="checkoutSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('checkoutSheet'); const overlay = document.getElementById('checkoutSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
+      <div id="checkoutSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
+        <div className="sheet-handle"><div className="handle-bar"></div></div>
+        <div style={{ padding: '24px 20px 20px 20px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <div style={{ width: '56px', height: '56px', background: '#E9F6EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <i className="fas fa-bolt" style={{ fontSize: '1.4rem', color: '#2C8E5A' }}></i>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  setShowBasketConfirm(false);
-                  showToast('Basket executed successfully!', false);
-                  setBasketLegs([]);
-                  setBasketMode(false);
-                  const sheet = document.getElementById('basketSheet');
-                  const overlay = document.getElementById('basketSheetOverlay');
-                  if (sheet) sheet.classList.remove('open');
-                  if (overlay) overlay.classList.remove('active');
-                }}
-                style={{ flex: 1, background: '#2C8E5A', color: '#fff', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(44,142,90,0.3)' }}
-              >
-                <i className="fas fa-bolt" style={{ marginRight: '6px' }}></i>Confirm
-              </button>
-              <button
-                onClick={() => setShowBasketConfirm(false)}
-                style={{ flex: 1, background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
+            <div className="sri-name" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '16px' }}>Checkout Summary</div>
+            <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
+              <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
+              <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Value</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{basketLegs.reduce((acc, l) => acc + (getLegPrice(l.item) * l.qty), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+              <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Required Margin</span><span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{basketLegs.reduce((acc, leg) => {
+                const price = getLegPrice(leg.item);
+                const seg = mapSegmentToDbSegment(leg.item.segment);
+                const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
+                const lev = Number(setting?.intraday_leverage ?? 10);
+                const levType = setting?.intraday_type ?? 'Multiplier';
+                const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
+                const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
+                const exposure = qty * price;
+                let portion = 0;
+                if (levType === '%') portion = exposure * (lev / 100);
+                else if (levType === 'Fixed') portion = (qty / lotSz) * lev;
+                else portion = exposure / lev;
+                return acc + portion;
+              }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+              <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
             </div>
           </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => {
+                showToast('Basket executed successfully!', false);
+                setBasketLegs([]);
+                setBasketMode(false);
+                const sheet = document.getElementById('checkoutSheet');
+                const overlay = document.getElementById('checkoutSheetOverlay');
+                if (sheet) sheet.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+                const bsSheet = document.getElementById('basketSheet');
+                const bsOverlay = document.getElementById('basketSheetOverlay');
+                if (bsSheet) bsSheet.classList.remove('open');
+                if (bsOverlay) bsOverlay.classList.remove('active');
+              }}
+              style={{ flex: 1, background: '#2C8E5A', color: '#fff', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(44,142,90,0.3)' }}
+            >
+              <i className="fas fa-bolt" style={{ marginRight: '6px' }}></i>Confirm
+            </button>
+            <button
+              onClick={() => {
+                const sheet = document.getElementById('checkoutSheet');
+                const overlay = document.getElementById('checkoutSheetOverlay');
+                if (sheet) sheet.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+              }}
+              style={{ flex: 1, background: '#F3F4F6', color: '#4B5563', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
-      )}
+      </div>
 
       <div id="drawerOverlay" className={`drawer-overlay${isFolderDrawerOpen ? ' active' : ''}`} onClick={() => setIsFolderDrawerOpen(false)}></div>
       <div id="scriptsFolderDrawer" className={`folder-drawer${isFolderDrawerOpen ? ' open' : ''}`}>
