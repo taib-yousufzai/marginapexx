@@ -70,6 +70,7 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
   }, [uid, isDemoMode]);
 
   const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
+  const totalSettlement = positions.reduce((s, p) => s + (p.settlementAmount ?? 0), 0);
 
   const filtered = positions.filter(p =>
     p.symbol.toLowerCase().includes(search.toLowerCase()) ||
@@ -308,6 +309,12 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
           <div className="adm-pos-stat-label">OPEN PNL</div>
           <div className={`adm-pos-stat-value ${openPnl >= 0 ? 'pos' : 'neg'}`}>{(openPnl ?? 0).toFixed(2)}</div>
         </div>
+        {tab === 'closed' && (
+          <div className="adm-pos-stat-card">
+            <div className="adm-pos-stat-label" style={{ color: '#f85149' }}>TOTAL SETTLEMENT</div>
+            <div className="adm-pos-stat-value" style={{ color: '#f85149' }}>-{(totalSettlement ?? 0).toFixed(2)}</div>
+          </div>
+        )}
         <div className="adm-pos-stat-card">
           <div className="adm-pos-stat-label">WEEKLY PNL</div>
           <div className={`adm-pos-stat-value ${weeklyPnl >= 0 ? 'pos' : 'neg'}`}>{weeklyPnl.toFixed(2)}</div>
@@ -429,6 +436,12 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
                     <span className="adm-pos-metric-label">Settlement</span>
                     <span className="adm-pos-metric-value settlement">{p.settlement || '-'}</span>
                   </div>
+                  {p.settlementAmount && p.settlementAmount > 0 ? (
+                    <div className="adm-pos-card-metric col-span-2">
+                      <span className="adm-pos-metric-label" style={{ color: '#f85149' }}>Settlement Deficit</span>
+                      <span className="adm-pos-metric-value" style={{ color: '#f85149', fontWeight: 600 }}>-₹{p.settlementAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ) : null}
                   {p.closed_by && (
                     <div className="adm-pos-card-metric col-span-2">
                       <span className="adm-pos-metric-label">Closed By</span>
