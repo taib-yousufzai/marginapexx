@@ -1812,6 +1812,28 @@ function WatchlistContent() {
               }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
               <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
             </div>
+            
+            <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '10px', textAlign: 'left' }}>Items to Execute</div>
+            <div style={{ maxHeight: '35dvh', overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
+              {basketLegs.map((leg, i) => {
+                const ltp = getLegPrice(leg.item);
+                const totalVal = ltp * leg.qty;
+                return (
+                  <div key={`chk_${i}`} style={{ background: 'var(--card-alt-bg, #F8FAFF)', border: '1px solid var(--border-card, #EEF2F8)', borderRadius: '12px', padding: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-primary)' }}>{leg.item.name}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', background: leg.side === 'BUY' ? '#E9F6EF' : '#FEF0F0', color: leg.side === 'BUY' ? '#15803D' : '#C62E2E' }}>{leg.side}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{leg.qty} {leg.unit.toUpperCase()}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>@ ₹{ltp.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
