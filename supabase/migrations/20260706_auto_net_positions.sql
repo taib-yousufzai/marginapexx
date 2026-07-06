@@ -1,139 +1,6 @@
--- ------------------------------------------
--- FILE: 20260614_add_buffer_fee.sql
--- ------------------------------------------
+-- Fix for simultaneous opposite positions (auto-netting)
+-- Drops the old function and recreates it with intelligent auto-netting
 
--- 1. Add buffer_fee column to public.orders table
-ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS buffer_fee numeric NOT NULL DEFAULT 0;
-
--- 2. Update public.transactions type check constraint to include BUFFER_FEE_DEBIT
-ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
-ALTER TABLE public.transactions ADD CONSTRAINT transactions_type_check 
-  CHECK (type IN ('DEPOSIT','WITHDRAWAL','PNL_CREDIT','PNL_DEBIT','BROKERAGE_DEBIT','BUFFER_FEE_DEBIT'));
-
--- 3. Redefine place_order to accept and insert p_buffer_fee
-CREATE OR REPLACE FUNCTION public.place_order(
-  p_user_id        uuid,
-  p_symbol         text,
-  p_kite_inst      text,
-  p_segment        text,
-  p_side           text,
-  p_order_type     text,
-  p_product_type   text,
-  p_qty            numeric,
-  p_lots           numeric,
-  p_ltp            numeric,
-  p_fill_price     numeric,
-  p_info           text DEFAULT NULL,
-  p_trigger_price  numeric DEFAULT NULL,
-  p_stop_loss      numeric DEFAULT NULL,
-  p_target         numeric DEFAULT NULL,
-  p_is_exit        boolean DEFAULT false,
-  p_buffer_fee     numeric DEFAULT 0
-)
-RETURNS uuid
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_order_id uuid;
-  v_status   text;
-  v_ord_strike numeric;
-  v_ord_opt_type text;
-  v_pos record;
-  v_pos_strike numeric;
-  v_pos_opt_type text;
-BEGIN
-  -- ─── STRICT OPTIONS DIRECTION AND QUANTITY VALIDATION ───
-  SELECT * INTO v_ord_strike, v_ord_opt_type FROM public.parse_option_symbol(p_symbol);
-
-  IF v_ord_strike IS NOT NULL AND v_ord_opt_type IS NOT NULL THEN
-    -- Symbol is an options contract. Find active positions for the same contract and product_type
-    FOR v_pos IN 
-      SELECT * FROM public.positions 
-      WHERE user_id = p_user_id AND status = 'open' AND qty_open > 0 AND product_type = p_product_type
-    LOOP
-      SELECT * INTO v_pos_strike, v_pos_opt_type FROM public.parse_option_symbol(v_pos.symbol);
-      
-      IF v_pos_strike = v_ord_strike AND v_pos_opt_type = v_ord_opt_type THEN
-        -- Matching strike & option type found!
-        
-        IF p_is_exit THEN
-          -- Exit validation
-          IF v_pos.side = p_side THEN
-            RAISE EXCEPTION 'No % position exists to exit', CASE WHEN v_pos.side = 'BUY' THEN 'SELL' ELSE 'BUY' END;
-          END IF;
-          
-          IF p_qty > v_pos.qty_open THEN
-            RAISE EXCEPTION 'Exit quantity cannot exceed current position quantity';
-          END IF;
-        
-        ELSE
-          -- Entry validation (Strict opposite block)
-          IF v_pos.side != p_side THEN
-            IF v_pos.side = 'BUY' THEN
-              RAISE EXCEPTION 'Cannot open SELL position while BUY position is active';
-            ELSE
-              RAISE EXCEPTION 'Cannot open BUY position while SELL position is active';
-            END IF;
-          END IF;
-        
-        END IF;
-        
-      END IF;
-    END LOOP;
-    
-    -- If it's explicitly marked as exit, but no active position was found:
-    IF p_is_exit AND NOT FOUND THEN
-      RAISE EXCEPTION 'No % position exists to exit', CASE WHEN p_side = 'BUY' THEN 'SELL' ELSE 'BUY' END;
-    END IF;
-  END IF;
-
-  -- ─── EXECUTE ORDER CREATION ───
-  -- Determine status: MARKET/SLM execute immediately, LIMIT/SL/GTT are PENDING
-  IF p_order_type IN ('MARKET', 'SLM') THEN
-    v_status := 'EXECUTED';
-  ELSE
-    v_status := 'PENDING';
-  END IF;
-
-  -- 1. Insert order record
-  INSERT INTO public.orders (
-    user_id, symbol, kite_instrument, segment,
-    side, status, qty, lots,
-    price, fill_price, ltp_at_entry,
-    order_type, product_type, info,
-    trigger_price, stop_loss, target, is_exit, buffer_fee
-  )
-  VALUES (
-    p_user_id, p_symbol, p_kite_inst, p_segment,
-    p_side, v_status, p_qty, p_lots,
-    p_fill_price, p_fill_price, p_ltp,
-    p_order_type, p_product_type, p_info,
-    p_trigger_price, p_stop_loss, p_target, p_is_exit, p_buffer_fee
-  )
-  RETURNING id INTO v_order_id;
-
-  -- 2. Run positioning logic ONLY if EXECUTED immediately
-  IF v_status = 'EXECUTED' THEN
-    PERFORM public.process_executed_position(v_order_id);
-  END IF;
-
-  -- 3. Audit log
-  INSERT INTO public.act_logs (
-    type, user_id, target_user_id, symbol, qty, price, reason
-  )
-  VALUES (
-    CASE WHEN v_status = 'EXECUTED' THEN 'ORDER_EXECUTION' ELSE 'ORDER_PLACED' END,
-    p_user_id, p_user_id,
-    p_symbol, p_qty, p_fill_price,
-    p_order_type || ' ' || v_status || ' @ ' || COALESCE(p_trigger_price::text, 'no-trigger')
-  );
-
-  RETURN v_order_id;
-END;
-$$;
-
--- 4. Redefine process_executed_position to debit buffer_fee
 CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -162,6 +29,7 @@ DECLARE
   v_closed_brokerage numeric := 0;
   v_closed_entry_brokerage numeric := 0;
   v_pos_found boolean;
+  v_opposite_pos_found boolean;
   v_lot_size numeric;
   v_lots numeric;
   
@@ -215,15 +83,14 @@ BEGIN
     v_gtt_comm_val := 10;
   END IF;
 
-  -- Fetch lot size dynamically if needed via ILIKE substring matching
-  -- First try fetching exact lot size from instruments table
+  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or symbol
   SELECT lot_size INTO v_lot_size 
   FROM public.instruments 
   WHERE tradingsymbol = v_order.kite_instrument 
      OR tradingsymbol = v_order.symbol
   LIMIT 1;
 
-  -- Fallback: match by underlying name prefix
+  -- Fallback: match by underlying name prefix (populated by sync-instruments cron)
   IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
     SELECT i.lot_size INTO v_lot_size
     FROM public.instruments i
@@ -233,10 +100,12 @@ BEGIN
     LIMIT 1;
   END IF;
 
+  -- Fallback: script_settings admin overrides
   IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
     SELECT lot_size INTO v_lot_size FROM public.script_settings WHERE v_order.symbol ILIKE '%' || symbol || '%' ORDER BY length(symbol) DESC LIMIT 1;
   END IF;
 
+  -- Last resort: hardcoded values (current as of Jul 2026 — update when NSE revises)
   IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
     IF v_order.symbol ILIKE '%BANKNIFTY%' OR v_order.symbol ILIKE '%BANKEX%' THEN
       v_lot_size := 30;
@@ -278,12 +147,6 @@ BEGIN
     v_raw_brokerage := (v_order.qty * v_order.fill_price * 0.001); -- 0.1% fallback
   END IF;
 
-  -- 2. Carry Commission — DEFERRED TO EXIT TIME
-  -- Carry brokerage is NOT charged at entry anymore. It is calculated and charged
-  -- when the position is closed via close_position() RPC's p_brokerage parameter.
-  -- This prevents double-charging when users switch between INTRADAY and CARRY.
-  -- v_carry_brokerage remains 0 here.
-
   -- 3. GTT Commission (only if GTT order, stacked on top)
   IF v_order.order_type = 'GTT' THEN
     IF v_gtt_comm_type = 'Per Crore' THEN
@@ -317,29 +180,22 @@ BEGIN
     VALUES (v_order.user_id, 'BUFFER_FEE_DEBIT', v_order.buffer_fee, 'APPROVED', 'BUF_' || v_order.id::text);
   END IF;
 
-  -- Lock and fetch active position
+  -- INTELLIGENT AUTO-NETTING: Check if an opposite position exists regardless of v_order.is_exit
   SELECT * INTO v_pos
   FROM public.positions
   WHERE user_id = v_order.user_id 
     AND symbol = v_order.symbol 
     AND status = 'open' 
     AND product_type = v_order.product_type
+    AND side != v_order.side
   FOR UPDATE;
+  
+  v_opposite_pos_found := FOUND;
 
-  v_pos_found := FOUND;
-
-  IF v_order.is_exit THEN
-    -- ─── EXIT ORDER LOGIC ───
-    IF NOT v_pos_found THEN
-      RAISE EXCEPTION 'No active position exists to exit';
-    END IF;
-
-    IF v_pos.side = v_order.side THEN
-      RAISE EXCEPTION 'Invalid exit side: exit order side must be opposite of position side';
-    END IF;
-
+  IF v_opposite_pos_found THEN
+    -- ─── EXIT ORDER LOGIC (Opposite position found, treat as exit) ───
     IF v_order.qty > v_pos.qty_open THEN
-      RAISE EXCEPTION 'Exit quantity cannot exceed current position quantity';
+      RAISE EXCEPTION 'Order quantity (%) exceeds open opposite position quantity (%). Partial reversing not supported natively yet.', v_order.qty, v_pos.qty_open;
     END IF;
 
     -- Calculate realized P&L (BUY = exit - entry, SELL = entry - exit)
@@ -407,30 +263,36 @@ BEGIN
       v_pnl_type := CASE WHEN v_pnl >= 0 THEN 'PNL_CREDIT' ELSE 'PNL_DEBIT' END;
       INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
       VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_closed_pos_id::text);
-
     END IF;
 
   ELSE
-    -- ─── ENTRY ORDER LOGIC ───
-    -- D. Accumulate/create position
-    IF v_pos_found THEN
-      -- If same side, accumulate quantity & compute weighted average price
-      IF v_pos.side = v_order.side THEN
-        v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);
+    -- ─── ENTRY ORDER LOGIC (No opposite position found, treat as entry) ───
+    -- Check if a same-side position exists to accumulate
+    SELECT * INTO v_pos
+    FROM public.positions
+    WHERE user_id = v_order.user_id 
+      AND symbol = v_order.symbol 
+      AND status = 'open' 
+      AND product_type = v_order.product_type
+      AND side = v_order.side
+    FOR UPDATE;
 
-        UPDATE public.positions
-        SET
-          qty_open = qty_open + v_order.qty,
-          qty_total = qty_total + v_order.qty,
-          avg_price = v_new_avg_price,
-          entry_price = v_new_avg_price,
-          entry_brokerage = entry_brokerage + v_brokerage,
-          brokerage = brokerage + v_brokerage,
-          updated_at = now()
-        WHERE id = v_pos.id;
-      ELSE
-        RAISE EXCEPTION 'Cannot open opposite position while existing position is active';
-      END IF;
+    v_pos_found := FOUND;
+
+    IF v_pos_found THEN
+      -- Accumulate quantity & compute weighted average price
+      v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);
+
+      UPDATE public.positions
+      SET
+        qty_open = qty_open + v_order.qty,
+        qty_total = qty_total + v_order.qty,
+        avg_price = v_new_avg_price,
+        entry_price = v_new_avg_price,
+        entry_brokerage = entry_brokerage + v_brokerage,
+        brokerage = brokerage + v_brokerage,
+        updated_at = now()
+      WHERE id = v_pos.id;
     ELSE
       -- Insert a brand new open position
       INSERT INTO public.positions (
@@ -469,14 +331,3 @@ BEGIN
 
 END;
 $$;
-
--- 5. Re-grant permissions
-REVOKE EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric, numeric, numeric, boolean, numeric) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.place_order(uuid, text, text, text, text, text, text, numeric, numeric, numeric, numeric, text, numeric, numeric, numeric, boolean, numeric) TO service_role;
--- 1. Add bid_buffer column to segment_settings
-ALTER TABLE public.segment_settings 
-ADD COLUMN IF NOT EXISTS bid_buffer numeric NOT NULL DEFAULT 0.3;
-
--- 2. Add bid_buffer column to scalper_segment_settings
-ALTER TABLE public.scalper_segment_settings 
-ADD COLUMN IF NOT EXISTS bid_buffer numeric NOT NULL DEFAULT 0.3;
