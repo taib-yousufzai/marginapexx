@@ -73,6 +73,7 @@ export type PositionItem = {
   entry_time: string; exit_time: string | null; settlement: string | null;
   status: 'open' | 'active' | 'closed';
   closed_by?: string | null;
+  settlement_amount?: number | null;
 };
 
 export type Position = {
@@ -96,6 +97,7 @@ export type Position = {
   settlement?: string;
   status: 'open' | 'active' | 'closed';
   closed_by?: string;
+  settlementAmount?: number;
 };
 
 export function formatDuration(seconds: number): string {
@@ -139,6 +141,7 @@ export function positionItemToPosition(item: PositionItem): Position {
     settlement: item.settlement ?? undefined,
     status: item.qty_open > 0 ? 'open' : 'closed',
     closed_by: item.closed_by || undefined,
+    settlementAmount: item.settlement_amount ? Math.abs(item.settlement_amount) : undefined,
   };
 }
 export function downloadCSV(data: Record<string, unknown>[], filename: string) {
