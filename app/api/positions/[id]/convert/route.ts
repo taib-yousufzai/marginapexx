@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
 import { getLotSizeFromDB } from '@/lib/lotSize';
+import { calculateFreeMarginFromPositions } from '@/lib/floatingPnl';
 
 export async function POST(
   request: NextRequest,
@@ -106,12 +107,8 @@ export async function POST(
         .eq('status', 'open');
 
       const totalUsedMargin = (allOpenPos || []).reduce((acc, p) => acc + Number(p.locked_margin || p.margin_required || 0), 0);
-      const totalFloatingLoss = (allOpenPos || []).reduce((acc, p) => {
-        const pnl = Number(p.pnl || 0);
-        return acc + (pnl < 0 ? pnl : 0);
-      }, 0);
       const balance = Number(profile.balance || 0);
-      const freeMargin = (balance + totalFloatingLoss);
+      const freeMargin = calculateFreeMarginFromPositions(balance, allOpenPos || []);
 
       if (freeMargin < marginDifference) {
         return NextResponse.json({

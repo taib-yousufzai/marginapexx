@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
 
 export async function GET(
   request: NextRequest,

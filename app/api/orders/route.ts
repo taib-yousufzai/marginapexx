@@ -18,6 +18,8 @@ import { getSharedKiteSession } from '@/lib/kiteSession';
 import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
 import { getLotSizeFallback } from '@/lib/lotSize';
+import { calculateSingleLegCharge } from '@/lib/brokerage';
+import { calculateFreeMarginFromPositions } from '@/lib/floatingPnl';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -857,26 +859,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (targetProductType === 'CARRY' || order_type === 'GTT') {
     const carryCommType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
     const carryCommVal = Number(segSetting.carry_commission_value ?? segSetting.commission_value ?? 0);
-    if (carryCommType === 'Per Crore') carryCharge = (exposure * carryCommVal) / 10000000;
-    else if (carryCommType === 'Per Lot') carryCharge = lotsUsed * carryCommVal;
-    else if (carryCommType === 'Per Trade' || carryCommType === 'Flat') carryCharge = carryCommVal;
-    else carryCharge = exposure * 0.001;
+    carryCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: carryCommType,
+      commissionValue: carryCommVal,
+    });
   } else {
     const intradayCommType = segSetting.commission_type || 'Per Crore';
     const intradayCommVal = Number(segSetting.commission_value ?? 0);
-    if (intradayCommType === 'Per Crore') intradayCharge = (exposure * intradayCommVal) / 10000000;
-    else if (intradayCommType === 'Per Lot') intradayCharge = lotsUsed * intradayCommVal;
-    else if (intradayCommType === 'Per Trade' || intradayCommType === 'Flat') intradayCharge = intradayCommVal;
-    else intradayCharge = exposure * 0.001;
+    intradayCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: intradayCommType,
+      commissionValue: intradayCommVal,
+    });
   }
 
   // GTT
   if (order_type === 'GTT') {
     const gttCommType = segSetting.gtt_commission_type || 'Per Trade';
     const gttCommVal = Number(segSetting.gtt_commission_value ?? 10);
-    if (gttCommType === 'Per Crore') gttCharge = (exposure * gttCommVal) / 10000000;
-    else if (gttCommType === 'Per Lot') gttCharge = lotsUsed * gttCommVal;
-    else if (gttCommType === 'Per Trade' || gttCommType === 'Flat') gttCharge = gttCommVal;
+    gttCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: gttCommType,
+      commissionValue: gttCommVal,
+    });
   }
 
   // Since brokerage might be zeroed out later for Crypto, we capture it as required margin first
@@ -892,13 +901,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const totalLockedMargin = openPositions.reduce(
     (sum: number, p: any) => sum + Number(p.locked_margin || p.margin_required || 0), 0
   );
-  const totalFloatingLoss = openPositions.reduce(
-    (sum: number, p: any) => {
-      const pnl = Number(p.pnl || 0);
-      return sum + (pnl < 0 ? pnl : 0);
-    }, 0
-  );
-  const freeMargin = balance + totalFloatingLoss;
+  const freeMargin = calculateFreeMarginFromPositions(balance, openPositions);
 
   if (freeMargin < requiredMargin) {
     return NextResponse.json({

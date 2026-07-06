@@ -2294,6 +2294,9 @@ body.black .convert-type-btn.carry { color: #CCC; background: rgba(255,255,255,0
 }
 
 @media (max-width: 500px) {
+    html:has(.pos-root), body:has(.pos-root) {
+        overflow: hidden;
+    }
     .trade-sheet {
         max-width: 100%;
     }
