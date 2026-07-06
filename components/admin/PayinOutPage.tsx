@@ -419,6 +419,7 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                 <th style={{ padding: '16px', fontWeight: 600 }}>Sub-Broker</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Type</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Amount</th>
+                {tab === 'withdrawal' && <th style={{ padding: '16px', fontWeight: 600 }}>Bank Details</th>}
                 <th style={{ padding: '16px', fontWeight: 600 }}>Remark</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Screenshot</th>
                 <th style={{ padding: '16px', fontWeight: 600 }}>Status</th>
@@ -430,7 +431,7 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={12} style={{ padding: 20 }}>
+                  <td colSpan={tab === 'withdrawal' ? 13 : 12} style={{ padding: 20 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {Array.from({ length: 3 }).map((_, i) => <SkeletonLine key={i} height={40} />)}
                     </div>
@@ -438,13 +439,13 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={12} style={{ padding: 20 }}>
+                  <td colSpan={tab === 'withdrawal' ? 13 : 12} style={{ padding: 20 }}>
                     <div className="adm-dashed-box" style={{ borderColor: '#f85149', color: '#f85149' }}>{error}</div>
                   </td>
                 </tr>
               ) : displayed.length === 0 ? (
                 <tr>
-                  <td colSpan={12} style={{ padding: 20 }}>
+                  <td colSpan={tab === 'withdrawal' ? 13 : 12} style={{ padding: 20 }}>
                     <div className="adm-dashed-box">No {tab} requests matching your criteria.</div>
                   </td>
                 </tr>
@@ -466,6 +467,9 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                        r.type}
                     </td>
                     <td style={{ padding: '16px', color: '#c9d1d9', fontWeight: 600 }}>₹{r.amount}</td>
+                    {tab === 'withdrawal' && (
+                      <td style={{ padding: '16px', color: '#c9d1d9' }}>{r.account_name || '—'}</td>
+                    )}
                     <td style={{ padding: '16px', color: '#8b949e' }}>{r.reference_id ? 'System' : '—'}</td>
                     <td style={{ padding: '16px' }}>
                       {r.screenshot_url ? (
