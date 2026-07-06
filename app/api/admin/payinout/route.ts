@@ -112,12 +112,25 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
+    // Fetch bank names from user_bank_accounts
+    const accountNos = (data ?? []).map((r: any) => r.account_no).filter(Boolean);
+    const { data: bankAccounts } = accountNos.length > 0 
+      ? await adminClient.from('user_bank_accounts').select('account_no, bank_name').in('account_no', accountNos)
+      : { data: [] };
+      
+    const bankMap: Record<string, string> = {};
+    (bankAccounts ?? []).forEach((b: any) => {
+      if (b.account_no && b.bank_name) {
+        bankMap[b.account_no] = b.bank_name;
+      }
+    });
+
     // Merge profile info into each request
     let merged = (data ?? []).map((r: any) => ({
       ...r,
       user_name: profileMap[r.user_id]?.full_name || profileMap[r.user_id]?.email || r.user_id,
       user_client_id: profileMap[r.user_id]?.client_id || '',
-      user_bank_name: profileMap[r.user_id]?.bank_name || '',
+      user_bank_name: bankMap[r.account_no] || profileMap[r.user_id]?.bank_name || '',
     }));
 
     // Apply search filter across name, client_id, user_id, and request id
