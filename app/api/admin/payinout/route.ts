@@ -52,8 +52,8 @@ export async function GET(request: Request): Promise<Response> {
     const isDemo = demoParam === 'true';
 
     // Fetch all profiles to build a lookup map for user names and client_ids
-    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id').eq('demo_user', isDemo);
-    const profileMap: Record<string, { full_name: string; email: string; client_id: string }> = {};
+    const { data: profiles } = await adminClient.from('profiles').select('id, email, full_name, client_id, bank_name').eq('demo_user', isDemo);
+    const profileMap: Record<string, { full_name: string; email: string; client_id: string; bank_name: string }> = {};
     (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p; });
 
     // Step 3: Build Supabase query ordered by created_at descending
@@ -117,6 +117,7 @@ export async function GET(request: Request): Promise<Response> {
       ...r,
       user_name: profileMap[r.user_id]?.full_name || profileMap[r.user_id]?.email || r.user_id,
       user_client_id: profileMap[r.user_id]?.client_id || '',
+      user_bank_name: profileMap[r.user_id]?.bank_name || '',
     }));
 
     // Apply search filter across name, client_id, user_id, and request id

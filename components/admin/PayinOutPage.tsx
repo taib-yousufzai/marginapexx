@@ -468,7 +468,11 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                     </td>
                     <td style={{ padding: '16px', color: '#c9d1d9', fontWeight: 600 }}>₹{r.amount}</td>
                     {tab === 'withdrawal' && (
-                      <td style={{ padding: '16px', color: '#c9d1d9' }}>{r.account_name || '—'}</td>
+                      <td style={{ padding: '16px', color: '#c9d1d9' }}>
+                        {r.account_name === 'System Credit' || r.account_name === 'System Debit' 
+                          ? r.account_name 
+                          : ((r as any).user_bank_name || r.account_name || '—')}
+                      </td>
                     )}
                     <td style={{ padding: '16px', color: '#8b949e' }}>{r.reference_id ? 'System' : '—'}</td>
                     <td style={{ padding: '16px' }}>
