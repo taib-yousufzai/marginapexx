@@ -16,6 +16,7 @@ export interface TradeSheetItem {
   segment: string;
   price: number;
   change?: string;
+  expiry?: string;
 }
 
 interface TradeSheetProps {
@@ -108,6 +109,16 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [gttSubOption, setGttSubOption] = useState<string>('LIMIT');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  
+  const isExpired = useMemo(() => {
+    if (!item?.expiry || exitMode || isModify) return false;
+    const expiryDate = new Date(item.expiry);
+    const now = new Date();
+    expiryDate.setUTCHours(0, 0, 0, 0);
+    now.setUTCHours(0, 0, 0, 0);
+    return expiryDate < now;
+  }, [item?.expiry, exitMode, isModify]);
+
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [showCharges, setShowCharges] = useState(false);
@@ -1074,9 +1085,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           position: absolute; bottom: 0; left: 0; right: 0;
           max-width: 500px; margin: 0 auto; z-index: 10001;
           background: var(--card-bg, #fff); padding: 12px 14px 24px;
-          display: flex; gap: 8px;
+          display: flex; flex-direction: column; gap: 8px;
         }
         @media (max-width: 500px) { .ts2-footer { max-width: 100%; } }
+        .ts2-btn-row { display: flex; gap: 8px; width: 100%; }
         .ts2-btn {
           flex: 1; height: 52px; border: none; border-radius: 50px;
           font-size: 1rem; font-weight: 800; letter-spacing: 0.5px;
@@ -1426,28 +1438,35 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               </div>
             </div>
 
-            {/* Block Warnings Removed - Hedging is now supported */}
-
             {/* Footer */}
             <div className="ts2-footer">
-              {(side === 'BUY' || side === 'BOTH') && (
-                <button
-                  className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
-                  disabled={placingOrder}
-                  onClick={() => handlePlace('BUY')}
-                >
-                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'BUY'}
-                </button>
+              {isExpired && (
+                <div style={{ padding: '8px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13px', fontWeight: '500', textAlign: 'center', width: '100%' }}>
+                  This instrument has expired.
+                </div>
               )}
-              {(side === 'SELL' || side === 'BOTH') && (
-                <button
-                  className="ts2-btn ts2-btn-sell"
-                  disabled={placingOrder}
-                  onClick={() => handlePlace('SELL')}
-                >
-                  {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'SELL'}
-                </button>
-              )}
+              <div className="ts2-btn-row">
+                {(side === 'BUY' || side === 'BOTH') && (
+                  <button
+                    className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
+                    disabled={placingOrder || isExpired}
+                    style={isExpired ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    onClick={() => handlePlace('BUY')}
+                  >
+                    {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'BUY'}
+                  </button>
+                )}
+                {(side === 'SELL' || side === 'BOTH') && (
+                  <button
+                    className="ts2-btn ts2-btn-sell"
+                    disabled={placingOrder || isExpired}
+                    style={isExpired ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    onClick={() => handlePlace('SELL')}
+                  >
+                    {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'SELL'}
+                  </button>
+                )}
+              </div>
             </div>
           </>
         )}

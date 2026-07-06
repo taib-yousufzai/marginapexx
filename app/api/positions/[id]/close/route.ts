@@ -16,7 +16,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
+import { calculateExitPrice } from '@/lib/floatingPnl';
 import type { ClosePositionResponse } from '@/lib/types/order';
 
 /**
@@ -249,21 +250,14 @@ export async function POST(
   ]);
 
   const { data: segSetting } = segSettingResult;
-  // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
-  const exitBuffer = (segSetting?.exit_buffer ?? 0.17) / 100;
   const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
   const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
   const baseLtp = kiteLtp ?? Number(pos.ltp ?? pos.entry_price);
 
-  // Exit price: opposite buffer to entry
-  let exitPrice: number;
-  if (pos.side === 'BUY') {
-    exitPrice = baseLtp * (1 - exitBuffer);
-  } else {
-    exitPrice = baseLtp * (1 + exitBuffer);
-  }
-  exitPrice = Math.round(exitPrice * 100) / 100;
+  // Exit price: exit_buffer applied to the live LTP (precision 2 for display/settlement)
+  const exitBuffer = segSetting?.exit_buffer ?? 0.17;
+  const exitPrice = calculateExitPrice({ side: pos.side, ltp: baseLtp, exitBufferPct: exitBuffer }, 2);
 
   // ─── Anti-Scalping Check ───
   // Profit/loss determined by comparing live LTP to the buffered entry_price

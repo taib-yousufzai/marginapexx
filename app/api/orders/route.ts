@@ -18,6 +18,8 @@ import { getSharedKiteSession } from '@/lib/kiteSession';
 import { positionStore, parseOptionSymbol } from '../../../lib/positionStore';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
 import { getLotSizeFallback } from '@/lib/lotSize';
+import { calculateSingleLegCharge } from '@/lib/brokerage';
+import { calculateFreeMarginFromPositions } from '@/lib/floatingPnl';
 import type {
   PlaceOrderRequest,
   PlaceOrderResponse,
@@ -216,12 +218,16 @@ function mapSegmentToDbSegment(s: string): string {
   if (['NSE - Options', 'BSE - Options', 'NFO - Options', 'BFO - Options'].includes(trimmed)) return 'INDEX-OPT';
   if (['NSE - Stock Futures', 'BSE - Stock Futures', 'NFO - Stock Futures', 'BFO - Stock Futures'].includes(trimmed)) return 'STOCK-FUT';
   if (['NSE - Stock Options', 'BSE - Stock Options', 'NFO - Stock Options', 'BFO - Stock Options'].includes(trimmed)) return 'STOCK-OPT';
-  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
-  if (trimmed === 'MCX - Options') return 'MCX-OPT';
-  if (['NSE - Equity', 'BSE - Equity'].includes(trimmed)) return 'NSE-EQ';
+  if (trimmed === 'MCX - Futures' || trimmed === 'MCX-FUT' || trimmed === 'MCX') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options' || trimmed === 'MCX-OPT') return 'MCX-OPT';
+  if (['NSE - Equity', 'BSE - Equity', 'NSE-EQ'].includes(trimmed)) return 'NSE-EQ';
   if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
-  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options' || trimmed === 'FOREX' || trimmed === 'CDS') return 'FOREX';
   if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  // Raw exchange → infer segment (for positions stored with raw settlement values)
+  if (trimmed === 'NFO' || trimmed === 'BFO') return 'INDEX-FUT';
+  if (trimmed === 'NSE') return 'NSE-EQ';
+  if (trimmed === 'BSE') return 'NSE-EQ';
   return trimmed;
 }
 
@@ -423,7 +429,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit } = body;
+  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit: body_is_exit } = body;
+  let is_exit = body_is_exit === true || body_is_exit === 'true';
 
   // Normalize crypto symbol: positions may be stored as 'ETH' or 'ETH/USDT'
   // but exit orders arrive as 'ETHUSDT' from the Binance feed. Strip the USDT
@@ -498,6 +505,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     blockedScriptsResult,
     tradingHoursResult,
     pendingOrdersResult,
+    instrumentDetailResult,
   ] = await Promise.all([
     // User's own segment settings (both sides)
     admin.from(targetTable)
@@ -529,13 +537,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Script settings for lot size lookup (admin overrides)
     admin.from('script_settings').select('symbol, lot_size'),
 
-    // Instrument lot sizes from Zerodha CSV (more reliable than hardcoded fallbacks)
-    // Guarded: if lot_size column doesn't exist yet (migration pending), returns empty array
-    admin.from('instruments')
-      .select('name, lot_size')
-      .gt('lot_size', 0)
-      .limit(200)
-      .then(r => r.error?.code === '42703' ? { data: [], error: null } : r),
+    // (Removed unsafe random 200 instruments fetch; we now fetch exact instrument below)
+    Promise.resolve({ data: [], error: null }),
 
     // Blocked scripts for this user
     admin.from('user_blocked_scripts')
@@ -557,6 +560,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .select('id, symbol, qty, lots, status, side, segment, is_exit')
       .eq('user_id', user.id)
       .eq('status', 'PENDING'),
+
+    // Instrument details check (Expiry & Lot Size)
+    admin.from('instruments')
+      .select('expiry, lot_size, name')
+      .or(`tradingsymbol.eq.${symbol},id.eq.${kite_instrument}`)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // Market hours check (result already fetched in parallel above)
@@ -565,7 +575,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const segmentHour = tradingHoursResult.data;
       if (!tradingHoursResult.error && segmentHour) {
         if (!segmentHour.is_active) {
-          return NextResponse.json({ error: 'market is closed' }, { status: 400 });
+          return NextResponse.json({ error: 'Market is closed for ' + dbSegment }, { status: 400 });
         }
         const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
         const dayOfWeek = nowIST.getDay();
@@ -582,15 +592,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Check Expiry for entry orders
+  if (!is_exit && !dbSegment.includes('CRYPTO')) {
+    const expiry = instrumentDetailResult?.data?.expiry;
+    if (expiry) {
+      const expiryDate = new Date(expiry);
+      const expiryDay = new Date(expiryDate.getFullYear(), expiryDate.getMonth(), expiryDate.getDate());
+      const today = new Date();
+      const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      if (expiryDay.getTime() < todayDay.getTime()) {
+        return NextResponse.json({ error: 'This contract has expired. You cannot open new positions.' }, { status: 400 });
+      }
+    }
+  }
+
   const openPositions = positionsResult?.data ?? [];
   const pendingOrders = pendingOrdersResult?.data ?? [];
+  
+  const exactInstrumentLotSize = instrumentDetailResult?.data?.lot_size 
+    ? [{ symbol: instrumentDetailResult.data.name || symbol, lot_size: Number(instrumentDetailResult.data.lot_size) }]
+    : [];
+
   // Merge script_settings overrides with instrument lot sizes from Zerodha CSV.
   // script_settings takes priority (admin overrides); instruments table is the dynamic source.
-  const instrumentLotSizes = (instrumentLotSizesResult?.data as any[] ?? [])
-    .map((r: any) => ({ symbol: r.name, lot_size: Number(r.lot_size) }))
-    .filter((r: any) => r.symbol && r.lot_size > 0);
   const dbScriptSettings = [
-    ...instrumentLotSizes,
+    ...exactInstrumentLotSize,
     ...(scriptSettingsResult?.data as any[] ?? []),  // script_settings wins on conflict (later entry wins in getLotSizeFallback)
   ];
   const blockedScript = blockedScriptsResult?.data;
@@ -609,6 +636,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (matchedPos && matchedPos.symbol !== symbol) {
       symbol = matchedPos.symbol; // use the form stored in DB
+    }
+  }
+
+  // Auto-convert opposite entry orders to exit orders if quantity allows
+  if (!is_exit) {
+    const targetProductType = product_type ?? 'INTRADAY';
+    const oppositePosition = openPositions.find(
+      (p: any) => p.symbol === symbol && p.product_type === targetProductType && p.side !== side
+    );
+    if (oppositePosition) {
+      if (qty <= Number(oppositePosition.qty_open)) {
+        is_exit = true; // Automatically treat as an exit order
+      } else {
+        return NextResponse.json({
+          error: `You already have an open ${oppositePosition.side} position of ${oppositePosition.qty_open} qty. Please exit it first before reversing or placing a larger opposite order.`
+        }, { status: 400 });
+      }
     }
   }
 
@@ -815,26 +859,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (targetProductType === 'CARRY' || order_type === 'GTT') {
     const carryCommType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
     const carryCommVal = Number(segSetting.carry_commission_value ?? segSetting.commission_value ?? 0);
-    if (carryCommType === 'Per Crore') carryCharge = (exposure * carryCommVal) / 10000000;
-    else if (carryCommType === 'Per Lot') carryCharge = lotsUsed * carryCommVal;
-    else if (carryCommType === 'Per Trade' || carryCommType === 'Flat') carryCharge = carryCommVal;
-    else carryCharge = exposure * 0.001;
+    carryCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: carryCommType,
+      commissionValue: carryCommVal,
+    });
   } else {
     const intradayCommType = segSetting.commission_type || 'Per Crore';
     const intradayCommVal = Number(segSetting.commission_value ?? 0);
-    if (intradayCommType === 'Per Crore') intradayCharge = (exposure * intradayCommVal) / 10000000;
-    else if (intradayCommType === 'Per Lot') intradayCharge = lotsUsed * intradayCommVal;
-    else if (intradayCommType === 'Per Trade' || intradayCommType === 'Flat') intradayCharge = intradayCommVal;
-    else intradayCharge = exposure * 0.001;
+    intradayCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: intradayCommType,
+      commissionValue: intradayCommVal,
+    });
   }
 
   // GTT
   if (order_type === 'GTT') {
     const gttCommType = segSetting.gtt_commission_type || 'Per Trade';
     const gttCommVal = Number(segSetting.gtt_commission_value ?? 10);
-    if (gttCommType === 'Per Crore') gttCharge = (exposure * gttCommVal) / 10000000;
-    else if (gttCommType === 'Per Lot') gttCharge = lotsUsed * gttCommVal;
-    else if (gttCommType === 'Per Trade' || gttCommType === 'Flat') gttCharge = gttCommVal;
+    gttCharge = calculateSingleLegCharge({
+      exposure,
+      lots: lotsUsed,
+      commissionType: gttCommType,
+      commissionValue: gttCommVal,
+    });
   }
 
   // Since brokerage might be zeroed out later for Crypto, we capture it as required margin first
@@ -850,13 +901,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const totalLockedMargin = openPositions.reduce(
     (sum: number, p: any) => sum + Number(p.locked_margin || p.margin_required || 0), 0
   );
-  const totalFloatingLoss = openPositions.reduce(
-    (sum: number, p: any) => {
-      const pnl = Number(p.pnl || 0);
-      return sum + (pnl < 0 ? pnl : 0);
-    }, 0
-  );
-  const freeMargin = balance + totalFloatingLoss;
+  const freeMargin = calculateFreeMarginFromPositions(balance, openPositions);
 
   if (freeMargin < requiredMargin) {
     return NextResponse.json({

@@ -338,22 +338,7 @@ describe('POST /api/admin/users', () => {
   // -------------------------------------------------------------------------
 
   describe('403 — Forbidden', () => {
-    it('returns 403 when caller role is broker', async () => {
-      mockGetUser.mockResolvedValue({
-        data: { user: makeUser('broker') },
-        error: null,
-      });
-      const req = makePostRequest(
-        { email: 'test@example.com', password: 'securepass', role: 'user' },
-        'Bearer broker-token',
-      );
-      const res = await POST(req);
-      expect(res.status).toBe(403);
-      const body = await res.json();
-      expect(body).toEqual({ error: 'Forbidden' });
-    });
-
-    it('returns 403 when caller role is user', async () => {
+    it('returns 403 when caller role is user (no CREATE_USER permission)', async () => {
       mockGetUser.mockResolvedValue({
         data: { user: makeUser('user') },
         error: null,
@@ -365,7 +350,7 @@ describe('POST /api/admin/users', () => {
       const res = await POST(req);
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body).toEqual({ error: 'Forbidden' });
+      expect(body.error).toMatch(/Forbidden/);
     });
   });
 

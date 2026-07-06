@@ -132,7 +132,8 @@ export async function GET(request: Request) {
     const data = await response.json();
 
     if (!response.ok || data.status !== 'success') {
-      return NextResponse.json({ error: 'Kite API error', details: data }, { status: response.status || 500 });
+      const errorMessage = data.message || data.error_type || 'Kite API error';
+      return NextResponse.json({ error: errorMessage, details: data }, { status: response.status || 500 });
     }
 
     return NextResponse.json(data.data);

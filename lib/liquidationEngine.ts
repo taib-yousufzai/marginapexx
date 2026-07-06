@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { calculateCarryBrokerage } from './carryBrokerage';
+import { calculateCarryBrokerage } from './brokerage';
+import { calculateExitPrice, calculateFreeMargin } from './floatingPnl';
 
 export interface LiquidationResult {
   liquidated: boolean;
@@ -35,7 +36,10 @@ export function computeFreeMargin(
   walletBalance: number,
   totalLockedMargin: number,
 ): number {
-  return walletBalance;
+  // Delegates to the canonical implementation in floatingPnl.ts.
+  // Note: this signature uses lockedMargin as a proxy for floating loss
+  // (balance - lockedMargin) for backward compatibility with existing tests.
+  return calculateFreeMargin(walletBalance, -totalLockedMargin);
 }
 
 /**
@@ -135,16 +139,10 @@ export async function checkAndExecuteAccountLiquidation(
     const ltp = Number(pos.ltp || pos.entry_price);
     const exitBufferKey = `${userId}|${pos.settlement}|${pos.side}`;
     const bufferSettings = exitBuffers.get(exitBufferKey);
-    const exitBuffer = (bufferSettings?.exit_buffer ?? 0.17) / 100;
-    const bidBuffer = (bufferSettings?.bid_buffer ?? 0.3) / 100;
+    const exitBufferPct = bufferSettings?.exit_buffer ?? 0.17;
+    const bidBufferPct = bufferSettings?.bid_buffer ?? 0.3;
 
-    let exitPrice: number;
-    if (pos.side === 'BUY') {
-      exitPrice = ltp * (1 - bidBuffer);
-    } else {
-      exitPrice = ltp * (1 + exitBuffer);
-    }
-    exitPrice = Math.round(exitPrice * 10000) / 10000;
+    const exitPrice = calculateExitPrice({ side: pos.side, ltp, exitBufferPct, bidBufferPct });
 
     const carryBrokerage = calculateCarryBrokerage({
       productType: pos.product_type,

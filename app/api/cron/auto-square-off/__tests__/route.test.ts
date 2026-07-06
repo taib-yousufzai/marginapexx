@@ -46,7 +46,7 @@ vi.mock('@/lib/kiteSession', () => ({
   getSharedKiteSession: vi.fn(() => Promise.resolve({ accessToken: 'mock_token' }))
 }));
 
-vi.mock('@/lib/carryBrokerage', () => ({
+vi.mock('@/lib/brokerage', () => ({
   calculateCarryBrokerage: vi.fn(() => 0)
 }));
 

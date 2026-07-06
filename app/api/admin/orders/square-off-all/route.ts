@@ -12,7 +12,7 @@
  * No brokerage is charged on emergency admin square-offs.
  */
 import { requireAdmin } from '../../_auth';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
 
 export async function POST(request: Request): Promise<Response> {
   try {

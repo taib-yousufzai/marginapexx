@@ -334,9 +334,12 @@ describe('Admin API - Property 3: Non-admin caller returns 403', () => {
   // Feature: admin-user-management, Property 3: Non-admin caller returns 403
   // Validates: Requirements 2.5, 2.6
 
-  const nonAdminRoleArb = fc.string().filter((r) => r !== 'admin' && r !== 'super_admin');
+  // Only 'user' and unknown roles lack CREATE_USER. 'broker' has it.
+  const nonAdminRoleArb = fc.string().filter(
+    (r) => r !== 'admin' && r !== 'super_admin' && r !== 'broker'
+  );
 
-  it('POST returns 403 for any non-admin role', async () => {
+  it('POST returns 403 for any role without CREATE_USER permission', async () => {
     await fc.assert(
       fc.asyncProperty(
         nonAdminRoleArb,
@@ -351,7 +354,7 @@ describe('Admin API - Property 3: Non-admin caller returns 403', () => {
           );
           const res = await POST(req);
           const body = await res.json();
-          return res.status === 403 && body.error === 'Forbidden';
+          return res.status === 403 && typeof body.error === 'string' && body.error.includes('Forbidden');
         },
       ),
       { numRuns: 100 },

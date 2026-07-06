@@ -18,6 +18,13 @@ vi.mock('@/lib/adminClient', () => {
   };
 });
 
+// Mock api-middleware (requireAuth)
+vi.mock('@/lib/api-middleware', () => ({
+  requireAuth: vi.fn().mockResolvedValue({
+    callerUser: { id: 'user-123' },
+  }),
+}));
+
 // Mock getSharedKiteSession
 vi.mock('@/lib/kiteSession', () => {
   return {
@@ -71,6 +78,8 @@ describe('POST /api/orders', () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           in: vi.fn().mockReturnThis(),
+          or: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
           single: vi.fn().mockResolvedValue({ data: null, error: null }),
         };
@@ -79,6 +88,7 @@ describe('POST /api/orders', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         in: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
         order: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),

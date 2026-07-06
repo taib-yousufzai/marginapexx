@@ -99,14 +99,17 @@ export function getLotSizeFallback(
   // 1. script_settings override
   if (dbSettings && dbSettings.length > 0) {
     const sorted = [...dbSettings].sort((a, b) => b.symbol.length - a.symbol.length);
-    const match = sorted.find(s => n.includes(s.symbol.toUpperCase()));
-    if (match && Number(match.lot_size) > 0) return Number(match.lot_size);
+    const exactMatch = sorted.find(s => n === s.symbol.toUpperCase());
+    if (exactMatch && Number(exactMatch.lot_size) > 0) return Number(exactMatch.lot_size);
+
+    const prefixMatch = sorted.find(s => n.startsWith(s.symbol.toUpperCase()));
+    if (prefixMatch && Number(prefixMatch.lot_size) > 0) return Number(prefixMatch.lot_size);
   }
 
   // 2. Hardcoded — longest match first (CRUDEOILM before CRUDEOIL)
   const sorted = Object.entries(FALLBACK_LOT_SIZES).sort((a, b) => b[0].length - a[0].length);
   for (const [key, size] of sorted) {
-    if (n.includes(key)) return size;
+    if (n.startsWith(key)) return size;
   }
 
   return 1;

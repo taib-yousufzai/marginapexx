@@ -76,11 +76,14 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
  *      NIFTY2651924050CE  →  NIFTY 24050 CE  (19 May 26)
  */
 function buildDisplayName(tradingsymbol: string, underlying: string, strike: number | null, optionType: string | null, expiry: string | null): string {
-  if (strike && optionType) {
-    const expLabel = expiry ? ` (${expiry})` : '';
-    return `${underlying} ${strike} ${optionType}${expLabel}`;
+  const isRealValue = (v: any) => v !== null && v !== undefined && String(v).toLowerCase() !== 'null' && String(v).trim() !== '';
+  
+  if (isRealValue(strike) && isRealValue(optionType)) {
+    const expLabel = isRealValue(expiry) ? ` (${expiry})` : '';
+    const safeUnderlying = isRealValue(underlying) ? underlying : (isRealValue(tradingsymbol) ? tradingsymbol : '');
+    return `${safeUnderlying} ${strike} ${optionType}${expLabel}`.trim();
   }
-  return tradingsymbol;
+  return isRealValue(tradingsymbol) ? tradingsymbol : 'Unknown';
 }
 
 /**
@@ -264,8 +267,11 @@ export async function GET(request: NextRequest) {
         let orParts = [];
 
         if (/^\d+(\.\d+)?$/.test(q)) {
-          // Pure numeric query — search only by exact strike_price match
+          // Pure numeric query — search exact strike_price, but also allow partial text matches
           orParts.push(`strike_price.eq.${q}`);
+          // Also match string fields since users type "21" intending to find "21000"
+          orParts.push(`tradingsymbol.ilike.%${qNoSpace}%`);
+          orParts.push(`name.ilike.%${q}%`);
         } else {
           // Text query — search by name and tradingsymbol
           // Add ilike conditions that approximate exact, starts with, and contains
@@ -276,7 +282,7 @@ export async function GET(request: NextRequest) {
 
         qry = qry.or(orParts.join(','));
         // CRITICAL FIX: Only fetch live options to not exhaust the limit on dead contracts
-        qry = qry.or(`expiry.gte.${today},expiry.is.null`);
+        qry = qry.or(`expiry.gte.${today},expiry.is.null,expiry.eq.""`);
 
         qry = qry
           .order('expiry', { ascending: true })
@@ -322,8 +328,10 @@ export async function GET(request: NextRequest) {
       const name = (r.name || '').toLowerCase();
 
       return searchTerms.every(term => {
-        if (/^\d+(\.\d+)?$/.test(term) && r.strike_price !== null) {
-          return String(r.strike_price).startsWith(term);
+        if (/^\d+(\.\d+)?$/.test(term)) {
+          if (r.strike_price !== null && String(r.strike_price).startsWith(term)) return true;
+          // Allow numeric term to match inside the symbol as well (e.g., '21' in NIFTY21...)
+          return symbol.includes(term) || wordStartMatch(dispName, term) || wordStartMatch(name, term);
         }
         return wordStartMatch(dispName, term) || wordStartMatch(name, term) || wordStartMatch(symbol, term);
       });

@@ -2,8 +2,9 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getAdminClient } from './adminClient.ts';
 import { telemetry } from './metrics.ts';
 import { checkAndExecuteAccountLiquidation } from './liquidationEngine.ts';
-import { calculateCarryBrokerage } from './carryBrokerage';
+import { calculateCarryBrokerage } from './brokerage.ts';
 import { isContractExpired } from './contractExpiry.ts';
+import { calculateFloatingPnl, calculateExitPrice } from './floatingPnl';
 
 export interface Quote {
   id: string; // e.g. "NSE:INFY"
@@ -531,13 +532,17 @@ export class InMemoryMatchingEngine {
           }
 
           // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
-          const buyExitBuffer = (this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.17) / 100;
-          const sellExitBuffer = (this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.17) / 100;
+          const buyExitBufferPct = this.segmentSettings.get(`${userId}|${pos.settlement}|BUY`)?.exit_buffer ?? 0.17;
+          const sellExitBufferPct = this.segmentSettings.get(`${userId}|${pos.settlement}|SELL`)?.exit_buffer ?? 0.17;
 
           // Liquidation PnL is calculated based on Bid price (exit-buffer-adjusted)
-          const pnl = pos.side === 'BUY'
-            ? ((ltp * (1 - buyExitBuffer)) - entryPrice) * qty
-            : (entryPrice - (ltp * (1 + sellExitBuffer))) * qty;
+          const pnl = calculateFloatingPnl({
+            side: pos.side,
+            ltp,
+            entryPrice,
+            qty,
+            exitBufferPct: pos.side === 'BUY' ? buyExitBufferPct : sellExitBufferPct,
+          });
 
           totalFloatingPnl += pnl;
           positionsWithLtp.push({ ...pos, ltp, qty_open: qty, entry_price: entryPrice });
@@ -621,9 +626,8 @@ export class InMemoryMatchingEngine {
 
         if (shouldClose) {
           const segSettingForClose = this.segmentSettings.get(`${pos.user_id}|${pos.settlement}|${pos.side}`);
-          const exitBuffer = (segSettingForClose?.exit_buffer ?? 0.17) / 100;
-          let exitPrice = pos.side === 'BUY' ? ltp * (1 - exitBuffer) : ltp * (1 + exitBuffer);
-          exitPrice = Math.round(exitPrice * 10000) / 10000;
+          const exitBufferPct = segSettingForClose?.exit_buffer ?? 0.17;
+          const exitPrice = calculateExitPrice({ side: pos.side, ltp, exitBufferPct });
 
           const carryBrokerage = calculateCarryBrokerage({
             productType: pos.product_type,

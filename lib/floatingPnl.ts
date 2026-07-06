@@ -1,0 +1,123 @@
+/**
+ * Floating P&L and exit price calculations.
+ *
+ * Single source of truth for the exit-buffer-adjusted formulas used across:
+ *   - liquidationEngine.ts  (account-level liquidation trigger)
+ *   - marginSquareOff.ts    (carry margin square-off)
+ *   - orderMatching.ts      (per-tick P&L for all open positions)
+ *   - positions/[id]/close  (user-initiated close)
+ *
+ * Buffer convention:
+ *   exit_buffer is stored in the DB as a percentage (e.g. 0.17 = 0.17%).
+ *   Pass the raw DB value here — this module divides by 100 internally.
+ *
+ *   bid_buffer is used for BUY-side liquidation closes (forced exits on longs
+ *   use the bid price, which is slightly below LTP). Defaults to exit_buffer
+ *   when not provided.
+ */
+
+export interface FloatingPnlParams {
+  side: string;
+  ltp: number;
+  entryPrice: number;
+  qty: number;
+  /** Raw DB value — e.g. 0.17 for 0.17%. Applied to SELL closes and BUY floating P&L. */
+  exitBufferPct: number;
+  /**
+   * Raw DB value — e.g. 0.3 for 0.3%. Applied to BUY-side forced closes
+   * (liquidation engine uses bid price for longs).
+   * Defaults to exitBufferPct when omitted.
+   */
+  bidBufferPct?: number;
+}
+
+/**
+ * Compute the free (available) margin for an account.
+ *
+ * Free margin = balance + sum of floating losses from open positions.
+ * Floating losses are negative numbers, so adding them reduces available capital.
+ * Floating profits are excluded — they cannot be used as collateral until realised.
+ *
+ * This is the canonical formula used by:
+ *   - Order placement margin check  (orders/route.ts)
+ *   - Product type conversion check (positions/[id]/convert/route.ts)
+ *   - Carry margin square-off       (marginSquareOff.ts)
+ *
+ * @param balance         - Current wallet balance
+ * @param totalFloatingLoss - Sum of unrealised losses only (must be ≤ 0; profits ignored)
+ */
+export function calculateFreeMargin(balance: number, totalFloatingLoss: number): number {
+  // totalFloatingLoss should be ≤ 0; if caller accidentally passes a positive value
+  // (i.e. total P&L including profits), clamp it so we never inflate free margin.
+  return balance + Math.min(0, totalFloatingLoss);
+}
+
+/**
+ * Convenience helper: derive totalFloatingLoss from an array of open positions
+ * and then compute free margin.
+ *
+ * Positions are expected to have a numeric `pnl` field (the DB-cached value).
+ * For real-time liquidation checks, use calculateFloatingPnl per position instead.
+ */
+export function calculateFreeMarginFromPositions(
+  balance: number,
+  openPositions: Array<{ pnl?: number | string | null }>,
+): number {
+  const totalFloatingLoss = openPositions.reduce((sum, p) => {
+    const pnl = Number(p.pnl || 0);
+    return sum + (pnl < 0 ? pnl : 0);
+  }, 0);
+  return calculateFreeMargin(balance, totalFloatingLoss);
+}
+
+/**
+ * Compute the floating (unrealised) P&L for an open position.
+ *
+ * Uses the exit-buffer-adjusted LTP so the result matches what the liquidation
+ * engine sees — i.e. "what would this position settle for right now".
+ *
+ * BUY:  (ltp × (1 - exitBuffer) − entryPrice) × qty
+ * SELL: (entryPrice − ltp × (1 + exitBuffer)) × qty
+ */
+export function calculateFloatingPnl({
+  side,
+  ltp,
+  entryPrice,
+  qty,
+  exitBufferPct,
+}: FloatingPnlParams): number {
+  const exitBuffer = exitBufferPct / 100;
+  if (side === 'BUY') {
+    return (ltp * (1 - exitBuffer) - entryPrice) * qty;
+  }
+  return (entryPrice - ltp * (1 + exitBuffer)) * qty;
+}
+
+/**
+ * Compute the exit fill price for a position being closed.
+ *
+ * For forced / liquidation closes on BUY positions, the bid_buffer is used
+ * (the user receives the bid price, which is below LTP).
+ * For all other closes (user-initiated, SL/TP, EOD) use exit_buffer.
+ *
+ * BUY:  ltp × (1 − buffer)   — user receives bid
+ * SELL: ltp × (1 + buffer)   — user pays ask
+ *
+ * @param precision - decimal places to round to (default 4; use 2 for display)
+ */
+export function calculateExitPrice({
+  side,
+  ltp,
+  exitBufferPct,
+  bidBufferPct,
+}: Pick<FloatingPnlParams, 'side' | 'ltp' | 'exitBufferPct' | 'bidBufferPct'>,
+  precision = 4,
+): number {
+  const factor = Math.pow(10, precision);
+  if (side === 'BUY') {
+    const bidBuffer = (bidBufferPct ?? exitBufferPct) / 100;
+    return Math.round(ltp * (1 - bidBuffer) * factor) / factor;
+  }
+  const exitBuffer = exitBufferPct / 100;
+  return Math.round(ltp * (1 + exitBuffer) * factor) / factor;
+}

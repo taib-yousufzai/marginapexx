@@ -12,9 +12,10 @@ import { useMobileBack } from '@/hooks/useMobileBack';
 import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import TradeSheet from '@/components/TradeSheet';
+import WatchlistSearch from '@/components/WatchlistSearch';
 import './page.css';
 
-interface WatchlistItem {
+export interface WatchlistItem {
   name: string;
   symbol: string;
   kiteSymbol: string;
@@ -97,7 +98,7 @@ const DEFAULT_COMEX_ITEMS: WatchlistItem[] = [
   { name: 'Copper', symbol: 'COPPER_FUT', kiteSymbol: 'MCX:COPPER26JULFUT', comexSymbol: 'HG=F', price: 0, change: '0%', segment: 'MCX - Futures', contractDate: 'Jul 2026', open: 0, high: 0, low: 0, close: 0, category: 'COI' },
 ];
 
-function getDefaultWatchlistItems(): WatchlistItem[] {
+export function getDefaultWatchlistItems(): WatchlistItem[] {
   return [
     {
       name: 'NIFTY 50 INDEX',
@@ -1364,48 +1365,27 @@ function WatchlistContent() {
           </div>
         </div>
         <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
-        <div className={`search-wrapper${searchText ? ' has-text' : ''}`}>
-          <svg className="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.8"/>
-            <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            id="globalSearchInput"
-            placeholder="Search instruments…"
-            autoComplete="off"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            suppressHydrationWarning
-          />
-          {!searchText && (
-            <span className="search-shortcut">
-              <kbd>/</kbd>
-            </span>
-          )}
-          {searchText && (
-            <button
-              className="clear-search-btn"
-              onClick={() => setSearchText('')}
-              aria-label="Clear search"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
-            </button>
-          )}
-        </div>
+        <WatchlistSearch 
+           activeTab={activeTab} 
+           onAdd={(item) => {
+             setWatchlistItems(prev => {
+               const newItem = { ...item, category: activeTab };
+               if (prev.some(i => i.symbol === newItem.symbol && (activeTab === 'All' || getTabForItem(i) === activeTab))) {
+                 return prev;
+               }
+               const next = [...prev, newItem];
+               saveWatchlistToStorage(next, userId);
+               if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+                 (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+               }
+               return next;
+             });
+           }}
+           token={typeof window !== 'undefined' ? (window as any).__accessToken : undefined} 
+        />
       </div>
 
       <div className="watchlist-layout">
-        <div id="searchResultsArea" className="search-results-section" style={{ display: 'none' }}>
-          <div className="section-subtitle">
-            <i className="fas fa-plus-circle"></i> ADD FROM LIBRARY <span id="searchResultCount"></span>
-          </div>
-          <div id="searchResultsList"></div>
-        </div>
-
         <div className="main-content">
 
         <div className="watchlist-section">

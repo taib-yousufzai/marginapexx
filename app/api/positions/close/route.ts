@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient, getUserFromRequest } from '@/lib/adminClient';
 import { getSharedKiteSession } from '@/lib/kiteSession';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
 
 /**
  * Fetch LTPs for a mixed batch of instruments (Kite + Binance crypto).

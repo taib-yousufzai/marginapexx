@@ -20,7 +20,7 @@ vi.mock('@/lib/kiteSession', () => ({
   getSharedKiteSession: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('@/lib/carryBrokerage', () => ({
+vi.mock('@/lib/brokerage', () => ({
   calculateCarryBrokerage: vi.fn().mockReturnValue(0),
 }));
 

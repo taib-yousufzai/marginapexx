@@ -16,7 +16,7 @@ vi.mock('../../../../_auth', () => {
   };
 });
 
-vi.mock('@/lib/carryBrokerage', () => ({
+vi.mock('@/lib/brokerage', () => ({
   calculateCarryBrokerage: vi.fn().mockReturnValue(0),
 }));
 

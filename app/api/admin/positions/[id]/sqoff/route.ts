@@ -17,7 +17,7 @@
  */
 
 import { requireAdmin } from '../../../_auth';
-import { calculateCarryBrokerage } from '@/lib/carryBrokerage';
+import { calculateCarryBrokerage } from '@/lib/brokerage';
 
 export async function POST(
   request: Request,

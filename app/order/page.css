@@ -954,3 +954,11 @@ body.blue .ord-sheet-handle-bar {
         backdrop-filter: blur(4px) !important;
     }
 }
+
+/* ── Scroll-lock: mobile only (≤500px) ── */
+/* Prevents body/html scroll when the orders sheet is open on narrow screens */
+@media (max-width: 500px) {
+  html:has(.ord-root), body:has(.ord-root) {
+    overflow: hidden;
+  }
+}

@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { calculateCarryBrokerage } from './carryBrokerage';
+import { calculateCarryBrokerage } from './brokerage';
+import { calculateFloatingPnl, calculateExitPrice, calculateFreeMargin } from './floatingPnl';
 
 export async function checkAndSquareOffPositionsForMargin(userId: string, adminClient: SupabaseClient) {
   try {
@@ -56,18 +57,13 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
 
       // Compute live floating PnL using exit-buffer-adjusted LTP (same formula as liquidationEngine)
       // This is more accurate than stale pos.pnl which is only updated on close.
-      // exit_buffer is stored as a percentage in the DB (e.g. 0.17 = 0.17%), divide by 100
-      const exitBuffer = (setting?.exit_buffer ?? 0.17) / 100;
+      const exitBufferPct = setting?.exit_buffer ?? 0.17;
       const baseLtp = Number(pos.ltp || pos.entry_price);
       const entryPrice = Number(pos.entry_price || pos.avg_price);
       const qty = Number(pos.qty_open || 0);
       let livePnl = 0;
       if (qty > 0 && entryPrice > 0) {
-        if (pos.side === 'BUY') {
-          livePnl = (baseLtp * (1 - exitBuffer) - entryPrice) * qty;
-        } else {
-          livePnl = (entryPrice - baseLtp * (1 + exitBuffer)) * qty;
-        }
+        livePnl = calculateFloatingPnl({ side: pos.side, ltp: baseLtp, entryPrice, qty, exitBufferPct });
       }
       if (livePnl < 0) {
         totalFloatingLoss += livePnl;
@@ -76,12 +72,12 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
       positionsWithMargin.push({
         ...pos,
         lockedMargin,
-        exitBuffer,
+        exitBufferPct,
       });
     }
 
     // 5. Check if total available margin is negative
-    const freeMargin = (balance + totalFloatingLoss);
+    const freeMargin = calculateFreeMargin(balance, totalFloatingLoss);
     
     if (freeMargin < 0) {
       // User has insufficient margin now!
@@ -91,13 +87,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
       for (const pos of positionsToClose) {
         // Compute exit price using exit buffer
         const baseLtp = Number(pos.ltp || pos.entry_price);
-        let exitPrice: number;
-        if (pos.side === 'BUY') {
-          exitPrice = baseLtp * (1 - pos.exitBuffer);
-        } else {
-          exitPrice = baseLtp * (1 + pos.exitBuffer);
-        }
-        exitPrice = Math.round(exitPrice * 100) / 100;
+        const exitPrice = calculateExitPrice({ side: pos.side, ltp: baseLtp, exitBufferPct: pos.exitBufferPct }, 2);
 
         // Carry brokerage deferred to exit
         const key = `${pos.settlement}_${pos.side}`;
