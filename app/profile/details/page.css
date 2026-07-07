@@ -121,7 +121,7 @@
 
 /* ===== DARK MODE ===== */
 body.dark .pd-root { background: #121212; }
-body.dark { background: #121212; }
+/* html background for dark mode is handled by globals.css */
 html:has(body.dark) { background: #121212; }
 body.dark .pd-header { background: #1E1E1E; border-bottom-color: #333; }
 body.dark .pd-content { background: #121212; }

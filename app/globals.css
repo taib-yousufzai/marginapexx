@@ -2,8 +2,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth theme transitions — scoped to specific properties, NOT on * */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
 
 /* ── Tick-flash animations (trading terminal price blink) ── */
@@ -35,6 +43,7 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
+  font-size: 16px; /* Anchor rem units — never let this cascade from a child */
   font-family: 'Inter', sans-serif;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;

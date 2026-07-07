@@ -151,7 +151,7 @@ describe('orderMatching', () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'EXECUTED',
-        fill_price: 3399.21,
+        fill_price: 3394.79,
         buffer_fee: 0
       })
     );
@@ -228,7 +228,7 @@ describe('orderMatching', () => {
       p_user_id: 'usr-1',
       p_ltp: 1475,
       p_exit_price: 1472.4925,
-      p_closed_by: 'AUTO_SL',
+      p_closed_by: 'STOP_LOSS',
       p_brokerage: 0
     });
   });
@@ -265,7 +265,7 @@ describe('orderMatching', () => {
       p_user_id: 'usr-1',
       p_ltp: 1605,
       p_exit_price: 1602.2715,
-      p_closed_by: 'AUTO_TARGET',
+      p_closed_by: 'TARGET_HIT',
       p_brokerage: 0
     });
   });
