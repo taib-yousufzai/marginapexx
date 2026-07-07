@@ -127,7 +127,7 @@ export default function ScriptsPage() {
       const headers = await authHeaders();
       // Use user's query if long enough, otherwise fall back to a known symbol for this segment
       const query = q.length >= 2 ? q : (SEGMENT_DEFAULT_SEARCH[activeSegment] || 'NIFTY');
-      const res = await fetch(`/api/market/instruments/search?q=${encodeURIComponent(query)}&tab=${activeSegment}`, { headers });
+      const res = await fetch(`/api/admin/instruments/search?q=${encodeURIComponent(query)}&tab=${activeSegment}`, { headers });
       if (res.ok) {
         const data: Instrument[] = await res.json();
         setInstruments(data);
