@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiCall, Toast, ToastState, ConfirmDialog } from './AdminUtils';
 import TemplateForm from './templates/TemplateForm';
 import TemplateApplyModal from './templates/TemplateApplyModal';
+import ScriptsPage from '@/components/admin/ScriptsPage';
 
 export interface AccountTemplate {
   id: string;
@@ -22,8 +23,10 @@ export interface AccountTemplate {
 }
 
 type View = 'list' | 'create' | 'edit';
+type Tab = 'templates' | 'scripts';
 
 export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) {
+  const [tab, setTab] = useState<Tab>('templates');
   const [view, setView] = useState<View>('list');
   const [templates, setTemplates] = useState<AccountTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +103,36 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
     <div style={{ padding: '16px', maxWidth: 900, margin: '0 auto' }}>
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
+      {/* ── Tab switcher ── */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid #30363d', paddingBottom: '0.75rem' }}>
+        {(['templates', 'scripts'] as Tab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              background: tab === t ? '#2563eb' : 'transparent',
+              border: `1px solid ${tab === t ? '#2563eb' : '#30363d'}`,
+              borderRadius: '0.375rem',
+              color: tab === t ? '#fff' : '#8b949e',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              padding: '0.375rem 1rem',
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+              fontFamily: 'inherit',
+            }}
+          >
+            {t === 'templates' ? 'Account Templates' : 'Script Management'}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Scripts tab ── */}
+      {tab === 'scripts' && <ScriptsPage />}
+
+      {/* ── Templates tab ── */}
+      {tab === 'templates' && (<>
+
       {deleteTarget && (
         <ConfirmDialog
           message={`Delete template "${deleteTarget.name}"? This cannot be undone.`}
@@ -160,6 +193,7 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
           ))}
         </div>
       )}
+      </>)}
     </div>
   );
 }

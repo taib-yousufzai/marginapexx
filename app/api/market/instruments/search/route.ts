@@ -480,6 +480,25 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // ── Filter out blocked symbols for this user ──────────────────────────
+    // Fetch the user's blocked scripts and remove those instruments from results.
+    // This ensures blocked symbols don't appear in watchlist search at all.
+    const user = await getUserFromRequest(request);
+    if (user) {
+      try {
+        const { data: blockedRows } = await supabase
+          .from('user_blocked_scripts')
+          .select('symbol')
+          .eq('user_id', user.id);
+        if (blockedRows && blockedRows.length > 0) {
+          const blockedSet = new Set(blockedRows.map((r: any) => r.symbol.toUpperCase()));
+          results = results.filter(r => !blockedSet.has((r.symbol || '').toUpperCase()));
+        }
+      } catch {
+        // Non-fatal — if we can't fetch blocked scripts, show all results
+      }
+    }
+
     return NextResponse.json(results);
   } catch (err: any) {
     console.error('[GET /api/market/instruments/search] Unexpected error:', err);

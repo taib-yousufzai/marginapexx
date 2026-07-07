@@ -499,6 +499,7 @@ function WatchlistContent() {
   const [allowedSegments, setAllowedSegments] = useState<string[] | null>(null);
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
+  const [blockedSymbols, setBlockedSymbols] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string>('');
   const [isExecutingBasket, setIsExecutingBasket] = useState(false);
 
@@ -558,12 +559,16 @@ function WatchlistContent() {
           const controller2 = new AbortController();
           const t2 = setTimeout(() => controller2.abort('Timeout'), 5000);
           
-          const [resSettings, resScript] = await Promise.all([
+          const [resSettings, resScript, resBlocked] = await Promise.all([
             fetch(`/api/user/segments?mode=${mode}`, {
               headers: { Authorization: `Bearer ${session.access_token}` },
               signal: controller2.signal
             }),
             fetch('/api/user/script-settings', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+              signal: controller2.signal
+            }),
+            fetch(`/api/admin/users/${session.user.id}/block-scripts`, {
               headers: { Authorization: `Bearer ${session.access_token}` },
               signal: controller2.signal
             }),
@@ -577,6 +582,11 @@ function WatchlistContent() {
           if (resScript.ok) {
             const scriptData = await resScript.json();
             setScriptSettings(scriptData || []);
+          }
+          if (resBlocked.ok) {
+            const blockedData = await resBlocked.json();
+            const symbols: string[] = blockedData?.symbols || [];
+            setBlockedSymbols(new Set(symbols.map((s: string) => s.toUpperCase())));
           }
         } else {
           // On error, fall back to allowing all
@@ -1975,7 +1985,25 @@ function WatchlistContent() {
               return allowedSegments.includes(dbKey);
             });
             return visibleSegments.map((seg) => {
-              const count = (seg.instruments?.length ?? 0) + (seg.subCategories?.reduce((a, s) => a + s.instruments.length, 0) ?? 0);
+              // Filter out blocked symbols from this segment's instruments
+              const filterBlocked = (instruments: any[]) =>
+                blockedSymbols.size === 0
+                  ? instruments
+                  : instruments.filter(i => !blockedSymbols.has((i.symbol || '').toUpperCase()));
+
+              const filteredSeg = {
+                ...seg,
+                instruments: seg.instruments ? filterBlocked(seg.instruments) : undefined,
+                subCategories: seg.subCategories
+                  ? seg.subCategories.map((sub: any) => ({
+                      ...sub,
+                      instruments: filterBlocked(sub.instruments || []),
+                    })).filter((sub: any) => sub.instruments.length > 0)
+                  : undefined,
+              };
+
+              const count = (filteredSeg.instruments?.length ?? 0) + (filteredSeg.subCategories?.reduce((a: number, s: any) => a + s.instruments.length, 0) ?? 0);
+              if (count === 0) return null; // hide segment if all instruments are blocked
               const isOpen = !!expandedSegments[seg.name];
               return (
                 <div key={seg.name} className="tree-item-li">
@@ -1989,7 +2017,7 @@ function WatchlistContent() {
                   </div>
                   {isOpen && (
                     <div className="children-container" style={{ display: 'block' }}>
-                      {seg.instruments?.map((inst) => (
+                      {filteredSeg.instruments?.map((inst) => (
                         <div key={inst.symbol} className="script-item">
                           <span>{inst.name}</span>
                           <button className="add-script-btn" onClick={() => {
@@ -2000,7 +2028,7 @@ function WatchlistContent() {
                           }}>+ Add</button>
                         </div>
                       ))}
-                      {seg.subCategories?.map((sub) => {
+                      {filteredSeg.subCategories?.map((sub) => {
                         const subKey = `${seg.name}__${sub.name}`;
                         const subOpen = !!expandedSegments[subKey];
                         return (
