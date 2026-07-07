@@ -590,7 +590,7 @@ export default function PositionPage() {
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance + unrealized : null)}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance : null)}</span>
                     </div>
                   </button>
                   <button
@@ -613,7 +613,7 @@ export default function PositionPage() {
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance + unrealized : null)}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>₹{formatBalance(balance !== null ? balance : null)}</span>
                     </div>
                   </button>
                   <button
