@@ -404,9 +404,9 @@ export default function HistoryPage() {
                           })()} style={{ position: 'relative' }}>
                             <i className="fas fa-receipt"></i> {formatPrice(item.brokerage || 0)}
                           </span>
-                          {currentTab === 'position' && (item.settlementAmount ?? 0) > 0 && (
-                            <span className="detail-item" style={{ color: '#C62E2E', fontWeight: 600 }}>
-                              <i className="fas fa-exclamation-triangle"></i> Deficit: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {currentTab === 'position' && (
+                            <span className="detail-item" style={{ color: '#64748b', fontSize: '0.7rem' }}>
+                              <i className="fas fa-handshake"></i> ₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           )}
                           {currentTab === 'position' && isAdmin && item.closedBy && (
