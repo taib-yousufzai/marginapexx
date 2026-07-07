@@ -26,6 +26,16 @@ const formatHoldTime = (sec: number) => {
 export default function PositionPage() {
   const router = useRouter();
   useAuth();
+  
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    getSession().then((session) => {
+      const role = session?.user?.user_metadata?.role;
+      if (role === 'admin' || role === 'super_admin') {
+        setIsAdmin(true);
+      }
+    });
+  }, []);
   const { positions, loading: posLoading, error: posError, refresh, updatePositionLocally, startConversion, endConversion } = useMyPositions(5000);
   const { closePosition, closePositionsBatch, loading: closingPos } = useOrderEntry();
 
@@ -188,6 +198,8 @@ export default function PositionPage() {
   const [convertConfirmPos, setConvertConfirmPos] = useState<EnrichedPosition | null>(null);
   const [convertPreviewBrokerage, setConvertPreviewBrokerage] = useState<number | null>(null);
   const [isFetchingPreview, setIsFetchingPreview] = useState(false);
+  // Track positions currently being converted to prevent double-taps / race conditions
+  const convertingIdsRef = useRef<Set<string>>(new Set());
   // ── Mobile Back Button Interception ──
   useMobileBack(isSheetOpen, () => {
     setIsSheetOpen(false);
@@ -294,12 +306,19 @@ export default function PositionPage() {
   };
 
   const toggleProductType = async (pos: EnrichedPosition) => {
-    // TEMPORARY: Always show popup (previously checked pos.carry_brokerage_paid)
-    setConvertConfirmPos(pos);
-    
-    // Fetch preview if converting to CARRY (to get the exact brokerage)
+    // Prevent double-tap: if this position is already mid-conversion, ignore
+    if (convertingIdsRef.current.has(pos.id)) return;
+
     const newType = pos.product_type === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
-    if (newType === 'CARRY') {
+
+    // Only show the confirmation modal when converting to CARRY for the first time.
+    // Once carry_brokerage_paid is true, brokerage has already been charged — no need
+    // to warn the user again on subsequent INTRADAY ↔ CARRY switches.
+    const needsConfirmation = newType === 'CARRY' && !(pos as any).carry_brokerage_paid;
+
+    if (needsConfirmation) {
+      setConvertConfirmPos(pos);
+      // Fetch exact brokerage preview to show in the modal
       setIsFetchingPreview(true);
       setConvertPreviewBrokerage(null);
       try {
@@ -314,7 +333,8 @@ export default function PositionPage() {
         setIsFetchingPreview(false);
       }
     } else {
-      setConvertPreviewBrokerage(0);
+      // Already paid carry brokerage, or converting back to INTRADAY — go directly
+      await directConvert(pos);
     }
   };
 
@@ -326,6 +346,10 @@ export default function PositionPage() {
   };
 
   const directConvert = async (pos: EnrichedPosition) => {
+    // Prevent double-tap at this level too (e.g. confirm button tapped twice)
+    if (convertingIdsRef.current.has(pos.id)) return;
+    convertingIdsRef.current.add(pos.id);
+
     const originalType = pos.product_type;
     const newType = originalType === 'INTRADAY' ? 'CARRY' : 'INTRADAY';
 
@@ -377,7 +401,8 @@ export default function PositionPage() {
         setSelectedPos(prev => prev ? { ...prev, product_type: originalType } : null);
       }
     } finally {
-      // 2. End in-flight conversion lock
+      // Release the double-tap guard and the optimistic in-flight lock
+      convertingIdsRef.current.delete(pos.id);
       if (endConversion) {
         endConversion(pos.id);
       }
@@ -781,14 +806,14 @@ export default function PositionPage() {
                               <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
                               <span>Qty: <strong>{pos.qty_total}</strong></span>
                             </div>
-                            {(pos.product_type || pos.closed_by) && (
+                            {(pos.product_type || (isAdmin && pos.closed_by)) && (
                               <div style={{ marginTop: '5px' }}>
                                 {pos.product_type && (
                                   <span className={`pos-product-badge${pos.product_type === 'CARRY' ? ' carry' : ''}`}>
                                     {pos.product_type}
                                   </span>
                                 )}
-                                {pos.closed_by && (
+                                {isAdmin && pos.closed_by && (
                                   <span className="pos-product-badge" style={{ marginLeft: pos.product_type ? '5px' : '0', background: 'var(--bg-secondary, #F1F5F9)', color: 'var(--text-secondary, #64748B)', border: '1px solid var(--border-card, #E2E8F0)' }}>
                                     {pos.closed_by.replace(/_/g, ' ')}
                                   </span>
@@ -1137,7 +1162,11 @@ export default function PositionPage() {
                               <div
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  await toggleProductType(selectedPos);
+                                  // Always resolve the live position from the positions array to avoid
+                                  // stale-snapshot bugs (selectedPos is set when the sheet opens and
+                                  // doesn't automatically reflect optimistic product_type updates).
+                                  const livePos = positions.find(p => p.id === selectedPos.id) ?? selectedPos;
+                                  await toggleProductType(livePos);
                                 }}
                                 className={`convert-type-btn${selectedPos.product_type === 'CARRY' ? ' carry' : ' intraday'}`}
                               >

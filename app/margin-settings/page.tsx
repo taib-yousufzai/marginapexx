@@ -252,7 +252,7 @@ export default function UnifiedSettingsPage() {
           </div>
         </div>
         <div className="header-row-bottom">
-          <span className="instruction-label">
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280' }}>
             {actualMode === 'scalper' ? 'Scalper Mode Active' : 'Normal Mode Active'}
           </span>
           <div className="action-buttons-wrapper">

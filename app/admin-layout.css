@@ -31,7 +31,7 @@
 
     position: relative !important;
     transform: none !important;
-    width: 220px;
+    width: 13.75rem;
     flex-shrink: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     height: 100vh;
@@ -39,10 +39,10 @@
     display: flex;
     flex-direction: column;
 
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(1.25rem);
+    -webkit-backdrop-filter: blur(1.25rem);
     background: rgba(3, 7, 18, 0.85) !important;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0.25rem 0 1.5rem rgba(0, 0, 0, 0.4);
   }
 
   .adm-drawer-close {
@@ -56,8 +56,8 @@
   /* Hide topbar on tablet+ */
   .adm-topbar {
     display: none !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(1rem);
+    -webkit-backdrop-filter: blur(1rem);
     background: rgba(3, 7, 18, 0.6) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     position: sticky;
@@ -76,7 +76,7 @@
   }
 
   .adm-content {
-    padding: 28px 32px;
+    padding: 1.75rem 2rem;
   }
 
   /* 2-column script list on tablet */
@@ -88,14 +88,14 @@
   /* Bottom sheet centered on tablet */
   .adm-bottom-sheet {
 
-    max-width: 600px;
+    max-width: 37.5rem;
     margin: 0 auto;
 
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(1.5rem);
+    -webkit-backdrop-filter: blur(1.5rem);
     background: rgba(15, 23, 42, 0.9) !important;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -0.5rem 2rem rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -115,7 +115,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 0.875rem 1.125rem;
   background: #030712;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
@@ -127,13 +127,13 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 4px;
+  gap: 0.3125rem;
+  padding: 0.25rem;
 }
 
 .adm-hamburger span {
   display: block;
-  width: 22px;
+  width: 1.375rem;
   height: 2px;
   background: #f8fafc;
   border-radius: 2px;
@@ -142,12 +142,12 @@
 .adm-hamburger-right {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 0.25rem;
+  padding: 0.625rem 0.75rem;
   transition: background 0.15s;
 }
 
@@ -161,7 +161,7 @@
 
 .adm-hamburger-right span {
   display: block;
-  width: 18px;
+  width: 1.125rem;
   height: 2px;
   background: #94a3b8;
   border-radius: 2px;
@@ -181,14 +181,14 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 220px;
+  width: 13.75rem;
   background: rgba(255, 255, 255, 0.03);
   z-index: 20;
   transform: translateX(-100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  padding-top: 16px;
+  padding-top: 1rem;
 }
 
 .adm-drawer.open {
@@ -197,14 +197,14 @@
 
 .adm-drawer-close {
   align-self: flex-end;
-  margin-right: 16px;
+  margin-right: 1rem;
   background: none;
   border: none;
   color: #94a3b8;
   font-size: 1.1rem;
   cursor: pointer;
-  padding: 4px 8px;
-  margin-bottom: 8px;
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .adm-drawer-close:hover {
@@ -224,10 +224,10 @@
 }
 
 .adm-nav-item {
-  padding: 14px 20px;
+  padding: 0.875rem 1.25rem;
   font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.0375rem;
   color: #94a3b8;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -248,7 +248,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px 16px 40px;
+  padding: 1.25rem 1rem 2.5rem;
   position: relative;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
@@ -261,14 +261,14 @@
 .adm-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .adm-page-title {
   font-size: 1.3rem;
   font-weight: 700;
   color: #f8fafc;
-  margin: 0 0 4px 0;
+  margin: 0 0 0.25rem 0;
 }
 
 /* ===== CARD ===== */
@@ -276,21 +276,21 @@
 
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: 0.75rem;
+  padding: 1.125rem;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
+  box-shadow: 0 0.25rem 1.5rem -0.25rem rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .adm-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.75rem 2rem -0.5rem rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -298,7 +298,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -311,14 +311,14 @@
 .adm-card-sub {
   font-size: 0.75rem;
   color: #94a3b8;
-  margin-top: 3px;
+  margin-top: 0.1875rem;
 }
 
 /* ===== DASHED EMPTY STATE ===== */
 .adm-dashed-box {
   border: 1.5px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 36px 20px;
+  border-radius: 0.625rem;
+  padding: 2.25rem 1.25rem;
   text-align: center;
   color: #94a3b8;
   font-size: 0.85rem;
@@ -330,8 +330,8 @@
   background: #3b82f6;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -340,7 +340,7 @@
   flex-shrink: 0;
 
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 2px 0.625rem rgba(37, 99, 235, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -348,7 +348,7 @@
 .adm-btn-primary:hover {
   background: #60a5fa;
   background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0.25rem 1rem rgba(37, 99, 235, 0.4);
   transform: translateY(-1px);
 }
 
@@ -360,8 +360,8 @@
   background: transparent;
   color: #94a3b8;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
@@ -377,8 +377,8 @@
   background: transparent;
   color: #f85149;
   border: 1px solid #f85149;
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -394,10 +394,10 @@
 .adm-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 0.625rem;
+  padding: 0.875rem;
   background: #030712;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -405,8 +405,8 @@
 
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
   color: #f8fafc;
   font-size: 0.85rem;
   outline: none;
@@ -414,14 +414,14 @@
 
   background: rgba(0, 0, 0, 0.2) !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 2px 0.25rem rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
 .adm-input:focus {
   border-color: #3b82f6;
   border-color: #3b82f6;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: inset 0 2px 0.25rem rgba(0, 0, 0, 0.1), 0 0 0 2px rgba(59, 130, 246, 0.2);
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -432,24 +432,24 @@
 .adm-form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 /* ===== BOT LIST ===== */
 .adm-bot-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-bot-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
 }
 
 .adm-bot-info {
@@ -484,11 +484,11 @@
   width: 100%;
   max-width: 500px;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 18px 18px 0 0;
-  padding: 24px 20px 32px;
+  border-radius: 1.125rem 1.125rem 0 0;
+  padding: 1.5rem 1.25rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
   animation: slideUp 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -511,7 +511,7 @@
 .adm-sheet-sub {
   font-size: 0.8rem;
   color: #94a3b8;
-  margin-top: -8px;
+  margin-top: -0.5rem;
 }
 
 .adm-sheet-divider {
@@ -523,7 +523,7 @@
 .adm-sheet-field {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 0.4375rem;
 }
 
 .adm-sheet-label {
@@ -535,8 +535,8 @@
 .adm-sheet-input {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 13px 16px;
+  border-radius: 0.625rem;
+  padding: 0.8125rem 1rem;
   color: #f8fafc;
   font-size: 0.88rem;
   outline: none;
@@ -555,10 +555,10 @@
 
 /* Toggle */
 .adm-toggle {
-  width: 46px;
-  height: 26px;
+  width: 2.875rem;
+  height: 1.625rem;
   background: rgba(255, 255, 255, 0.12);
-  border-radius: 30px;
+  border-radius: 1.875rem;
   position: relative;
   cursor: pointer;
   transition: background 0.25s;
@@ -570,35 +570,35 @@
 }
 
 .adm-toggle-thumb {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   background: #fff;
   border-radius: 50%;
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 0.1875rem;
+  left: 0.1875rem;
   transition: transform 0.25s;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 0.25rem rgba(0, 0, 0, 0.3);
 }
 
 .adm-toggle.on .adm-toggle-thumb {
-  transform: translateX(20px);
+  transform: translateX(1.25rem);
 }
 
 /* Sheet actions */
 .adm-sheet-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
 }
 
 .adm-sheet-cancel {
   background: rgba(255, 255, 255, 0.08);
   color: #f8fafc;
   border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
+  border-radius: 0.5rem;
+  padding: 0.625rem 1.25rem;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -613,35 +613,35 @@
 .adm-settings-tab {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
   font-size: 0.88rem;
   font-weight: 600;
   color: #f8fafc;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .adm-settings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .adm-script-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-script-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-script-top {
@@ -658,15 +658,15 @@
 
 .adm-script-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-btn-edit {
   background: #3b82f6;
   color: #fff;
   border: none;
-  border-radius: 7px;
-  padding: 6px 16px;
+  border-radius: 0.4375rem;
+  padding: 0.375rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -685,8 +685,8 @@
   background: #da3633;
   color: #fff;
   border: none;
-  border-radius: 7px;
-  padding: 6px 16px;
+  border-radius: 0.4375rem;
+  padding: 0.375rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -705,21 +705,21 @@
   font-size: 1.1rem;
   font-weight: 800;
   color: #f8fafc;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-script-lot-box {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.875rem;
 }
 
 .adm-script-lot-label {
   font-size: 0.7rem;
   color: #94a3b8;
   font-weight: 600;
-  margin-bottom: 3px;
+  margin-bottom: 0.1875rem;
 }
 
 .adm-script-lot-value {
@@ -735,7 +735,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 280px;
+  width: 17.5rem;
   max-width: 85vw;
   background: #030712;
   z-index: 20;
@@ -744,11 +744,11 @@
   display: flex;
   flex-direction: column;
 
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(1.25rem);
+  -webkit-backdrop-filter: blur(1.25rem);
   background: rgba(3, 7, 18, 0.9) !important;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.4);
+  box-shadow: -0.25rem 0 1.5rem rgba(0, 0, 0, 0.4);
 }
 
 .adm-user-panel.open {
@@ -759,7 +759,7 @@
 .adm-up-header {
   display: flex;
   justify-content: flex-end;
-  padding: 14px 16px 8px;
+  padding: 0.875rem 1rem 0.5rem;
 }
 
 .adm-up-close {
@@ -768,7 +768,7 @@
   color: #94a3b8;
   font-size: 1rem;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 0.375rem;
   line-height: 1;
 }
 
@@ -779,14 +779,14 @@
 /* Search */
 .adm-up-search-wrap {
   position: relative;
-  margin: 0 14px 0;
-  padding-bottom: 12px;
+  margin: 0 0.875rem 0;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .adm-up-search-icon {
   position: absolute;
-  left: 12px;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-60%);
   color: #484f58;
@@ -798,8 +798,8 @@
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 10px 12px 10px 32px;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem 0.625rem 2rem;
   color: #f8fafc;
   font-size: 0.82rem;
   outline: none;
@@ -818,7 +818,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -846,8 +846,8 @@
 .adm-up-add-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
@@ -855,8 +855,8 @@
 .adm-up-form-input {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 9px 12px;
+  border-radius: 0.5rem;
+  padding: 0.5625rem 0.75rem;
   color: #f8fafc;
   font-size: 0.82rem;
   outline: none;
@@ -875,28 +875,28 @@
 .adm-up-form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-up-form-cancel {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 7px 14px;
+  padding: 0.4375rem 0.875rem;
   cursor: pointer;
 }
 
 .adm-up-form-save {
   background: #3b82f6;
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 7px 14px;
+  padding: 0.4375rem 0.875rem;
   cursor: pointer;
 }
 
@@ -914,7 +914,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 16px;
+  padding: 0.8125rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: background 0.1s;
@@ -926,15 +926,15 @@
 
 .adm-up-row.selected {
   background: #1c2d3f;
-  border-left: 3px solid #60a5fa;
-  padding-left: 13px;
+  border-left: 0.1875rem solid #60a5fa;
+  padding-left: 0.8125rem;
 }
 
 .adm-up-id {
   font-size: 0.88rem;
   font-weight: 600;
   color: #f8fafc;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-up-row.selected .adm-up-id {
@@ -945,7 +945,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #484f58;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-up-role.sel {
@@ -961,7 +961,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 0.875rem 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
@@ -974,17 +974,17 @@
 
 .adm-up-page-btns {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-up-page-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 18px;
+  padding: 0.5rem 1.125rem;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -1009,8 +1009,8 @@
 .adm-cu-header {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 18px 16px 14px;
+  gap: 0.625rem;
+  padding: 1.125rem 1rem 0.875rem;
   flex-shrink: 0;
 }
 
@@ -1020,7 +1020,7 @@
   color: #94a3b8;
   font-size: 1.4rem;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0 0.25rem;
   line-height: 1;
   margin-top: 2px;
   flex-shrink: 0;
@@ -1040,17 +1040,17 @@
 .adm-cu-sub {
   font-size: 0.75rem;
   color: #94a3b8;
-  margin-top: 3px;
+  margin-top: 0.1875rem;
   line-height: 1.4;
 }
 
 .adm-cu-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 4px 16px 0;
+  padding: 0.25rem 1rem 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .adm-cu-scroll::-webkit-scrollbar {
@@ -1060,7 +1060,7 @@
 .adm-cu-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-cu-label {
@@ -1072,8 +1072,8 @@
 .adm-cu-input {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 11px 14px;
+  border-radius: 0.5rem;
+  padding: 0.6875rem 0.875rem;
   color: #f8fafc;
   font-size: 0.85rem;
   outline: none;
@@ -1105,12 +1105,12 @@
 }
 
 .adm-cu-input-wrap .adm-cu-input {
-  padding-right: 40px;
+  padding-right: 2.5rem;
 }
 
 .adm-cu-eye {
   position: absolute;
-  right: 12px;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -1130,8 +1130,8 @@
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b949e' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 36px;
+  background-position: right 0.875rem center;
+  padding-right: 2.25rem;
   cursor: pointer;
 }
 
@@ -1153,13 +1153,13 @@
 .adm-cu-toggles-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px 10px;
+  gap: 0.875rem 0.625rem;
 }
 
 .adm-cu-toggle-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-cu-toggle-label {
@@ -1171,26 +1171,26 @@
 /* Global settings row */
 .adm-cu-global-row {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 /* Segments grid — 3 columns */
 .adm-cu-segments-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px 6px;
+  gap: 0.625rem 0.375rem;
 }
 
 .adm-cu-seg-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   cursor: pointer;
 }
 
 .adm-cu-checkbox {
-  width: 14px;
-  height: 14px;
+  width: 0.875rem;
+  height: 0.875rem;
   accent-color: #60a5fa;
   cursor: pointer;
   flex-shrink: 0;
@@ -1207,8 +1207,8 @@
 .adm-cu-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 0.625rem;
+  padding-top: 0.25rem;
   flex-shrink: 0;
 }
 
@@ -1217,26 +1217,26 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(0.25rem);
+  -webkit-backdrop-filter: blur(0.25rem);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 1.25rem;
 }
 
 .adm-modal {
   width: 100%;
-  max-width: 420px;
+  max-width: 26.25rem;
   background: #0d1117;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 22px 20px 20px;
+  border-radius: 1rem;
+  padding: 1.375rem 1.25rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  gap: 1rem;
+  box-shadow: 0 0.625rem 2.5rem rgba(0, 0, 0, 0.8);
   animation: fadeScaleIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1270,7 +1270,7 @@
   color: #94a3b8;
   font-size: 1rem;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 0.375rem;
   line-height: 1;
 }
 
@@ -1281,14 +1281,14 @@
 .adm-modal-hint {
   font-size: 0.72rem;
   color: #94a3b8;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .adm-modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 0.625rem;
+  padding-top: 0.25rem;
 }
 
 /* Selected Script row in Edit modal */
@@ -1298,8 +1298,8 @@
   justify-content: space-between;
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 11px 14px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.875rem;
 }
 
 .adm-modal-selected-text {
@@ -1336,7 +1336,7 @@
   overflow-x: auto;
   gap: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 14px;
+  margin-bottom: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -1351,8 +1351,8 @@
   color: #94a3b8;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 10px 16px;
+  letter-spacing: 0.0312rem;
+  padding: 0.625rem 1rem;
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
@@ -1372,8 +1372,8 @@
 .adm-mw-search-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
   flex-shrink: 0;
 }
 
@@ -1384,7 +1384,7 @@
 
 .adm-mw-search-icon {
   position: absolute;
-  left: 12px;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: #484f58;
@@ -1396,8 +1396,8 @@
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 11px 12px 11px 32px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.75rem 0.6875rem 2rem;
   color: #f8fafc;
   font-size: 0.85rem;
   outline: none;
@@ -1412,11 +1412,11 @@
 }
 
 .adm-mw-trash {
-  width: 42px;
-  height: 42px;
+  width: 2.625rem;
+  height: 2.625rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   color: #94a3b8;
   font-size: 0.9rem;
   cursor: pointer;
@@ -1437,7 +1437,7 @@
   text-align: center;
   color: #484f58;
   font-size: 0.85rem;
-  padding: 60px 20px;
+  padding: 3.75rem 1.25rem;
 }
 
 /* Instrument rows */
@@ -1450,7 +1450,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 4px;
+  padding: 0.8125rem 0.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1458,7 +1458,7 @@
   font-size: 0.88rem;
   font-weight: 700;
   color: #f8fafc;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-mw-remove {
@@ -1467,7 +1467,7 @@
   color: #484f58;
   font-size: 0.8rem;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 0.375rem;
 }
 
 .adm-mw-remove:hover {
@@ -1481,8 +1481,8 @@
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
   line-height: 1;
 }
 
@@ -1499,16 +1499,16 @@
 
 .adm-mw-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 0.375rem);
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   z-index: 50;
-  max-height: 280px;
+  max-height: 17.5rem;
   overflow-y: auto;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.4);
 }
 
 .adm-mw-dropdown::-webkit-scrollbar {
@@ -1516,7 +1516,7 @@
 }
 
 .adm-mw-dd-empty {
-  padding: 20px;
+  padding: 1.25rem;
   text-align: center;
   color: #484f58;
   font-size: 0.82rem;
@@ -1525,8 +1525,8 @@
 .adm-mw-dd-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: background 0.12s;
@@ -1550,27 +1550,27 @@
   font-size: 0.88rem;
   font-weight: 700;
   color: #f8fafc;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-mw-dd-tag {
   font-size: 0.65rem;
   font-weight: 600;
   color: #484f58;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.025rem;
 }
 
 .adm-mw-dd-plus {
   color: #60a5fa;
   font-size: 0.8rem;
-  width: 20px;
+  width: 1.25rem;
   text-align: center;
 }
 
 .adm-mw-dd-check {
   color: #2ea043;
   font-size: 0.8rem;
-  width: 20px;
+  width: 1.25rem;
   text-align: center;
 }
 
@@ -1578,18 +1578,18 @@
 .adm-db-root {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 /* Top card */
 .adm-db-top-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-db-username {
@@ -1601,7 +1601,7 @@
 .adm-db-filter-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -1614,8 +1614,8 @@
 .adm-db-date {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 7px 10px;
+  border-radius: 0.5rem;
+  padding: 0.4375rem 0.625rem;
   color: #f8fafc;
   font-size: 0.78rem;
   outline: none;
@@ -1635,11 +1635,11 @@
 .adm-db-section {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-db-section-header {
@@ -1652,12 +1652,12 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.05rem;
   text-transform: uppercase;
 }
 
 .adm-db-fetch-btn {
-  padding: 6px 18px;
+  padding: 0.375rem 1.125rem;
   font-size: 0.8rem;
 }
 
@@ -1665,18 +1665,18 @@
 .adm-db-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-db-cell,
 .adm-db-card {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 12px 14px;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-db-cell-label,
@@ -1684,7 +1684,7 @@
   font-size: 0.65rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
 }
 
@@ -1716,7 +1716,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.05rem;
   text-transform: uppercase;
   margin: 0;
 }
@@ -1725,9 +1725,9 @@
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
-  border-radius: 6px;
-  width: 32px;
-  height: 32px;
+  border-radius: 0.375rem;
+  width: 2rem;
+  height: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1751,10 +1751,10 @@
   font-weight: 700;
   background: rgba(255, 255, 255, 0.08);
   color: #94a3b8;
-  padding: 2px 8px;
-  border-radius: 20px;
-  margin-left: 10px;
-  letter-spacing: 0.4px;
+  padding: 2px 0.5rem;
+  border-radius: 1.25rem;
+  margin-left: 0.625rem;
+  letter-spacing: 0.025rem;
   vertical-align: middle;
 }
 
@@ -1762,31 +1762,31 @@
 .adm-ord-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 /* Stat cards */
 .adm-ord-stats {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-ord-stat {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 10px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.625rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-ord-stat-label {
   font-size: 0.62rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
 }
 
@@ -1811,8 +1811,8 @@
   gap: 0;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 0.625rem;
+  padding: 0.25rem;
 }
 
 .adm-ord-tabs::-webkit-scrollbar {
@@ -1823,11 +1823,11 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #94a3b8;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 0.5rem 0.875rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
@@ -1846,7 +1846,7 @@
 
 .adm-ord-search-icon {
   position: absolute;
-  left: 12px;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
   color: #484f58;
@@ -1858,8 +1858,8 @@
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 11px 12px 11px 32px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 0.75rem 0.6875rem 2rem;
   color: #f8fafc;
   font-size: 0.82rem;
   outline: none;
@@ -1877,13 +1877,13 @@
 .adm-ord-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-ord-rows-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-ord-rows-label {
@@ -1895,10 +1895,10 @@
 .adm-ord-rows-select {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #f8fafc;
   font-size: 0.82rem;
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem;
   outline: none;
   cursor: pointer;
 }
@@ -1908,16 +1908,16 @@
   width: 100%;
   background: #2ea043;
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   color: #fff;
   font-size: 0.88rem;
   font-weight: 700;
-  padding: 13px;
+  padding: 0.8125rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   transition: background 0.15s;
 }
 
@@ -1933,31 +1933,31 @@
 .adm-ord-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-ord-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-ord-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-ord-symbol {
   font-size: 0.92rem;
   font-weight: 800;
   color: #f8fafc;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.0125rem;
   word-break: break-all;
 }
 
@@ -1970,16 +1970,16 @@
 .adm-ord-badges {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   flex-shrink: 0;
 }
 
 .adm-ord-side {
   font-size: 0.72rem;
   font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 5px;
-  letter-spacing: 0.3px;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 0.3125rem;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-ord-side.buy {
@@ -1996,7 +1996,7 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: #f8fafc;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-ord-status.exec {
@@ -2015,15 +2015,15 @@
 .adm-ord-details {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-ord-detail-row {
   display: grid;
-  grid-template-columns: 80px 1fr 80px 1fr;
-  gap: 4px;
+  grid-template-columns: 5rem 1fr 5rem 1fr;
+  gap: 0.25rem;
   align-items: start;
 }
 
@@ -2048,24 +2048,24 @@
 .adm-pos-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-pos-stat-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: 0.625rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-pos-stat-label {
   font-size: 0.65rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.05rem;
   text-transform: uppercase;
 }
 
@@ -2090,8 +2090,8 @@
   gap: 0;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 0.625rem;
+  padding: 0.25rem;
 }
 
 .adm-pos-tabs::-webkit-scrollbar {
@@ -2102,11 +2102,11 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #94a3b8;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 0.5rem 0.875rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
@@ -2122,18 +2122,18 @@
 .adm-pos-select-wrap {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
 }
 
 .adm-pos-select-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -2160,17 +2160,17 @@
 .adm-upd-root {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .adm-upd-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .adm-upd-card-header {
@@ -2188,7 +2188,7 @@
 .adm-upd-activation {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-upd-section-title {
@@ -2200,7 +2200,7 @@
 .adm-upd-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-upd-label {
@@ -2212,8 +2212,8 @@
 .adm-upd-input {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 11px 14px;
+  border-radius: 0.5rem;
+  padding: 0.6875rem 0.875rem;
   color: #f8fafc;
   font-size: 0.85rem;
   outline: none;
@@ -2240,8 +2240,8 @@
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238b949e' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
   cursor: pointer;
 }
 
@@ -2250,12 +2250,12 @@
 }
 
 .adm-upd-parent-wrap .adm-upd-input {
-  padding-right: 36px;
+  padding-right: 2.25rem;
 }
 
 .adm-upd-parent-clear {
   position: absolute;
-  right: 10px;
+  right: 0.625rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -2276,30 +2276,30 @@
 .adm-upd-grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-upd-toggles-row {
   display: flex;
-  gap: 20px;
+  gap: 1.25rem;
   flex-wrap: wrap;
 }
 
 .adm-upd-toggle-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 /* Segment block */
 .adm-upd-seg-block {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-upd-seg-header {
@@ -2317,15 +2317,15 @@
 .adm-upd-copy-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #94a3b8;
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 0.375rem 0.75rem;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   transition: background 0.15s;
 }
 
@@ -2337,16 +2337,16 @@
 /* ===== POSITION CARD ACTIONS ===== */
 .adm-pos-card-actions {
   display: flex;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .adm-pos-act-edit {
   background: #3b82f6;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -2361,8 +2361,8 @@
   background: #2ea043;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -2377,8 +2377,8 @@
   background: transparent;
   color: #f85149;
   border: 1px solid #da3633;
-  border-radius: 8px;
-  padding: 8px 20px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -2394,9 +2394,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 4px;
+  padding: 0.75rem 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .adm-pos-page-info {
@@ -2407,17 +2407,17 @@
 
 .adm-pos-page-btns {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-pos-page-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -2446,12 +2446,12 @@
   background: #da3633;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 0.5rem;
+  padding: 0.625rem;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 4px;
+  margin-top: 0.25rem;
   transition: background 0.15s;
 }
 
@@ -2464,8 +2464,8 @@
   background: #da3633;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 20px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
@@ -2480,30 +2480,30 @@
 .adm-users-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-users-stats {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-users-stat {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 10px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.625rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-users-stat-label {
   font-size: 0.62rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
 }
 
@@ -2525,24 +2525,24 @@
 .adm-users-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-users-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-users-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-users-fullname {
@@ -2559,8 +2559,8 @@
 .adm-users-status {
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 3px 12px;
-  border-radius: 20px;
+  padding: 0.1875rem 0.75rem;
+  border-radius: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -2587,9 +2587,9 @@
 .adm-users-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px 4px;
+  gap: 0.375rem 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-users-dl {
@@ -2597,7 +2597,7 @@
   color: #94a3b8;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
 }
 
 .adm-users-dl.live::after {
@@ -2605,7 +2605,7 @@
   color: #60a5fa;
   font-size: 0.55rem;
   font-weight: 800;
-  margin-left: 4px;
+  margin-left: 0.25rem;
 }
 
 .adm-users-dv {
@@ -2633,18 +2633,18 @@
 /* Action buttons */
 .adm-users-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-users-btn {
   flex: 1;
-  min-width: 60px;
+  min-width: 3.75rem;
   border: none;
-  border-radius: 8px;
-  padding: 8px 6px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.375rem;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -2693,19 +2693,19 @@
 .adm-al-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-al-dates {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-al-date-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0.3125rem;
 }
 
 .adm-al-label {
@@ -2717,29 +2717,29 @@
 .adm-al-export-row {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-al-dl-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-al-dl-inner {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-al-export-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #f8fafc;
   font-size: 0.82rem;
   font-weight: 700;
-  padding: 8px 18px;
+  padding: 0.5rem 1.125rem;
   cursor: pointer;
   transition: background 0.15s;
   white-space: nowrap;
@@ -2753,30 +2753,30 @@
 .adm-al-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-al-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-al-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-al-type {
   font-size: 0.88rem;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-al-time {
@@ -2789,8 +2789,8 @@
   background: #3b82f6;
   color: #fff;
   border: none;
-  border-radius: 7px;
-  padding: 6px 14px;
+  border-radius: 0.4375rem;
+  padding: 0.375rem 0.875rem;
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -2805,10 +2805,10 @@
 /* Grid */
 .adm-al-grid {
   display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 5px 8px;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.3125rem 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-al-dl {
@@ -2837,17 +2837,17 @@
 .adm-al-expanded {
   background: #030712;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 12px 14px;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-al-exp-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: 0.75rem;
 }
 
@@ -2868,23 +2868,23 @@
 .adm-acc-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-acc-tabs {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .adm-acc-tab {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #94a3b8;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   transition: 0.15s;
 }
@@ -2911,15 +2911,15 @@
 .adm-acc-search-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-acc-export-btn {
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 9px 14px;
+  padding: 0.5625rem 0.875rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
@@ -2947,17 +2947,17 @@
 .adm-acc-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-acc-stat {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0.3125rem;
 }
 
 .adm-acc-stat.wide {
@@ -2968,7 +2968,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
 }
 
@@ -2989,24 +2989,24 @@
 .adm-acc-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-acc-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-acc-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-acc-uid {
@@ -3023,49 +3023,49 @@
 
 .adm-acc-broker-tag {
   display: inline-block;
-  margin-top: 4px;
+  margin-top: 0.25rem;
   background: rgba(255, 255, 255, 0.08);
   color: #94a3b8;
   font-size: 0.65rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 20px;
+  padding: 2px 0.5rem;
+  border-radius: 1.25rem;
 }
 
 .adm-acc-card-btns {
   display: flex;
-  gap: 6px;
+  gap: 0.375rem;
   flex-shrink: 0;
 }
 
 .adm-acc-xls {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   color: #f8fafc;
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 5px 10px;
+  padding: 0.3125rem 0.625rem;
   cursor: pointer;
 }
 
 .adm-acc-pdf {
   background: #6e40c9;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 5px 10px;
+  padding: 0.3125rem 0.625rem;
   cursor: pointer;
 }
 
 .adm-acc-card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px 4px;
+  gap: 0.375rem 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-acc-dl {
@@ -3092,23 +3092,23 @@
 .adm-pay-root {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-pay-tabs {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .adm-pay-tab {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #94a3b8;
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
   transition: 0.15s;
 }
@@ -3126,18 +3126,18 @@
 .adm-pay-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .adm-pay-clear-btn {
   background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 0.5rem 0.875rem;
   cursor: pointer;
   transition: 0.15s;
 }
@@ -3149,44 +3149,44 @@
 .adm-pay-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-pay-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 1rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
 }
 
 .adm-pay-card:hover {
   border-color: #444c56;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.2);
 }
 
 .adm-pay-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-pay-uid {
   font-size: 1.05rem;
   font-weight: 700;
   color: #58a6ff;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.0125rem;
 }
 
 .adm-pay-time {
   font-size: 0.75rem;
   color: #94a3b8;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .adm-pay-refid {
@@ -3199,19 +3199,19 @@
 .adm-pay-status {
   font-size: 0.7rem;
   font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1.25rem;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
 }
 
 .adm-pay-grid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px 16px;
+  gap: 0.5rem 1rem;
   background: #030712;
-  padding: 14px;
-  border-radius: 12px;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   align-items: baseline;
 }
@@ -3219,7 +3219,7 @@
 .adm-pay-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .adm-pay-dl {
@@ -3227,7 +3227,7 @@
   color: #94a3b8;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 .adm-pay-dv {
@@ -3246,31 +3246,31 @@
 .adm-pay-account-box {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-left: 4px solid #3b82f6;
-  border-radius: 12px;
-  padding: 16px;
+  border-left: 0.25rem solid #3b82f6;
+  border-radius: 0.75rem;
+  padding: 1rem;
 }
 
 .adm-pay-account-title {
   font-size: 0.75rem;
   font-weight: 700;
   color: #94a3b8;
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
 }
 
 .adm-pay-account-grid {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 8px 12px;
+  grid-template-columns: 5.625rem 1fr;
+  gap: 0.5rem 0.75rem;
 }
 
 .adm-pay-utr-box {
   background: rgba(31, 111, 235, 0.1);
   border: 1px dashed rgba(31, 111, 235, 0.3);
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3292,25 +3292,25 @@
 
 .adm-pay-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .adm-pay-btn {
   flex: 1;
-  min-width: 80px;
+  min-width: 5rem;
   border: none;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   font-size: 0.8rem;
   font-weight: 700;
-  padding: 10px 12px;
+  padding: 0.625rem 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-pay-btn.accept {
@@ -3370,13 +3370,13 @@
 .adm-pay-rules {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .adm-pay-rules-sub {
   font-size: 0.75rem;
   color: #94a3b8;
-  margin-top: -8px;
+  margin-top: -0.5rem;
 }
 
 .adm-pay-rule-row {
@@ -3387,36 +3387,36 @@
 
 .adm-pay-days-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: 0.625rem;
+  margin-top: 0.625rem;
 }
 
 /* Summary Stats */
 .adm-pay-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .adm-pay-stat-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.03) 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 1rem;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .adm-pay-stat-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-0.25rem);
   border-color: #58a6ff;
-  box-shadow: 0 8px 24px rgba(88, 166, 255, 0.1);
+  box-shadow: 0 0.5rem 1.5rem rgba(88, 166, 255, 0.1);
 }
 
 .adm-pay-stat-card::before {
@@ -3424,7 +3424,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 0.25rem;
   height: 100%;
   background: #58a6ff;
   opacity: 0.5;
@@ -3443,7 +3443,7 @@
   font-weight: 700;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.05rem;
 }
 
 .adm-pay-stat-value {
@@ -3467,8 +3467,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  backdrop-filter: blur(0.625rem);
   animation: fadeIn 0.3s ease;
 }
 
@@ -3485,14 +3485,14 @@
   max-width: 100%;
   max-height: 80vh;
   object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  border-radius: 0.5rem;
+  box-shadow: 0 0 2.5rem rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .adm-lightbox-close {
   position: absolute;
-  top: -40px;
+  top: -2.5rem;
   right: 0;
   background: none;
   border: none;
@@ -3509,7 +3509,7 @@
 
 .adm-lightbox-caption {
   color: #94a3b8;
-  margin-top: 16px;
+  margin-top: 1rem;
   font-size: 0.9rem;
 }
 
@@ -3526,34 +3526,34 @@
 .adm-acc-broker-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .adm-acc-broker-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .adm-acc-broker-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px 4px;
+  gap: 0.375rem 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 .adm-acc-broker-detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 0.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  padding-top: 0.625rem;
 }
 
 /* ===== LOGIN PAGE ===== */
@@ -3566,7 +3566,7 @@
   max-width: 500px;
   margin: 0 auto;
   background: #030712;
-  padding: 0 24px;
+  padding: 0 1.5rem;
   box-sizing: border-box;
 }
 
@@ -3574,7 +3574,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
 }
 
 .login-heading {
@@ -3582,7 +3582,7 @@
   font-weight: 700;
   color: #ffffff;
   line-height: 1.25;
-  margin: 0 0 8px;
+  margin: 0 0 0.5rem;
 }
 
 .login-heading-accent {
@@ -3592,7 +3592,7 @@
 .login-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .login-label {
@@ -3605,8 +3605,8 @@
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px 16px;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
   color: #f8fafc;
   font-size: 0.95rem;
   outline: none;
@@ -3628,12 +3628,12 @@
 }
 
 .login-input-wrap .login-input {
-  padding-right: 48px;
+  padding-right: 3rem;
 }
 
 .login-eye {
   position: absolute;
-  right: 14px;
+  right: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -3646,8 +3646,8 @@
 }
 
 .login-eye svg {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .login-eye:hover {
@@ -3657,7 +3657,7 @@
 .login-error {
   font-size: 0.8rem;
   color: #f85149;
-  margin-top: -8px;
+  margin-top: -0.5rem;
 }
 
 .login-btn {
@@ -3665,13 +3665,13 @@
   background: #FF6600;
   color: #ffffff;
   border: none;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .login-btn:hover {
@@ -3699,39 +3699,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  padding: 5rem 1.25rem;
   text-align: center;
   background: rgba(255, 255, 255, 0.03);
   border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  margin: 20px 0;
+  border-radius: 1rem;
+  margin: 1.25rem 0;
 }
 
 .adm-db-empty-icon {
   font-size: 4rem;
   color: rgba(255, 255, 255, 0.12);
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .adm-db-empty-title {
   font-size: 1.5rem;
   font-weight: 800;
   color: #f8fafc;
-  margin: 0 0 12px 0;
+  margin: 0 0 0.75rem 0;
 }
 
 .adm-db-empty-text {
   font-size: 0.95rem;
   color: #94a3b8;
-  max-width: 400px;
+  max-width: 25rem;
   line-height: 1.6;
-  margin: 0 0 32px 0;
+  margin: 0 0 2rem 0;
 }
 
 .adm-db-date-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 @media (max-width: 500px) {
@@ -3753,20 +3753,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 0.625rem;
   flex-wrap: wrap;
 }
 
 .adm-ord-header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-ord-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -3775,19 +3775,19 @@
   display: flex;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 3px;
+  border-radius: 0.5rem;
+  padding: 0.1875rem;
   gap: 2px;
 }
 
 .adm-ord-vtab {
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   color: #94a3b8;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 0.375rem 0.75rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
@@ -3803,16 +3803,16 @@
 .adm-ord-action-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.0125rem;
 }
 
 .adm-ord-action-btn.danger {
@@ -3851,27 +3851,27 @@
 /* Stats row — allow auto columns */
 .adm-ord-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: 0.625rem;
 }
 
 /* Filters row */
 .adm-ord-filters {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   flex-wrap: wrap;
 }
 
 .adm-ord-filters .adm-ord-search-wrap {
   flex: 1;
-  min-width: 160px;
+  min-width: 10rem;
 }
 
 .adm-ord-date-range {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   flex-wrap: wrap;
 }
 
@@ -3885,8 +3885,8 @@
 .adm-ord-date {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.625rem;
   color: #f8fafc;
   font-size: 0.78rem;
   outline: none;
@@ -3901,10 +3901,10 @@
 .adm-ord-date-clear {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #94a3b8;
   font-size: 0.72rem;
-  padding: 6px 10px;
+  padding: 0.375rem 0.625rem;
   cursor: pointer;
   white-space: nowrap;
   transition: 0.15s;
@@ -3918,21 +3918,21 @@
 .adm-ord-rows {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #f8fafc;
   font-size: 0.78rem;
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
   outline: none;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .adm-ord-refresh {
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #94a3b8;
   font-size: 0.82rem;
   cursor: pointer;
@@ -3952,7 +3952,7 @@
 .adm-ord-table-wrap {
   overflow-x: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -3968,18 +3968,18 @@
 }
 
 .adm-ord-table th {
-  padding: 11px 14px;
+  padding: 0.6875rem 0.875rem;
   text-align: left;
   font-size: 0.65rem;
   font-weight: 700;
   color: #94a3b8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .adm-ord-table td {
-  padding: 11px 14px;
+  padding: 0.6875rem 0.875rem;
   color: #c9d1d9;
   border-bottom: 1px solid rgba(33, 38, 45, 0.6);
   vertical-align: middle;
@@ -4003,9 +4003,9 @@
   color: #f8fafc;
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 5px;
-  letter-spacing: 0.3px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.3125rem;
+  letter-spacing: 0.0188rem;
   white-space: nowrap;
 }
 
@@ -4020,9 +4020,9 @@
 .adm-ord-side {
   font-size: 0.72rem;
   font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.25rem;
+  letter-spacing: 0.0188rem;
   display: inline-block;
 }
 
@@ -4040,9 +4040,9 @@
 .adm-ord-status {
   font-size: 0.72rem;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  letter-spacing: 0.3px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.25rem;
+  letter-spacing: 0.0188rem;
   display: inline-block;
 }
 
@@ -4071,14 +4071,14 @@
   font-size: 0.68rem;
   font-weight: 600;
   color: #94a3b8;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.0188rem;
 }
 
 /* Info + time */
 .adm-ord-info {
   font-size: 0.75rem;
   color: #94a3b8;
-  max-width: 160px;
+  max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4095,7 +4095,7 @@
   text-align: center;
   color: #484f58;
   font-size: 0.88rem;
-  padding: 60px 20px;
+  padding: 3.75rem 1.25rem;
 }
 
 /* Skeleton rows */
@@ -4105,16 +4105,16 @@
 
 .adm-ord-skeleton-grid {
   display: grid;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
 }
 
 .adm-ord-skeleton-cell {
-  height: 13px;
+  height: 0.8125rem;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, #2d333b 50%, rgba(255, 255, 255, 0.08) 75%);
   background-size: 200% 100%;
   animation: adm-skeleton-shimmer 1.4s infinite;
-  border-radius: 4px;
+  border-radius: 0.25rem;
 }
 
 /* Pagination */
@@ -4122,18 +4122,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding-top: 4px;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .adm-ord-page-btn {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 7px;
+  border-radius: 0.4375rem;
   color: #94a3b8;
   font-size: 0.85rem;
-  width: 34px;
-  height: 34px;
+  width: 2.125rem;
+  height: 2.125rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -4155,7 +4155,7 @@
   font-size: 0.78rem;
   color: #94a3b8;
   font-weight: 600;
-  min-width: 100px;
+  min-width: 6.25rem;
   text-align: center;
 }
 
@@ -4200,7 +4200,7 @@
   table,
   .adm-table {
     width: 100%;
-    min-width: 600px;
+    min-width: 37.5rem;
     /* Forces scroll instead of squishing */
   }
 
@@ -4210,17 +4210,17 @@
   .adm-grid,
   .adm-script-list {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
+    gap: 0.75rem !important;
   }
 
   /* Adjust main padding */
   .adm-content {
-    padding: 16px 12px 30px !important;
+    padding: 1rem 0.75rem 1.875rem !important;
   }
 
   /* Adjust cards */
   .adm-card {
-    padding: 14px !important;
+    padding: 0.875rem !important;
   }
 
   /* User Panel full width on mobile */
@@ -4232,8 +4232,8 @@
   /* Make popups/sheets full width */
   .adm-bottom-sheet {
     max-width: 100% !important;
-    border-radius: 16px 16px 0 0 !important;
-    padding: 20px 16px 24px !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    padding: 1.25rem 1rem 1.5rem !important;
   }
 
   /* Form actions stack vertically or full width buttons */
@@ -4254,12 +4254,12 @@
   .adm-btn-primary,
   .adm-btn-ghost,
   .adm-sheet-cancel {
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
   }
 
   /* Make the topbar better */
   .adm-topbar {
-    padding: 12px 14px !important;
+    padding: 0.75rem 0.875rem !important;
   }
 }
 
@@ -4270,16 +4270,16 @@
     white-space: nowrap !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 5px;
+    padding-bottom: 0.3125rem;
   }
 
   .adm-mw-tabs::-webkit-scrollbar {
-    height: 3px;
+    height: 0.1875rem;
   }
 
   .adm-mw-tabs::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    border-radius: 0.625rem;
   }
 
   .adm-mw-table-wrap {
@@ -4287,19 +4287,19 @@
     -webkit-overflow-scrolling: touch;
     width: 100%;
     display: block;
-    border-radius: 8px;
+    border-radius: 0.5rem;
   }
 
   .adm-mw-table {
     width: 100%;
-    min-width: 700px !important;
+    min-width: 43.75rem !important;
     /* Force scroll for all columns */
   }
 
   .adm-mw-search-row {
     flex-direction: column;
     align-items: stretch !important;
-    gap: 10px;
+    gap: 0.625rem;
   }
 
   .adm-mw-search-wrap {
@@ -4315,13 +4315,13 @@
 /* ===== MARKETWATCH TABLE SPACING FIX ===== */
 .adm-mw-table {
   border-collapse: collapse;
-  min-width: 850px !important;
+  min-width: 53.125rem !important;
   /* Extra width so columns don't squish */
 }
 
 .adm-mw-table th,
 .adm-mw-table td {
-  padding: 14px 16px !important;
+  padding: 0.875rem 1rem !important;
   white-space: nowrap !important;
   /* Prevents text from breaking into multiple lines */
 }
@@ -4329,7 +4329,7 @@
 .adm-mw-table th {
   color: #94a3b8;
   font-size: 0.75rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
 }
 
 .adm-mw-table td {
@@ -4338,26 +4338,26 @@
 }
 
 .adm-mw-sym-cell {
-  padding-left: 20px !important;
+  padding-left: 1.25rem !important;
 }
 
 /* ===== SETTINGS PAGE RESPONSIVE LAYOUT ===== */
 .adm-settings-layout {
   display: flex;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 3.75rem);
 }
 
 .adm-settings-sidebar {
-  width: 240px;
+  width: 15rem;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
+  padding: 1.25rem 0;
   flex-shrink: 0;
 }
 
 .adm-settings-title {
-  margin: 0 0 20px 20px;
+  margin: 0 0 1.25rem 1.25rem;
   color: #f8fafc;
   font-size: 1.1rem;
   font-weight: 700;
@@ -4366,16 +4366,16 @@
 .adm-settings-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 0 12px;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
 }
 
 .adm-settings-btn {
-  padding: 10px 16px;
+  padding: 0.625rem 1rem;
   text-align: left;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #94a3b8;
   font-weight: 500;
   cursor: pointer;
@@ -4397,7 +4397,7 @@
 
 .adm-settings-main {
   flex: 1;
-  padding: 24px 32px;
+  padding: 1.5rem 2rem;
   overflow-y: auto;
   background-color: transparent;
 }
@@ -4412,17 +4412,17 @@
   .adm-settings-sidebar {
     width: 100%;
     border-right: none;
-    padding: 12px 0 0 0;
+    padding: 0.75rem 0 0 0;
   }
 
   .adm-settings-title {
-    margin: 0 0 10px 16px;
+    margin: 0 0 0.625rem 1rem;
   }
 
   .adm-settings-nav {
     flex-direction: row;
     overflow-x: auto;
-    padding: 0 16px 12px 16px;
+    padding: 0 1rem 0.75rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     -webkit-overflow-scrolling: touch;
   }
@@ -4434,11 +4434,11 @@
 
   .adm-settings-btn {
     text-align: center;
-    padding: 8px 16px;
+    padding: 0.5rem 1rem;
   }
 
   .adm-settings-main {
-    padding: 16px 12px;
+    padding: 1rem 0.75rem;
     height: auto;
     overflow-y: visible;
   }
@@ -4449,18 +4449,18 @@
   background: #0d1117 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0.25rem 0 1.5rem rgba(0, 0, 0, 0.6) !important;
 }
 
 /* ===== MODERN POSITION PAGE STYLING ===== */
 .adm-pos-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40rem) {
   .adm-pos-stats-grid {
     grid-template-columns: 1fr;
   }
@@ -4469,18 +4469,18 @@
 .adm-pos-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
   transition: all 0.2s ease;
 }
 
 .adm-pos-card:hover {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.2);
 }
 
 .adm-pos-card-header {
@@ -4488,13 +4488,13 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-bottom: 10px;
+  padding-bottom: 0.625rem;
 }
 
 .adm-pos-card-title-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .adm-pos-card-symbol {
@@ -4506,9 +4506,9 @@
 .adm-pos-side-badge {
   font-size: 0.7rem;
   font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 6px;
-  letter-spacing: 0.5px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.375rem;
+  letter-spacing: 0.0312rem;
 }
 
 .adm-pos-side-badge.buy {
@@ -4526,8 +4526,8 @@
 .adm-pos-pnl-badge {
   font-size: 1.05rem;
   font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 8px;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
 }
 
 .adm-pos-pnl-badge.pos {
@@ -4543,7 +4543,7 @@
 .adm-pos-card-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px 8px;
+  gap: 0.75rem 0.5rem;
 }
 
 @media (max-width: 768px) {
@@ -4555,7 +4555,7 @@
 .adm-pos-card-metric {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .adm-pos-card-metric.col-span-2 {
@@ -4567,7 +4567,7 @@
   color: #94a3b8;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
 }
 
 .adm-pos-metric-value {
@@ -4589,22 +4589,22 @@
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 12px;
+  padding-top: 0.75rem;
   margin-top: 2px;
-  gap: 16px;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .adm-pos-time-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .adm-pos-time-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .adm-pos-time-label {
@@ -4621,7 +4621,7 @@
 
 .adm-pos-actions-group {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -4629,8 +4629,8 @@
   background: rgba(248, 81, 73, 0.15);
   color: #f85149;
   border: 1px solid rgba(248, 81, 73, 0.3);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -4640,15 +4640,15 @@
 .adm-pos-btn-sqoff:hover {
   background: #f85149;
   color: #fff;
-  box-shadow: 0 0 12px rgba(248, 81, 73, 0.4);
+  box-shadow: 0 0 0.75rem rgba(248, 81, 73, 0.4);
 }
 
 .adm-pos-btn-edit {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -4658,15 +4658,15 @@
 .adm-pos-btn-edit:hover {
   background: #3b82f6;
   color: #fff;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0.75rem rgba(59, 130, 246, 0.4);
 }
 
 .adm-pos-btn-reopen {
   background: rgba(46, 160, 67, 0.15);
   color: #3fb950;
   border: 1px solid rgba(46, 160, 67, 0.3);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -4676,15 +4676,15 @@
 .adm-pos-btn-reopen:hover {
   background: #2ea043;
   color: #fff;
-  box-shadow: 0 0 12px rgba(46, 160, 67, 0.4);
+  box-shadow: 0 0 0.75rem rgba(46, 160, 67, 0.4);
 }
 
 .adm-pos-btn-delete {
   background: transparent;
   color: #94a3b8;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;

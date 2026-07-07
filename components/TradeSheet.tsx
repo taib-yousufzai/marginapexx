@@ -463,9 +463,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     </div>
   ) : null;
 
+  const isExecutingRef = useRef(false);
+
   const handlePlace = async (placeSide: 'BUY' | 'SELL') => {
-    showToast('Executing handlePlace');
-    if (!item) return;
+    if (isExecutingRef.current) return;
+    isExecutingRef.current = true;
+    try {
+      showToast('Executing handlePlace');
+      if (!item) return;
 
     // Parse qty fresh from the input string at submit time — avoids stale state issues
     const parsedInputQty = parseFloat(qtyInput);
@@ -839,6 +844,9 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     } else {
       alert(`Order Failed:\n${res.error}`);
       showToast(`${res.error}`);
+    }
+    } finally {
+      isExecutingRef.current = false;
     }
   };
 

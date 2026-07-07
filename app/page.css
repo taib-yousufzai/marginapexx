@@ -29,8 +29,8 @@
   --product-border: #E5E7EB;
   --badge-bg: #1A1A1A;
   --badge-text: #FFFFFF;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.02);
-  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 0.375rem 0.75rem -0.375rem rgba(0, 0, 0, 0.15);
   --active-cat-bg: #1A1A1A;
   --active-cat-text: #FFFFFF;
   --positive-bg: #E6F4EA;
@@ -40,7 +40,7 @@
   --algo-bg: linear-gradient(135deg, #1A1A1A, #2D2D2D);
   --ai-bg: linear-gradient(135deg, #1A1A1A, #2D2D2D);
   --nav-bg: #FFFFFF;
-  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+  --nav-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.04);
   --nav-border: #E8ECF0;
   --expiry-bg: linear-gradient(135deg, #C62828, #B71C1C);
   --footer-bg: #FFFFFF;
@@ -49,7 +49,7 @@
   --drawer-handle: #006400;
   --whatsapp-bg: linear-gradient(135deg, #006400, #0A5F52);
   --gold-silver-gradient: linear-gradient(135deg, #E8E8E8 0%, #D4AF37 30%, #FFD700 50%, #F0C040 70%, #C0C0C0 100%);
-  --footer-nav-height: 65px;
+  --footer-nav-height: 4.0625rem;
   --expiry-drawer-bg: #FFFFFF;
   --expiry-drawer-overlay: rgba(0, 0, 0, 0.5);
 }
@@ -76,8 +76,8 @@ body.dark {
   --product-border: #333333;
   --badge-bg: #006400;
   --badge-text: #FFFFFF;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 0.375rem 0.75rem -0.375rem rgba(0, 0, 0, 0.4);
   --active-cat-bg: #006400;
   --active-cat-text: #FFFFFF;
   --positive-bg: #1A3A2A;
@@ -87,7 +87,7 @@ body.dark {
   --algo-bg: linear-gradient(135deg, #006400, #004d00);
   --ai-bg: linear-gradient(135deg, #006400, #004d00);
   --nav-bg: #1E1E1E;
-  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --nav-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.3);
   --nav-border: #333333;
   --expiry-bg: linear-gradient(135deg, #C62828, #9A1F1F);
   --footer-bg: #1E1E1E;
@@ -135,11 +135,11 @@ body.dark {
 .whatsapp-community,
 .whatsapp-support {
   background: var(--whatsapp-bg);
-  border-radius: 32px;
-  margin-bottom: 20px;
+  border-radius: 2rem;
+  margin-bottom: 1.25rem;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 8px 24px rgba(15, 80, 50, 0.5);
+  box-shadow: 0 0.5rem 1.5rem rgba(15, 80, 50, 0.5);
 }
 
 .whatsapp-community:last-child,
@@ -155,15 +155,15 @@ body.dark {
 .whatsapp-inner {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 20px;
+  gap: 0.875rem;
+  padding: 0.875rem 1.25rem;
 }
 
 .whatsapp-icon {
   background: rgba(255, 255, 255, 0.2);
-  width: 52px;
-  height: 52px;
-  border-radius: 28px;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,7 +180,7 @@ body.dark {
   font-weight: 800;
   color: white;
   line-height: 1.3;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .whatsapp-sub {
@@ -188,14 +188,14 @@ body.dark {
   color: rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .whatsapp-arrow {
   background: rgba(255, 255, 255, 0.2);
-  width: 34px;
-  height: 34px;
-  border-radius: 30px;
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 1.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -205,9 +205,9 @@ body.dark {
 /* MARGIN SETTINGS ROW */
 .margin-settings-row {
   background: var(--card-alt-bg);
-  border-radius: 28px;
-  padding: 12px 18px;
-  margin-bottom: 24px;
+  border-radius: 1.75rem;
+  padding: 0.75rem 1.125rem;
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -222,14 +222,14 @@ body.dark {
 .margin-settings-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .margin-settings-icon {
   background: var(--chip-active-bg);
-  width: 44px;
-  height: 44px;
-  border-radius: 28px;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,9 +251,9 @@ body.dark {
 
 .margin-settings-arrow {
   background: var(--arrow-bg);
-  width: 30px;
-  height: 30px;
-  border-radius: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 1.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -262,14 +262,14 @@ body.dark {
 
 /* OPTION CHAIN SECTION */
 .option-chain-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .section-title {
@@ -284,20 +284,20 @@ body.dark {
   display: inline-flex;
   position: relative;
   background: var(--chip-bg);
-  border-radius: 20px;
-  padding: 4px;
-  margin-bottom: 16px;
+  border-radius: 1.25rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
   border: 1px solid var(--border-card);
 }
 
 .category-toggle-slider {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  height: calc(100% - 8px);
+  top: 0.25rem;
+  left: 0.25rem;
+  width: calc(50% - 0.25rem);
+  height: calc(100% - 0.5rem);
   background: #006400;
-  border-radius: 16px;
+  border-radius: 1rem;
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 1;
 }
@@ -314,8 +314,8 @@ body.dark .category-toggle-slider {
   position: relative;
   z-index: 2;
   flex: 1;
-  padding: 6px 14px;
-  border-radius: 16px;
+  padding: 0.375rem 0.875rem;
+  border-radius: 1rem;
   text-align: center;
   font-weight: 700;
   font-size: 0.65rem;
@@ -323,7 +323,7 @@ body.dark .category-toggle-slider {
   cursor: pointer;
   border: none;
   background: transparent;
-  width: 95px;
+  width: 5.9375rem;
   transition: color 0.3s ease;
 }
 
@@ -337,7 +337,7 @@ body.dark .category-toggle-slider {
   overflow-y: hidden;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px;
+  padding-bottom: 0.5rem;
   scrollbar-width: none;
   width: 100%;
   /* Ensure it takes available width */
@@ -349,8 +349,8 @@ body.dark .category-toggle-slider {
 
 .instruments-row {
   display: inline-flex;
-  gap: 16px;
-  padding: 8px 4px;
+  gap: 1rem;
+  padding: 0.5rem 0.25rem;
 }
 
 /* BOUND/OUTLINE CIRCLE BUTTONS with jade red accent */
@@ -358,9 +358,9 @@ body.dark .category-toggle-slider {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   cursor: pointer;
-  width: 70px;
+  width: 4.375rem;
   flex-shrink: 0;
 }
 
@@ -369,8 +369,8 @@ body.dark .category-toggle-slider {
 }
 
 .circle-icon {
-  width: 60px;
-  height: 60px;
+  width: 3.75rem;
+  height: 3.75rem;
   border-radius: 50%;
   background: transparent;
   display: flex;
@@ -403,15 +403,15 @@ body.dark .circle-icon {
 /* EXPIRY TODAY BLOCK */
 .expiry-block {
   background: var(--expiry-bg);
-  border-radius: 28px;
-  padding: 12px 18px;
-  margin-bottom: 20px;
+  border-radius: 1.75rem;
+  padding: 0.75rem 1.125rem;
+  margin-bottom: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: transform 0.2s;
-  box-shadow: 0 4px 12px rgba(198, 40, 40, 0.25);
+  box-shadow: 0 0.25rem 0.75rem rgba(198, 40, 40, 0.25);
 }
 
 .expiry-block:active {
@@ -421,14 +421,14 @@ body.dark .circle-icon {
 .expiry-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .expiry-icon {
   background: rgba(255, 255, 255, 0.2);
-  width: 44px;
-  height: 44px;
-  border-radius: 28px;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -450,9 +450,9 @@ body.dark .circle-icon {
 
 .expiry-arrow {
   background: rgba(255, 255, 255, 0.2);
-  width: 30px;
-  height: 30px;
-  border-radius: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 1.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -462,9 +462,9 @@ body.dark .circle-icon {
 /* MARKET OVERVIEW - TWO ROWS (using reliable FA icons) */
 .market-overview {
   background: var(--card-bg);
-  border-radius: 28px;
-  padding: 18px;
-  margin-bottom: 24px;
+  border-radius: 1.75rem;
+  padding: 1.125rem;
+  margin-bottom: 1.5rem;
   border: 1px solid var(--border-light);
 }
 
@@ -472,17 +472,17 @@ body.dark .circle-icon {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem;
 }
 
 .overview-header h4 {
-  padding-left: 4px;
+  padding-left: 0.25rem;
 }
 
 .markets-two-rows {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .market-row-scroll {
@@ -500,17 +500,17 @@ body.dark .circle-icon {
 
 .market-row-blocks {
   display: inline-flex;
-  gap: 12px;
-  padding: 4px 2px;
+  gap: 0.75rem;
+  padding: 0.25rem 2px;
 }
 
 .market-rectangle {
   display: inline-flex;
   flex-direction: column;
   background: var(--card-alt-bg);
-  border-radius: 20px;
-  padding: 10px 14px;
-  min-width: 120px;
+  border-radius: 1.25rem;
+  padding: 0.625rem 0.875rem;
+  min-width: 7.5rem;
   cursor: pointer;
   transition: 0.2s;
   border: 1px solid var(--border-card);
@@ -524,19 +524,19 @@ body.dark .circle-icon {
 .market-rect-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
 }
 
 .market-rect-header i {
   font-size: 0.9rem;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--icon-bg);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: #006400;
 }
 
@@ -553,7 +553,7 @@ body.dark .circle-icon {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
   line-height: 1.2;
 }
 
@@ -589,12 +589,12 @@ body.dark .circle-icon {
   color: #b45309;
   background: #fffbeb;
   border: 1px solid #fde68a;
-  border-radius: 8px;
-  padding: 3px 7px;
-  margin-bottom: 3px;
+  border-radius: 0.5rem;
+  padding: 0.1875rem 0.4375rem;
+  margin-bottom: 0.1875rem;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   white-space: nowrap;
 }
 
@@ -619,21 +619,21 @@ body.black .market-rect-expired-badge {
 
 /* AI & LEARNING - using reliable FA icons */
 .learning-section {
-  margin-top: 6px;
-  margin-bottom: 20px;
+  margin-top: 0.375rem;
+  margin-bottom: 1.25rem;
 }
 
 .learning-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 10px;
+  gap: 0.625rem;
+  margin-top: 0.625rem;
 }
 
 .learning-card {
   background: var(--product-bg);
-  border-radius: 20px;
-  padding: 10px 4px;
+  border-radius: 1.25rem;
+  padding: 0.625rem 0.25rem;
   border: 1px solid var(--product-border);
   cursor: pointer;
   text-align: center;
@@ -647,13 +647,13 @@ body.black .market-rect-expired-badge {
 }
 
 .learning-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 20px;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 6px auto;
+  margin: 0 auto 0.375rem auto;
   font-size: 1rem;
   color: white;
 }
@@ -687,8 +687,8 @@ body.black .market-rect-expired-badge {
   color: var(--badge-text);
   font-size: 0.55rem;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 20px;
+  padding: 2px 0.375rem;
+  border-radius: 1.25rem;
   display: inline-block;
 }
 
@@ -708,17 +708,17 @@ body.black .market-rect-expired-badge {
 }
 
 .reverse-semi-circle {
-  width: 75px;
-  height: 32px;
+  width: 4.6875rem;
+  height: 2rem;
   background: linear-gradient(135deg, #006400 0%, #004d00 100%);
-  border-radius: 40px 40px 0 0;
+  border-radius: 2.5rem 2.5rem 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2);
+  box-shadow: 0 -0.25rem 0.9375rem rgba(0, 100, 0, 0.2);
   margin-bottom: -1px;
   border: 1.5px solid rgba(255, 255, 255, 0.1);
   border-bottom: none;
@@ -728,25 +728,25 @@ body.black .market-rect-expired-badge {
 @keyframes handlePulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2);
+    box-shadow: 0 -0.25rem 0.9375rem rgba(0, 100, 0, 0.2);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 -6px 20px rgba(0, 100, 0, 0.35);
+    box-shadow: 0 -0.375rem 1.25rem rgba(0, 100, 0, 0.35);
   }
 
   100% {
     transform: scale(1);
-    box-shadow: 0 -4px 15px rgba(0, 100, 0, 0.2);
+    box-shadow: 0 -0.25rem 0.9375rem rgba(0, 100, 0, 0.2);
   }
 }
 
 .handle-bar {
-  width: 25px;
-  height: 3px;
+  width: 1.5625rem;
+  height: 0.1875rem;
   background: rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
+  border-radius: 0.625rem;
   margin-bottom: 2px;
 }
 
@@ -774,12 +774,12 @@ body.black .market-rect-expired-badge {
 }
 
 .pull-drawer.open .drawer-content {
-  max-height: 200px;
+  max-height: 12.5rem;
   transition: max-height 0.4s ease-in;
 }
 
 .drawer-inner {
-  padding: 16px 20px;
+  padding: 1rem 1.25rem;
   text-align: center;
   border-top: 1px solid var(--border-card);
 }
@@ -790,7 +790,7 @@ body.black .market-rect-expired-badge {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .drawer-placeholder i {
@@ -806,14 +806,14 @@ body.black .market-rect-expired-badge {
 
 .toast-msg {
   position: fixed;
-  bottom: 90px;
+  bottom: 5.625rem;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(30, 35, 45, 0.95);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(0.5rem);
   color: #FFFFFF !important;
-  padding: 14px 24px;
-  border-radius: 40px;
+  padding: 0.875rem 1.5rem;
+  border-radius: 2.5rem;
   font-size: 0.9rem;
   font-weight: 600;
   z-index: 99999;
@@ -821,7 +821,7 @@ body.black .market-rect-expired-badge {
   text-align: center;
   width: max-content;
   max-width: 90vw;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
 }
 
 /* MOBILE OVERRIDES AT THE BOTTOM FOR PRIORITY */
@@ -847,7 +847,7 @@ body.black .market-rect-expired-badge {
   }
 
   .nav-bar-full {
-    padding: 10px 8px !important;
+    padding: 0.625rem 0.5rem !important;
     /* Even tighter padding */
     gap: 2px !important;
     justify-content: space-around;
@@ -855,26 +855,26 @@ body.black .market-rect-expired-badge {
   }
 
   .nav-group {
-    gap: 6px !important;
+    gap: 0.375rem !important;
     flex-shrink: 1;
   }
 
   .nav-app-name {
     font-size: 1rem !important;
-    letter-spacing: -0.3px !important;
+    letter-spacing: -0.0188rem !important;
     flex-shrink: 0;
   }
 
   .nav-icon-btn {
-    width: 40px !important;
-    height: 40px !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
     font-size: 1.15rem !important;
     border-radius: 50% !important;
   }
 
   .nav-funds {
-    padding: 7px 12px !important;
-    gap: 6px !important;
+    padding: 0.4375rem 0.75rem !important;
+    gap: 0.375rem !important;
   }
 
   .nav-funds span {
@@ -886,7 +886,7 @@ body.black .market-rect-expired-badge {
   }
 
   .content-padded {
-    padding: 10px 10px 0 10px !important;
+    padding: 0.625rem 0.625rem 0 0.625rem !important;
     /* Tightest padding */
   }
 
@@ -895,21 +895,21 @@ body.black .market-rect-expired-badge {
   .margin-settings-row,
   .option-chain-section,
   .expiry-block {
-    margin-bottom: 12px !important;
+    margin-bottom: 0.75rem !important;
   }
 
   .market-overview {
-    padding: 12px !important;
+    padding: 0.75rem !important;
     /* Reduce inner padding */
   }
 
   .learning-grid {
-    gap: 6px !important;
+    gap: 0.375rem !important;
   }
 
   .whatsapp-inner {
-    padding: 12px 14px !important;
-    gap: 8px !important;
+    padding: 0.75rem 0.875rem !important;
+    gap: 0.5rem !important;
   }
 
   .whatsapp-headline {
@@ -918,11 +918,11 @@ body.black .market-rect-expired-badge {
 
   .footer-nav {
     height: var(--footer-nav-height);
-    padding: 8px 10px !important;
+    padding: 0.5rem 0.625rem !important;
   }
 
   .footer-tab {
-    padding: 2px 4px !important;
+    padding: 2px 0.25rem !important;
   }
 
   .footer-label {
@@ -937,9 +937,9 @@ body.black .market-rect-expired-badge {
    ======================================================== */
 @media (min-width: 501px) {
   .app-container {
-    max-width: 900px;
-    padding-left: 24px;
-    padding-right: 24px;
+    max-width: 56.25rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 
   .learning-grid {
@@ -955,8 +955,8 @@ body.black .market-rect-expired-badge {
 
   .instruments-row {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(5.625rem, 1fr));
+    gap: 1rem;
     width: 100%;
   }
 
@@ -966,8 +966,8 @@ body.black .market-rect-expired-badge {
 
   .market-row-blocks {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(11.25rem, 1fr));
+    gap: 1rem;
     width: 100%;
   }
 
@@ -978,7 +978,7 @@ body.black .market-rect-expired-badge {
 }
 
 /* ========================================================
-   PRO TERMINAL DESKTOP ARCHITECTURE (>= 1024px)
+   PRO TERMINAL DESKTOP ARCHITECTURE (>= 64rem)
    ======================================================== */
 @media (min-width: 1024px) {
   .app-container {
@@ -1007,7 +1007,7 @@ body.black .market-rect-expired-badge {
     bottom: 0;
     left: 0;
     right: auto;
-    width: 80px;
+    width: 5rem;
     height: 100vh;
     border-top: none;
     border-right: 1px solid var(--border-light);
@@ -1016,7 +1016,7 @@ body.black .market-rect-expired-badge {
   }
 
   .main-scroll-wrapper {
-    padding: 32px 40px;
+    padding: 2rem 2.5rem;
     flex: 1;
     overflow-y: auto;
   }
@@ -1028,8 +1028,8 @@ body.black .market-rect-expired-badge {
   .content-padded {
     padding: 0;
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 32px;
+    grid-template-columns: 1fr 21.25rem;
+    gap: 2rem;
     align-items: start;
     grid-template-areas:
       "whatsapp whatsapp"
@@ -1044,14 +1044,14 @@ body.black .market-rect-expired-badge {
   .whatsapp-community {
     grid-area: whatsapp;
     max-width: 100%;
-    box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3);
+    box-shadow: 0 0.25rem 0.75rem rgba(15, 80, 50, 0.3);
   }
 
   .whatsapp-support {
     grid-area: support;
     max-width: 100%;
     margin-top: 0 !important;
-    box-shadow: 0 4px 12px rgba(15, 80, 50, 0.3);
+    box-shadow: 0 0.25rem 0.75rem rgba(15, 80, 50, 0.3);
   }
 
   .terminal-card-highlight,
@@ -1082,11 +1082,11 @@ body.black .market-rect-expired-badge {
 
   .learning-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 1rem;
   }
 
   .learning-card {
-    padding: 16px 12px;
+    padding: 1rem 0.75rem;
   }
 
   /* Unpack horizontal scrolls into wrapping grids */
@@ -1099,8 +1099,8 @@ body.black .market-rect-expired-badge {
 
   .instruments-row {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
-    gap: 16px !important;
+    grid-template-columns: repeat(auto-fill, minmax(5.625rem, 1fr)) !important;
+    gap: 1rem !important;
     width: 100% !important;
   }
 
@@ -1113,13 +1113,13 @@ body.black .market-rect-expired-badge {
 
   .market-row-blocks {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
-    gap: 16px !important;
+    grid-template-columns: repeat(auto-fill, minmax(11.25rem, 1fr)) !important;
+    gap: 1rem !important;
     width: 100% !important;
   }
 
   .toast-msg {
-    bottom: 40px;
+    bottom: 2.5rem;
   }
 }
 
@@ -1138,7 +1138,7 @@ body.dark .overview-header h4 {
   background: var(--container-bg);
   width: 100%;
   max-width: 500px;
-  border-radius: 28px 28px 0 0;
+  border-radius: 1.75rem 1.75rem 0 0;
   padding: 0;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
@@ -1146,7 +1146,7 @@ body.dark .overview-header h4 {
   height: 60vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -0.5rem 1.875rem rgba(0, 0, 0, 0.2);
 }
 
 .expiry-half-drawer-overlay.active .notif-sheet {
@@ -1154,7 +1154,7 @@ body.dark .overview-header h4 {
 }
 
 .notif-sheet-header {
-  padding: 24px 24px 16px 24px;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
   text-align: left;
 }
 
@@ -1162,7 +1162,7 @@ body.dark .overview-header h4 {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--text-primary);
-  margin: 0 0 4px 0;
+  margin: 0 0 0.25rem 0;
   font-family: 'Inter', sans-serif;
 }
 
@@ -1174,7 +1174,7 @@ body.dark .overview-header h4 {
 .notif-sheet-body {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px;
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
 }
@@ -1184,11 +1184,11 @@ body.dark .overview-header h4 {
   font-size: 1rem;
   color: var(--text-secondary);
   text-align: center;
-  padding: 40px 0;
+  padding: 2.5rem 0;
 }
 
 .notif-sheet-footer {
-  padding: 16px 24px 24px 24px;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
   background: var(--container-bg);
 }
 
@@ -1197,8 +1197,8 @@ body.dark .overview-header h4 {
   background: #0B0E14;
   color: #fff;
   border: none;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0.75rem;
+  padding: 1rem;
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -1215,14 +1215,14 @@ body.dark .notif-close-btn {
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 0 4px;
+  padding: 0 0.25rem;
 }
 
 .notif-item {
-  padding: 14px 12px;
+  padding: 0.875rem 0.75rem;
   border-bottom: 1px solid var(--border-light, #E8ECF0);
-  border-radius: 12px;
-  margin-bottom: 4px;
+  border-radius: 0.75rem;
+  margin-bottom: 0.25rem;
 }
 
 .notif-item:last-child { border-bottom: none; }
@@ -1231,7 +1231,7 @@ body.dark .notif-close-btn {
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-primary, #1A1A1A);
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .notif-msg {
@@ -1242,7 +1242,7 @@ body.dark .notif-close-btn {
 
 .no-data {
   text-align: center;
-  padding: 32px 16px;
+  padding: 2rem 1rem;
   font-size: 0.85rem;
   color: var(--text-muted, #9CA3AF);
 }
@@ -1259,20 +1259,20 @@ body.dark .notif-title {
 .live-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   font-size: 0.65rem;
   font-weight: 800;
   color: #22c55e;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.05rem;
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.3);
-  padding: 3px 8px;
-  border-radius: 20px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 1.25rem;
 }
 
 .live-dot {
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: 50%;
   background: #22c55e;
   display: inline-block;
@@ -1293,31 +1293,31 @@ body.dark .notif-title {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(0.25rem);
   z-index: 100000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 1.25rem;
   animation: fadeInNotif 0.3s ease-out;
 }
 
 .notif-popup-card {
   background: var(--container-bg);
   border: 1px solid var(--border-card);
-  border-radius: 24px;
-  max-width: 420px;
+  border-radius: 1.5rem;
+  max-width: 26.25rem;
   width: 100%;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.3);
   text-align: center;
-  transform: scale(0.9) translateY(20px);
+  transform: scale(0.9) translateY(1.25rem);
   animation: slideUpNotif 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .notif-popup-icon {
-  width: 56px;
-  height: 56px;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
   background: rgba(0, 100, 0, 0.1);
   color: #006400;
@@ -1325,7 +1325,7 @@ body.dark .notif-title {
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  margin: 0 auto 16px auto;
+  margin: 0 auto 1rem auto;
 }
 
 body.dark .notif-popup-icon {
@@ -1337,22 +1337,22 @@ body.dark .notif-popup-icon {
   font-size: 1.15rem;
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .notif-popup-message {
   font-size: 0.9rem;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .notif-popup-btn {
   background: #006400;
   color: white;
   border: none;
-  border-radius: 12px;
-  padding: 12px 24px;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
@@ -1381,19 +1381,19 @@ body.dark .notif-popup-btn {
 .market-hours-status-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
+  gap: 0.5rem;
+  margin-top: 0.625rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.625rem;
   border-bottom: 1px solid var(--border-light);
 }
 
 .market-hour-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 1.25rem;
   font-size: 0.65rem;
   font-weight: 700;
   border: 1px solid transparent;
@@ -1457,8 +1457,8 @@ body.black {
   --product-border: #1A1A1A;
   --badge-bg: #006400;
   --badge-text: #FFFFFF;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 0.375rem 0.75rem -0.375rem rgba(0, 0, 0, 0.4);
   --active-cat-bg: #006400;
   --active-cat-text: #FFFFFF;
   --positive-bg: #1A3A2A;
@@ -1468,7 +1468,7 @@ body.black {
   --algo-bg: linear-gradient(135deg, #006400, #004d00);
   --ai-bg: linear-gradient(135deg, #006400, #004d00);
   --nav-bg: #000000;
-  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --nav-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.3);
   --nav-border: #1A1A1A;
   --expiry-bg: linear-gradient(135deg, #C62828, #9A1F1F);
   --footer-bg: #000000;
@@ -1516,8 +1516,8 @@ body.blue {
   --product-border: #131C27;
   --badge-bg: #006400;
   --badge-text: #FFFFFF;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 6px 12px -6px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 0.375rem 0.75rem -0.375rem rgba(0, 0, 0, 0.4);
   --active-cat-bg: #006400;
   --active-cat-text: #FFFFFF;
   --positive-bg: #1A3A2A;
@@ -1527,7 +1527,7 @@ body.blue {
   --algo-bg: linear-gradient(135deg, #006400, #004d00);
   --ai-bg: linear-gradient(135deg, #006400, #004d00);
   --nav-bg: #0B141E;
-  --nav-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  --nav-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.3);
   --nav-border: #131C27;
   --expiry-bg: linear-gradient(135deg, #C62828, #9A1F1F);
   --footer-bg: #0B141E;
@@ -1585,7 +1585,7 @@ body.blue .notif-item {
   scroll-behavior: smooth !important;
   overscroll-behavior-y: contain !important;
   padding-top: 0 !important;
-  padding-bottom: 100px !important; /* Clear the fixed footer */
+  padding-bottom: 6.25rem !important; /* Clear the fixed footer */
 }
 
 .home-isolated-container .toast-msg {

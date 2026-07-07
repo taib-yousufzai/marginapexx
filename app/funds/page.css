@@ -2,12 +2,12 @@
 
 .balance-card {
   background: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 100%);
-  border-radius: 24px;
-  padding: 24px;
+  border-radius: 1.5rem;
+  padding: 1.5rem;
   color: white;
   text-align: center;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  margin-bottom: 1.25rem;
+  box-shadow: 0 0.625rem 1.5625rem rgba(0, 0, 0, 0.15);
   position: relative;
   overflow: hidden;
 }
@@ -19,10 +19,10 @@
 .balance-card::before {
   content: '';
   position: absolute;
-  top: -50px;
-  right: -50px;
-  width: 150px;
-  height: 150px;
+  top: -3.125rem;
+  right: -3.125rem;
+  width: 9.375rem;
+  height: 9.375rem;
   background: radial-gradient(circle, rgba(0, 100, 0, 0.4) 0%, transparent 70%);
   border-radius: 50%;
 }
@@ -30,7 +30,7 @@
 .balance-label {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .balance-amount {
@@ -39,16 +39,16 @@
   font-family: 'Inter', -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .balance-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   background: rgba(255, 255, 255, 0.15);
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1.25rem;
   font-size: 0.65rem;
   font-weight: 600;
 }
@@ -58,21 +58,21 @@
   display: inline-flex;
   position: relative;
   background: var(--chip-bg);
-  border-radius: 20px;
-  padding: 4px;
-  margin-bottom: 20px;
+  border-radius: 1.25rem;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
   border: 1px solid var(--border-card);
   width: 100%;
 }
 
 .funds-toggle-slider {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  width: calc(50% - 4px);
-  height: calc(100% - 8px);
+  top: 0.25rem;
+  left: 0.25rem;
+  width: calc(50% - 0.25rem);
+  height: calc(100% - 0.5rem);
   background: #006400;
-  border-radius: 16px;
+  border-radius: 1rem;
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 1;
 }
@@ -89,8 +89,8 @@
   position: relative;
   z-index: 2;
   flex: 1;
-  padding: 10px 14px;
-  border-radius: 16px;
+  padding: 0.625rem 0.875rem;
+  border-radius: 1rem;
   text-align: center;
   font-weight: 700;
   font-size: 0.85rem;
@@ -113,8 +113,8 @@
 /* Form Area */
 .payment-box {
   background: var(--card-bg);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
   border: 1px solid var(--border-card);
 }
 
@@ -122,7 +122,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   display: block;
 }
 
@@ -131,9 +131,9 @@
   display: flex;
   align-items: center;
   background: var(--icon-bg);
-  border-radius: 16px;
-  padding: 0 20px;
-  margin-bottom: 16px;
+  border-radius: 1rem;
+  padding: 0 1.25rem;
+  margin-bottom: 1rem;
   border: 1px solid transparent;
   transition: all 0.2s;
 }
@@ -141,7 +141,7 @@
 .amount-input-wrapper:focus-within {
   border-color: #006400;
   background: var(--container-bg);
-  box-shadow: 0 0 0 3px rgba(0, 100, 0, 0.1);
+  box-shadow: 0 0 0 0.1875rem rgba(0, 100, 0, 0.1);
 }
 
 .currency-symbol {
@@ -155,7 +155,7 @@
   background: transparent;
   border: none;
   outline: none;
-  padding: 20px 10px;
+  padding: 1.25rem 0.625rem;
   font-size: 2.2rem;
   font-weight: 800;
   color: var(--text-primary);
@@ -167,15 +167,15 @@
 .quick-amounts {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 24px;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
 }
 
 .quick-btn {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  padding: 12px 0;
-  border-radius: 16px;
+  padding: 0.75rem 0;
+  border-radius: 1rem;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 800;
@@ -197,18 +197,18 @@
 .method-selector {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-  margin-top: 10px;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.625rem;
 }
 
 .method-item {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 1rem;
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 16px;
+  border-radius: 1rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -219,16 +219,16 @@
 }
 
 .method-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
   background: var(--icon-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
   color: var(--text-primary);
-  margin-right: 14px;
+  margin-right: 0.875rem;
 }
 
 .method-item.active .method-icon {
@@ -267,7 +267,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(0.625rem);
   }
 
   to {
@@ -279,11 +279,11 @@
 /* ===== WHATSAPP SUPPORT BUTTON ===== */
 .whatsapp-community {
   background: var(--whatsapp-bg);
-  border-radius: 24px;
-  margin-bottom: 20px;
+  border-radius: 1.5rem;
+  margin-bottom: 1.25rem;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 8px 24px rgba(0, 100, 0, 0.25);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 100, 0, 0.25);
   animation: fadeInUp 0.5s ease;
 }
 
@@ -294,14 +294,14 @@
 .whatsapp-inner {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 18px;
+  gap: 0.875rem;
+  padding: 0.75rem 1.125rem;
 }
 
 .whatsapp-icon {
   background: rgba(255, 255, 255, 0.2);
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -327,13 +327,13 @@
   color: rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .whatsapp-arrow {
   background: rgba(255, 255, 255, 0.2);
-  width: 30px;
-  height: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -344,8 +344,8 @@
 
 .submit-funds-btn {
   width: 100%;
-  padding: 18px;
-  border-radius: 16px;
+  padding: 1.125rem;
+  border-radius: 1rem;
   border: none;
   background: linear-gradient(135deg, #006400 0%, #004d00 100%);
   color: white;
@@ -355,8 +355,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 6px 20px rgba(0, 100, 0, 0.3);
+  gap: 0.625rem;
+  box-shadow: 0 0.375rem 1.25rem rgba(0, 100, 0, 0.3);
   transition: transform 0.2s;
 }
 
@@ -369,9 +369,9 @@
    ======================================================== */
 @media (min-width: 501px) {
   .funds-shell {
-    max-width: 700px;
+    max-width: 43.75rem;
     margin: 0 auto;
-    padding: 0 32px;
+    padding: 0 2rem;
   }
 
   .quick-amounts {
@@ -380,12 +380,12 @@
   }
 
   .quick-btn {
-    padding: 14px 0;
+    padding: 0.875rem 0;
   }
 }
 
 /* ========================================================
-   DESKTOP LAYOUT (>= 1024px)
+   DESKTOP LAYOUT (>= 64rem)
    ======================================================== */
 @media (min-width: 1024px) {
   .funds-shell {
@@ -408,9 +408,9 @@
       "balance"
       "toggle"
       "form";
-    gap: 32px;
+    gap: 2rem;
     align-items: start;
-    padding-top: 32px;
+    padding-top: 2rem;
     width: 100%;
   }
 
@@ -440,10 +440,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   background: var(--icon-bg);
-  border-radius: 12px;
-  margin-bottom: 10px;
+  border-radius: 0.75rem;
+  margin-bottom: 0.625rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--border-card);
@@ -479,7 +479,7 @@
   font-size: 0.9rem;
   color: #006400;
   opacity: 0.6;
-  margin-left: 12px;
+  margin-left: 0.75rem;
 }
 
 .copyable-row:hover .copy-icon {
@@ -489,7 +489,7 @@
 @keyframes toastFadeInUp {
   from {
     opacity: 0;
-    transform: translate(-50%, 20px);
+    transform: translate(-50%, 1.25rem);
   }
 
   to {
@@ -502,14 +502,14 @@
 .withdraw-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
   animation: fadeInUp 0.4s ease;
 }
 
 .margin-available-box {
   background: linear-gradient(135deg, #1A2E24 0%, #0A1F16 100%);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
   color: white;
   border: 1px solid rgba(0, 100, 0, 0.3);
 }
@@ -518,7 +518,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .margin-label {
@@ -542,12 +542,12 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.04em;
   color: #4ADE80;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .rules-accordion {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 12px;
+  padding-top: 0.75rem;
 }
 
 .rules-header {
@@ -563,11 +563,11 @@
   color: rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .rules-content {
-  margin-top: 10px;
+  margin-top: 0.625rem;
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.5;
@@ -576,13 +576,13 @@
 
 .withdraw-amount-section {
   text-align: center;
-  padding: 10px 0;
+  padding: 0.625rem 0;
 }
 
 .center-label {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
   display: block;
 }
 
@@ -590,8 +590,8 @@
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
 }
 
 .big-amount-input .currency {
@@ -606,7 +606,7 @@
   font-size: 3rem;
   font-weight: 800;
   color: var(--text-primary);
-  width: 180px;
+  width: 11.25rem;
   text-align: left;
   outline: none;
   font-family: 'Inter', -apple-system, sans-serif;
@@ -617,14 +617,14 @@
 .quick-amount-chips {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .quick-amount-chips .chip {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  padding: 8px 16px;
-  border-radius: 40px;
+  padding: 0.5rem 1rem;
+  border-radius: 2.5rem;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -639,8 +639,8 @@
 
 .breakdown-card {
   background: var(--card-alt-bg);
-  border-radius: 20px;
-  padding: 16px;
+  border-radius: 1.25rem;
+  padding: 1rem;
   border: 1px solid var(--border-card);
 }
 
@@ -649,7 +649,7 @@
   justify-content: space-between;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 0.625rem;
 }
 
 .breakdown-row small {
@@ -660,8 +660,8 @@
 .breakdown-total {
   display: flex;
   justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px dashed var(--border-card);
   font-size: 0.9rem;
   font-weight: 800;
@@ -676,23 +676,23 @@
   text-align: center;
   font-size: 0.7rem;
   color: var(--text-muted);
-  margin-top: -10px;
+  margin-top: -0.625rem;
 }
 
 /* Margin Available Card */
 .margin-available-box {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .margin-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .margin-label {
@@ -711,13 +711,13 @@
   font-size: 1.8rem;
   font-weight: 900;
   color: var(--text-primary);
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .margin-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   font-size: 0.75rem;
   color: #006400;
   font-weight: 600;
@@ -730,16 +730,16 @@
 /* Withdrawal Breakdown Card */
 .withdrawal-breakdown-card {
   background: var(--card-alt-bg);
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
   border: 1px solid var(--border-card);
 }
 
 .breakdown-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .breakdown-row .label {
@@ -760,7 +760,7 @@
 .breakdown-divider {
   height: 1px;
   background: var(--border-card);
-  margin: 12px 0;
+  margin: 0.75rem 0;
   border-bottom: 1px dashed var(--border-card);
 }
 
@@ -783,11 +783,11 @@
 .bank-selector-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1rem;
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 16px;
+  border-radius: 1.25rem;
+  padding: 1rem;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -798,10 +798,10 @@
 }
 
 .bank-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 3rem;
+  height: 3rem;
   background: var(--icon-bg);
-  border-radius: 14px;
+  border-radius: 0.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -836,11 +836,11 @@
 }
 
 .payout-notice {
-  margin-top: 24px;
+  margin-top: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 500;
@@ -850,19 +850,19 @@
 .method-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
 .method-item-card {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 16px;
+  border-radius: 1.25rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
@@ -874,9 +874,9 @@
 }
 
 .method-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
   background: var(--icon-bg);
   display: flex;
   align-items: center;
@@ -893,8 +893,8 @@
 
 .method-check {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0.5rem;
+  right: 0.5rem;
   color: #006400;
   font-size: 1rem;
 }
@@ -903,27 +903,27 @@
 .payment-details-card {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
 }
 
 .qr-container {
   display: flex;
   justify-content: center;
-  padding: 16px;
+  padding: 1rem;
   background: #FFFFFF;
-  border-radius: 16px;
-  margin-bottom: 20px;
+  border-radius: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .qr-image {
-  width: 160px;
-  height: 160px;
+  width: 10rem;
+  height: 10rem;
   object-fit: contain;
 }
 
 .info-row {
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .info-label {
@@ -931,7 +931,7 @@
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
   display: block;
 }
 
@@ -940,8 +940,8 @@
   justify-content: space-between;
   align-items: center;
   background: var(--chip-bg);
-  padding: 10px 14px;
-  border-radius: 12px;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
   cursor: pointer;
 }
 
@@ -961,15 +961,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.5rem;
   background: #006400;
   color: #FFFFFF;
   text-decoration: none;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
   font-weight: 700;
   font-size: 0.9rem;
-  margin-top: 16px;
+  margin-top: 1rem;
   width: 100%;
 }
 
@@ -978,14 +978,14 @@
   display: flex;
   align-items: center;
   background: var(--chip-bg);
-  border-radius: 12px;
-  padding: 0 14px;
-  margin-bottom: 20px;
+  border-radius: 0.75rem;
+  padding: 0 0.875rem;
+  margin-bottom: 1.25rem;
 }
 
 .utr-input-wrapper i {
   color: var(--text-muted);
-  margin-right: 10px;
+  margin-right: 0.625rem;
 }
 
 .utr-input-wrapper input {
@@ -993,7 +993,7 @@
   background: transparent;
   border: none;
   outline: none;
-  padding: 12px 0;
+  padding: 0.75rem 0;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -1001,18 +1001,18 @@
 
 .screenshot-dropzone {
   border: 2px dashed var(--border-card);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 1rem;
+  padding: 1.5rem;
   text-align: center;
   cursor: pointer;
   background: var(--card-bg);
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .dropzone-empty i {
   font-size: 2rem;
   color: #006400;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .dropzone-empty p {
@@ -1029,21 +1029,21 @@
 .screenshot-preview {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
   background: var(--chip-bg);
-  padding: 10px;
-  border-radius: 12px;
+  padding: 0.625rem;
+  border-radius: 0.75rem;
   position: relative;
 }
 
 .remove-file {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -0.5rem;
+  right: -0.5rem;
   background: #c0392b;
   color: white;
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1055,7 +1055,7 @@
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
   display: block;
 }
 
@@ -1079,7 +1079,7 @@
 }
 
 .success-icon {
-  box-shadow: 0 0 0 8px rgba(0, 100, 0, 0.05);
+  box-shadow: 0 0 0 0.5rem rgba(0, 100, 0, 0.05);
   animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
@@ -1098,8 +1098,8 @@
 .account-selector-box {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 16px;
-  padding: 14px 18px;
+  border-radius: 1rem;
+  padding: 0.875rem 1.125rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1109,7 +1109,7 @@
 .selected-account-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
   color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 700;
@@ -1123,16 +1123,16 @@
 .add-account-form {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 20px;
-  margin-top: 24px;
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .add-account-form .form-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .add-account-form .form-header h4 {
@@ -1149,7 +1149,7 @@
 }
 
 .add-account-form .form-row {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .add-account-form .form-row label {
@@ -1157,15 +1157,15 @@
   font-weight: 700;
   color: var(--text-muted);
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .add-account-form .form-row input {
   width: 100%;
   background: var(--chip-bg);
   border: 1px solid var(--border-card);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
   color: var(--text-primary);
   font-size: 0.85rem;
   font-weight: 600;
@@ -1182,12 +1182,12 @@
   background: #006400;
   color: #FFFFFF;
   border: none;
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 0.875rem;
+  padding: 0.875rem;
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 0.5rem;
 }
 
 .save-acc-btn:disabled {
@@ -1201,28 +1201,28 @@
 
 .review-btn {
   background: #006400 !important;
-  height: 52px !important;
+  height: 3.25rem !important;
   font-size: 1rem !important;
-  border-radius: 16px !important;
-  box-shadow: 0 8px 24px rgba(0, 100, 0, 0.2) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 100, 0, 0.2) !important;
 }
 
 .secured-footer {
   text-align: center;
-  margin-top: 10px;
+  margin-top: 0.625rem;
 }
 
 .secured-footer p {
   font-size: 0.65rem;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
 }
 
 .secured-footer .logos {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 15px;
+  gap: 0.9375rem;
 }
 
 .sbi-logo {
@@ -1231,7 +1231,7 @@
   color: #1a4f9a;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 :is(body.dark, body.black, body.blue) .sbi-logo {
@@ -1240,17 +1240,17 @@
 
 /* ACCOUNTS DRAWER */
 .accounts-list {
-  padding: 10px 0;
+  padding: 0.625rem 0;
 }
 
 .account-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 16px;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
   cursor: pointer;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   transition: background 0.2s;
   border: 1px solid transparent;
 }
@@ -1265,10 +1265,10 @@
 }
 
 .acc-icon {
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   background: var(--icon-bg);
-  border-radius: 12px;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1300,11 +1300,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 16px;
-  margin-top: 10px;
+  gap: 0.625rem;
+  padding: 1rem;
+  margin-top: 0.625rem;
   border: 1px dashed var(--border-card);
-  border-radius: 16px;
+  border-radius: 1rem;
   color: #006400;
   font-weight: 700;
   font-size: 0.9rem;
@@ -1315,9 +1315,9 @@
 .add-account-form {
   background: var(--card-bg);
   border: 1px solid var(--border-card);
-  border-radius: 24px;
-  padding: 20px;
-  margin-top: 20px;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  margin-top: 1.25rem;
   box-shadow: var(--shadow-md);
 }
 
@@ -1325,7 +1325,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .form-header h4 {
@@ -1341,7 +1341,7 @@
 }
 
 .form-row {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .form-row label {
@@ -1349,13 +1349,13 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 0.375rem;
 }
 
 .form-row input {
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
   border: 1px solid var(--border-card);
   background: var(--card-alt-bg);
   color: var(--text-primary);
@@ -1364,14 +1364,14 @@
 
 .save-acc-btn {
   width: 100%;
-  padding: 14px;
-  border-radius: 12px;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
   border: none;
   background: #006400;
   color: white;
   font-weight: 700;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 0.625rem;
 }
 
 .save-acc-btn:disabled {
@@ -1392,19 +1392,19 @@
 
 /* Direct Method Buttons */
 .method-choice-grid {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .method-btn-direct {
   background: var(--card-alt-bg);
   border: 1px solid var(--border-card);
-  padding: 24px 12px;
-  border-radius: 24px;
+  padding: 1.5rem 0.75rem;
+  border-radius: 1.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 0.875rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
@@ -1417,20 +1417,20 @@
   font-size: 2rem;
   color: #006400;
   background: var(--icon-bg);
-  width: 54px;
-  height: 54px;
+  width: 3.375rem;
+  height: 3.375rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 16px;
+  border-radius: 1rem;
   transition: all 0.3s;
 }
 
 .method-btn-direct:hover:not(:disabled) {
   border-color: #006400;
   background: rgba(0, 100, 0, 0.03);
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0, 100, 0, 0.05);
+  transform: translateY(-0.1875rem);
+  box-shadow: 0 0.625rem 1.25rem rgba(0, 100, 0, 0.05);
 }
 
 .method-btn-direct:hover:not(:disabled) i {
@@ -1456,7 +1456,7 @@
   bottom: 0;
   background: var(--container-bg);
   z-index: 1000;
-  padding: 20px;
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -1466,8 +1466,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
+  margin-bottom: 1.875rem;
+  padding-bottom: 0.9375rem;
   border-bottom: 1px solid var(--border-card);
 }
 
@@ -1480,8 +1480,8 @@
 .add-account-overlay .close-btn {
   background: var(--icon-bg);
   border: none;
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1491,7 +1491,7 @@
 }
 
 .add-account-overlay .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .add-account-overlay label {
@@ -1499,17 +1499,17 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.0312rem;
 }
 
 .add-account-overlay input {
   width: 100%;
-  padding: 16px;
+  padding: 1rem;
   background: var(--icon-bg);
   border: 1px solid var(--border-card);
-  border-Radius: 16px;
+  border-Radius: 1rem;
   color: var(--text-primary);
   font-weight: 600;
   font-size: 0.95rem;

@@ -63,6 +63,7 @@ const FAKE_POSITIONS: Position[] = [
 
 export default function ReportsPage() {
     useAuth();
+    const [isAdmin, setIsAdmin]     = useState(false);
     const [tab, setTab]             = useState<Tab>('pnl');
     const [orders, setOrders]       = useState<Order[]>([]);
     const [positions, setPositions] = useState<Position[]>([]);
@@ -82,6 +83,13 @@ export default function ReportsPage() {
         const sevenAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         setFromDate(sevenAgo);
         setToDate(today);
+
+        getSession().then((session) => {
+            const role = session?.user?.user_metadata?.role;
+            if (role === 'admin' || role === 'super_admin') {
+                setIsAdmin(true);
+            }
+        });
     }, []);
 
     const fetchData = useCallback(async () => {
@@ -289,7 +297,7 @@ export default function ReportsPage() {
                                             <span className="rp-symbol">{pos.symbol}</span>
                                             <span className={`rp-badge ${pos.side === 'BUY' ? 'buy' : 'sell'}`}>{pos.side}</span>
                                             <span className="rp-chip">{pos.segment}</span>
-                                            {pos.closed_by && (
+                                            {isAdmin && pos.closed_by && (
                                                 <span className="rp-chip" style={{ background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0' }}>
                                                     {pos.closed_by.replace(/_/g, ' ')}
                                                 </span>

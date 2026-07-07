@@ -7,7 +7,7 @@
     max-width: 500px;
     margin: 0 auto;
     background: #F5F7FB;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.05);
     position: relative;
     overflow: hidden;
 }
@@ -22,7 +22,7 @@
 
 .mobile-app .app-header {
     background: #FFFFFF;
-    padding: 14px 16px;
+    padding: 0.875rem 1rem;
     border-bottom: 1px solid #E8ECF0;
     flex-shrink: 0;
     width: 100%;
@@ -39,14 +39,14 @@
     margin-bottom: 0;
     width: 100%;
     flex-wrap: nowrap;
-    gap: 10px;
+    gap: 0.625rem;
     flex-shrink: 0;
 }
 
 .mobile-app .logo-area {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
     flex-shrink: 0;
 }
 
@@ -60,11 +60,11 @@
 .mobile-app .folder-btn {
     background: #F8F9FC;
     border: 1px solid #E2E6EC;
-    border-radius: 40px;
-    padding: 6px 14px;
+    border-radius: 2.5rem;
+    padding: 0.375rem 0.875rem;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     cursor: pointer;
     font-weight: 600;
     color: #C62E2E;
@@ -83,7 +83,7 @@
   position: relative;
   width: 100%;
   flex-shrink: 0;
-  margin-top: 10px;
+  margin-top: 0.625rem;
   display: flex;
   align-items: center;
 }
@@ -93,7 +93,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: 1rem;
   pointer-events: none;
   box-shadow: 0 0 0 0 rgba(198, 46, 46, 0);
   transition: box-shadow 0.25s ease;
@@ -104,7 +104,7 @@
 
 .search-icon {
   position: absolute;
-  left: 16px;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
   color: #B0BAD0;
@@ -117,12 +117,12 @@
 
 .search-input {
   width: 100%;
-  height: 48px;
-  padding: 0 108px 0 46px;
+  height: 3rem;
+  padding: 0 6.75rem 0 2.875rem;
   background: #F8F9FC;
   border: 1.5px solid #E8ECF0;
-  border-radius: 16px;
-  font-size: 15px;
+  border-radius: 1rem;
+  font-size: 0.9375rem;
   font-family: 'Inter', -apple-system, sans-serif;
   font-weight: 500;
   color: #1A1E2B;
@@ -138,13 +138,13 @@
     outline: none;
     border-color: #B0BAD0;
     background: #FFFFFF;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.05);
 }
 
 /* Keyboard shortcut badge */
 .search-shortcut {
   position: absolute;
-  right: 14px;
+  right: 0.875rem;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -158,13 +158,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 0.375rem;
   background: #EEF0F5;
   border: 1px solid #D8DCE8;
   border-bottom-width: 2px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   color: #8C94A8;
@@ -174,11 +174,11 @@
 /* Clear button */
 .clear-search-btn {
   position: absolute;
-  right: 12px;
+  right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   background: #EEF0F5;
   border: none;
@@ -206,7 +206,7 @@
 
 /* When text is present, shrink padding so text doesn't go under clear btn */
 .search-wrapper.has-text .search-input {
-  padding-right: 48px;
+  padding-right: 3rem;
 }
 
 /* Dark mode */
@@ -220,7 +220,7 @@
 .black .search-input:focus {
   background: #131722;
   border-color: #3A3A3A;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.2);
 }
 .dark .search-input::placeholder,
 .black .search-input::placeholder {
@@ -259,11 +259,11 @@
 .mobile-app .main-content {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 1rem;
     background: #F5F7FB;
     display: flex;
     flex-direction: column;
-    padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 15px) !important;
+    padding-bottom: calc(var(--footer-nav-height, 4.0625rem) + env(safe-area-inset-bottom, 0px) + 0.9375rem) !important;
 }
 
 .search-results-section {
@@ -275,7 +275,7 @@
     z-index: 40;
     background: #FFFFFF;
     border-radius: 0;
-    padding: 16px 0;
+    padding: 1rem 0;
     box-shadow: none;
     border: none;
     display: flex;
@@ -291,11 +291,11 @@
     font-weight: 700;
     text-transform: uppercase;
     color: #C62E2E;
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 16px;
+    gap: 0.375rem;
+    padding: 0 1rem;
 }
 
 .section-subtitle #searchResultCount {
@@ -317,20 +317,20 @@
     overscroll-behavior-y: contain;
     will-change: scroll-position;
     padding-right: 2px;
-    padding-bottom: calc(var(--footer-nav-height, 65px) + env(safe-area-inset-bottom, 0px) + 20px) !important;
+    padding-bottom: calc(var(--footer-nav-height, 4.0625rem) + env(safe-area-inset-bottom, 0px) + 1.25rem) !important;
 }
 
 .search-result-item {
     background: #FFFFFF;
     border-radius: 0;
-    padding: 16px 14px;
+    padding: 1rem 0.875rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-style: none none solid none;
     border-width: 1px;
     border-color: #EFF2F8;
-    gap: 10px;
+    gap: 0.625rem;
     box-shadow: none;
 }
 
@@ -353,7 +353,7 @@
 .search-result-price {
     font-weight: 600;
     font-size: 0.85rem;
-    margin-right: 12px;
+    margin-right: 0.75rem;
     color: #2C313F;
 }
 
@@ -361,8 +361,8 @@
     background: #C62E2E;
     border: none;
     color: white;
-    border-radius: 30px;
-    padding: 6px 14px;
+    border-radius: 1.875rem;
+    padding: 0.375rem 0.875rem;
     font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
@@ -370,7 +370,7 @@
 
 .no-results {
     text-align: center;
-    padding: 24px;
+    padding: 1.5rem;
     color: #AEB5CC;
     font-size: 0.8rem;
 }
@@ -393,7 +393,7 @@
 .sri-symbol {
     font-size: 0.72rem;
     color: #8F9BB3;
-    margin-top: 4px;
+    margin-top: 0.25rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -402,7 +402,7 @@
 .sri-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
     flex-shrink: 0;
 }
 
@@ -414,10 +414,10 @@
 }
 
 .sri-add-btn {
-    padding: 7px 16px !important;
+    padding: 0.4375rem 1rem !important;
     font-size: 0.8rem !important;
-    border-radius: 20px !important;
-    min-width: 54px;
+    border-radius: 1.25rem !important;
+    min-width: 3.375rem;
 }
 
 .watchlist-section {
@@ -429,17 +429,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 4px;
+    margin-bottom: 0.5rem;
+    padding: 0 0.25rem;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
     flex-shrink: 0;
 }
 
 .watchlist-title-section {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .watchlist-title {
@@ -453,8 +453,8 @@
 .watchlist-count {
     font-size: 0.7rem;
     background: #F0F2F5;
-    padding: 4px 10px;
-    border-radius: 20px;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1.25rem;
     color: #C62E2E;
     font-weight: 600;
 }
@@ -463,8 +463,8 @@
     font-size: 0.6rem;
     color: #C62E2E;
     background: #FEF0F0;
-    padding: 4px 12px;
-    border-radius: 30px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.875rem;
     display: inline-block;
     font-weight: 500;
 }
@@ -473,23 +473,23 @@
     font-size: 0.6rem;
     color: #9AA4BF;
     text-align: right;
-    padding: 6px 12px;
+    padding: 0.375rem 0.75rem;
     background: #F8F9FC;
-    border-radius: 30px;
+    border-radius: 1.875rem;
     display: inline-block;
 }
 
 .multi-select-bar {
     background: #F8F9FC;
-    border-radius: 20px;
-    margin-bottom: 12px;
+    border-radius: 1.25rem;
+    margin-bottom: 0.75rem;
     overflow: hidden;
     border: 1px solid #E8ECF0;
     flex-shrink: 0;
 }
 
 .multi-select-row {
-    padding: 8px 16px;
+    padding: 0.5rem 1rem;
 }
 
 .multi-select-row.top-row {
@@ -504,18 +504,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 0.75rem;
     background: #F8F9FC;
 }
 
 .select-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .delete-actions {
     display: flex;
-    gap: 12px;
+    gap: 0.75rem;
     flex: 1;
     justify-content: flex-end;
 }
@@ -524,14 +524,14 @@
 .unselect-all-btn {
     background: none;
     border: none;
-    padding: 6px 12px;
-    border-radius: 30px;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1.875rem;
     font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
 }
 
 .select-all-btn {
@@ -547,28 +547,28 @@
 .delete-selected-btn {
     background: #C62E2E;
     border: none;
-    padding: 6px 16px;
-    border-radius: 30px;
+    padding: 0.375rem 1rem;
+    border-radius: 1.875rem;
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     color: white;
 }
 
 .exit-selection-btn {
     background: #F0F2F5;
     border: none;
-    padding: 6px 16px;
-    border-radius: 30px;
+    padding: 0.375rem 1rem;
+    border-radius: 1.875rem;
     font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
     color: #5B677E;
 }
 
@@ -582,8 +582,8 @@
     color: #C62E2E;
     font-weight: 700;
     background: #FFF0F0;
-    padding: 4px 10px;
-    border-radius: 30px;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1.875rem;
 }
 
 .watchlist-cards-container {
@@ -595,24 +595,24 @@
 .watchlist-card-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
 .swipe-container {
     position: relative;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 1.25rem;
     touch-action: pan-y pinch-zoom;
 }
 
 .instrument-card {
     background: #FFFFFF;
-    border-radius: 20px;
-    padding: 14px 16px;
+    border-radius: 1.25rem;
+    padding: 0.875rem 1rem;
     border: 1px solid #EEF2F8;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
     transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     position: relative;
     z-index: 2;
@@ -633,16 +633,16 @@
     right: 0;
     top: 0;
     bottom: 0;
-    width: 80px;
+    width: 5rem;
     background: #C62E2E;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 20px;
+    border-radius: 1.25rem;
     color: white;
     font-weight: 600;
     font-size: 0.8rem;
-    gap: 6px;
+    gap: 0.375rem;
     z-index: 1;
 }
 
@@ -656,9 +656,9 @@
 }
 
 .custom-checkbox {
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 0.375rem;
     border: 2px solid #D1D5DB;
     background: white;
     display: flex;
@@ -674,7 +674,7 @@
 
 .custom-checkbox.selected i {
     color: white;
-    font-size: 11px;
+    font-size: 0.6875rem;
 }
 
 .instrument-info {
@@ -687,7 +687,7 @@
     font-weight: 700;
     font-size: 1rem;
     color: #1A1E2B;
-    margin-bottom: 4px;
+    margin-bottom: 0.25rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -703,21 +703,21 @@
 
 .instrument-price-area {
     text-align: right;
-    min-width: 85px;
+    min-width: 5.3125rem;
 }
 
 .price-value {
     font-weight: 700;
-    font-size: 17px;
+    font-size: 1.0625rem;
     color: #1F2937;
 }
 
 .change-badge {
     font-size: 0.7rem;
     font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 30px;
-    margin-top: 4px;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 1.875rem;
+    margin-top: 0.25rem;
     display: inline-block;
 }
 
@@ -733,9 +733,9 @@
 
 .empty-watchlist {
     text-align: center;
-    padding: 60px 24px;
+    padding: 3.75rem 1.5rem;
     background: #FFFFFF;
-    border-radius: 32px;
+    border-radius: 2rem;
     border: 1px dashed #DCE3EC;
     color: #9CA3B9;
 }
@@ -746,11 +746,11 @@
     top: 0;
     right: 0;
     width: 85%;
-    max-width: 360px;
+    max-width: 22.5rem;
     height: 100%;
     background: #FFFFFF;
     z-index: 1000;
-    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+    box-shadow: -0.25rem 0 1.25rem rgba(0, 0, 0, 0.1);
     transform: translateX(100%);
     transition: transform 0.3s ease;
     display: flex;
@@ -763,7 +763,7 @@
 }
 
 .drawer-header {
-    padding: 20px 18px;
+    padding: 1.25rem 1.125rem;
     border-bottom: 1px solid #F0F3F9;
     display: flex;
     justify-content: space-between;
@@ -776,15 +776,15 @@
     color: #C62E2E;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .close-drawer {
     background: #F3F5F9;
     border: none;
-    width: 34px;
-    height: 34px;
-    border-radius: 30px;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 1.875rem;
     font-size: 1.1rem;
     cursor: pointer;
     color: #5B677E;
@@ -793,7 +793,7 @@
 .folder-tree-scroll {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 8px 20px 12px;
+    padding: 0.75rem 0.5rem 1.25rem 0.75rem;
 }
 
 .tree-node-ul {
@@ -802,16 +802,16 @@
 }
 
 .tree-item-li {
-    margin: 4px 0;
+    margin: 0.25rem 0;
     list-style: none;
 }
 
 .tree-label-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.75rem;
     cursor: pointer;
     font-size: 0.85rem;
     font-weight: 500;
@@ -820,24 +820,24 @@
 
 .folder-icon {
     color: #C62E2E;
-    width: 20px;
+    width: 1.25rem;
 }
 
 .file-icon {
     color: #8F9BB3;
-    width: 20px;
+    width: 1.25rem;
 }
 
 .chevron-icon {
     font-size: 0.65rem;
     transition: transform 0.2s;
-    width: 16px;
+    width: 1rem;
     color: #9AA4BF;
 }
 
 .children-container {
-    margin-left: 28px;
-    padding-left: 8px;
+    margin-left: 1.75rem;
+    padding-left: 0.5rem;
     border-left: 1px solid #EDF0F5;
     overflow: hidden;
 }
@@ -851,8 +851,8 @@
     background: #C62E2E;
     border: none;
     color: white;
-    border-radius: 30px;
-    padding: 4px 12px;
+    border-radius: 1.875rem;
+    padding: 0.25rem 0.75rem;
     font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
@@ -861,22 +861,22 @@
 .segment-count {
     font-size: 0.6rem;
     background: #F0F2F8;
-    padding: 2px 8px;
-    border-radius: 40px;
+    padding: 2px 0.5rem;
+    border-radius: 2.5rem;
     color: #6B728E;
-    margin-left: 8px;
+    margin-left: 0.5rem;
 }
 
 .script-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 9px 12px;
-    border-radius: 12px;
+    padding: 0.5625rem 0.75rem;
+    border-radius: 0.75rem;
     font-size: 0.82rem;
     font-weight: 500;
     color: #2C313F;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .script-item:active {
@@ -884,7 +884,7 @@
 }
 
 .drawer-footer {
-    padding: 14px 20px;
+    padding: 0.875rem 1.25rem;
     border-top: 1px solid #EDF2F7;
     font-size: 0.7rem;
     color: #AEB5CC;
@@ -910,12 +910,12 @@
 
 .mobile-toast {
     position: fixed;
-    bottom: 80px;
+    bottom: 5rem;
     left: 50%;
     transform: translateX(-50%);
     background: #2C313F;
-    padding: 10px 20px;
-    border-radius: 40px;
+    padding: 0.625rem 1.25rem;
+    border-radius: 2.5rem;
     font-size: 0.75rem;
     font-weight: 500;
     color: white;
@@ -957,11 +957,11 @@
     max-width: 500px;
     margin: 0 auto;
     background: #F5F7FB;
-    border-radius: 20px 20px 0 0;
+    border-radius: 1.25rem 1.25rem 0 0;
     z-index: 9999;
     transform: translateY(100%);
     transition: transform 0.38s cubic-bezier(0.25, 0.9, 0.35, 1.05);
-    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 -0.5rem 2.5rem rgba(0, 0, 0, 0.18);
     display: flex;
     flex-direction: column;
     height: 100dvh;
@@ -1003,10 +1003,10 @@
 }
 
 .handle-bar {
-    width: 40px;
-    height: 4px;
+    width: 2.5rem;
+    height: 0.25rem;
     background: #D1D5DB;
-    border-radius: 4px;
+    border-radius: 0.25rem;
     display: none;
 }
 
@@ -1015,7 +1015,7 @@
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
+    padding-bottom: 5rem;
 }
 
 .sheet-content-scroll::-webkit-scrollbar {
@@ -1027,17 +1027,17 @@
    ============================================= */
 .ts-header {
     background: #FFFFFF;
-    padding: 10px 14px 12px;
+    padding: 0.625rem 0.875rem 0.75rem;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
     border-bottom: 1px solid #EEF2F8;
     flex-shrink: 0;
 }
 
 .ts-back-btn {
-    width: 36px;
-    height: 36px;
+    width: 2.25rem;
+    height: 2.25rem;
     border-radius: 50%;
     background: #F1F5F9;
     border: none;
@@ -1072,13 +1072,13 @@
 
 .ts-segment-badge {
     display: inline-block;
-    margin-top: 4px;
+    margin-top: 0.25rem;
     font-size: 0.6rem;
     font-weight: 700;
     color: #C62E2E;
     background: #FEF2F2;
-    padding: 2px 10px;
-    border-radius: 30px;
+    padding: 2px 0.625rem;
+    border-radius: 1.875rem;
 }
 
 .ts-price-block {
@@ -1095,11 +1095,11 @@
 
 .ts-change-badge {
     display: inline-block;
-    margin-top: 3px;
+    margin-top: 0.1875rem;
     font-size: 0.62rem;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 30px;
+    padding: 2px 0.5rem;
+    border-radius: 1.875rem;
 }
 
 .ts-change-badge.positive {
@@ -1119,7 +1119,7 @@
     background: #FFFFFF;
     display: flex;
     align-items: center;
-    padding: 8px 16px;
+    padding: 0.5rem 1rem;
     border-bottom: 1px solid #EEF2F8;
     gap: 0;
     flex-shrink: 0;
@@ -1130,7 +1130,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 4px;
+    padding: 0 0.25rem;
 }
 
 .ts-ba-label {
@@ -1138,7 +1138,7 @@
     font-weight: 700;
     color: #6B7280;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.0312rem;
 }
 
 .ts-ba-val.bid-val {
@@ -1155,19 +1155,19 @@
 
 .ts-ba-divider {
     width: 1px;
-    height: 20px;
+    height: 1.25rem;
     background: #E5E7EB;
-    margin: 0 8px;
+    margin: 0 0.5rem;
 }
 
 /* =============================================
    SECTION BODY PADDING
    ============================================= */
 .ts-body {
-    padding: 12px 12px 0;
+    padding: 0.75rem 0.75rem 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 /* =============================================
@@ -1175,8 +1175,8 @@
    ============================================= */
 .ts-section-card {
     background: #FFFFFF;
-    border-radius: 14px;
-    padding: 12px 14px;
+    border-radius: 0.875rem;
+    padding: 0.75rem 0.875rem;
     border: 1px solid #F1F5F9;
 }
 
@@ -1185,8 +1185,8 @@
     font-weight: 700;
     color: #6B7280;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
-    margin-bottom: 10px;
+    letter-spacing: 0.025rem;
+    margin-bottom: 0.625rem;
 }
 
 /* Toggle switch row: label left, switch right */
@@ -1199,14 +1199,14 @@
 .ts-toggle-switch {
     display: flex;
     background: #F1F5F9;
-    border-radius: 30px;
-    padding: 3px;
+    border-radius: 1.875rem;
+    padding: 0.1875rem;
     gap: 2px;
 }
 
 .ts-toggle-opt {
-    padding: 5px 16px;
-    border-radius: 30px;
+    padding: 0.3125rem 1rem;
+    border-radius: 1.875rem;
     font-size: 0.65rem;
     font-weight: 700;
     color: #6B7280;
@@ -1219,7 +1219,7 @@
 .ts-toggle-opt.active {
     background: #FFFFFF;
     color: #111827;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 0.25rem rgba(0, 0, 0, 0.1);
 }
 
 /* =============================================
@@ -1227,20 +1227,20 @@
    ============================================= */
 .ts-info-cards-wrap {
     background: #F1F5F9;
-    border-radius: 14px;
-    padding: 8px;
+    border-radius: 0.875rem;
+    padding: 0.5rem;
 }
 
 .ts-info-cards {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: 0.375rem;
 }
 
 .ts-info-card {
     background: #FFFFFF;
-    border-radius: 10px;
-    padding: 8px 6px;
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.375rem;
     text-align: center;
 }
 
@@ -1250,7 +1250,7 @@
     color: #6B7280;
     text-transform: uppercase;
     line-height: 1.3;
-    margin-bottom: 4px;
+    margin-bottom: 0.25rem;
 }
 
 .ts-ic-val {
@@ -1264,8 +1264,8 @@
    ============================================= */
 .ts-qty-container {
     background: #FFFFFF;
-    border-radius: 14px;
-    padding: 12px 14px;
+    border-radius: 0.875rem;
+    padding: 0.75rem 0.875rem;
     border: 1px solid #F1F5F9;
 }
 
@@ -1274,14 +1274,14 @@
     align-items: center;
     background: #F8FAFF;
     border: 1.5px solid #E5E7EB;
-    border-radius: 50px;
+    border-radius: 3.125rem;
     overflow: hidden;
-    height: 52px;
+    height: 3.25rem;
 }
 
 .ts-qty-btn {
-    width: 52px;
-    height: 52px;
+    width: 3.25rem;
+    height: 3.25rem;
     flex-shrink: 0;
     border: none;
     background: transparent;
@@ -1323,7 +1323,7 @@
 .ts-qty-hint {
     font-size: 0.6rem;
     color: #9CA3AF;
-    margin-top: 7px;
+    margin-top: 0.4375rem;
     text-align: center;
 }
 
@@ -1332,15 +1332,15 @@
    ============================================= */
 .ts-pill-group {
     display: flex;
-    gap: 6px;
+    gap: 0.375rem;
     flex-wrap: wrap;
 }
 
 .ts-pill {
     flex: 1;
-    min-width: 60px;
-    padding: 8px 4px;
-    border-radius: 50px;
+    min-width: 3.75rem;
+    padding: 0.5rem 0.25rem;
+    border-radius: 3.125rem;
     font-size: 0.65rem;
     font-weight: 700;
     text-align: center;
@@ -1355,14 +1355,14 @@
     background: #15803D;
     color: #FFFFFF;
     border-color: #15803D;
-    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.25);
+    box-shadow: 0 2px 0.5rem rgba(21, 128, 61, 0.25);
 }
 
 .ts-sheet--sell .ts-pill.active {
     background: #B91C1C;
     color: #FFFFFF;
     border-color: #B91C1C;
-    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.25);
+    box-shadow: 0 2px 0.5rem rgba(185, 28, 28, 0.25);
 }
 /* =============================================
    PRODUCT TYPE PILLS (INTRADAY / CARRY)
@@ -1374,7 +1374,7 @@
    ============================================= */
 .ts-margin-card {
     background: #FFFFFF;
-    border-radius: 14px;
+    border-radius: 0.875rem;
     border: 1px solid #F1F5F9;
     overflow: hidden;
 }
@@ -1383,7 +1383,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 11px 14px;
+    padding: 0.6875rem 0.875rem;
 }
 
 .ts-margin-row+.ts-margin-row {
@@ -1405,8 +1405,8 @@
 .ts-mv.avail {
     background: #DCFCE7;
     color: #15803D;
-    padding: 3px 10px;
-    border-radius: 20px;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 1.25rem;
     font-size: 0.72rem;
 }
 
@@ -1430,14 +1430,14 @@
     margin: 0 auto;
     z-index: 10001;
     background: #FFFFFF;
-    padding: 12px 14px 24px;
+    padding: 0.75rem 0.875rem 1.5rem;
     border-top: none;
     box-shadow: none;
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
     visibility: hidden;
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(1.25rem);
     transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
 }
 
@@ -1449,12 +1449,12 @@
 
 .ts-btn {
     flex: 1;
-    height: 52px;
+    height: 3.25rem;
     border: none;
-    border-radius: 50px;
+    border-radius: 3.125rem;
     font-size: 1rem;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.0312rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1469,20 +1469,20 @@
 .ts-btn-buy {
     background: #15803D;
     color: #FFFFFF;
-    box-shadow: 0 6px 16px rgba(21, 128, 61, 0.35);
+    box-shadow: 0 0.375rem 1rem rgba(21, 128, 61, 0.35);
 }
 
 .ts-btn-sell {
     background: #B91C1C;
     color: #FFFFFF;
-    box-shadow: 0 6px 16px rgba(185, 28, 28, 0.35);
+    box-shadow: 0 0.375rem 1rem rgba(185, 28, 28, 0.35);
 }
 
 /* =============================================
    LEGACY CLASSES (kept for detail-sheet & basket-sheet)
    ============================================= */
 .sheet-header {
-    padding: 4px 16px 4px;
+    padding: 0.25rem 1rem 0.25rem;
     border-bottom: 1px solid #F0F2F8;
 }
 
@@ -1490,7 +1490,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
     flex-wrap: wrap;
 }
 
@@ -1511,8 +1511,8 @@
     font-weight: 600;
     color: #C62E2E;
     background: #FEF0F0;
-    padding: 3px 10px;
-    border-radius: 20px;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 1.25rem;
 }
 
 .sheet-cmp-area {
@@ -1536,8 +1536,8 @@
 .sheet-change {
     font-size: 0.65rem;
     font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 30px;
+    padding: 2px 0.5rem;
+    border-radius: 1.875rem;
     display: inline-block;
     margin-top: 2px;
 }
@@ -1554,9 +1554,9 @@
 
 .sheet-bidask {
     background: #F8FAFF;
-    margin: 6px 16px;
-    padding: 5px 12px;
-    border-radius: 20px;
+    margin: 0.375rem 1rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1592,17 +1592,17 @@
 
 .sheet-divider {
     width: 1px;
-    height: 28px;
+    height: 1.75rem;
     background: #E8ECF0;
 }
 
 .ohlc-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
+    gap: 0.25rem;
     background: #F8FAFF;
-    padding: 5px 8px;
-    border-radius: 16px;
+    padding: 0.3125rem 0.5rem;
+    border-radius: 1rem;
 }
 
 .ohlc-item {
@@ -1637,36 +1637,36 @@
     font-weight: 600;
     color: #1A1E2B;
     background: #FFFFFF;
-    padding: 3px 10px;
-    border-radius: 30px;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 1.875rem;
 }
 
 .sheet-actions {
-    padding: 12px 16px 20px;
+    padding: 0.75rem 1rem 1.25rem;
     display: flex;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
 .sheet-btn-buy,
 .sheet-btn-sell {
     flex: 1;
-    padding: 10px;
+    padding: 0.625rem;
     border: none;
-    border-radius: 40px;
+    border-radius: 2.5rem;
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 0.375rem;
     transition: all 0.2s;
 }
 
 .sheet-btn-buy {
     background: linear-gradient(135deg, #059669, #14532D);
     color: white;
-    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.25);
+    box-shadow: 0 0.375rem 1rem rgba(22, 163, 74, 0.25);
 }
 
 .sheet-btn-buy:active {
@@ -1676,7 +1676,7 @@
 .sheet-btn-sell {
     background: linear-gradient(135deg, #EF4444, #991B1B);
     color: white;
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0.375rem 1rem rgba(239, 68, 68, 0.25);
 }
 
 .sheet-btn-sell:active {
@@ -1684,11 +1684,11 @@
 }
 
 .advanced-trade-sections {
-    padding: 8px 16px;
+    padding: 0.5rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .trade-toggle-group {
@@ -1696,7 +1696,7 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .trade-toggle-lbl {
@@ -1709,8 +1709,8 @@
 .trade-chips {
     display: flex;
     background: #F0F2F8;
-    border-radius: 30px;
-    padding: 3px;
+    border-radius: 1.875rem;
+    padding: 0.1875rem;
     border: 1px solid #E8ECF0;
     flex-wrap: wrap;
 }
@@ -1718,11 +1718,11 @@
 .trade-chip {
     background: transparent;
     border: none;
-    padding: 6px 14px;
+    padding: 0.375rem 0.875rem;
     font-size: 0.65rem;
     font-weight: 700;
     color: #5B677E;
-    border-radius: 30px;
+    border-radius: 1.875rem;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
@@ -1731,16 +1731,16 @@
 .trade-chip.active {
     background: #FFFFFF;
     color: #006400;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 0.5rem rgba(0, 0, 0, 0.06);
 }
 
 .type-chips .trade-chip {
-    padding: 6px 10px;
+    padding: 0.375rem 0.625rem;
 }
 
 .trade-inputs-row {
     display: flex;
-    gap: 12px;
+    gap: 0.75rem;
     flex-wrap: wrap;
 }
 
@@ -1748,7 +1748,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 0.375rem;
 }
 
 .trade-input-box label {
@@ -1769,8 +1769,8 @@
 .price-input {
     background: #FFFFFF;
     border: 1px solid #DCE3EC;
-    border-radius: 12px;
-    padding: 10px 12px;
+    border-radius: 0.75rem;
+    padding: 0.625rem 0.75rem;
     font-size: 0.9rem;
     font-weight: 700;
     color: #1A1E2B;
@@ -1796,7 +1796,7 @@
     display: flex;
     align-items: center;
     border: 1px solid #DCE3EC;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     overflow: hidden;
     background: #FFFFFF;
     transition: border-color 0.2s;
@@ -1810,7 +1810,7 @@
 .qty-btn {
     background: #F8FAFF;
     border: none;
-    padding: 10px 14px;
+    padding: 0.625rem 0.875rem;
     color: #1A1E2B;
     cursor: pointer;
     transition: 0.2s;
@@ -1835,12 +1835,12 @@
 .margin-summary {
     background: #F8FAFF;
     border: 1px solid #EEF2F8;
-    border-radius: 16px;
-    padding: 12px;
+    border-radius: 1rem;
+    padding: 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
 }
 
 .margin-row {
@@ -1867,7 +1867,7 @@
 }
 
 .margin-row.charges {
-    padding-top: 8px;
+    padding-top: 0.5rem;
     border-top: 1px dashed #DCE3EC;
     margin-top: 2px;
 }
@@ -1877,26 +1877,26 @@
     font-size: 0.7rem;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.25rem;
 }
 
 .sheet-actions.sticky {
     position: sticky;
     bottom: 0;
     background: #FFFFFF;
-    padding: 12px 16px 24px;
+    padding: 0.75rem 1rem 1.5rem;
     border-top: 1px solid #F0F2F8;
     z-index: 10;
     margin-top: auto;
     display: flex;
-    gap: 14px;
-    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.03);
+    gap: 0.875rem;
+    box-shadow: 0 -0.5rem 1.25rem rgba(0, 0, 0, 0.03);
 }
 
 .sheet-actions.sticky button {
     display: flex;
     flex-direction: column;
-    padding: 14px 0;
+    padding: 0.875rem 0;
     align-items: center;
     justify-content: center;
     line-height: 1.2;
@@ -1906,8 +1906,8 @@
 .sheet-actions.sticky .sheet-btn-buy,
 .sheet-actions.sticky .sheet-btn-sell {
     flex: 1;
-    border-radius: 20px;
-    min-height: 58px;
+    border-radius: 1.25rem;
+    min-height: 3.625rem;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -1915,8 +1915,8 @@
 .badge-pro {
     background: linear-gradient(135deg, #FFD700, #F59E0B);
     color: #000;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 2px 0.375rem;
+    border-radius: 0.25rem;
     font-size: 0.55rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -1930,7 +1930,7 @@
     color: #5B677E;
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 0.375rem;
 }
 
 .modern-input-box .price-input {
@@ -1938,34 +1938,34 @@
     border: 1px solid #E2E6EC;
     font-size: 1rem;
     color: #1A1E2B;
-    padding: 12px 14px;
-    border-radius: 12px;
+    padding: 0.75rem 0.875rem;
+    border-radius: 0.75rem;
     transition: all 0.2s ease;
 }
 
 .modern-input-box .price-input:focus {
     background: #FFFFFF;
     border-color: #059669;
-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+    box-shadow: 0 0 0 0.25rem rgba(22, 163, 74, 0.1);
 }
 
 .modern-qty {
     display: flex;
     background: #F8FAFF;
     border: 1px solid #E2E6EC;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     transition: all 0.2s ease;
 }
 
 .modern-qty:focus-within {
     background: #FFFFFF;
     border-color: #059669;
-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+    box-shadow: 0 0 0 0.25rem rgba(22, 163, 74, 0.1);
 }
 
 .modern-qty .qty-btn {
     background: transparent;
-    padding: 0 16px;
+    padding: 0 1rem;
     color: #1A1E2B;
     font-size: 0.9rem;
 }
@@ -1980,7 +1980,7 @@
 .modern-trade-sheet .trade-chip.active {
     background: #1A1E2B;
     color: #FFFFFF;
-    box-shadow: 0 4px 12px rgba(26, 30, 43, 0.2);
+    box-shadow: 0 0.25rem 0.75rem rgba(26, 30, 43, 0.2);
     border: none;
 }
 
@@ -2235,18 +2235,18 @@ body.dark .handle-bar {
 /* ===== BASKET BUY/SELL BUTTONS ===== */
 .basket-inline-actions {
     display: flex;
-    gap: 6px;
+    gap: 0.375rem;
     flex-shrink: 0;
 }
 
 .inline-bs-btn {
     border: none;
-    border-radius: 10px;
-    padding: 7px 14px;
+    border-radius: 0.625rem;
+    padding: 0.4375rem 0.875rem;
     font-weight: 800;
     font-size: 0.68rem;
     cursor: pointer;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.0312rem;
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
     position: relative;
     overflow: hidden;
@@ -2285,13 +2285,13 @@ body.dark .handle-bar {
 .basket-leg-card {
     background: #FFFFFF;
     border: 1px solid #EEF2F8;
-    border-radius: 16px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
+    border-radius: 1rem;
+    padding: 0.75rem 0.875rem;
+    margin-bottom: 0.625rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
 }
 
 .basket-leg-name {
@@ -2307,25 +2307,25 @@ body.dark .handle-bar {
     font-size: 0.82rem;
     font-weight: 700;
     color: #1A1E2B;
-    margin-bottom: 8px;
+    margin-bottom: 0.5rem;
 }
 
 .bs-toggle-group {
     display: flex;
     background: #F0F2F5;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 3px;
+    border-radius: 0.625rem;
+    padding: 0.1875rem;
+    gap: 0.1875rem;
 }
 
 .bs-toggle {
-    padding: 5px 12px;
+    padding: 0.3125rem 0.75rem;
     font-size: 0.65rem;
     font-weight: 800;
-    border-radius: 7px;
+    border-radius: 0.4375rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 0.5px;
+    letter-spacing: 0.0312rem;
 }
 
 .bs-inactive {
@@ -2336,14 +2336,14 @@ body.dark .handle-bar {
 .bs-buy-active {
     background: #059669;
     color: #FFFFFF;
-    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+    box-shadow: 0 2px 0.375rem rgba(22, 163, 74, 0.3);
     transform: scale(1.05);
 }
 
 .bs-sell-active {
     background: #DC2626;
     color: #FFFFFF;
-    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+    box-shadow: 0 2px 0.375rem rgba(220, 38, 38, 0.3);
     transform: scale(1.05);
 }
 
@@ -2352,13 +2352,13 @@ body.dark .handle-bar {
     align-items: center;
     background: #F8FAFF;
     border: 1px solid #E8ECF0;
-    border-radius: 10px;
+    border-radius: 0.625rem;
     overflow: hidden;
 }
 
 .bq-minus,
 .bq-plus {
-    padding: 5px 10px;
+    padding: 0.3125rem 0.625rem;
     cursor: pointer;
     color: #5B677E;
     font-size: 0.6rem;
@@ -2371,18 +2371,18 @@ body.dark .handle-bar {
 }
 
 .bq-val {
-    padding: 4px 10px;
+    padding: 0.25rem 0.625rem;
     font-size: 0.75rem;
     font-weight: 700;
     color: #1A1E2B;
-    min-width: 32px;
+    min-width: 2rem;
     text-align: center;
 }
 
 .b-remove {
     color: #C62E2E;
     cursor: pointer;
-    padding: 4px;
+    padding: 0.25rem;
     font-size: 0.8rem;
     transition: transform 0.15s;
 }
@@ -2632,8 +2632,8 @@ body.dark #basketClearBtn {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     border: none;
     border-radius: 50%;
     background: #FEF0F0;
@@ -2641,7 +2641,7 @@ body.dark #basketClearBtn {
     cursor: pointer;
     font-size: 0.8rem;
     transition: background 0.15s, transform 0.15s;
-    margin-left: 8px;
+    margin-left: 0.5rem;
 }
 
 .instrument-delete-btn:hover {
@@ -2670,7 +2670,7 @@ body.dark .instrument-delete-btn:hover {
 
     /* Shell: expand and allow natural scroll */
     .mobile-app {
-        max-width: 900px;
+        max-width: 56.25rem;
         height: auto;
         min-height: 100dvh;
         overflow: visible;
@@ -2680,7 +2680,7 @@ body.dark .instrument-delete-btn:hover {
     .watchlist-card-list {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 0.75rem;
     }
 
     /* Folder drawer: persistent sidebar (no longer a slide-in overlay) */
@@ -2688,7 +2688,7 @@ body.dark .instrument-delete-btn:hover {
         display: none;
         position: relative;
         transform: none;
-        width: 280px;
+        width: 17.5rem;
         height: auto;
         box-shadow: none;
         border-left: 1px solid var(--border-light, #E8ECF0);
@@ -2716,7 +2716,7 @@ body.dark .instrument-delete-btn:hover {
 
     /* Trade sheet: constrained and centred */
     .trade-sheet {
-        max-width: 600px;
+        max-width: 37.5rem;
         margin: 0 auto;
     }
 
@@ -2727,7 +2727,7 @@ body.dark .instrument-delete-btn:hover {
 }
 
 /* =============================================
-   RESPONSIVE — DESKTOP (≥1024px)
+   RESPONSIVE — DESKTOP (≥64rem)
    ============================================= */
 @media (min-width: 1024px) {
 
@@ -2746,9 +2746,9 @@ body.dark .instrument-delete-btn:hover {
     /* Watchlist Grid: Multi-column for desktop */
     .watchlist-card-list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 16px;
-        padding: 8px 0;
+        grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+        gap: 1rem;
+        padding: 0.5rem 0;
     }
 
     .instr-row {
@@ -2776,7 +2776,7 @@ body.dark .instrument-delete-btn:hover {
         opacity: 1 !important;
         visibility: visible !important;
         z-index: 99999 !important;
-        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2) !important;
+        box-shadow: 0 -0.625rem 1.875rem rgba(0, 0, 0, 0.2) !important;
         transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
         background: var(--container-bg, #FFFFFF) !important;
         display: flex !important;
@@ -2790,7 +2790,7 @@ body.dark .instrument-delete-btn:hover {
         bottom: 0 !important;
         height: auto !important;
         max-height: 85vh !important;
-        border-radius: 24px 24px 0 0 !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
     }
 
     .mobile-app #tradeSheet.open,
@@ -2898,7 +2898,7 @@ body.dark .instrument-delete-btn:hover {
 
     #chartSheetOverlay,
     .mobile-app #chartSheetOverlay {
-        backdrop-filter: blur(4px) !important;
+        backdrop-filter: blur(0.25rem) !important;
     }
 }
 
@@ -2908,7 +2908,7 @@ body.dark .instrument-delete-btn:hover {
     overflow-x: auto;
     white-space: nowrap;
     gap: 0;
-    padding: 8px 0 0;
+    padding: 0.5rem 0 0;
     scrollbar-width: none;
     -ms-overflow-style: none;
     border-bottom: 1px solid #E8ECF0;
@@ -2922,7 +2922,7 @@ body.dark .instrument-delete-btn:hover {
     flex: 0 0 25%;
     background: none;
     border: none;
-    padding: 8px 4px;
+    padding: 0.5rem 0.25rem;
     font-size: 0.8rem;
     font-weight: 600;
     color: #8C94A8;
@@ -2941,8 +2941,8 @@ body.dark .instrument-delete-btn:hover {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 8px;
-    right: 8px;
+    left: 0.5rem;
+    right: 0.5rem;
     height: 2px;
     background: #C62E2E;
     border-radius: 2px 2px 0 0;
@@ -2955,9 +2955,9 @@ body.dark .instrument-delete-btn:hover {
     font-weight: 700;
     color: #C62E2E;
     background: #FEF2F2;
-    padding: 1px 6px;
-    border-radius: 20px;
-    margin-left: 6px;
+    padding: 1px 0.375rem;
+    border-radius: 1.25rem;
+    margin-left: 0.375rem;
     vertical-align: middle;
     line-height: 1.6;
 }
@@ -2967,11 +2967,11 @@ body.dark .instrument-delete-btn:hover {
     position: relative;
     overflow: hidden;
     background: #FFFFFF;
-    border-radius: 16px;
+    border-radius: 1rem;
     border: 1px solid #EEF2F8;
     cursor: pointer;
     transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    min-height: 72px;
+    min-height: 4.5rem;
     display: flex;
     align-items: stretch;
 }
@@ -2986,11 +2986,11 @@ body.dark .instrument-delete-btn:hover {
     z-index: 2;
     background: #FFFFFF;
     width: 100%;
-    padding: 12px 14px;
+    padding: 0.75rem 0.875rem;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
+    gap: 0.5rem;
     transition: transform 0.3s ease;
 }
 
@@ -3000,7 +3000,7 @@ body.dark .instrument-delete-btn:hover {
     right: 0;
     top: 0;
     bottom: 0;
-    width: 80px;
+    width: 5rem;
     display: flex;
     z-index: 1;
 }
@@ -3018,49 +3018,49 @@ body.dark .instrument-delete-btn:hover {
 
 .delete-btn {
     background: #DC2626;
-    border-top-right-radius: 16px;
-    border-bottom-right-radius: 16px;
+    border-top-right-radius: 1rem;
+    border-bottom-right-radius: 1rem;
 }
 
 .wc-checkbox-wrapper {
     display: none;
     /* Hidden by default, shown in selection mode */
     align-items: center;
-    margin-right: 12px;
+    margin-right: 0.75rem;
 }
 
 /* Basket mode BUY/SELL buttons */
 .wc-basket-actions {
     display: flex;
     flex-direction: row;
-    gap: 6px;
-    margin-left: 10px;
+    gap: 0.375rem;
+    margin-left: 0.625rem;
     flex-shrink: 0;
 }
 
 .wc-basket-buy,
 .wc-basket-sell {
-    border-radius: 10px;
-    padding: 8px 14px;
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.875rem;
     font-size: 0.75rem;
     font-weight: 800;
     cursor: pointer;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.0312rem;
     transition: all 0.15s;
     border: none;
     color: #fff;
-    min-width: 54px;
+    min-width: 3.375rem;
     text-align: center;
 }
 
 .wc-basket-buy {
     background: #1a8a3a;
-    box-shadow: 0 0 10px rgba(26, 138, 58, 0.5);
+    box-shadow: 0 0 0.625rem rgba(26, 138, 58, 0.5);
 }
 
 .wc-basket-sell {
     background: #b91c1c;
-    box-shadow: 0 0 10px rgba(185, 28, 28, 0.5);
+    box-shadow: 0 0 0.625rem rgba(185, 28, 28, 0.5);
 }
 
 .wc-basket-buy:active {
@@ -3095,7 +3095,7 @@ body.dark .instrument-delete-btn:hover {
 .instr-row__date {
     font-size: 0.65rem;
     color: #8C94A8;
-    margin-top: 3px;
+    margin-top: 0.1875rem;
 }
 
 .instr-row__right {
@@ -3135,14 +3135,14 @@ body.dark .instrument-delete-btn:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 24px;
+    padding: 3rem 1.5rem;
     text-align: center;
     color: #9CA3B9;
 }
 
 .watchlist-empty-state__icon {
     font-size: 2rem;
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
     opacity: 0.4;
 }
 
@@ -3150,7 +3150,7 @@ body.dark .instrument-delete-btn:hover {
     font-size: 0.85rem;
     font-weight: 600;
     color: #6B728E;
-    margin-bottom: 6px;
+    margin-bottom: 0.375rem;
 }
 
 .watchlist-empty-state__subtitle {
@@ -3523,7 +3523,7 @@ body.black #basketClearBtn {
 .blue .search-input:focus {
   background: #131722;
   border-color: #3A3A3A;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.2);
 }
 
 .dark .search-input::placeholder,

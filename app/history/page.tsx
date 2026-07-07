@@ -46,6 +46,7 @@ declare global {
 export default function HistoryPage() {
   useAuth();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -66,6 +67,13 @@ export default function HistoryPage() {
     const saved = localStorage.getItem('marginApexTheme');
     document.body.classList.remove('dark', 'black', 'blue');
     if (saved === 'dark' || saved === 'black' || saved === 'blue') document.body.classList.add(saved);
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const role = session?.user?.user_metadata?.role;
+      if (role === 'admin' || role === 'super_admin') {
+        setIsAdmin(true);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -401,7 +409,7 @@ export default function HistoryPage() {
                               <i className="fas fa-exclamation-triangle"></i> Deficit: -₹{(item.settlementAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           )}
-                          {currentTab === 'position' && item.closedBy && (
+                          {currentTab === 'position' && isAdmin && item.closedBy && (
                             <span className="detail-item" style={{ color: '#64748b', fontSize: '0.7rem' }}>
                               <i className={item.closedBy === 'USER_ACTION' ? 'fas fa-user' : 'fas fa-robot'}></i> {
                                 item.closedBy === 'AUTO_LIQUIDATION' ? 'Auto Sq-Off' : 
@@ -449,12 +457,14 @@ export default function HistoryPage() {
             {formatPrice(summary.n)}
           </span>
         </div>
-        <div className="footer-row">
-          <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
-          <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
-            {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
-          </span>
-        </div>
+        {isAdmin && (
+          <div className="footer-row">
+            <span className="footer-label"><i className="fas fa-handshake"></i> Settlement</span>
+            <span className="footer-value" style={{ color: summary.s > 0 ? '#C62E2E' : 'inherit' }}>
+              {summary.s > 0 ? `-₹${summary.s.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'}
+            </span>
+          </div>
+        )}
       </div>
       <style dangerouslySetInnerHTML={{
         __html: `

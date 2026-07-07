@@ -52,7 +52,7 @@ body:has(.diag-layout) {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  border-radius: 20px;
+  border-radius: 1.25rem;
   border: 1px solid;
   font-size: 0.82rem;
   font-weight: 700;
@@ -61,10 +61,10 @@ body:has(.diag-layout) {
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
-  box-shadow: 0 0 8px currentColor;
+  box-shadow: 0 0 0.5rem currentColor;
   animation: pulse-animation 2s infinite ease-in-out;
 }
 
@@ -82,14 +82,14 @@ body:has(.diag-layout) {
   height: 50vh;
   gap: 1.5rem;
   background: rgba(255, 255, 255, 0.02);
-  border-radius: 16px;
+  border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0.1875rem solid rgba(255, 255, 255, 0.1);
   border-top-color: #00cc66;
   border-radius: 50%;
   animation: spin 1s infinite linear;
@@ -101,15 +101,15 @@ body:has(.diag-layout) {
 
 .diag-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: 1.5rem;
 }
 
 .diag-card {
   background: rgba(20, 24, 33, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
+  border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 1.5rem;
   display: flex;
@@ -120,7 +120,7 @@ body:has(.diag-layout) {
 
 .diag-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0.5rem 1.875rem rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -190,7 +190,7 @@ body:has(.diag-layout) {
 }
 
 .alerts-container {
-  max-height: 250px;
+  max-height: 15.625rem;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -215,7 +215,7 @@ body:has(.diag-layout) {
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   font-size: 0.85rem;
   gap: 1rem;
   border: 1px solid transparent;
@@ -245,7 +245,7 @@ body:has(.diag-layout) {
 
 .alert-level-badge {
   padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   font-weight: 800;
   font-size: 0.7rem;
   letter-spacing: 0.05em;

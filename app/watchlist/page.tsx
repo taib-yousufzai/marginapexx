@@ -500,6 +500,7 @@ function WatchlistContent() {
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [userId, setUserId] = useState<string>('');
+  const [isExecutingBasket, setIsExecutingBasket] = useState(false);
 
   const getWatchlistLotSize = (item: any): number => {
     if (item && item.lotSize && item.lotSize > 0) return item.lotSize;
@@ -801,6 +802,7 @@ function WatchlistContent() {
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
   const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
+  const [showChargesBreakdown, setShowChargesBreakdown] = useState(false);
 
   const [isSelectionActive, setIsSelectionActive] = useState(false);
 
@@ -1667,13 +1669,20 @@ function WatchlistContent() {
 
       <div id="basketSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('basketSheet'); const overlay = document.getElementById('basketSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
 
-      <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
-        <div className="sheet-handle"><div className="handle-bar"></div></div>
-        <div style={{ padding: '24px 20px 20px 20px' }}>
-          <div className="basket-sheet-title" style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '16px' }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
+      <div id="basketSheet" className="trade-sheet detail-sheet" style={{ height: '100dvh', maxHeight: '100dvh', width: '100vw', top: 0, left: 0, bottom: 0, position: 'fixed', zIndex: 100000, borderRadius: 0, paddingBottom: '30px', background: 'var(--bg-body, #F5F7FB)' }}>
+        <div style={{ padding: '24px 20px 20px 20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
+            <button 
+              onClick={() => { const sheet = document.getElementById('basketSheet'); const overlay = document.getElementById('basketSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}
+              style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-primary)', padding: 0 }}
+            >
+              <i className="fas fa-arrow-left"></i>
+            </button>
+            <div className="basket-sheet-title" style={{ fontSize: '1.2rem', fontWeight: '800', margin: 0 }}><i className="fas fa-shopping-basket"></i> Basket Orders</div>
+          </div>
 
           {/* Basket legs - React rendered */}
-          <div style={{ maxHeight: '40dvh', overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {basketLegs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', color: '#9CA3AF', fontSize: '0.8rem' }}>
                 <i className="fas fa-shopping-basket" style={{ fontSize: '2rem', marginBottom: '8px', display: 'block', opacity: 0.3 }}></i>
@@ -1763,9 +1772,8 @@ function WatchlistContent() {
 
       {/* Checkout Sheet */}
       <div id="checkoutSheetOverlay" className="trade-sheet-overlay" onClick={() => { const sheet = document.getElementById('checkoutSheet'); const overlay = document.getElementById('checkoutSheetOverlay'); if (sheet) sheet.classList.remove('open'); if (overlay) overlay.classList.remove('active'); }}></div>
-      <div id="checkoutSheet" className="trade-sheet detail-sheet" style={{ height: 'auto', maxHeight: '90dvh', paddingBottom: '30px' }}>
-        <div className="sheet-handle"><div className="handle-bar"></div></div>
-        <div style={{ padding: '24px 20px 20px 20px' }}>
+      <div id="checkoutSheet" className="trade-sheet detail-sheet" style={{ height: '100dvh', maxHeight: '100dvh', width: '100vw', top: 0, left: 0, bottom: 0, position: 'fixed', zIndex: 100000, borderRadius: 0, paddingBottom: '30px', background: 'var(--bg-body, #F5F7FB)' }}>
+        <div style={{ padding: '24px 20px 20px 20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <div style={{ width: '56px', height: '56px', background: '#E9F6EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
               <i className="fas fa-bolt" style={{ fontSize: '1.4rem', color: '#2C8E5A' }}></i>
@@ -1789,11 +1797,66 @@ function WatchlistContent() {
                 else portion = exposure / lev;
                 return acc + portion;
               }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+              {(() => {
+                const totalCharges = basketLegs.reduce((acc, leg) => {
+                  const price = getLegPrice(leg.item);
+                  const seg = mapSegmentToDbSegment(leg.item.segment);
+                  const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
+                  const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
+                  const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
+                  const exposure = qty * price;
+                  
+                  const commType = setting?.intraday_commission_type || setting?.commission_type || 'Per Crore';
+                  let commVal = Number(setting?.intraday_commission_value ?? setting?.commission_value ?? 0);
+                  
+                  if (!setting) {
+                    const sUpper = (leg.item.segment || '').toUpperCase();
+                    if (sUpper.includes('FOREX')) commVal = 2000;
+                    else if (sUpper.includes('CRYPTO')) commVal = 1000;
+                    else commVal = 4500;
+                  }
+
+                  let charge = 0;
+                  if (commType === 'Per Crore') charge = (exposure * commVal) / 10000000;
+                  else if (commType === 'Per Lot') charge = (qty / lotSz) * commVal;
+                  else if (commType === 'Per Trade' || commType === 'Flat') charge = commVal;
+                  else charge = exposure * 0.001;
+                  
+                  return acc + (charge * 2);
+                }, 0);
+
+                return (
+                  <>
+                    <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px', cursor: 'pointer' }} onClick={() => setShowChargesBreakdown(!showChargesBreakdown)}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)', display: 'flex', alignItems: 'center' }}>
+                        Charges Breakdown <i className="fas fa-chevron-down" style={{ marginLeft: '6px', fontSize: '0.65rem', transition: 'transform 0.2s', transform: showChargesBreakdown ? 'rotate(180deg)' : 'none' }}></i>
+                      </span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#C62E2E' }}>₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    {showChargesBreakdown && (
+                      <div style={{ marginTop: '8px', padding: '8px 10px', background: 'var(--card-alt-bg, #F8FAFF)', borderRadius: '6px', border: '1px solid var(--border-light, #EEF2F8)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Intraday Brokerage</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Carry Brokerage</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹0.00</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>GTT Charges</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹0.00</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-light, #EEF2F8)', paddingTop: '10px', marginTop: '2px' }}><span className="basket-val" style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-primary)' }}>Available Balance</span><span style={{ fontSize: '0.9rem', fontWeight: '800', color: '#2C8E5A', background: '#E9F6EF', padding: '4px 10px', borderRadius: '8px' }}>{availableBalance !== null ? `₹${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹0.00'}</span></div>
             </div>
             
             <div style={{ fontSize: '0.9rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '10px', textAlign: 'left' }}>Items to Execute</div>
-            <div style={{ maxHeight: '35dvh', overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
               {basketLegs.map((leg, i) => {
                 const ltp = getLegPrice(leg.item);
                 const totalVal = ltp * leg.qty;
@@ -1816,22 +1879,49 @@ function WatchlistContent() {
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
-              onClick={() => {
-                showToast('Basket executed successfully!', false);
-                setBasketLegs([]);
-                setBasketMode(false);
-                const sheet = document.getElementById('checkoutSheet');
-                const overlay = document.getElementById('checkoutSheetOverlay');
-                if (sheet) sheet.classList.remove('open');
-                if (overlay) overlay.classList.remove('active');
-                const bsSheet = document.getElementById('basketSheet');
-                const bsOverlay = document.getElementById('basketSheetOverlay');
-                if (bsSheet) bsSheet.classList.remove('open');
-                if (bsOverlay) bsOverlay.classList.remove('active');
+              disabled={isExecutingBasket}
+              onClick={async () => {
+                if (isExecutingBasket) return;
+                setIsExecutingBasket(true);
+                try {
+                  for (const leg of basketLegs) {
+                    const ltp = getLegPrice(leg.item);
+                    const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
+                    const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
+                    await placeOrder({
+                      symbol: leg.item.symbol,
+                      kite_instrument: leg.item.kiteSymbol || leg.item.symbol,
+                      segment: leg.item.segment,
+                      side: leg.side,
+                      qty: qty,
+                      lots: leg.unit === 'lot' ? leg.qty : Math.ceil(leg.qty / lotSz),
+                      order_type: 'MARKET',
+                      product_type: 'INTRADAY',
+                      client_price: ltp
+                    });
+                  }
+                  showToast('Basket executed successfully!', false);
+                  setBasketLegs([]);
+                  setBasketMode(false);
+                  const sheet = document.getElementById('checkoutSheet');
+                  const overlay = document.getElementById('checkoutSheetOverlay');
+                  if (sheet) sheet.classList.remove('open');
+                  if (overlay) overlay.classList.remove('active');
+                  const bsSheet = document.getElementById('basketSheet');
+                  const bsOverlay = document.getElementById('basketSheetOverlay');
+                  if (bsSheet) bsSheet.classList.remove('open');
+                  if (bsOverlay) bsOverlay.classList.remove('active');
+                } finally {
+                  setIsExecutingBasket(false);
+                }
               }}
-              style={{ flex: 1, background: '#2C8E5A', color: '#fff', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 12px rgba(44,142,90,0.3)' }}
+              style={{ flex: 1, background: isExecutingBasket ? '#9CA3AF' : '#2C8E5A', color: '#fff', border: 'none', padding: '13px 0', borderRadius: '30px', fontSize: '0.9rem', fontWeight: '800', cursor: isExecutingBasket ? 'not-allowed' : 'pointer', boxShadow: isExecutingBasket ? 'none' : '0 4px 12px rgba(44,142,90,0.3)' }}
             >
-              <i className="fas fa-bolt" style={{ marginRight: '6px' }}></i>Confirm
+              {isExecutingBasket ? (
+                <><i className="fas fa-spinner fa-spin" style={{ marginRight: '6px' }}></i>Executing...</>
+              ) : (
+                <><i className="fas fa-bolt" style={{ marginRight: '6px' }}></i>Confirm</>
+              )}
             </button>
             <button
               onClick={() => {

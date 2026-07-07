@@ -2,28 +2,28 @@
 
 /* ── Sidebar brand header ── */
 .adm-drawer-brand {
-  padding: 20px 20px 16px;
+  padding: 1.25rem 1.25rem 1rem;
   font-size: 1.2rem;
   font-weight: 800;
   color: #e6edf3;
   border-bottom: 1px solid #21262d;
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.0312rem;
   flex-shrink: 0;
 }
 
 /* ── Page header (title + breadcrumb) ── */
 .adm-page-header {
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .adm-breadcrumb {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: 0.75rem;
   color: #8b949e;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
 .adm-breadcrumb i {
@@ -34,21 +34,21 @@
 /* ── Toast notification ── */
 .adm-toast {
   position: fixed;
-  bottom: 24px;
+  bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   background: #161b22;
   border: 1px solid #30363d;
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  min-width: 260px;
-  max-width: 420px;
+  gap: 0.75rem;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+  min-width: 16.25rem;
+  max-width: 26.25rem;
   animation: fadeSlideUp 0.25s ease;
 }
 
@@ -59,7 +59,7 @@
 .adm-toast-content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   font-size: 0.85rem;
   color: #e6edf3;
 }
@@ -81,15 +81,15 @@
 .adm-toast-close:hover { color: #e6edf3; }
 
 @keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  from { opacity: 0; transform: translateX(-50%) translateY(0.75rem); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ── Full-page loader spinner ── */
 .adm-loader {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #21262d;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0.1875rem solid #21262d;
   border-top-color: #388bfd;
   border-radius: 50%;
   animation: adm-spin 0.8s linear infinite;
@@ -104,7 +104,7 @@
   background: linear-gradient(90deg, #161b22 25%, #21262d 50%, #161b22 75%);
   background-size: 200% 100%;
   animation: adm-skeleton-loading 1.5s infinite;
-  border-radius: 6px;
+  border-radius: 0.375rem;
 }
 
 @keyframes adm-skeleton-loading {
@@ -132,9 +132,9 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 .adm-role-badge {
   background: #006400;
   color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 10px;
+  padding: 2px 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
   text-transform: uppercase;
   font-weight: bold;
 }
@@ -143,10 +143,10 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 
 /* Outer wrapper — horizontal scroll on mobile */
 .brk-table-wrap {
-  margin-top: 16px;
+  margin-top: 1rem;
   width: 100%;
   overflow-x: auto;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   border: 1px solid #1e293b;
   background: #0f172a;
   -webkit-overflow-scrolling: touch;
@@ -155,7 +155,7 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 /* Table base */
 .brk-table {
   width: 100%;
-  min-width: 700px;
+  min-width: 43.75rem;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
@@ -167,7 +167,7 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 }
 
 .brk-th {
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   text-align: left;
   font-size: 0.72rem;
   font-weight: 600;
@@ -196,7 +196,7 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 
 /* Cells */
 .brk-td {
-  padding: 13px 16px;
+  padding: 0.8125rem 1rem;
   color: #cbd5e1;
   vertical-align: middle;
   white-space: nowrap;
@@ -207,7 +207,7 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 
 /* Empty state cell */
 .brk-td-empty {
-  padding: 48px 16px;
+  padding: 3rem 1rem;
   text-align: center;
   color: #475569;
   font-size: 0.85rem;
@@ -219,8 +219,8 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
   font-size: 0.75rem;
   color: #94a3b8;
   background: #1e293b;
-  padding: 3px 7px;
-  border-radius: 4px;
+  padding: 0.1875rem 0.4375rem;
+  border-radius: 0.25rem;
   letter-spacing: 0.03em;
 }
 
@@ -254,10 +254,10 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 28px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 20px;
+  min-width: 1.75rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border-radius: 1.25rem;
   background: #1e3a5f;
   color: #60a5fa;
   font-size: 0.75rem;
@@ -269,9 +269,9 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 .brk-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 1.25rem;
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
@@ -291,15 +291,15 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 
 /* Status dot */
 .brk-status-dot {
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .brk-status-dot-green {
   background: #22c55e;
-  box-shadow: 0 0 5px #22c55e;
+  box-shadow: 0 0 0.3125rem #22c55e;
   animation: brk-pulse-green 2s infinite;
 }
 
@@ -316,9 +316,9 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 .brk-manage-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 6px;
+  gap: 0.3125rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
   border: 1px solid #334155;
   background: #1e293b;
   color: #94a3b8;
@@ -337,16 +337,16 @@ button.adm-nav-item.active { background: #21262d; color: #e6edf3; }
 
 /* Skeleton cell */
 .brk-skel-cell {
-  height: 14px;
+  height: 0.875rem;
   width: 80%;
-  border-radius: 4px;
+  border-radius: 0.25rem;
 }
 
 /* Footer row count */
 .brk-table-footer {
-  margin-top: 10px;
+  margin-top: 0.625rem;
   font-size: 0.75rem;
   color: #475569;
   text-align: right;
-  padding-right: 4px;
+  padding-right: 0.25rem;
 }
