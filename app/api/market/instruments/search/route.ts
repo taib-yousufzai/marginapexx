@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
-import { getUserFromRequest } from '@/lib/adminClient';
+import { getUserFromRequest, getAdminClient } from '@/lib/adminClient';
 import {
   applyForexFilter,
   applyCryptoWhitelist,
@@ -234,10 +234,25 @@ export async function GET(request: NextRequest) {
     let data: any[] | null = null;
     let error: any = null;
 
-    // Smart parse: "nifty 24040" → underlying + strike query
     const parsed = parseOptionQuery(q);
 
+    let allowedSymbols: string[] | null = null;
+    const user = await getUserFromRequest(request);
+    if (user) {
+      const adminClient = getAdminClient();
+      const { data: profile } = await adminClient.from('profiles').select('template_id').eq('id', user.id).single();
+      if (profile?.template_id) {
+        const { data: scripts } = await adminClient.from('template_scripts').select('symbol').eq('template_id', profile.template_id);
+        if (scripts && scripts.length > 0) {
+          allowedSymbols = scripts.map(s => s.symbol);
+        }
+      }
+    }
+
     const applyTabFilter = (query: any) => {
+      if (allowedSymbols) {
+        query = query.in('tradingsymbol', allowedSymbols);
+      }
       if (tab === 'All') return query;
       if (tab.includes('-OPT')) return query.not('option_type', 'is', null);
       if (tab.includes('-FUT')) return query.is('option_type', null).in('instrument_type', ['FUTIDX', 'FUTSTK', 'FUT', 'MAPPED_FUT', 'FUTCOM', 'FUTCUR']);
@@ -499,7 +514,6 @@ export async function GET(request: NextRequest) {
     // ── Filter out blocked symbols for this user ──────────────────────────
     // Fetch the user's blocked scripts and remove those instruments from results.
     // This ensures blocked symbols don't appear in watchlist search at all.
-    const user = await getUserFromRequest(request);
     if (user) {
       try {
         const { data: blockedRows } = await supabase

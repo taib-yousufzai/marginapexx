@@ -501,7 +501,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     positionsResult,
     quotesMap,
     scriptSettingsResult,
-    instrumentLotSizesResult,
+    templateScriptsResult,
     blockedScriptsResult,
     tradingHoursResult,
     pendingOrdersResult,
@@ -537,8 +537,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Script settings for lot size lookup (admin overrides)
     admin.from('script_settings').select('symbol, lot_size'),
 
-    // (Removed unsafe random 200 instruments fetch; we now fetch exact instrument below)
-    Promise.resolve({ data: [], error: null }),
+    // Template scripts enforcement
+    profile.template_id 
+      ? admin.from('template_scripts').select('symbol').eq('template_id', profile.template_id)
+      : Promise.resolve({ data: null, error: null }),
 
     // Blocked scripts for this user
     admin.from('user_blocked_scripts')
@@ -621,6 +623,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ...(scriptSettingsResult?.data as any[] ?? []),  // script_settings wins on conflict (later entry wins in getLotSizeFallback)
   ];
   const blockedScript = blockedScriptsResult?.data;
+  
+  // Verify template allowlist
+  if (templateScriptsResult?.data && templateScriptsResult.data.length > 0) {
+    const isAllowed = templateScriptsResult.data.some(s => 
+      s.symbol === symbol || s.symbol === kiteInst || s.symbol === underlyingId
+    );
+    if (!isAllowed) {
+      return NextResponse.json({ error: `Instrument ${symbol} is not allowed by your template` }, { status: 403 });
+    }
+  }
 
   // Resolve crypto symbol form: if exiting, we must match the exact form stored in the DB (e.g. 'BTC', 'BTCUSDT', or 'BTC/USDT')
   if (is_exit && dbSegment === 'CRYPTO') {

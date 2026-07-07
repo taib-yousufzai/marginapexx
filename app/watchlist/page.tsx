@@ -501,6 +501,30 @@ function WatchlistContent() {
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [blockedSymbols, setBlockedSymbols] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string>('');
+  const [tradingHours, setTradingHours] = useState<any[]>([]);
+
+  const isMarketOpen = (item: WatchlistItem) => {
+    const segUpper = (item.segment || '').toUpperCase();
+    if (segUpper.includes('CRYPTO')) return true;
+    
+    let segmentId = 'nse';
+    if (segUpper.includes('MCX') || segUpper.includes('COMEX')) segmentId = 'mcx';
+    else if (segUpper.includes('BSE') || segUpper.includes('BFO')) segmentId = 'bse';
+    else if (segUpper.includes('CDS') || segUpper.includes('FOREX')) segmentId = 'forex';
+    
+    const th = tradingHours.find(t => t.id === segmentId);
+    if (!th) return true; // fallback
+    if (!th.is_active) return false;
+    
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const dayOfWeek = nowIST.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+    
+    const currentHHMM = `${String(nowIST.getHours()).padStart(2, '0')}:${String(nowIST.getMinutes()).padStart(2, '0')}`;
+    if (currentHHMM < th.start_time || currentHHMM >= th.end_time) return false;
+    
+    return true;
+  };
   const [isExecutingBasket, setIsExecutingBasket] = useState(false);
 
   const getWatchlistLotSize = (item: any): number => {
@@ -587,6 +611,11 @@ function WatchlistContent() {
             const blockedData = await resBlocked.json();
             const symbols: string[] = blockedData?.symbols || [];
             setBlockedSymbols(new Set(symbols.map((s: string) => s.toUpperCase())));
+          }
+
+          const { data: thData } = await sb.from('trading_hours').select('*');
+          if (thData) {
+            setTradingHours(thData);
           }
         } else {
           // On error, fall back to allowing all
@@ -1452,29 +1481,38 @@ function WatchlistContent() {
                 quote={marketQuotes[item.kiteSymbol]}
                 binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
-                onTrade={openTradeSheet}
+                onTrade={(it, type) => {
+                  if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
+                  openTradeSheet(it, type);
+                }}
                 onDetail={openDetailSheet}
                 basketMode={basketMode}
-                onBasketBuy={(it) => setBasketLegs(prev => {
-                  // If BUY leg already exists for this symbol, remove it (toggle off)
-                  const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'BUY');
-                  if (exists) {
-                    showToast(`${it.name} BUY removed`, false);
-                    return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'BUY'));
-                  }
-                  showToast(`${it.name} BUY added to basket ✓`, false);
-                  return [...prev, { item: it, side: 'BUY', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
-                })}
-                onBasketSell={(it) => setBasketLegs(prev => {
-                  // If SELL leg already exists for this symbol, remove it (toggle off)
-                  const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'SELL');
-                  if (exists) {
-                    showToast(`${it.name} SELL removed`, false);
-                    return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'SELL'));
-                  }
-                  showToast(`${it.name} SELL added to basket ✓`, false);
-                  return [...prev, { item: it, side: 'SELL', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
-                })}
+                onBasketBuy={(it) => {
+                  if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
+                  setBasketLegs(prev => {
+                    // If BUY leg already exists for this symbol, remove it (toggle off)
+                    const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'BUY');
+                    if (exists) {
+                      showToast(`${it.name} BUY removed`, false);
+                      return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'BUY'));
+                    }
+                    showToast(`${it.name} BUY added to basket ✓`, false);
+                    return [...prev, { item: it, side: 'BUY', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
+                  });
+                }}
+                onBasketSell={(it) => {
+                  if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
+                  setBasketLegs(prev => {
+                    // If SELL leg already exists for this symbol, remove it (toggle off)
+                    const exists = prev.find(l => l.item.symbol === it.symbol && l.side === 'SELL');
+                    if (exists) {
+                      showToast(`${it.name} SELL removed`, false);
+                      return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'SELL'));
+                    }
+                    showToast(`${it.name} SELL added to basket ✓`, false);
+                    return [...prev, { item: it, side: 'SELL', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
+                  });
+                }}
                 onChart={(item) => {
                   setChartItem(item);
                   setIsBenchmarkChart(false);
@@ -1785,9 +1823,6 @@ function WatchlistContent() {
       <div id="checkoutSheet" className="trade-sheet detail-sheet" style={{ height: '100dvh', maxHeight: '100dvh', width: '100vw', top: 0, left: 0, bottom: 0, position: 'fixed', zIndex: 100000, borderRadius: 0, paddingBottom: '30px', background: 'var(--bg-body, #F5F7FB)' }}>
         <div style={{ padding: '24px 20px 20px 20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-            <div style={{ width: '56px', height: '56px', background: '#E9F6EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <i className="fas fa-bolt" style={{ fontSize: '1.4rem', color: '#2C8E5A' }}></i>
-            </div>
             <div className="sri-name" style={{ fontSize: '1.1rem', fontWeight: '800', color: '#1A1E2B', marginBottom: '16px' }}>Checkout Summary</div>
             <div className="basket-margin-summary" style={{ border: '1px solid var(--border-light, #EEF2F8)', padding: '16px', borderRadius: '16px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
               <div className="margin-row" style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Total Items</span><span className="basket-val" style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)' }}>{basketLegs.length}</span></div>
