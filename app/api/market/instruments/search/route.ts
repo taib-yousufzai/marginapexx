@@ -434,7 +434,7 @@ export async function GET(request: NextRequest) {
     const priceMap = await fetchLivePrices(kiteIds, request);
 
     // Map to watchlist-compatible shape
-    const results = validRows.map((inst: any) => {
+    let results = validRows.map((inst: any) => {
       let segmentLabel = '';
       const exch = inst.exchange === 'NFO' ? 'NSE' : inst.exchange === 'BFO' ? 'BSE' : inst.exchange;
       const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(inst.name);
