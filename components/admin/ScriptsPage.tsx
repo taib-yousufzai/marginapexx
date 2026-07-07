@@ -39,6 +39,20 @@ interface UserScriptState {
   blockedSegments: string[];
 }
 
+// Default search terms per segment — used when no user query is typed
+const SEGMENT_DEFAULT_SEARCH: Record<string, string> = {
+  'INDEX-FUT':  'NIFTY',
+  'INDEX-OPT':  'NIFTY',
+  'STOCK-FUT':  'RELIANCE',
+  'STOCK-OPT':  'RELIANCE',
+  'NSE-EQ':     'RELIANCE',
+  'MCX-FUT':    'GOLD',
+  'MCX-OPT':    'GOLD',
+  'COMEX':      'GOLD',
+  'CRYPTO':     'BTC',
+  'FOREX':      'USDINR',
+};
+
 const SEGMENTS = [
   'INDEX-FUT', 'INDEX-OPT', 'STOCK-FUT', 'STOCK-OPT',
   'NSE-EQ', 'MCX-FUT', 'MCX-OPT', 'COMEX', 'CRYPTO', 'FOREX',
@@ -111,8 +125,9 @@ export default function ScriptsPage() {
     setInstrLoading(true);
     try {
       const headers = await authHeaders();
-      const query = q.length >= 2 ? q : activeSegment.split('-')[0]; // default: search by segment prefix
-      const res = await fetch(`/api/admin/instruments/search?q=${encodeURIComponent(query)}&tab=${activeSegment}`, { headers });
+      // Use user's query if long enough, otherwise fall back to a known symbol for this segment
+      const query = q.length >= 2 ? q : (SEGMENT_DEFAULT_SEARCH[activeSegment] || 'NIFTY');
+      const res = await fetch(`/api/market/instruments/search?q=${encodeURIComponent(query)}&tab=${activeSegment}`, { headers });
       if (res.ok) {
         const data: Instrument[] = await res.json();
         setInstruments(data);
@@ -440,7 +455,7 @@ export default function ScriptsPage() {
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             style={{ ...styles.input, flex: 1, minWidth: '12rem', margin: 0 }}
-            placeholder={`Search instruments in ${activeSegment}...`}
+            placeholder={`Search ${activeSegment} (e.g. ${SEGMENT_DEFAULT_SEARCH[activeSegment] || 'NIFTY'})...`}
             value={instrSearch}
             onChange={e => handleInstrSearch(e.target.value)}
           />
