@@ -28,6 +28,7 @@ export async function GET(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const demoParam = url.searchParams.get('demo');
     const isDemo = demoParam === 'true';
+    const fetchAll = demoParam === 'all' || demoParam === null;
 
     // 1. Fetch profiles (filtered by parent_id if broker)
     const callerRole = getRole(authResult.callerUser);
@@ -40,7 +41,9 @@ export async function GET(request: Request): Promise<Response> {
     if (isBroker) {
       pQuery = pQuery.eq('parent_id', authResult.callerUser.id);
     }
-    pQuery = pQuery.eq('demo_user', isDemo);
+    if (!fetchAll) {
+      pQuery = pQuery.eq('demo_user', isDemo);
+    }
     
     const { data: profiles, error: pError } = await pQuery;
 

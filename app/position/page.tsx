@@ -956,7 +956,7 @@ export default function PositionPage() {
                 )}
               </div>
 
-              <Footer activeTab="position" />
+              <Footer activeTab="position" positions={positions} />
             </div>
 
             {/* Sheet */}

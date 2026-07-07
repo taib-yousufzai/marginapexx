@@ -25,6 +25,22 @@ const supabase = createClient(
 // Known underlying symbols for smart parsing
 const UNDERLYINGS = ['MIDCPNIFTY', 'BANKNIFTY', 'FINNIFTY', 'NIFTY', 'SENSEX', 'BANKEX', 'CRUDEOILM', 'CRUDEOIL', 'NATGASMINI', 'NATURALGAS', 'SILVERM', 'SILVER', 'GOLDM', 'GOLD'];
 
+const mapSegmentToDbSegment = (s: string): string => {
+  if (!s) return '';
+  const trimmed = s.trim();
+  if (trimmed === 'NSE - Futures' || trimmed === 'BSE - Futures') return 'INDEX-FUT';
+  if (trimmed === 'NSE - Options' || trimmed === 'BSE - Options') return 'INDEX-OPT';
+  if (trimmed === 'NSE - Stock Futures' || trimmed === 'BSE - Stock Futures') return 'STOCK-FUT';
+  if (trimmed === 'NSE - Stock Options' || trimmed === 'BSE - Stock Options') return 'STOCK-OPT';
+  if (trimmed === 'MCX - Futures') return 'MCX-FUT';
+  if (trimmed === 'MCX - Options') return 'MCX-OPT';
+  if (trimmed === 'NSE - Equity' || trimmed === 'BSE - Equity') return 'NSE-EQ';
+  if (trimmed === 'Crypto' || trimmed === 'CRYPTO') return 'CRYPTO';
+  if (trimmed === 'Forex' || trimmed === 'FOREX' || trimmed === 'CDS - Futures' || trimmed === 'CDS - Options') return 'FOREX';
+  if (trimmed === 'COMEX - Futures' || trimmed === 'COMEX - Options' || trimmed === 'COMEX' || trimmed === 'COI') return 'COMEX';
+  return trimmed;
+};
+
 /**
  * Try to parse a query like "nifty 24040" or "banknifty 48500 ce"
  * into { underlying, strike, optionType }
@@ -493,6 +509,21 @@ export async function GET(request: NextRequest) {
         if (blockedRows && blockedRows.length > 0) {
           const blockedSet = new Set(blockedRows.map((r: any) => r.symbol.toUpperCase()));
           results = results.filter(r => !blockedSet.has((r.symbol || '').toUpperCase()));
+        }
+
+        // Also filter out entire segments if they are blocked (trade_allowed = false)
+        const [ { data: segRows }, { data: scalperRows } ] = await Promise.all([
+          supabase.from('segment_settings').select('segment').eq('user_id', user.id).eq('trade_allowed', false),
+          supabase.from('scalper_segment_settings').select('segment').eq('user_id', user.id).eq('trade_allowed', false)
+        ]);
+
+        const blockedSegments = new Set<string>([
+          ...(segRows?.map(r => r.segment) || []),
+          ...(scalperRows?.map(r => r.segment) || [])
+        ]);
+
+        if (blockedSegments.size > 0) {
+          results = results.filter(r => !blockedSegments.has(mapSegmentToDbSegment(r.segment)));
         }
       } catch {
         // Non-fatal — if we can't fetch blocked scripts, show all results

@@ -51,7 +51,9 @@ export async function GET(request: Request): Promise<Response> {
 
     // Apply production filtering rules so admin search reflects what traders see
     results = applyForexFilter(results);       // Requirement 1.1 — no Forex CE/PE
-    results = applyCryptoWhitelist(results);   // Requirement 5.2 — BTC/ETH/DOGE only
+    if (tab === 'CRYPTO') {
+      results = applyCryptoWhitelist(results); // Requirement 5.2 — BTC/ETH/DOGE only (CRYPTO tab only)
+    }
 
     return Response.json(results, { status: 200 });
   } catch (err: any) {

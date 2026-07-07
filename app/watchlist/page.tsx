@@ -1330,7 +1330,7 @@ function WatchlistContent() {
     }
 
     const script = document.createElement('script');
-    script.innerHTML = buildInlineScript(allowedSegments, segmentSettings);
+    script.innerHTML = buildInlineScript(allowedSegments, segmentSettings, Array.from(blockedSymbols));
     document.body.appendChild(script);
     scriptMountedRef.current = true;
 
@@ -1356,7 +1356,7 @@ function WatchlistContent() {
       if (drawerOverlay) drawerOverlay.classList.remove('active');
       if (folderDrawer) folderDrawer.classList.remove('open');
     };
-  }, [allowedSegments, segmentSettings]);
+  }, [allowedSegments, segmentSettings, blockedSymbols]);
 
   return (
     <div className="desktop-layout">
@@ -2121,11 +2121,12 @@ function WatchlistContent() {
 }
 
 
-function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): string {
+function buildInlineScript(allowedSegments: string[], segmentSettings: any[], blockedSymbols: string[] = []): string {
   return `
     (function() {
       var allowedSegments = ${JSON.stringify(allowedSegments)};
       var segmentSettings = ${JSON.stringify(segmentSettings)};
+      var blockedSymbols = new Set(${JSON.stringify(blockedSymbols.map(s => s.toUpperCase()))});
       var tradingSegments = [
         {
           name: 'INDEX-FUT',
@@ -2330,7 +2331,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
         return scripts;
       }
 
-      var allScriptsDB = getAllScripts();
+      var allScriptsDB = getAllScripts().filter(function(s) {
+        return !blockedSymbols.has((s.symbol || '').toUpperCase());
+      });
       var watchlistItems = (window.__watchlistItems && window.__watchlistItems.length > 0) ? window.__watchlistItems.slice() : [];
       var selectionMode = false;
       var longPressTimer = null;
@@ -2453,7 +2456,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           html += '<div class="folder-item">';
           html += '<div class="folder-header">' + escapeHtml(seg.name) + '</div>';
           if (seg.instruments) {
-            seg.instruments.forEach(function(inst) {
+            seg.instruments.filter(function(inst) {
+              return !blockedSymbols.has((inst.symbol || '').toUpperCase());
+            }).forEach(function(inst) {
               var alreadyAdded = watchlistSymbols.has(inst.symbol);
               var itemJsonEscaped = JSON.stringify(inst).replace(/"/g, '&quot;');
               var btnHtml = alreadyAdded
@@ -2465,7 +2470,9 @@ function buildInlineScript(allowedSegments: string[], segmentSettings: any[]): s
           if (seg.subCategories) {
             seg.subCategories.forEach(function(sub) {
               html += '<div class="subfolder-item"><div class="subfolder-header">' + escapeHtml(sub.name) + '</div>';
-              sub.instruments.forEach(function(inst) {
+              sub.instruments.filter(function(inst) {
+                return !blockedSymbols.has((inst.symbol || '').toUpperCase());
+              }).forEach(function(inst) {
                 var alreadyAdded = watchlistSymbols.has(inst.symbol);
                 var itemJsonEscaped = JSON.stringify(inst).replace(/"/g, '&quot;');
                 var btnHtml = alreadyAdded

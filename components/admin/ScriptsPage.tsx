@@ -106,7 +106,7 @@ export default function ScriptsPage() {
   useEffect(() => {
     (async () => {
       const headers = await authHeaders();
-      const res = await fetch('/api/admin/users', { headers });
+      const res = await fetch('/api/admin/users?demo=all', { headers });
       if (res.ok) {
         const data = await res.json();
         setUsers(data || []);

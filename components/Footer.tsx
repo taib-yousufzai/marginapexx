@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import TickFlash from '@/components/TickFlash';
-import { useMyPositions } from '@/hooks/useMyPositions';
+import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import './Footer.css';
 
 const mapSegmentToDbSegment = (s: string): string => {
@@ -25,9 +25,10 @@ const mapSegmentToDbSegment = (s: string): string => {
 interface FooterProps {
   activeTab: 'home' | 'watchlist' | 'order' | 'position' | 'history' | 'profile';
   hideDrawer?: boolean;
+  positions?: EnrichedPosition[];
 }
 
-const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
+const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, positions }) => {
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const handleAreaRef = useRef<HTMLDivElement>(null);
@@ -111,7 +112,8 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false }) => {
     };
   }, []);
 
-  const { positions: enrichedPositions } = useMyPositions();
+  const { positions: fetchedPositions } = useMyPositions();
+  const enrichedPositions = positions || fetchedPositions;
 
   // Live P&L, Used Margin (frozen) and Equity calculations — update on every tick
   const { floatingPnl, lossOnlyPnl, usedMargin, positionValue, liquidationLevel } = useMemo(() => {
