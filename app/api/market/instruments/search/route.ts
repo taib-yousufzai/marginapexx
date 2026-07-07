@@ -298,7 +298,7 @@ export async function GET(request: NextRequest) {
 
         qry = qry.or(orParts.join(','));
         // CRITICAL FIX: Only fetch live options to not exhaust the limit on dead contracts
-        qry = qry.or(`expiry.gte.${today},expiry.is.null,expiry.eq.""`);
+        qry = qry.or(`expiry.gte.${today},expiry.is.null`);
 
         qry = qry
           .order('expiry', { ascending: true })
