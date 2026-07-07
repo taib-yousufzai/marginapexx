@@ -61,7 +61,7 @@ export function useOrderEntry() {
       return { success: true, order: result };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('[useOrderEntry] Error placing order:', message, err);
+      console.warn('[useOrderEntry] Order placement failed:', message);
       setError(message);
       return { success: false, error: message };
     } finally {

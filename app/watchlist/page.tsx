@@ -1809,7 +1809,9 @@ function WatchlistContent() {
                 return acc + portion;
               }, 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
               {(() => {
-                const totalCharges = basketLegs.reduce((acc, leg) => {
+                let intradayCharges = 0;
+                let carryCharges = 0;
+                basketLegs.forEach((leg) => {
                   const price = getLegPrice(leg.item);
                   const seg = mapSegmentToDbSegment(leg.item.segment);
                   const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
@@ -1834,8 +1836,10 @@ function WatchlistContent() {
                   else if (commType === 'Per Trade' || commType === 'Flat') charge = commVal;
                   else charge = exposure * 0.001;
                   
-                  return acc + (charge * 2);
-                }, 0);
+                  if (isIntra) intradayCharges += (charge * 2);
+                  else carryCharges += (charge * 2);
+                });
+                const totalCharges = intradayCharges + carryCharges;
 
                 return (
                   <>
@@ -1849,11 +1853,11 @@ function WatchlistContent() {
                       <div style={{ marginTop: '8px', padding: '8px 10px', background: 'var(--card-alt-bg, #F8FAFF)', borderRadius: '6px', border: '1px solid var(--border-light, #EEF2F8)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Intraday Brokerage</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{intradayCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>Carry Brokerage</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹0.00</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-primary)' }}>₹{carryCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: '600', color: 'var(--text-muted, #8C94A8)' }}>GTT Charges</span>
