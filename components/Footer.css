@@ -79,9 +79,10 @@ body.dark .footer-nav::after {
   align-items: center;
   gap: 0.1875rem;
   cursor: pointer;
-  padding: 0.375rem 0.625rem;
+  padding: 0.375rem 0.25rem;
   border-radius: 0.875rem;
-  flex: 1;
+  flex: 1 1 0%;
+  width: 20%;
   text-decoration: none;
   color: var(--text-muted, #9CA3AF);
   transition: color 0.2s, background 0.2s;
@@ -228,11 +229,11 @@ body.dark .ark-drawer-top-line { background: red; }
 
 .ark-drag-handle-area {
   position: absolute;
-  top: -1.25rem;
+  top: -20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 5.625rem;
-  height: 1.25rem;
+  width: 90px;
+  height: 20px;
   background: #DC2626;
   clip-path: path("M 0 20 C 15 20, 32 0, 45 0 C 58 0, 75 20, 90 20 Z");
   display: flex;
@@ -250,11 +251,16 @@ body.dark .ark-drag-handle-area { background: #DC2626; }
   color: #FFFFFF;
   font-size: 0.8rem;
   display: inline-block;
+  line-height: 1;
+  margin-top: 4px; /* visually center it in the bottom-heavy red bump */
   transform: rotate(0deg);
   transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
 }
 
-.toggle-arrow.rotated { transform: rotate(180deg); }
+.toggle-arrow.rotated { 
+  transform: rotate(180deg); 
+  margin-top: 0px; /* when rotated, the visual weight shifts, might need reset or different margin */
+}
 
 .drawer-inner-scroll {
   padding: 0.375rem 0.625rem;
