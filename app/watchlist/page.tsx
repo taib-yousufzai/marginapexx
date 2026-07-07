@@ -811,7 +811,7 @@ function WatchlistContent() {
 
   // Basket Mode State
   const [basketMode, setBasketMode] = useState(false);
-  const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot' }>>([]);
+  const [basketLegs, setBasketLegs] = useState<Array<{ item: WatchlistItem; side: 'BUY' | 'SELL'; qty: number; unit: 'qty' | 'lot'; productType?: 'INTRADAY' | 'CARRY' }>>([]);
   const [showChargesBreakdown, setShowChargesBreakdown] = useState(false);
 
   const [isSelectionActive, setIsSelectionActive] = useState(false);
@@ -1463,7 +1463,7 @@ function WatchlistContent() {
                     return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'BUY'));
                   }
                   showToast(`${it.name} BUY added to basket ✓`, false);
-                  return [...prev, { item: it, side: 'BUY', qty: 1, unit: 'qty' }];
+                  return [...prev, { item: it, side: 'BUY', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
                 })}
                 onBasketSell={(it) => setBasketLegs(prev => {
                   // If SELL leg already exists for this symbol, remove it (toggle off)
@@ -1473,7 +1473,7 @@ function WatchlistContent() {
                     return prev.filter(l => !(l.item.symbol === it.symbol && l.side === 'SELL'));
                   }
                   showToast(`${it.name} SELL added to basket ✓`, false);
-                  return [...prev, { item: it, side: 'SELL', qty: 1, unit: 'qty' }];
+                  return [...prev, { item: it, side: 'SELL', qty: 1, unit: 'qty', productType: 'INTRADAY' }];
                 })}
                 onChart={(item) => {
                   setChartItem(item);
@@ -1796,8 +1796,9 @@ function WatchlistContent() {
                 const price = getLegPrice(leg.item);
                 const seg = mapSegmentToDbSegment(leg.item.segment);
                 const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
-                const lev = Number(setting?.intraday_leverage ?? 10);
-                const levType = setting?.intraday_type ?? 'Multiplier';
+                const isIntra = (leg.productType || 'INTRADAY') === 'INTRADAY';
+                const lev = Number(isIntra ? (setting?.intraday_leverage ?? 10) : (setting?.normal_leverage ?? 10));
+                const levType = (isIntra ? setting?.intraday_type : setting?.normal_type) ?? 'Multiplier';
                 const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
                 const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
                 const exposure = qty * price;
@@ -1816,8 +1817,9 @@ function WatchlistContent() {
                   const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
                   const exposure = qty * price;
                   
-                  const commType = setting?.intraday_commission_type || setting?.commission_type || 'Per Crore';
-                  let commVal = Number(setting?.intraday_commission_value ?? setting?.commission_value ?? 0);
+                  const isIntra = (leg.productType || 'INTRADAY') === 'INTRADAY';
+                  const commType = (isIntra ? setting?.intraday_commission_type : setting?.commission_type) || setting?.commission_type || 'Per Crore';
+                  let commVal = Number((isIntra ? setting?.intraday_commission_value : setting?.commission_value) ?? setting?.commission_value ?? 0);
                   
                   if (!setting) {
                     const sUpper = (leg.item.segment || '').toUpperCase();
@@ -1880,6 +1882,17 @@ function WatchlistContent() {
                       <span style={{ fontSize: '0.65rem', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', background: leg.side === 'BUY' ? '#E9F6EF' : '#FEF0F0', color: leg.side === 'BUY' ? '#15803D' : '#C62E2E' }}>{leg.side}</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{leg.qty} {leg.unit.toUpperCase()}</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>@ ₹{ltp.toLocaleString('en-IN')}</span>
+                      
+                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px', background: 'var(--bg-body, #F5F7FB)', padding: '2px', borderRadius: '4px' }}>
+                        <div 
+                          onClick={() => setBasketLegs(prev => prev.map((l, idx) => idx === i ? { ...l, productType: 'INTRADAY' } : l))}
+                          style={{ padding: '2px 6px', fontSize: '0.65rem', fontWeight: '700', borderRadius: '3px', cursor: 'pointer', background: (!leg.productType || leg.productType === 'INTRADAY') ? '#FFFFFF' : 'transparent', color: (!leg.productType || leg.productType === 'INTRADAY') ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        >Intraday</div>
+                        <div 
+                          onClick={() => setBasketLegs(prev => prev.map((l, idx) => idx === i ? { ...l, productType: 'CARRY' } : l))}
+                          style={{ padding: '2px 6px', fontSize: '0.65rem', fontWeight: '700', borderRadius: '3px', cursor: 'pointer', background: leg.productType === 'CARRY' ? '#FFFFFF' : 'transparent', color: leg.productType === 'CARRY' ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        >Carry</div>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1906,7 +1919,7 @@ function WatchlistContent() {
                       qty: qty,
                       lots: leg.unit === 'lot' ? leg.qty : Math.ceil(leg.qty / lotSz),
                       order_type: 'MARKET',
-                      product_type: 'INTRADAY',
+                      product_type: leg.productType || 'INTRADAY',
                       client_price: ltp
                     });
                   }
