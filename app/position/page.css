@@ -484,6 +484,11 @@
   box-shadow: 0 0.25rem 0.875rem rgba(0, 0, 0, 0.05);
 }
 
+/* Locked position state */
+.pos-card--locked {
+  border-left: 4px solid #F59E0B;
+}
+
 /* Inner row for open position cards */
 .pos-card-main {
   display: flex;
