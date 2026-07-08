@@ -144,7 +144,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     let k = item?.kiteSymbol;
     if (k && item?.symbol) {
       const isOption = item.symbol.endsWith('CE') || item.symbol.endsWith('PE');
-      if (isOption && !k.endsWith('CE') && !k.endsWith('PE')) {
+      if (isOption && (!k.includes(':') || (!k.endsWith('CE') && !k.endsWith('PE')))) {
         const underlying = item.symbol.replace(/_INDEX|NSE:|INDEX/g, '').trim();
         let prefix = 'NFO';
         if (underlying.includes('SENSEX') || underlying.includes('BANKEX')) prefix = 'BFO';
