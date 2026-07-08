@@ -20,6 +20,8 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
   // Normalization: trim and collapse spaces
   const normalizedQuery = query.replace(/\s+/g, ' ').trim();
 
+  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+
   // Handle clicking outside to close
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -114,8 +116,7 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
 
   const handleAddClick = (item: WatchlistItem) => {
     onAdd(item);
-    setQuery(''); // Close and clear search after adding
-    setIsOpen(false);
+    setAddedItems(prev => new Set(prev).add(item.symbol));
   };
 
   return (
@@ -146,12 +147,12 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
 
       {/* Results Overlay */}
       {isOpen && (
-        <div className="search-results-section" style={{ display: 'block', position: 'absolute', top: 'calc(100% + 12px)', left: '-16px', right: '-16px', bottom: 'auto', height: 'calc(100vh - 130px)', zIndex: 1000, marginTop: 0, maxHeight: 'none', overflowY: 'auto', boxShadow: 'none', border: 'none', borderRadius: 0, background: '#FFFFFF' }}>
-          <div className="section-subtitle" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #EFF2F8', display: 'flex', justifyContent: 'space-between' }}>
+        <div className="search-results-section" style={{ display: 'flex', flexDirection: 'column', position: 'absolute', top: 'calc(100% + 12px)', left: '-16px', right: '-16px', bottom: 'auto', height: 'calc(100vh - 130px)', zIndex: 1000, marginTop: 0, maxHeight: 'none', overflowY: 'hidden', boxShadow: 'none', border: 'none', borderRadius: 0, background: '#FFFFFF' }}>
+          <div className="section-subtitle" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #EFF2F8', display: 'flex', justifyContent: 'space-between', flexShrink: 0 }}>
             <span><i className="fas fa-search"></i> SEARCH RESULTS</span>
             <span id="searchResultCount" style={{ color: '#8F9BB3' }}>{isSearching ? 'SEARCHING...' : `${results.length} MATCHES`}</span>
           </div>
-          <div id="searchResultsList" style={{ paddingBottom: '8px' }}>
+          <div id="searchResultsList" style={{ paddingBottom: '8px', flex: 1, overflowY: 'auto' }}>
             {results.length === 0 && !isSearching && (
               <div className="no-results">
                 No instruments found for "{normalizedQuery}"
@@ -170,8 +171,9 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
                   <button 
                     className="add-smart-btn"
                     onClick={(e) => { e.stopPropagation(); handleAddClick(r); }}
+                    style={addedItems.has(r.symbol) ? { background: '#2C8E5A' } : undefined}
                   >
-                    ADD
+                    {addedItems.has(r.symbol) ? 'ADDED' : 'ADD'}
                   </button>
                 </div>
               </div>
