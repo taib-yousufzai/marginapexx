@@ -981,7 +981,7 @@
   font-weight: 700;
   flex-shrink: 0;
   white-space: nowrap;
-  letter-spacing: .0.1875rem;
+  letter-spacing: 0.05rem;
 }
 
 .tc-wrapper .gtt-field.sl-field .gtt-tag {
@@ -2245,6 +2245,7 @@
   border-color: #374151;
   color: #F9FAFB;
 }
+
 .dark .tc-search-input-fs:focus {
   border-color: #4B5563;
   background: #111827;
@@ -2271,6 +2272,7 @@
   background: #FFFFFF;
   border-bottom: 1px solid #E8ECF0;
 }
+
 .dark .tc-search-tabs {
   background: #111827;
   border-color: #1F2937;
@@ -2307,10 +2309,12 @@
 .dark .tc-search-tab {
   color: #9CA3AF;
 }
+
 .dark .tc-search-tab:hover {
   color: #F3F4F6;
   background: #1F2937;
 }
+
 .dark .tc-search-tab.active {
   background: #E63946;
   color: #FFFFFF;
@@ -2370,6 +2374,7 @@
   background: #111827;
   border-color: #1F2937;
 }
+
 .dark .tc-search-result-item:hover {
   border-color: #374151;
   box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
@@ -2397,6 +2402,7 @@
 .dark .tc-res-name {
   color: #F9FAFB;
 }
+
 .dark .tc-res-segment {
   color: #9CA3AF;
 }
@@ -2422,6 +2428,7 @@
   background: #2D1A1E;
   color: #E63946;
 }
+
 .dark .tc-res-open-btn:hover {
   background: #E63946;
   color: #FFFFFF;
