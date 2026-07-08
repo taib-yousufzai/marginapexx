@@ -91,15 +91,14 @@ export default function ScriptsPage() {
     if (res.ok) {
       const list = res.data as AccountTemplate[];
       setTemplates(list);
-      if (!selectedTemplate) {
-        const def = list.find(t => t.is_default) ?? (list.length > 0 ? list[0] : null);
-        setSelectedTemplate(def);
-      } else {
-        const updated = list.find(t => t.id === selectedTemplate.id);
-        if (updated) setSelectedTemplate(updated);
-      }
+      setSelectedTemplate(prev => {
+        if (!prev) return list.find(t => t.is_default) ?? (list.length > 0 ? list[0] : null);
+        const updated = list.find(t => t.id === prev.id);
+        if (updated && JSON.stringify(updated) !== JSON.stringify(prev)) return updated;
+        return prev;
+      });
     }
-  }, [selectedTemplate]);
+  }, []);
 
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
@@ -182,8 +181,8 @@ export default function ScriptsPage() {
   // Search Instruments
   const searchInstruments = useCallback(async (segment: string, query: string) => {
     setInstrLoading(true);
-    let url = `/api/market/instruments/library?segment=${encodeURIComponent(segment)}`;
-    if (query) url += `&q=${encodeURIComponent(query)}`;
+    const q = query.length >= 2 ? query : (SEGMENT_DEFAULTS[segment] || 'NIFTY');
+    const url = `/api/admin/instruments/search?q=${encodeURIComponent(q)}&tab=${encodeURIComponent(segment)}`;
     const res = await apiCall(url, { method: 'GET' });
     setInstrLoading(false);
     if (res.ok) {
