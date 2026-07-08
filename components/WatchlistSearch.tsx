@@ -146,7 +146,7 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
 
       {/* Results Overlay */}
       {isOpen && (
-        <div className="search-results-section" style={{ display: 'block', position: 'absolute', top: 'calc(100% + 12px)', left: '0', right: '0', bottom: 'auto', maxHeight: '400px', zIndex: 1000, marginTop: 0, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: '1px solid #EFF2F8', borderRadius: '12px' }}>
+        <div className="search-results-section" style={{ display: 'block', position: 'absolute', top: 'calc(100% + 12px)', left: '-16px', right: '-16px', bottom: 'auto', height: 'calc(100vh - 130px)', zIndex: 1000, marginTop: 0, maxHeight: 'none', overflowY: 'auto', boxShadow: 'none', border: 'none', borderRadius: 0, background: '#FFFFFF' }}>
           <div className="section-subtitle" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #EFF2F8', display: 'flex', justifyContent: 'space-between' }}>
             <span><i className="fas fa-search"></i> SEARCH RESULTS</span>
             <span id="searchResultCount" style={{ color: '#8F9BB3' }}>{isSearching ? 'SEARCHING...' : `${results.length} MATCHES`}</span>
