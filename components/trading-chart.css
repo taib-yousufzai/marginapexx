@@ -1465,7 +1465,7 @@
   background: #1e293b;
   padding: 0.5rem 1.125rem;
   border-radius: 2.5rem;
-  color: #fff;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 0.75rem;
   z-index: 10000;
