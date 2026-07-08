@@ -254,8 +254,12 @@ export async function GET(request: NextRequest) {
         query = query.in('tradingsymbol', allowedSymbols);
       }
       if (tab === 'All') return query;
-      if (tab.includes('-OPT')) return query.not('option_type', 'is', null);
-      if (tab.includes('-FUT')) return query.is('option_type', null).in('instrument_type', ['FUTIDX', 'FUTSTK', 'FUT', 'MAPPED_FUT', 'FUTCOM', 'FUTCUR']);
+      if (tab === 'INDEX-FUT') return query.is('option_type', null).in('instrument_type', ['FUTIDX']);
+      if (tab === 'STOCK-FUT') return query.is('option_type', null).in('instrument_type', ['FUTSTK', 'FUT', 'MAPPED_FUT']);
+      if (tab === 'INDEX-OPT') return query.not('option_type', 'is', null).in('instrument_type', ['OPTIDX']);
+      if (tab === 'STOCK-OPT') return query.not('option_type', 'is', null).in('instrument_type', ['OPTSTK', 'OPT']);
+      if (tab === 'MCX-FUT') return query.is('option_type', null).eq('exchange', 'MCX');
+      if (tab === 'MCX-OPT') return query.not('option_type', 'is', null).eq('exchange', 'MCX');
       if (tab === 'NSE-EQ') return query.eq('instrument_type', 'EQ');
       if (tab === 'CRYPTO') return query.eq('segment', 'CRYPTO');
       if (tab === 'FOREX') return query.eq('exchange', 'CDS');
