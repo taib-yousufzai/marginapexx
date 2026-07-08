@@ -215,7 +215,7 @@ export default function HistoryPage() {
 
   const formatPrice = (val: number) => {
     const sign = val >= 0 ? '' : '-';
-    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+    return `${sign}₹${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -277,7 +277,6 @@ export default function HistoryPage() {
                         value={fromDate}
                         onChange={(e) => setFromDate(e.target.value)}
                       />
-                      {!fromDate && <span className="date-placeholder">mm/dd/yyyy</span>}
                     </div>
                   </div>
                   <span style={{ color: '#C62E2E', fontSize: '0.7rem' }}>→</span>
@@ -290,7 +289,6 @@ export default function HistoryPage() {
                         value={toDate}
                         onChange={(e) => setToDate(e.target.value)}
                       />
-                      {!toDate && <span className="date-placeholder">mm/dd/yyyy</span>}
                     </div>
                   </div>
                   <div className="filter-buttons">

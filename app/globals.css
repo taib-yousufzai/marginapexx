@@ -57,6 +57,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  overflow-x: hidden;
 }
 
 @media (max-width: 500px) {
@@ -93,6 +94,18 @@ body {
    Tablet:  min-width: 501px  (and max-width: 1023px where needed)
    Desktop: min-width: 1024px
    ============================================= */
+
+@media (max-width: 1023px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
 
 /* JADE RED + WHITE + BLACK + SILVER + GOLD THEME */
 :root {
