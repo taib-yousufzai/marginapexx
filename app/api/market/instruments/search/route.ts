@@ -336,6 +336,14 @@ export async function GET(request: NextRequest) {
 
     let rows: any[] = data ?? [];
 
+    // Ensure index/stock segregation for generic FUT/OPT types
+    const indexNames = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+    if (tab === 'INDEX-FUT' || tab === 'INDEX-OPT') {
+      rows = rows.filter(r => indexNames.includes(r.name) || r.instrument_type === 'FUTIDX' || r.instrument_type === 'OPTIDX');
+    } else if (tab === 'STOCK-FUT' || tab === 'STOCK-OPT') {
+      rows = rows.filter(r => !indexNames.includes(r.name) && r.instrument_type !== 'FUTIDX' && r.instrument_type !== 'OPTIDX');
+    }
+
     // Filter rows to ensure they actually match the search terms in a meaningful way.
     let searchTerms = q.toLowerCase().split(/\s+/);
     if (parsed) {
