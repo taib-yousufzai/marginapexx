@@ -184,8 +184,8 @@
     overflow-y: auto;
     background: #F5F7FB;
     min-height: 0;
-    /* bottom padding = summary (~6.875rem) + footer nav (4.0625rem) */
-    padding: 0.75rem 1rem 10.9375rem 1rem;
+    /* bottom padding = summary (~8.5rem) + footer nav (4.0625rem) */
+    padding: 0.75rem 1rem 12.5rem 1rem;
 }
 
 .history-root .history-list {

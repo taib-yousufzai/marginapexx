@@ -43,7 +43,7 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  font-size: 14px; /* Scale anchor — change this to resize the whole app. 14px = ~12.5% smaller than browser default */
+  font-size: 16px; /* Scale anchor — change this to resize the whole app. */
   font-family: 'Inter', sans-serif;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
