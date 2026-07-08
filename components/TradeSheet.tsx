@@ -947,14 +947,13 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-change-badge {
           display: inline-block; margin-top: 3px;
           font-size: 0.62rem; font-weight: 700;
-          padding: 2px 8px; border-radius: 30px;
-          background: rgba(21,128,61,0.1); color: #15803D;
+          color: #15803D;
         }
         body.dark .ts2-change-badge {
-          background: rgba(34,197,94,0.15); color: #22C55E;
+          color: #22C55E;
         }
-        .ts2-change-badge.neg { background: rgba(185,28,28,0.1); color: #B91C1C; }
-        body.dark .ts2-change-badge.neg { background: rgba(239,68,68,0.15); color: #EF4444; }
+        .ts2-change-badge.neg { color: #B91C1C; }
+        body.dark .ts2-change-badge.neg { color: #EF4444; }
 
         .ts2-bidask {
           background: var(--card-bg, #fff); display: flex; align-items: center;
@@ -1083,11 +1082,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         .ts2-ml { font-size: 0.68rem; font-weight: 600; color: var(--text-secondary, #6B7280); }
         .ts2-mv { font-size: 0.78rem; font-weight: 700; color: var(--text-primary, #111827); }
         .ts2-mv-avail {
-          background: rgba(21,128,61,0.1); color: #15803D;
-          padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+          color: #15803D;
+          font-size: 0.72rem; font-weight: 700;
         }
         body.dark .ts2-mv-avail {
-          background: rgba(34,197,94,0.15); color: #22C55E;
+          color: #22C55E;
         }
 
         .ts2-footer {
