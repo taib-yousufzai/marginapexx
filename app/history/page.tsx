@@ -270,6 +270,7 @@ export default function HistoryPage() {
                   <div className="filter-group">
                     <i className="fas fa-calendar-alt"></i>
                     <div className="date-input-wrapper">
+                      {!fromDate && <div className="date-placeholder">From</div>}
                       <input
                         type="date"
                         className="date-input-compact"
@@ -282,6 +283,7 @@ export default function HistoryPage() {
                   <div className="filter-group">
                     <i className="fas fa-calendar-alt"></i>
                     <div className="date-input-wrapper">
+                      {!toDate && <div className="date-placeholder">To</div>}
                       <input
                         type="date"
                         className="date-input-compact"

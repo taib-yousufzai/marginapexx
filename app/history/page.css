@@ -141,6 +141,18 @@
     .history-root .date-placeholder {
         display: block;
     }
+    .history-root .filter-buttons {
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+    .history-root .filter-btn {
+        flex: 1;
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+    .history-root .date-filter-row {
+        gap: 0.5rem;
+    }
 }
 
 .history-root .date-input-compact:focus {
