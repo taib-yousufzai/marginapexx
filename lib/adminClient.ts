@@ -34,7 +34,7 @@ export async function getUserFromRequest(request: Request) {
   if (!auth?.startsWith('Bearer ')) return null;
 
   const token = auth.slice(7).trim();
-  if (!token) return null;
+  if (!token || token === 'null' || token === 'undefined') return null;
 
   try {
     const { getRedisClient } = await import('./redis');
@@ -60,7 +60,9 @@ export async function getUserFromRequest(request: Request) {
     const admin = getAdminClient();
     const { data, error } = await admin.auth.getUser(token);
     if (error || !data?.user) {
-      console.error('[getUserFromRequest] Auth error:', error);
+      if (error?.message !== 'Auth session missing!') {
+        console.error('[getUserFromRequest] Auth error:', error);
+      }
       return null;
     }
 

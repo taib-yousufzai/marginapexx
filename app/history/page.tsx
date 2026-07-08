@@ -164,7 +164,7 @@ export default function HistoryPage() {
         if (typeof window !== 'undefined') window.__historyCache = merged;
         setHistoryData(merged);
       } catch (err) {
-        console.error('Failed to fetch history:', err);
+        console.warn('Failed to fetch history:', err);
       } finally {
         setLoading(false);
       }
