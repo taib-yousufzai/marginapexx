@@ -1726,10 +1726,10 @@ export default function ScriptsPage() {
                     />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span className="script-name" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--dark)' }}>
-                        {script.symbol}
+                        {script.name || script.symbol}
                       </span>
                       {script.name && script.name !== script.symbol && (
-                        <span style={{ fontSize: '10px', color: 'var(--grey-400)' }}>{script.name}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--grey-400)' }}>{script.symbol}</span>
                       )}
                     </div>
                     {addingSymbols.has(script.symbol) && <span style={{marginLeft: 'auto', fontSize: 10, color: '#888'}}>...</span>}
