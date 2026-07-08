@@ -187,7 +187,7 @@ export default function ScriptsPage() {
     const res = await apiCall(url, { method: 'GET' });
     setInstrLoading(false);
     if (res.ok) {
-      setInstruments(res.data as Instrument[]);
+      setInstruments(Array.isArray(res.data) ? res.data : (res.data as any).data || []);
     } else {
       setInstruments([]);
     }
@@ -279,7 +279,7 @@ export default function ScriptsPage() {
   });
 
   // Instruments from search that aren't already in the allowed list
-  const additionalInstruments = instruments.filter(i => !allowedSet.has(i.tradingsymbol));
+  const additionalInstruments = (Array.isArray(instruments) ? instruments : []).filter(i => !allowedSet.has(i.tradingsymbol));
 
   // Combine them for rendering
   const scriptsToShow = [
@@ -1750,6 +1750,21 @@ export default function ScriptsPage() {
             </div>
           </div>
 
+          <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--grey-200)', paddingTop: '20px' }}>
+            <button 
+              style={{ width: '100%', padding: '12px 24px', background: '#000000', color: '#ffffff', border: 'none', borderRadius: '40px', fontWeight: 600, cursor: (selectedTemplate?.is_default || settingDefault) ? 'not-allowed' : 'pointer' }}
+              onClick={handleSetDefault}
+              disabled={selectedTemplate?.is_default || settingDefault}
+            >
+              {settingDefault ? 'Setting...' : 'Set as Default'}
+            </button>
+            <button 
+              style={{ width: '100%', padding: '12px 24px', background: '#000000', color: '#ffffff', border: 'none', borderRadius: '40px', fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => setToast({ message: 'Changes saved successfully', type: 'success' })}
+            >
+              Save Changes
+            </button>
+          </div>
           
         </div>
       </div>

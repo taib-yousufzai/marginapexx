@@ -123,7 +123,7 @@ export default function AdminPage() {
 
   if (creatingUser) {
     return (
-      <div className="adm-root">
+      <div className="adm-root" suppressHydrationWarning>
         <div className="adm-topbar">
           <button className="adm-hamburger" onClick={() => { }}>
             <span /><span /><span />
@@ -140,7 +140,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="adm-root">
+    <div className="adm-root" suppressHydrationWarning>
       {drawerOpen && (
         <div className="adm-overlay" onClick={() => setDrawerOpen(false)} />
       )}
