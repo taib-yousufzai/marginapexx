@@ -241,7 +241,7 @@
 
 .history-root .script-name {
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     color: #1A1E2B;
     white-space: nowrap;
     overflow: hidden;
@@ -277,7 +277,7 @@
 }
 
 .history-root .pnl {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 700;
     flex-shrink: 0;
     text-align: right;
@@ -293,13 +293,13 @@
 
 .history-root .price-value {
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.65rem;
 }
 
 .history-root .history-card-details {
     display: flex;
     justify-content: space-between;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     color: #8C94A8;
     padding-top: 0.3rem;
     border-top: 1px solid #F0F2F8;
