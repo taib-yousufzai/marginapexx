@@ -262,12 +262,12 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const rawIntradayCharge = segSetting ? computeCharge(
     segSetting.intraday_commission_type || segSetting.commission_type || 'Per Crore',
-    segSetting.intraday_commission_value ?? segSetting.commission_value ?? 0
+    segSetting.intraday_commission_value ?? segSetting.commission_value ?? fallbackCommVal
   ) : computeCharge(fallbackCommType, fallbackCommVal);
 
   const rawCarryCharge = segSetting ? computeCharge(
     segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore',
-    segSetting.carry_commission_value ?? segSetting.commission_value ?? 0
+    segSetting.carry_commission_value ?? segSetting.commission_value ?? fallbackCommVal
   ) : computeCharge(fallbackCommType, fallbackCommVal);
 
   const gttCharge = (orderType === 'GTT' && segSetting ? computeCharge(
