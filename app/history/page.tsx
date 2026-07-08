@@ -100,9 +100,8 @@ export default function HistoryPage() {
           })
         ]);
 
-        if (!ordersRes.ok || !posRes.ok) throw new Error('fetch failed');
-        const ordersData = await ordersRes.json();
-        const posData = await posRes.json();
+        const ordersData = ordersRes.ok ? await ordersRes.json() : { orders: [] };
+        const posData = posRes.ok ? await posRes.json() : { positions: [] };
 
         const formattedOrders = (ordersData.orders || []).map((o: any) => ({
           id: o.id,
