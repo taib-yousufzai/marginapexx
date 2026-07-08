@@ -278,7 +278,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   let displayIntraday = 0;
   let displayCarry = 0;
 
-  if (targetPT === 'CARRY') {
+  if (orderType === 'GTT') {
+    displayIntraday = rawIntradayCharge * multiplier;
+    displayCarry = rawCarryCharge * multiplier;
+  } else if (targetPT === 'CARRY') {
     if (isExitTrade) {
       // At exit, user pays for both entry and exit legs of the CARRY position
       displayCarry = rawCarryCharge * 2;
@@ -1428,7 +1431,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
-                        <span className="ts2-mv" style={targetPT === 'CARRY' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
+                        <span className="ts2-mv" style={(targetPT === 'CARRY' || displayCarry > 0) ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
                           ₹ {displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
