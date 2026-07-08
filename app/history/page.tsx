@@ -35,6 +35,7 @@ interface HistoryItem {
   settlement?: string;
   settlementAmount?: number;
   productType?: string;
+  timestamp: number;
 }
 
 declare global {
@@ -50,6 +51,8 @@ export default function HistoryPage() {
   const [currentTab, setCurrentTab] = useState<'position' | 'order'>('position');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [appliedFromDate, setAppliedFromDate] = useState('');
+  const [appliedToDate, setAppliedToDate] = useState('');
   const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const mainContentRef = useRef<HTMLDivElement>(null);
@@ -114,7 +117,8 @@ export default function HistoryPage() {
           brokerage: o.brokerage || 0,
           intraday_brokerage: o.intraday_brokerage || 0,
           carry_brokerage: o.carry_brokerage || 0,
-          gtt_brokerage: o.gtt_brokerage || 0
+          gtt_brokerage: o.gtt_brokerage || 0,
+          timestamp: new Date(o.created_at).getTime()
         }));
 
         const formattedPos = (posData.positions || []).map((p: any) => {
@@ -152,6 +156,7 @@ export default function HistoryPage() {
             productType: p.product_type || 'INTRADAY',
             settlement,
             settlementAmount: Math.abs(Number(p.settlement_amount || 0)),
+            timestamp: p.updated_at ? new Date(p.updated_at).getTime() : new Date(p.created_at).getTime(),
           };
         });
 
@@ -167,23 +172,46 @@ export default function HistoryPage() {
     fetchHistory();
   }, []);
 
+  const handleApplyFilter = () => {
+    setAppliedFromDate(fromDate);
+    setAppliedToDate(toDate);
+  };
+
+  const handleClearFilter = () => {
+    setFromDate('');
+    setToDate('');
+    setAppliedFromDate('');
+    setAppliedToDate('');
+  };
+
   const filteredData = useMemo(() => {
-    const base = historyData.filter(item => {
+    let base = historyData.filter(item => {
       if (currentTab === 'position') return item.status === 'closed';
       return item.status !== 'closed';
     });
-    // Add date filtering logic if needed
+
+    if (appliedFromDate) {
+      const from = new Date(appliedFromDate);
+      from.setHours(0, 0, 0, 0);
+      base = base.filter(item => item.timestamp >= from.getTime());
+    }
+    if (appliedToDate) {
+      const to = new Date(appliedToDate);
+      to.setHours(23, 59, 59, 999);
+      base = base.filter(item => item.timestamp <= to.getTime());
+    }
+
     return base;
-  }, [historyData, currentTab]);
+  }, [historyData, currentTab, appliedFromDate, appliedToDate]);
 
   const summary = useMemo(() => {
-    const posHistory = historyData.filter(h => h.status === 'closed');
+    const posHistory = filteredData.filter(h => h.status === 'closed');
     const gp = posHistory.filter(h => h.pnl > 0).reduce((acc, h) => acc + h.pnl, 0);
     const gl = posHistory.filter(h => h.pnl < 0).reduce((acc, h) => acc + Math.abs(h.pnl), 0);
-    const b = historyData.reduce((acc, h) => acc + h.brokerage, 0);
+    const b = filteredData.reduce((acc, h) => acc + h.brokerage, 0);
     const s = posHistory.reduce((acc, h) => acc + (h.settlementAmount ?? 0), 0);
     return { gp, gl, b, s, n: gp - gl - b - s };
-  }, [historyData]);
+  }, [filteredData]);
 
   const formatPrice = (val: number) => {
     const sign = val >= 0 ? '' : '-';
@@ -266,8 +294,8 @@ export default function HistoryPage() {
                     </div>
                   </div>
                   <div className="filter-buttons">
-                    <button className="filter-btn apply">Apply</button>
-                    <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }}>Clear</button>
+                    <button className="filter-btn apply" onClick={handleApplyFilter}>Apply</button>
+                    <button className="filter-btn clear" onClick={handleClearFilter}>Clear</button>
                   </div>
                 </div>
               </div>
@@ -318,8 +346,8 @@ export default function HistoryPage() {
                     />
                   </div>
                   <div className="filter-buttons" style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-                    <button className="filter-btn apply" style={{ padding: '8px 24px' }}>Apply Filter</button>
-                    <button className="filter-btn clear" onClick={() => { setFromDate(''); setToDate(''); }} style={{ padding: '8px 16px' }}>Reset</button>
+                    <button className="filter-btn apply" onClick={handleApplyFilter} style={{ padding: '8px 24px' }}>Apply Filter</button>
+                    <button className="filter-btn clear" onClick={handleClearFilter} style={{ padding: '8px 16px' }}>Reset</button>
                   </div>
                 </div>
               </div>
