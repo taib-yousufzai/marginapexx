@@ -65,6 +65,7 @@ function mapSegmentToDbSegment(s: string, symbol: string = ''): string {
 
   const n = symbol.toUpperCase();
   if (n) {
+    if (['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].some(c => n === c || n.startsWith(c + 'USDT'))) return 'CRYPTO';
     if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS')) {
       if (n.endsWith('CE') || n.endsWith('PE')) return 'MCX-OPT';
       return 'MCX-FUT';
@@ -131,7 +132,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     : (item ? getLotSize(item.name, scriptSettings) : 1);
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
-  const isCrypto = dbSeg.toUpperCase().includes('CRYPTO') || !!item?.binanceSymbol;
+  const isCrypto = !!item?.binanceSymbol || ['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].includes(item?.symbol || '');
   const isComex = item && (item as any).preferredView 
     ? (item as any).preferredView === 'comex' 
     : (dbSeg.toUpperCase().includes('COMEX') || !!item?.comexSymbol);

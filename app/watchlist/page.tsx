@@ -2158,7 +2158,7 @@ function WatchlistContent() {
             <TradingChart
               key={`${chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}-${chartItem.segment}`}
               symbol={chartItem.binanceSymbol || chartItem.kiteSymbol || chartItem.symbol}
-              segment={chartItem.binanceSymbol ? 'CRYPTO' : chartItem.segment}
+              segment={chartItem.binanceSymbol || ['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC'].includes(chartItem.symbol) ? 'CRYPTO' : chartItem.segment}
               liveQuote={chartItem.binanceSymbol ? marketQuotes[chartItem.binanceSymbol] : marketQuotes[chartItem.kiteSymbol]}
             />
           )}

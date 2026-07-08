@@ -453,6 +453,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (symUp.includes('GOLD') || symUp.includes('SILVER') || symUp.includes('CRUDE') || symUp.includes('NATGAS') || symUp.includes('NATURALGAS')) {
     const isOptionSymbol = symUp.endsWith('CE') || symUp.endsWith('PE');
     dbSegment = isOptionSymbol ? 'MCX-OPT' : 'COMEX';
+  } else if (['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].some(c => symUp === c || symUp.startsWith(c + 'USDT'))) {
+    dbSegment = 'CRYPTO';
   }
   
   const admin = getAdminClient();
@@ -478,7 +480,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const targetTable = isScalper ? 'scalper_segment_settings' : 'segment_settings';
   const parentId = profile.parent_id && profile.parent_id !== user.id ? profile.parent_id : null;
 
-  const kiteInst = kite_instrument || symbol;
+  let kiteInst = kite_instrument || symbol;
+  
+  if (kiteInst === 'NIFTY_INDEX' || kiteInst === 'NIFTY 50') kiteInst = 'NSE:NIFTY 50';
+  else if (kiteInst === 'BANKNIFTY_INDEX' || kiteInst === 'NIFTY BANK') kiteInst = 'NSE:NIFTY BANK';
+  else if (kiteInst === 'FINNIFTY_INDEX' || kiteInst === 'NIFTY FIN SERVICE') kiteInst = 'NSE:NIFTY FIN SERVICE';
+  else if (kiteInst === 'SENSEX_INDEX' || kiteInst === 'SENSEX') kiteInst = 'BSE:SENSEX';
+  else if (kiteInst === 'BANKEX_INDEX' || kiteInst === 'BANKEX') kiteInst = 'BSE:BANKEX';
+
   const instrumentsToFetch = [kiteInst];
   const isOption = dbSegment.includes('OPT');
   const underlyingId = dbSegment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
