@@ -1758,6 +1758,12 @@ export default function ScriptsPage() {
             >
               {settingDefault ? 'Setting...' : 'Set as Default'}
             </button>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+              <div style={{ width: '100%', height: '1px', background: 'var(--grey-200)' }} />
+              <div style={{ width: '100%', height: '1px', background: 'var(--grey-200)' }} />
+            </div>
+            
             <button 
               style={{ width: '100%', padding: '12px 24px', background: '#000000', color: '#ffffff', border: 'none', borderRadius: '40px', fontWeight: 600, cursor: 'pointer' }}
               onClick={() => setToast({ message: 'Changes saved successfully', type: 'success' })}
