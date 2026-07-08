@@ -383,7 +383,7 @@ export default function HistoryPage() {
                               {currentTab === 'position' ? (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                                   <span>{`${isPositive ? '+' : ''}${formatPrice(item.pnl)}`}</span>
-                                  <span style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '2px' }}>
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 600, marginTop: '2px' }}>
                                     {`(${isPositive ? '+' : ''}${pnlPercent}%)`}
                                   </span>
                                 </div>
