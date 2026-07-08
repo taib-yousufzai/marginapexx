@@ -254,9 +254,9 @@ export async function GET(request: NextRequest) {
         query = query.in('tradingsymbol', allowedSymbols);
       }
       if (tab === 'All') return query;
-      if (tab === 'INDEX-FUT') return query.is('option_type', null).in('instrument_type', ['FUTIDX']);
+      if (tab === 'INDEX-FUT') return query.is('option_type', null).in('instrument_type', ['FUTIDX', 'FUT', 'MAPPED_FUT']);
       if (tab === 'STOCK-FUT') return query.is('option_type', null).in('instrument_type', ['FUTSTK', 'FUT', 'MAPPED_FUT']);
-      if (tab === 'INDEX-OPT') return query.not('option_type', 'is', null).in('instrument_type', ['OPTIDX']);
+      if (tab === 'INDEX-OPT') return query.not('option_type', 'is', null).in('instrument_type', ['OPTIDX', 'OPT']);
       if (tab === 'STOCK-OPT') return query.not('option_type', 'is', null).in('instrument_type', ['OPTSTK', 'OPT']);
       if (tab === 'MCX-FUT') return query.is('option_type', null).eq('exchange', 'MCX');
       if (tab === 'MCX-OPT') return query.not('option_type', 'is', null).eq('exchange', 'MCX');
