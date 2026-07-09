@@ -110,6 +110,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [gttSubOption, setGttSubOption] = useState<string>('LIMIT');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
   
   const isExpired = useMemo(() => {
     if (!item?.expiry || exitMode || isModify) return false;
@@ -846,8 +847,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       onSuccess?.();
       onClose();
     } else {
-      alert(`Order Failed:\n${res.error}`);
-      showToast(`${res.error}`);
+      setOrderError(res.error || 'Failed to place order');
     }
     } finally {
       isExecutingRef.current = false;
@@ -867,6 +867,10 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         @keyframes slideUp {
           from { transform: translateY(100%) !important; }
           to { transform: translateY(0) !important; }
+        }
+        @keyframes scaleIn {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
         }
         .ts2-overlay {
           position: fixed; inset: 0;
@@ -1482,6 +1486,68 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           </>
         )}
       </div>
+
+      {orderError && (
+        <div className="error-overlay" style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 999999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div className="error-modal" style={{
+            background: 'var(--bg-card, #FFFFFF)',
+            borderRadius: '16px',
+            width: '90%',
+            maxWidth: '340px',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            animation: 'scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          }}>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '50%',
+              background: '#FEF2F2', color: '#DC2626',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '24px', marginBottom: '16px'
+            }}>
+              <i className="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700', color: 'var(--text-primary, #111827)' }}>
+              Order Failed
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-secondary, #4B5563)', lineHeight: '1.5', wordBreak: 'break-word' }}>
+              {orderError}
+            </p>
+            <button 
+              onClick={() => setOrderError(null)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#F3F4F6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#E5E7EB'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#F3F4F6'}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={`ts2-toast${toast ? ' show' : ''}`}>{toast}</div>
     </>
