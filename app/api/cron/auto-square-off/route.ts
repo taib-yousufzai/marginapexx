@@ -100,8 +100,13 @@ export async function GET(request: Request) {
       const [h, m] = th.end_time.split(':').map(Number);
       const endTotalMinutes = (h * 60) + m;
       
-      // If current time >= end_time, the market is closed.
-      if (currentTotalMinutes >= endTotalMinutes) {
+      // Auto-square-off happens 5 minutes before market close for Indian markets.
+      const isIndianMarket = ['nse', 'bse', 'nfo', 'cds', 'mcx'].includes(th.id.toLowerCase());
+      const squareOffOffset = isIndianMarket ? 5 : 0;
+      const squareOffMinutes = endTotalMinutes - squareOffOffset;
+      
+      // If current time >= square-off time, trigger intraday square off.
+      if (currentTotalMinutes >= squareOffMinutes) {
         closedSegments.add(th.id.toLowerCase());
       }
     }
@@ -152,6 +157,7 @@ export async function GET(request: Request) {
         else if (settlementId.includes('bse')) settlementId = 'bse';
         else if (settlementId.includes('nfo')) settlementId = 'nfo';
         else if (settlementId.includes('cds')) settlementId = 'cds';
+        else if (settlementId.includes('index') || settlementId.includes('stock')) settlementId = 'nse';
 
         // Check if market is closed
         if (!closedSegments.has(settlementId)) {
