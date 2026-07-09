@@ -31,14 +31,22 @@ export async function GET(request: Request): Promise<Response> {
       .or(`tradingsymbol.ilike.%${query}%,name.ilike.%${query}%`)
       .limit(150);
 
-    // Optional: filter by tab mapping to segment/instrument_type
-    if (tab === 'NSE-EQ') {
-      dbQuery = dbQuery.eq('exchange', 'NSE').eq('instrument_type', 'EQ');
-    } else if (tab === 'INDEX-FUT' || tab === 'STOCK-FUT' || tab === 'MCX-FUT') {
-      dbQuery = dbQuery.in('instrument_type', ['FUT', 'MAPPED_FUT', 'FUTCOM', 'FUTCUR']);
-    } else if (tab === 'INDEX-OPT' || tab === 'STOCK-OPT' || tab === 'MCX-OPT') {
-      dbQuery = dbQuery.in('instrument_type', ['CE', 'PE']);
-    }
+    const applyTabFilter = (query: any) => {
+      if (tab === 'All') return query;
+      if (tab === 'INDEX-FUT') return query.is('option_type', null).in('exchange', ['NFO', 'BFO', 'NSE', 'BSE']);
+      if (tab === 'STOCK-FUT') return query.is('option_type', null).in('exchange', ['NFO', 'BFO', 'NSE', 'BSE']);
+      if (tab === 'INDEX-OPT') return query.not('option_type', 'is', null).in('exchange', ['NFO', 'BFO', 'NSE', 'BSE']);
+      if (tab === 'STOCK-OPT') return query.not('option_type', 'is', null).in('exchange', ['NFO', 'BFO', 'NSE', 'BSE']);
+      if (tab === 'MCX-FUT') return query.is('option_type', null).eq('exchange', 'MCX');
+      if (tab === 'MCX-OPT') return query.not('option_type', 'is', null).eq('exchange', 'MCX');
+      if (tab === 'NSE-EQ') return query.eq('instrument_type', 'EQ').is('option_type', null).in('exchange', ['NSE', 'BSE']);
+      if (tab === 'CRYPTO') return query.eq('segment', 'CRYPTO');
+      if (tab === 'FOREX') return query.eq('exchange', 'CDS');
+      if (tab === 'COMEX') return query.eq('segment', 'COMEX');
+      return query;
+    };
+
+    dbQuery = applyTabFilter(dbQuery);
 
     const { data, error } = await dbQuery;
 
@@ -48,6 +56,14 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     let results: Instrument[] = (data ?? []) as Instrument[];
+
+    // Ensure index/stock segregation for generic FUT/OPT types
+    const indexNames = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+    if (tab === 'INDEX-FUT' || tab === 'INDEX-OPT') {
+      results = results.filter((r: any) => indexNames.includes(r.name) || r.instrument_type === 'FUTIDX' || r.instrument_type === 'OPTIDX');
+    } else if (tab === 'STOCK-FUT' || tab === 'STOCK-OPT') {
+      results = results.filter((r: any) => !indexNames.includes(r.name) && r.instrument_type !== 'FUTIDX' && r.instrument_type !== 'OPTIDX');
+    }
 
     // Apply production filtering rules so admin search reflects what traders see
     results = applyForexFilter(results);       // Requirement 1.1 — no Forex CE/PE
