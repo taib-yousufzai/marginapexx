@@ -113,7 +113,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
-  
   const isExpired = useMemo(() => {
     if (!item?.expiry || exitMode || isModify) return false;
     const expiryDate = new Date(item.expiry);
@@ -130,14 +129,14 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const { positions: activePositions, refreshPositions } = useActivePositions();
 
   const isOpen = !!item;
-  const lotSize = (item && (item as any).lot_size && (item as any).lot_size > 0) 
-    ? (item as any).lot_size 
+  const lotSize = (item && (item as any).lot_size && (item as any).lot_size > 0)
+    ? (item as any).lot_size
     : (item ? getLotSize(item.name, scriptSettings) : 1);
 
   const dbSeg = item ? mapSegmentToDbSegment(item.segment, item.symbol) : '';
   const isCrypto = !!item?.binanceSymbol || ['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].includes(item?.symbol || '');
-  const isComex = item && (item as any).preferredView 
-    ? (item as any).preferredView === 'comex' 
+  const isComex = item && (item as any).preferredView
+    ? (item as any).preferredView === 'comex'
     : (dbSeg.toUpperCase().includes('COMEX') || !!item?.comexSymbol);
 
   let bSymbol = item?.binanceSymbol || (item && isCrypto && item.symbol ? item.symbol.replace('/', '') : '');
@@ -174,8 +173,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
   const { quotes: comexQuotes } = useComexQuotes(comexSymbols);
 
-  let currentLtp = typeof item?.price === 'string' 
-    ? parseFloat((item.price as string).replace(/,/g, '')) 
+  let currentLtp = typeof item?.price === 'string'
+    ? parseFloat((item.price as string).replace(/,/g, ''))
     : (item?.price ?? 0);
   let currentChangePercent = parseFloat(item?.change?.replace(/[%+]/g, '') || '0') || 0;
   if (isCrypto && bSymbol && marketQuotes[bSymbol]) {
@@ -490,252 +489,321 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       showToast('Executing handlePlace');
       if (!item) return;
 
-    // Parse qty fresh from the input string at submit time — avoids stale state issues
-    const parsedInputQty = parseFloat(qtyInput);
-    if (isNaN(parsedInputQty) || parsedInputQty <= 0) {
-      showToast('Please enter a valid quantity.');
-      return;
-    }
-
-    // Load setting specific to the side being placed
-    const placeSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === placeSide);
-    const pTopLimit = placeSetting?.top_limit ?? 0;
-    const pMinLimit = placeSetting?.min_limit ?? 0;
-
-    // Resolve order_type, trigger_price, stop_loss, target, client_price under the hood
-    let resolvedOrderType = orderType;
-    let resolvedClientPrice = currentLtp;
-    let resolvedTriggerPrice: number | undefined = undefined;
-    let resolvedStopLoss: number | undefined = undefined;
-    let resolvedTarget: number | undefined = undefined;
-
-    if (exitMode) {
-      if (orderType === 'TARGET') {
-        resolvedOrderType = 'LIMIT';
-        resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
-        resolvedTarget = resolvedClientPrice;
-      } else if (orderType === 'SL') {
-        resolvedOrderType = 'SL';
-        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
-        resolvedClientPrice = currentLtp;
-        resolvedStopLoss = resolvedTriggerPrice;
-      } else if (orderType === 'SLM') {
-        resolvedOrderType = 'SLM';
-        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
-        resolvedClientPrice = currentLtp;
-      } else if (orderType === 'GTT') {
-        resolvedOrderType = 'GTT';
-        resolvedStopLoss = parseFloat(slPrice) || undefined;
-        resolvedTarget = parseFloat(tpPrice) || undefined;
-        resolvedClientPrice = currentLtp;
-      } else {
-        // MARKET
-        resolvedOrderType = 'MARKET';
-        resolvedClientPrice = currentLtp;
-      }
-    } else {
-      // Add More / Entry mode
-      if (orderType === 'LIMIT') {
-        resolvedOrderType = 'LIMIT';
-        resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
-      } else if (orderType === 'SLM') {
-        resolvedOrderType = 'SLM';
-        resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
-        resolvedClientPrice = currentLtp;
-      } else if (orderType === 'GTT') {
-        resolvedOrderType = 'GTT';
-        resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
-        resolvedTriggerPrice = parseFloat(limitPrice) || undefined;
-        resolvedStopLoss = parseFloat(slPrice) || undefined;
-        resolvedTarget = parseFloat(tpPrice) || undefined;
-      } else {
-        // MARKET
-        resolvedOrderType = 'MARKET';
-        resolvedClientPrice = currentLtp;
-      }
-    }
-
-    // Validate Limit price constraints relative to LTP
-    if (resolvedOrderType === 'LIMIT' || (resolvedOrderType === 'GTT' && !exitMode)) {
-      if (placeSide === 'BUY' && resolvedClientPrice >= currentLtp) {
-        showToast('Buy at limit price must be below the current market price.');
+      // Parse qty fresh from the input string at submit time — avoids stale state issues
+      const parsedInputQty = parseFloat(qtyInput);
+      if (isNaN(parsedInputQty) || parsedInputQty <= 0) {
+        showToast('Please enter a valid quantity.');
         return;
       }
-      if (placeSide === 'SELL' && resolvedClientPrice <= currentLtp) {
-        showToast('Sell at limit price must be above the current market price.');
-        return;
-      }
-    }
 
-    const isExitOrder = exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos);
+      // Load setting specific to the side being placed
+      const placeSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === placeSide);
+      const pTopLimit = placeSetting?.top_limit ?? 0;
+      const pMinLimit = placeSetting?.min_limit ?? 0;
 
-    if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
-      const trigPrice = resolvedTriggerPrice;
-      if (trigPrice !== undefined && !isNaN(trigPrice)) {
-        if (isExitOrder) {
-          // Exit stop loss order:
-          // - Exiting LONG (SELL order): stop loss must be below current market price
-          // - Exiting SHORT (BUY order): stop loss must be above current market price
-          if (placeSide === 'BUY' && trigPrice <= currentLtp) {
-            showToast('Stop loss trigger price must be above the current market price for short exits.');
-            return;
-          }
-          if (placeSide === 'SELL' && trigPrice >= currentLtp) {
-            showToast('Stop loss trigger price must be below the current market price for long exits.');
-            return;
-          }
+      // Resolve order_type, trigger_price, stop_loss, target, client_price under the hood
+      let resolvedOrderType = orderType;
+      let resolvedClientPrice = currentLtp;
+      let resolvedTriggerPrice: number | undefined = undefined;
+      let resolvedStopLoss: number | undefined = undefined;
+      let resolvedTarget: number | undefined = undefined;
+
+      if (exitMode) {
+        if (orderType === 'TARGET') {
+          resolvedOrderType = 'LIMIT';
+          resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
+          resolvedTarget = resolvedClientPrice;
+        } else if (orderType === 'SL') {
+          resolvedOrderType = 'SL';
+          resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+          resolvedClientPrice = currentLtp;
+          resolvedStopLoss = resolvedTriggerPrice;
+        } else if (orderType === 'SLM') {
+          resolvedOrderType = 'SLM';
+          resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+          resolvedClientPrice = currentLtp;
+        } else if (orderType === 'GTT') {
+          resolvedOrderType = 'GTT';
+          resolvedStopLoss = parseFloat(slPrice) || undefined;
+          resolvedTarget = parseFloat(tpPrice) || undefined;
+          resolvedClientPrice = currentLtp;
         } else {
-          // Entry stop loss order:
-          // - SLM entry executes immediately and sets trigger price as stop loss of new position.
-          //   Thus, BUY SLM = LONG position (SL below market), SELL SLM = SHORT position (SL above market).
-          // - SL entry is a pending breakout order.
-          //   Thus, BUY SL = breakout buy (above market), SELL SL = breakout sell (below market).
-          if (resolvedOrderType === 'SLM') {
-            if (placeSide === 'BUY' && trigPrice >= currentLtp) {
-              showToast('Stop loss price must be below the current market price.');
-              return;
-            }
-            if (placeSide === 'SELL' && trigPrice <= currentLtp) {
-              showToast('Stop loss price must be above the current market price.');
-              return;
-            }
-          } else { // SL order type
+          // MARKET
+          resolvedOrderType = 'MARKET';
+          resolvedClientPrice = currentLtp;
+        }
+      } else {
+        // Add More / Entry mode
+        if (orderType === 'LIMIT') {
+          resolvedOrderType = 'LIMIT';
+          resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
+        } else if (orderType === 'SLM') {
+          resolvedOrderType = 'SLM';
+          resolvedTriggerPrice = parseFloat(triggerPrice) || undefined;
+          resolvedClientPrice = currentLtp;
+        } else if (orderType === 'GTT') {
+          resolvedOrderType = 'GTT';
+          resolvedClientPrice = parseFloat(limitPrice) || currentLtp;
+          resolvedTriggerPrice = parseFloat(limitPrice) || undefined;
+          resolvedStopLoss = parseFloat(slPrice) || undefined;
+          resolvedTarget = parseFloat(tpPrice) || undefined;
+        } else {
+          // MARKET
+          resolvedOrderType = 'MARKET';
+          resolvedClientPrice = currentLtp;
+        }
+      }
+
+      // Validate Limit price constraints relative to LTP
+      if (resolvedOrderType === 'LIMIT' || (resolvedOrderType === 'GTT' && !exitMode)) {
+        if (placeSide === 'BUY' && resolvedClientPrice >= currentLtp) {
+          showToast('Buy at limit price must be below the current market price.');
+          return;
+        }
+        if (placeSide === 'SELL' && resolvedClientPrice <= currentLtp) {
+          showToast('Sell at limit price must be above the current market price.');
+          return;
+        }
+      }
+
+      const isExitOrder = exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos);
+
+      if (resolvedOrderType === 'SL' || resolvedOrderType === 'SLM') {
+        const trigPrice = resolvedTriggerPrice;
+        if (trigPrice !== undefined && !isNaN(trigPrice)) {
+          if (isExitOrder) {
+            // Exit stop loss order:
+            // - Exiting LONG (SELL order): stop loss must be below current market price
+            // - Exiting SHORT (BUY order): stop loss must be above current market price
             if (placeSide === 'BUY' && trigPrice <= currentLtp) {
-              showToast('Trigger price must be above the current market price for stop limit buy.');
+              showToast('Stop loss trigger price must be above the current market price for short exits.');
               return;
             }
             if (placeSide === 'SELL' && trigPrice >= currentLtp) {
-              showToast('Trigger price must be below the current market price for stop limit sell.');
+              showToast('Stop loss trigger price must be below the current market price for long exits.');
+              return;
+            }
+          } else {
+            // Entry stop loss order:
+            // - SLM entry executes immediately and sets trigger price as stop loss of new position.
+            //   Thus, BUY SLM = LONG position (SL below market), SELL SLM = SHORT position (SL above market).
+            // - SL entry is a pending breakout order.
+            //   Thus, BUY SL = breakout buy (above market), SELL SL = breakout sell (below market).
+            if (resolvedOrderType === 'SLM') {
+              if (placeSide === 'BUY' && trigPrice >= currentLtp) {
+                showToast('Stop loss price must be below the current market price.');
+                return;
+              }
+              if (placeSide === 'SELL' && trigPrice <= currentLtp) {
+                showToast('Stop loss price must be above the current market price.');
+                return;
+              }
+            } else { // SL order type
+              if (placeSide === 'BUY' && trigPrice <= currentLtp) {
+                showToast('Trigger price must be above the current market price for stop limit buy.');
+                return;
+              }
+              if (placeSide === 'SELL' && trigPrice >= currentLtp) {
+                showToast('Trigger price must be below the current market price for stop limit sell.');
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      // Resolve reference entry price and position side (Long vs Short)
+      const refEntry = (exitMode && existingPos) ? Number(existingPos.avg_price) : resolvedClientPrice;
+      const isLong = (exitMode && existingPos) ? (existingPos.side === 'BUY') : (placeSide === 'BUY');
+
+      if (exitMode) {
+        if (isLong) {
+          if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= currentLtp) {
+            showToast('Target price must be above the current market price.');
+            return;
+          }
+          if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= currentLtp) {
+            showToast('Stop loss price must be below the current market price.');
+            return;
+          }
+        } else {
+          if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= currentLtp) {
+            showToast('Target price must be below the current market price.');
+            return;
+          }
+          if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= currentLtp) {
+            showToast('Stop loss price must be above the current market price.');
+            return;
+          }
+        }
+      } else {
+        // First time purchasing validations
+        const hasLimitPrice = ['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType) && resolvedClientPrice !== undefined && !isNaN(resolvedClientPrice);
+        if (isLong) {
+          if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
+            const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
+            if (resolvedStopLoss >= referencePrice) {
+              showToast(`Stop loss price must be below the ${hasLimitPrice ? 'limit' : 'market'} price.`);
+              return;
+            }
+          }
+          if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
+            if (resolvedTarget <= currentLtp) {
+              showToast('Target price must be above the current market price.');
+              return;
+            }
+          }
+        } else {
+          if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
+            const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
+            if (resolvedStopLoss <= referencePrice) {
+              showToast(`Stop loss price must be above the ${hasLimitPrice ? 'limit' : 'market'} price.`);
+              return;
+            }
+          }
+          if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
+            if (resolvedTarget >= currentLtp) {
+              showToast('Target price must be below the current market price.');
               return;
             }
           }
         }
       }
-    }
 
-    // Resolve reference entry price and position side (Long vs Short)
-    const refEntry = (exitMode && existingPos) ? Number(existingPos.avg_price) : resolvedClientPrice;
-    const isLong = (exitMode && existingPos) ? (existingPos.side === 'BUY') : (placeSide === 'BUY');
-
-    if (exitMode) {
-      if (isLong) {
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget <= currentLtp) {
-          showToast('Target price must be above the current market price.');
-          return;
-        }
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss >= currentLtp) {
-          showToast('Stop loss price must be below the current market price.');
-          return;
-        }
-      } else {
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget) && resolvedTarget >= currentLtp) {
-          showToast('Target price must be below the current market price.');
-          return;
-        }
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss) && resolvedStopLoss <= currentLtp) {
-          showToast('Stop loss price must be above the current market price.');
-          return;
-        }
-      }
-    } else {
-      // First time purchasing validations
-      const hasLimitPrice = ['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType) && resolvedClientPrice !== undefined && !isNaN(resolvedClientPrice);
-      if (isLong) {
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
-          const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
-          if (resolvedStopLoss >= referencePrice) {
-            showToast(`Stop loss price must be below the ${hasLimitPrice ? 'limit' : 'market'} price.`);
+      if (resolvedOrderType === 'LIMIT') {
+        if (placeSide === 'BUY') {
+          if (resolvedClientPrice >= currentLtp) {
+            showToast('Limit price must be lower than the current market price.');
             return;
           }
-        }
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
-          if (resolvedTarget <= currentLtp) {
-            showToast('Target price must be above the current market price.');
-            return;
-          }
-        }
-      } else {
-        if (resolvedStopLoss !== undefined && !isNaN(resolvedStopLoss)) {
-          const referencePrice = hasLimitPrice ? resolvedClientPrice : currentLtp;
-          if (resolvedStopLoss <= referencePrice) {
-            showToast(`Stop loss price must be above the ${hasLimitPrice ? 'limit' : 'market'} price.`);
-            return;
-          }
-        }
-        if (resolvedTarget !== undefined && !isNaN(resolvedTarget)) {
-          if (resolvedTarget >= currentLtp) {
-            showToast('Target price must be below the current market price.');
+        } else {
+          if (resolvedClientPrice <= currentLtp) {
+            showToast('Limit price must be higher than the current market price.');
             return;
           }
         }
       }
-    }
 
-    if (resolvedOrderType === 'LIMIT') {
-      if (placeSide === 'BUY') {
-        if (resolvedClientPrice >= currentLtp) {
-          showToast('Limit price must be lower than the current market price.');
-          return;
-        }
-      } else {
-        if (resolvedClientPrice <= currentLtp) {
-          showToast('Limit price must be higher than the current market price.');
-          return;
-        }
-      }
-    }
-
-    if (['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType)) {
-      const parsedPrice = resolvedClientPrice;
-      if (placeSide === 'BUY') {
-        if (pTopLimit > 0) {
-          const maxAllowed = currentLtp * (1 + pTopLimit / 100);
-          if (parsedPrice > maxAllowed) {
-            showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
-            return;
+      if (['LIMIT', 'SL', 'GTT'].includes(resolvedOrderType)) {
+        const parsedPrice = resolvedClientPrice;
+        if (placeSide === 'BUY') {
+          if (pTopLimit > 0) {
+            const maxAllowed = currentLtp * (1 + pTopLimit / 100);
+            if (parsedPrice > maxAllowed) {
+              showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
+              return;
+            }
           }
-        }
-        if (pMinLimit > 0) {
-          const minAllowed = currentLtp * (1 - pMinLimit / 100);
-          if (parsedPrice < minAllowed) {
-            showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
-            return;
+          if (pMinLimit > 0) {
+            const minAllowed = currentLtp * (1 - pMinLimit / 100);
+            if (parsedPrice < minAllowed) {
+              showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
+              return;
+            }
           }
-        }
-      } else { // SELL side
-        if (pTopLimit > 0) {
-          const maxAllowed = currentLtp * (1 + pTopLimit / 100);
-          if (parsedPrice > maxAllowed) {
-            showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
-            return;
+        } else { // SELL side
+          if (pTopLimit > 0) {
+            const maxAllowed = currentLtp * (1 + pTopLimit / 100);
+            if (parsedPrice > maxAllowed) {
+              showToast(`Maximum price allowed is ₹${maxAllowed.toFixed(2)}`);
+              return;
+            }
           }
-        }
-        if (pMinLimit > 0) {
-          const minAllowed = currentLtp * (1 - pMinLimit / 100);
-          if (parsedPrice < minAllowed) {
-            showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
-            return;
+          if (pMinLimit > 0) {
+            const minAllowed = currentLtp * (1 - pMinLimit / 100);
+            if (parsedPrice < minAllowed) {
+              showToast(`Minimum price allowed is ₹${minAllowed.toFixed(2)}`);
+              return;
+            }
           }
         }
       }
-    }
 
-    if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-') || modifyingOrderId.startsWith('pos-gtt-'))) {
-      const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '').replace('pos-gtt-', '');
-      const isSl = modifyingOrderId.startsWith('pos-sl-');
-      const isTarget = modifyingOrderId.startsWith('pos-target-');
-      const isGtt = modifyingOrderId.startsWith('pos-gtt-');
+      if (isModify && modifyingOrderId && (modifyingOrderId.startsWith('pos-sl-') || modifyingOrderId.startsWith('pos-target-') || modifyingOrderId.startsWith('pos-gtt-'))) {
+        const positionId = modifyingOrderId.replace('pos-sl-', '').replace('pos-target-', '').replace('pos-gtt-', '');
+        const isSl = modifyingOrderId.startsWith('pos-sl-');
+        const isTarget = modifyingOrderId.startsWith('pos-target-');
+        const isGtt = modifyingOrderId.startsWith('pos-gtt-');
 
-      const isStillTarget = isTarget && (orderType === 'TARGET' || orderType === 'LIMIT');
-      const isStillSl = isSl && (orderType === 'SL' || orderType === 'SLM');
-      const isStillGtt = isGtt && orderType === 'GTT';
+        const isStillTarget = isTarget && (orderType === 'TARGET' || orderType === 'LIMIT');
+        const isStillSl = isSl && (orderType === 'SL' || orderType === 'SLM');
+        const isStillGtt = isGtt && orderType === 'GTT';
 
-      if (isStillTarget || isStillSl || isStillGtt) {
-        const updateData = isSl
-          ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null }
-          : isTarget
-            ? { target: resolvedClientPrice || resolvedTarget || null }
-            : { stop_loss: resolvedStopLoss || null, target: resolvedTarget || null };
+        if (isStillTarget || isStillSl || isStillGtt) {
+          const updateData = isSl
+            ? { stop_loss: resolvedTriggerPrice || resolvedStopLoss || null }
+            : isTarget
+              ? { target: resolvedClientPrice || resolvedTarget || null }
+              : { stop_loss: resolvedStopLoss || null, target: resolvedTarget || null };
+
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const patchRes = await fetch(`/api/positions/${positionId}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify(updateData),
+            });
+
+            if (!patchRes.ok) {
+              const body = await patchRes.json();
+              showToast(body.error || 'Failed to update position stop loss/target.');
+              return;
+            }
+
+            showToast('Stop loss/target updated successfully');
+            onSuccess?.();
+            onClose();
+            return;
+          } catch (err) {
+            showToast('Failed to update position stop loss/target.');
+            return;
+          }
+        } else {
+          // User changed the order type (e.g. from Target to Market or SL)
+          // Clear the old target or stop loss first so it doesn't linger
+          try {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            let clearData: any = {};
+            if (isSl) clearData = { stop_loss: null };
+            else if (isTarget) clearData = { target: null };
+            else if (isGtt) clearData = { stop_loss: null, target: null };
+
+            await fetch(`/api/positions/${positionId}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify(clearData),
+            });
+          } catch (e) {
+            console.error('[DEBUG TradeSheet handlePlace] Error clearing old target/SL:', e);
+          }
+          // Do not return; let execution continue to place the new order type
+        }
+      }
+      if (exitMode && (orderType === 'SL' || orderType === 'TARGET' || orderType === 'GTT')) {
+        console.log('[DEBUG TradeSheet handlePlace] exitMode setting SL/target. existingPos:', existingPos?.id, 'orderType:', orderType);
+        if (!existingPos) {
+          showToast('No active position found to set exit criteria.');
+          return;
+        }
+        const updateData: { stop_loss?: number | null; target?: number | null } = {};
+        if (orderType === 'SL') {
+          updateData.stop_loss = resolvedTriggerPrice || resolvedStopLoss || null;
+        } else if (orderType === 'TARGET') {
+          updateData.target = resolvedClientPrice || resolvedTarget || null;
+        } else if (orderType === 'GTT') {
+          updateData.stop_loss = resolvedStopLoss || null;
+          updateData.target = resolvedTarget || null;
+        }
+
+        console.log('[DEBUG TradeSheet handlePlace] Sending PATCH payload:', updateData, 'to /api/positions/', existingPos.id);
 
         try {
           const { data: sessionData } = await supabase.auth.getSession();
@@ -743,126 +811,57 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers.Authorization = `Bearer ${token}`;
 
-          const patchRes = await fetch(`/api/positions/${positionId}`, {
+          const patchRes = await fetch(`/api/positions/${existingPos.id}`, {
             method: 'PATCH',
             headers,
             body: JSON.stringify(updateData),
           });
 
+          console.log('[DEBUG TradeSheet handlePlace] PATCH response status:', patchRes.status);
+
           if (!patchRes.ok) {
             const body = await patchRes.json();
+            console.error('[DEBUG TradeSheet handlePlace] PATCH failed:', body);
             showToast(body.error || 'Failed to update position stop loss/target.');
             return;
           }
 
+          console.log('[DEBUG TradeSheet handlePlace] PATCH successful');
           showToast('Stop loss/target updated successfully');
           onSuccess?.();
           onClose();
           return;
         } catch (err) {
+          console.error('[DEBUG TradeSheet handlePlace] PATCH exception:', err);
           showToast('Failed to update position stop loss/target.');
           return;
         }
-      } else {
-        // User changed the order type (e.g. from Target to Market or SL)
-        // Clear the old target or stop loss first so it doesn't linger
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData.session?.access_token;
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (token) headers.Authorization = `Bearer ${token}`;
-
-          let clearData: any = {};
-          if (isSl) clearData = { stop_loss: null };
-          else if (isTarget) clearData = { target: null };
-          else if (isGtt) clearData = { stop_loss: null, target: null };
-
-          await fetch(`/api/positions/${positionId}`, {
-            method: 'PATCH',
-            headers,
-            body: JSON.stringify(clearData),
-          });
-        } catch (e) {
-          console.error('[DEBUG TradeSheet handlePlace] Error clearing old target/SL:', e);
-        }
-        // Do not return; let execution continue to place the new order type
-      }
-    }
-    if (exitMode && (orderType === 'SL' || orderType === 'TARGET' || orderType === 'GTT')) {
-      console.log('[DEBUG TradeSheet handlePlace] exitMode setting SL/target. existingPos:', existingPos?.id, 'orderType:', orderType);
-      if (!existingPos) {
-        showToast('No active position found to set exit criteria.');
-        return;
-      }
-      const updateData: { stop_loss?: number | null; target?: number | null } = {};
-      if (orderType === 'SL') {
-        updateData.stop_loss = resolvedTriggerPrice || resolvedStopLoss || null;
-      } else if (orderType === 'TARGET') {
-        updateData.target = resolvedClientPrice || resolvedTarget || null;
-      } else if (orderType === 'GTT') {
-        updateData.stop_loss = resolvedStopLoss || null;
-        updateData.target = resolvedTarget || null;
       }
 
-      console.log('[DEBUG TradeSheet handlePlace] Sending PATCH payload:', updateData, 'to /api/positions/', existingPos.id);
-
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData.session?.access_token;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (token) headers.Authorization = `Bearer ${token}`;
-
-        const patchRes = await fetch(`/api/positions/${existingPos.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify(updateData),
-        });
-
-        console.log('[DEBUG TradeSheet handlePlace] PATCH response status:', patchRes.status);
-
-        if (!patchRes.ok) {
-          const body = await patchRes.json();
-          console.error('[DEBUG TradeSheet handlePlace] PATCH failed:', body);
-          showToast(body.error || 'Failed to update position stop loss/target.');
-          return;
-        }
-
-        console.log('[DEBUG TradeSheet handlePlace] PATCH successful');
-        showToast('Stop loss/target updated successfully');
+      showToast('Calling placeOrder');
+      const res = await placeOrder({
+        symbol: item.symbol,
+        kite_instrument: computedKiteSymbol || item.symbol,
+        segment: item.segment,
+        side: placeSide,
+        qty: orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty,
+        lots: orderUnit === 'lot' ? parsedInputQty : 0,
+        order_type: resolvedOrderType as any,
+        product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
+        client_price: resolvedClientPrice,
+        trigger_price: resolvedTriggerPrice,
+        stop_loss: resolvedStopLoss,
+        target: resolvedTarget,
+        is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
+      });
+      if (res.success) {
+        showToast(res.order?.message || `${placeSide} order placed for ${item.symbol}`);
         onSuccess?.();
         onClose();
-        return;
-      } catch (err) {
-        console.error('[DEBUG TradeSheet handlePlace] PATCH exception:', err);
-        showToast('Failed to update position stop loss/target.');
-        return;
+      } else {
+        alert(`Order Failed:\n${res.error}`);
+        showToast(`${res.error}`);
       }
-    }
-
-    showToast('Calling placeOrder');
-    const res = await placeOrder({
-      symbol: item.symbol,
-      kite_instrument: computedKiteSymbol || item.symbol,
-      segment: item.segment,
-      side: placeSide,
-      qty: orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty,
-      lots: orderUnit === 'lot' ? parsedInputQty : 0,
-      order_type: resolvedOrderType as any,
-      product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
-      client_price: resolvedClientPrice,
-      trigger_price: resolvedTriggerPrice,
-      stop_loss: resolvedStopLoss,
-      target: resolvedTarget,
-      is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
-      linked_position_id: linkedPosId || undefined,
-    });
-    if (res.success) {
-      showToast(res.order?.message || `${placeSide} order placed for ${item.symbol}`);
-      onSuccess?.();
-      onClose();
-    } else {
-      setOrderError(res.error || 'Failed to place order');
-    }
     } finally {
       isExecutingRef.current = false;
     }
@@ -929,7 +928,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           display: flex; align-items: center; justify-content: center;
           cursor: pointer; color: var(--text-secondary, #374151); font-size: 0.9rem;
         }
-        .ts2-name-block { flex: 1; min-width: 0; }
+        .ts2-name-block { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
         .ts2-instr-name {
           font-size: 1rem; font-weight: 800; color: var(--text-primary, #111827);
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -963,7 +962,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         body.dark .ts2-status-badge.pos {
           color: #22C55E; background: rgba(34,197,94,0.15);
         }
-        .ts2-price-block { text-align: right; flex-shrink: 0; }
+        .ts2-price-block { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; }
         .ts2-price-value { font-size: 1.35rem; font-weight: 800; color: var(--text-primary, #111827); }
         .ts2-change-badge {
           display: inline-block; margin-top: 3px;
@@ -1167,23 +1166,26 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
               <button className="ts2-back-btn" onClick={onClose}>
                 <i className="fas fa-chevron-down" />
               </button>
-              <div className="ts2-name-block">
-                <div className="ts2-instr-name">{item.name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-
-                  {exitMode && (
-                    <span className="ts2-status-badge neg">Exit Position</span>
-                  )}
-                  {!exitMode && isFromPositions && (
-                    <span className="ts2-status-badge pos">Add More</span>
-                  )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Row 1: Name + Price */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div className="ts2-instr-name">{item.name}</div>
+                  <div className="ts2-price-value" style={{ flexShrink: 0, marginLeft: '12px' }}>{fmt(currentLtp)}</div>
                 </div>
-              </div>
-              <div className="ts2-price-block">
-                <div className="ts2-price-value">{fmt(currentLtp)}</div>
-                <span className={`ts2-change-badge${(item.change || '').startsWith('-') ? ' neg' : ''}`}>
-                  {item.change || '0.00%'}
-                </span>
+                {/* Row 2: Badge + Change% */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '3px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {exitMode && (
+                      <span className="ts2-status-badge neg">Exit Position</span>
+                    )}
+                    {!exitMode && isFromPositions && (
+                      <span className="ts2-status-badge pos">Add More</span>
+                    )}
+                  </div>
+                  <span className={`ts2-change-badge${(item.change || '').startsWith('-') ? ' neg' : ''}`}>
+                    {item.change || '0.00%'}
+                  </span>
+                </div>
               </div>
             </div>
 
