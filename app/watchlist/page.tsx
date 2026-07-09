@@ -1407,6 +1407,7 @@ function WatchlistContent() {
         <SegmentTabBar activeTab={activeTab} onTabChange={(tab) => { setActiveTab(tab); setSearchText(''); }} />
         <WatchlistSearch 
            activeTab={activeTab} 
+           addedSymbols={new Set(watchlistItems.map(i => i.symbol))}
            onAdd={(item) => {
              setWatchlistItems(prev => {
                const newItem = { ...item, category: activeTab };
@@ -1414,6 +1415,16 @@ function WatchlistContent() {
                  return prev;
                }
                const next = [...prev, newItem];
+               saveWatchlistToStorage(next, userId);
+               if (typeof (window as any).__syncWatchlistSymbols === 'function') {
+                 (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));
+               }
+               return next;
+             });
+           }}
+           onRemove={(item) => {
+             setWatchlistItems(prev => {
+               const next = prev.filter(i => i.symbol !== item.symbol);
                saveWatchlistToStorage(next, userId);
                if (typeof (window as any).__syncWatchlistSymbols === 'function') {
                  (window as any).__syncWatchlistSymbols(next.map((i: WatchlistItem) => i.symbol));

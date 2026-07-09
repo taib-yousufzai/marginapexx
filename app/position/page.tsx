@@ -187,6 +187,8 @@ export default function PositionPage() {
   const [tradeSheetExitMode, setTradeSheetExitMode] = useState(false);
   const [tradeSheetProductType, setTradeSheetProductType] = useState<'INTRADAY' | 'CARRY' | undefined>(undefined);
   const [tradeSheetIsAddMore, setTradeSheetIsAddMore] = useState(false);
+  const [tradeSheetLinkedPosId, setTradeSheetLinkedPosId] = useState<string | null>(null);
+  const [tradeSheetInitialExitQty, setTradeSheetInitialExitQty] = useState<number | undefined>(undefined);
 
   // Inline expand for open positions
   const [expandedPosId, setExpandedPosId] = useState<string | null>(null);
@@ -267,7 +269,7 @@ export default function PositionPage() {
     }, 80);
   };
 
-  const openExitSheet = (pos: EnrichedPosition) => {
+  const openExitSheet = (pos: EnrichedPosition, totalQty?: number, isCumulative?: boolean) => {
     setTradeSheetItem({
       name: pos.symbol,
       symbol: pos.symbol,
@@ -281,6 +283,8 @@ export default function PositionPage() {
     setTradeSheetExitMode(true);
     setTradeSheetProductType(pos.product_type as 'INTRADAY' | 'CARRY');
     setTradeSheetIsAddMore(false);
+    setTradeSheetLinkedPosId(isCumulative ? null : pos.id);
+    setTradeSheetInitialExitQty(totalQty);
   };
 
   const showToast = (msg: string) => {
@@ -715,28 +719,29 @@ export default function PositionPage() {
                             <div className="pos-card-left">
                               <div className="pos-card-symbol">
                                 <span className="pos-symbol-text">{group.symbol}</span>
-                                {group.ids.length > 1 && (
-                                  <span style={{ marginLeft: '6px', fontSize: '0.6rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
-                                    {group.ids.length} trades
-                                  </span>
-                                )}
                               </div>
                               <div className="pos-card-details">
                                 <span>Avg: <strong>{fmtPrice(group.avg_price, group.settlement)}</strong></span>
                                 <span>Qty: <strong>{group.qty_open}</strong></span>
                               </div>
-                              {group.product_type && (
-                                <div
-                                  className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await toggleProductType(group.representativePos);
-                                  }}
-                                  style={{ marginTop: '5px' }}
-                                >
-                                  {group.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
-                                </div>
-                              )}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
+                                {group.product_type && (
+                                  <div
+                                    className={`convert-type-btn ${group.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await toggleProductType(group.representativePos);
+                                    }}
+                                  >
+                                    {group.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                                  </div>
+                                )}
+                                {group.ids.length > 1 && (
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
+                                    {group.ids.length} trades
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="pos-card-right">
                               <span className={`pos-badge${group.side === 'BUY' ? ' long' : ' short'}`}>{group.side}</span>
@@ -765,7 +770,7 @@ export default function PositionPage() {
                                     setLockModalPos(group.representativePos);
                                     return;
                                   }
-                                  openExitSheet(group.representativePos);
+                                  openExitSheet(group.representativePos, group.qty_open, true);
                                 }}
                               >
                                 <i className="fas fa-times-circle" /> Exit All
@@ -925,7 +930,7 @@ export default function PositionPage() {
                                   if (pos.hold_lock_active) {
                                     setLockModalPos(actualPos);
                                   } else {
-                                    openExitSheet(actualPos);
+                                    openExitSheet(actualPos, actualPos.qty_open, false);
                                   }
                                 }}
                               >
@@ -1413,11 +1418,13 @@ export default function PositionPage() {
       <TradeSheet
         item={tradeSheetItem}
         side={tradeSheetSide}
-        onClose={() => { setTradeSheetItem(null); setTradeSheetExitMode(false); setTradeSheetProductType(undefined); setTradeSheetIsAddMore(false); }}
+        onClose={() => { setTradeSheetItem(null); setTradeSheetExitMode(false); setTradeSheetProductType(undefined); setTradeSheetIsAddMore(false); setTradeSheetLinkedPosId(null); setTradeSheetInitialExitQty(undefined); }}
         onSuccess={refresh}
         exitMode={tradeSheetExitMode}
         productType={tradeSheetProductType}
         isFromPositions={tradeSheetIsAddMore}
+        linkedPosId={tradeSheetLinkedPosId}
+        initialExitQty={tradeSheetInitialExitQty}
       />
 
       {/* Chart Sheet */}

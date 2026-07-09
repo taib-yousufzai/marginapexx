@@ -238,7 +238,8 @@ function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: num
 function mapSymbolToSegment(symbol: string): string {
   const n = symbol.toUpperCase();
   if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDE') || n.includes('NATGAS') || n.includes('NATURALGAS')) {
-    return 'COMEX';
+    if (n.includes('CE') || n.includes('PE')) return 'MCX-OPT';
+    return 'MCX-FUT';
   }
   if (n.includes('FUT') || n.includes('FUTURES')) {
     if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX') || n.includes('FINNIFTY') || n.includes('MIDCP') || n.includes('MIDCAP')) {
@@ -429,7 +430,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit: body_is_exit } = body;
+  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit: body_is_exit, linked_position_id } = body;
   let is_exit = body_is_exit === true || body_is_exit === 'true';
 
   // Normalize crypto symbol: positions may be stored as 'ETH' or 'ETH/USDT'
@@ -777,6 +778,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol, dbScriptSettings);
   const maxQty = (segSetting.max_order_lot as number) * symbolLotSize;
+  console.log('[DEBUG-LOT]', { symbol, qty, lots, symbolLotSize, max_order_lot: segSetting.max_order_lot, maxQty, getLotSize: getLotSize(symbol, dbScriptSettings) });
   if (qty > maxQty) {
     return NextResponse.json({
       error: `Order exceeds maximum allowed order limit of ${segSetting.max_order_lot} lots (${maxQty} units)`,
@@ -1215,7 +1217,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       p_lots:         Number(lots ?? 0),
       p_ltp:          baseLtp,
       p_fill_price:   fillPrice,
-      p_info:         null,
+      p_info:         linked_position_id || null,
       p_trigger_price: resolvedTriggerPrice,
       p_stop_loss:    resolvedStopLoss,
       p_target:       target ? parseFloat(target.toString()) : null,

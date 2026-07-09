@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
+import { ErrorModal } from '@/components/ErrorModal';
 import { useAuth } from '@/hooks/useAuth';
 import { getSession } from '@/lib/auth';
 import './page.css';
@@ -54,6 +55,7 @@ export default function LearningPage() {
   const action = params.action as string;
 
   const [user, setUser] = useState<any>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Background auth check/redirect helper
@@ -166,9 +168,9 @@ export default function LearningPage() {
 
     if (!alreadyExists) {
       saveWatchlist([...watchlist, watchItem]);
-      alert(`${result.symbol} added to watchlist!`);
+      setModalError(`${result.symbol} added to watchlist!`);
     } else {
-      alert(`${result.symbol} is already in watchlist!`);
+      setModalError(`${result.symbol} is already in watchlist!`);
     }
   };
 
@@ -367,7 +369,7 @@ export default function LearningPage() {
                         fontWeight: 'bold', 
                         cursor: 'pointer' 
                       }}
-                      onClick={() => alert('Feature coming soon!')}
+                      onClick={() => setModalError('Feature coming soon!')}
                     >
                       Get Started
                     </button>
@@ -379,6 +381,7 @@ export default function LearningPage() {
           <Footer activeTab="home" />
         </div>
       </main>
+      <ErrorModal error={modalError} onClose={() => setModalError(null)} title="Notice" />
     </div>
   );
 }

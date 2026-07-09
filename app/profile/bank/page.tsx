@@ -1,4 +1,5 @@
 'use client';
+import { ErrorModal } from '@/components/ErrorModal';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
@@ -37,6 +38,7 @@ export default function BankDetailsPage() {
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
 
   // Which card is expanded (view mode)
@@ -174,7 +176,7 @@ export default function BankDetailsPage() {
       setAccounts(prev => sortAccounts(prev.map(a => a.id === inlineEditId ? updated : a)));
       setInlineEditId(null);
     } catch {
-      alert('Failed to save. Please fill all required fields.');
+      setModalError('Failed to save. Please fill all required fields.');
     } finally {
       setInlineSaving(false);
     }
@@ -244,7 +246,7 @@ export default function BankDetailsPage() {
       setAccounts(prev => sortAccounts([newAcc, ...prev]));
       setIsAddModalOpen(false);
     } catch {
-      alert('Failed to add account. Please fill all required fields.');
+      setModalError('Failed to add account. Please fill all required fields.');
     } finally {
       setAddSaving(false);
     }
@@ -276,7 +278,7 @@ export default function BankDetailsPage() {
         body: JSON.stringify({ id, is_primary: true }),
       });
       if (res.ok) setAccounts(sortAccounts(accounts.map(a => ({ ...a, isPrimary: a.id === id }))));
-    } catch { alert('Failed to update primary account.'); }
+    } catch { setModalError('Failed to update primary account.'); }
   };
 
   const confirmSetPrimary = (id: string, e: React.MouseEvent) => {
@@ -334,7 +336,7 @@ export default function BankDetailsPage() {
         if (expandedId === id) setExpandedId(null);
         if (inlineEditId === id) setInlineEditId(null);
       } else throw new Error();
-    } catch { alert('Failed to delete bank account.'); }
+    } catch { setModalError('Failed to delete bank account.'); }
     finally { setDeleting(false); }
   };
 

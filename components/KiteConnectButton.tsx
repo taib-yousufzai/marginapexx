@@ -1,8 +1,8 @@
-
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { ErrorModal } from '@/components/ErrorModal';
 
 interface KiteStatus {
   connected: boolean;
@@ -12,6 +12,7 @@ interface KiteStatus {
 
 export default function KiteConnectButton() {
   const [status, setStatus] = useState<KiteStatus | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -47,7 +48,8 @@ export default function KiteConnectButton() {
   const handleConnect = () => {
     const apiKey = process.env.NEXT_PUBLIC_KITE_API_KEY;
     if (!apiKey) {
-      alert("Missing NEXT_PUBLIC_KITE_API_KEY in .env.local!");
+      console.error('Kite API Key missing in environment.');
+      setModalError("Missing NEXT_PUBLIC_KITE_API_KEY in .env.local!");
       return;
     }
     window.open(
@@ -85,24 +87,28 @@ export default function KiteConnectButton() {
   }
 
   return (
-    <button
-      onClick={handleConnect}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        fontSize: '0.7rem',
-        fontWeight: 700,
-        color: '#fff',
-        background: '#C62E2E',
-        border: 'none',
-        padding: '6px 12px',
-        borderRadius: '20px',
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      Connect Zerodha
-    </button>
+    <>
+      <button
+        onClick={handleConnect}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          color: '#fff',
+          background: '#C62E2E',
+          border: 'none',
+          padding: '6px 12px',
+          borderRadius: '20px',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ fontSize: '1.2rem' }}>🔗</span>
+        <span>Connect to Kite</span>
+      </button>
+      <ErrorModal error={modalError} onClose={() => setModalError(null)} title="Configuration Error" />
+    </>
   );
 }

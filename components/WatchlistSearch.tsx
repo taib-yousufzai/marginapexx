@@ -4,11 +4,13 @@ import { WatchlistItem, TabLabel, getTabForItem, getDefaultWatchlistItems } from
 
 interface WatchlistSearchProps {
   activeTab: TabLabel;
+  addedSymbols?: Set<string>;
   onAdd: (item: WatchlistItem) => void;
+  onRemove?: (item: WatchlistItem) => void;
   token?: string;
 }
 
-export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSearchProps) {
+export default function WatchlistSearch({ activeTab, addedSymbols, onAdd, onRemove, token }: WatchlistSearchProps) {
   const localScripts = getDefaultWatchlistItems();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<WatchlistItem[]>([]);
@@ -20,12 +22,14 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
   // Normalization: trim and collapse spaces
   const normalizedQuery = query.replace(/\s+/g, ' ').trim();
 
-  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
-
   // Handle clicking outside to close
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        const target = event.target as Element;
+        if (target && target.closest('.seg-tab-bar')) {
+          return; // Don't close if clicking a segment tab
+        }
         setIsOpen(false);
       }
     }
@@ -59,22 +63,31 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
     return words.some(w => w.startsWith(q));
   }
 
+  const SEGMENT_DEFAULTS: Record<string, string> = {
+    'INDEX-FUT': 'NIFTY',
+    'INDEX-OPT': 'NIFTY',
+    'STOCK-FUT': 'RELIANCE',
+    'STOCK-OPT': 'RELIANCE',
+    'NSE-EQ': 'RELIANCE',
+    'MCX-FUT': 'GOLD',
+    'MCX-OPT': 'GOLD',
+    'COMEX': 'GOLD',
+    'CRYPTO': 'BTC',
+    'FOREX': 'USDINR',
+  };
+
   // Effect to perform the search
   useEffect(() => {
-    if (!normalizedQuery) {
-      setResults([]);
-      setIsSearching(false);
-      setIsOpen(false);
-      return;
-    }
+    if (!isOpen) return;
 
-    setIsOpen(true);
     setIsSearching(true);
     const abortController = new AbortController();
     
     // Debounce timer
     const timer = setTimeout(async () => {
-      const qLower = normalizedQuery.toLowerCase();
+      // If query is empty, use the default for the active tab (like Script Management)
+      const actualQuery = normalizedQuery.length >= 2 ? normalizedQuery : (SEGMENT_DEFAULTS[activeTab] || 'NIFTY');
+      const qLower = actualQuery.toLowerCase();
       
       // 1. Filter local scripts first for immediate results (e.g. Crypto/Forex/Indexes)
       const localMatches = localScripts.filter(s => {
@@ -85,7 +98,7 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
       });
 
       // 2. Fetch live results from API
-      const liveMatches = await fetchLiveResults(normalizedQuery, activeTab, abortController.signal);
+      const liveMatches = await fetchLiveResults(actualQuery, activeTab, abortController.signal);
       
       // 3. Merge and deduplicate
       const merged = [...liveMatches];
@@ -106,7 +119,7 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
       clearTimeout(timer);
       abortController.abort();
     };
-  }, [normalizedQuery, activeTab, token]);
+  }, [normalizedQuery, activeTab, token, isOpen]);
 
   const handleClear = () => {
     setQuery('');
@@ -114,9 +127,16 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
     setIsOpen(false);
   };
 
-  const handleAddClick = (item: WatchlistItem) => {
-    onAdd(item);
-    setAddedItems(prev => new Set(prev).add(item.symbol));
+  const isAdded = (symbol: string) => {
+    return addedSymbols ? addedSymbols.has(symbol) : false;
+  };
+
+  const handleToggleClick = (item: WatchlistItem) => {
+    if (isAdded(item.symbol)) {
+      if (onRemove) onRemove(item);
+    } else {
+      onAdd(item);
+    }
   };
 
   return (
@@ -129,8 +149,11 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
         className="search-input"
         placeholder="Search instruments…"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => { if (query.trim()) setIsOpen(true); }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (!isOpen) setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
         autoComplete="off"
       />
 
@@ -159,7 +182,7 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
               </div>
             )}
             {results.map((r, i) => (
-              <div key={`${r.kiteSymbol || r.symbol}-${i}`} className="search-result-item" onClick={() => handleAddClick(r)} style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '12px 16px' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F8F9FC'} onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}>
+              <div key={`${r.kiteSymbol || r.symbol}-${i}`} className="search-result-item" onClick={() => handleToggleClick(r)} style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '12px 16px' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F8F9FC'} onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}>
                 <div className="sri-left">
                   <div className="sri-name">{r.name || r.symbol}</div>
                   <div className="sri-symbol">
@@ -170,10 +193,10 @@ export default function WatchlistSearch({ activeTab, onAdd, token }: WatchlistSe
                   <div className="search-result-price">{(r.price ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <button 
                     className="add-smart-btn"
-                    onClick={(e) => { e.stopPropagation(); handleAddClick(r); }}
-                    style={addedItems.has(r.symbol) ? { background: '#2C8E5A' } : undefined}
+                    onClick={(e) => { e.stopPropagation(); handleToggleClick(r); }}
+                    style={isAdded(r.symbol) ? { background: '#2C8E5A', color: 'white', border: 'none' } : undefined}
                   >
-                    {addedItems.has(r.symbol) ? 'ADDED' : 'ADD'}
+                    {isAdded(r.symbol) ? 'ADDED' : 'ADD'}
                   </button>
                 </div>
               </div>

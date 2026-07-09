@@ -1,5 +1,5 @@
--- Fix for simultaneous opposite positions (auto-netting)
--- Drops the old function and recreates it with intelligent auto-netting
+-- Disable auto-accumulation of same-side positions
+-- Replaces process_executed_position from 20260706_auto_net_positions.sql
 
 CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
@@ -83,7 +83,7 @@ BEGIN
     v_gtt_comm_val := 10;
   END IF;
 
-  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or 
+  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or symbol
   SELECT lot_size INTO v_lot_size 
   FROM public.instruments 
   WHERE tradingsymbol = v_order.kite_instrument 
@@ -105,7 +105,7 @@ BEGIN
     SELECT lot_size INTO v_lot_size FROM public.script_settings WHERE v_order.symbol ILIKE '%' || symbol || '%' ORDER BY length(symbol) DESC LIMIT 1;
   END IF;
 
-  -- Last resort: hardcoded values (current as of Jul 2026 — update when NSE revises)
+  -- Last resort: hardcoded values
   IF v_lot_size IS NULL OR v_lot_size <= 0 THEN
     IF v_order.symbol ILIKE '%BANKNIFTY%' OR v_order.symbol ILIKE '%BANKEX%' THEN
       v_lot_size := 30;
@@ -180,7 +180,8 @@ BEGIN
     VALUES (v_order.user_id, 'BUFFER_FEE_DEBIT', v_order.buffer_fee, 'APPROVED', 'BUF_' || v_order.id::text);
   END IF;
 
-  -- INTELLIGENT AUTO-NETTING: Check if an opposite position exists regardless of v_order.is_exit
+  -- INTELLIGENT AUTO-NETTING FOR EXITS ONLY:
+  -- Check if an opposite position exists regardless of v_order.is_exit
   SELECT * INTO v_pos
   FROM public.positions
   WHERE user_id = v_order.user_id 
@@ -267,49 +268,23 @@ BEGIN
 
   ELSE
     -- ─── ENTRY ORDER LOGIC (No opposite position found, treat as entry) ───
-    -- Check if a same-side position exists to accumulate
-    SELECT * INTO v_pos
-    FROM public.positions
-    WHERE user_id = v_order.user_id 
-      AND symbol = v_order.symbol 
-      AND status = 'open' 
-      AND product_type = v_order.product_type
-      AND side = v_order.side
-    FOR UPDATE;
+    -- [DISABLED] Check if a same-side position exists to accumulate
+    -- We now always insert a brand new position to keep them separate!
 
-    v_pos_found := FOUND;
-
-    IF v_pos_found THEN
-      -- Accumulate quantity & compute weighted average price
-      v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);
-
-      UPDATE public.positions
-      SET
-        qty_open = qty_open + v_order.qty,
-        qty_total = qty_total + v_order.qty,
-        avg_price = v_new_avg_price,
-        entry_price = v_new_avg_price,
-        entry_brokerage = entry_brokerage + v_brokerage,
-        brokerage = brokerage + v_brokerage,
-        updated_at = now()
-      WHERE id = v_pos.id;
-    ELSE
-      -- Insert a brand new open position
-      INSERT INTO public.positions (
-        user_id, symbol, side, status,
-        qty_total, qty_open,
-        avg_price, entry_price, ltp,
-        settlement, product_type, stop_loss, target, 
-        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
-      )
-      VALUES (
-        v_order.user_id, v_order.symbol, v_order.side, 'open',
-        v_order.qty, v_order.qty,
-        v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
-        v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
-        v_brokerage, 0, v_brokerage, now(), now()
-      );
-    END IF;
+    INSERT INTO public.positions (
+      user_id, symbol, side, status,
+      qty_total, qty_open,
+      avg_price, entry_price, ltp,
+      settlement, product_type, stop_loss, target, 
+      entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
+    )
+    VALUES (
+      v_order.user_id, v_order.symbol, v_order.side, 'open',
+      v_order.qty, v_order.qty,
+      v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
+      v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
+      v_brokerage, 0, v_brokerage, now(), now()
+    );
   END IF;
 
   -- ─── FIRST TRADE BONUS LOGIC ───
