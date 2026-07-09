@@ -1,5 +1,6 @@
--- Fix for simultaneous opposite positions (auto-netting)
--- Drops the old function and recreates it with intelligent auto-netting
+-- Disable auto-accumulation of same-side positions
+-- Replaces process_executed_position from 20260706_auto_net_positions.sql
+
 
 CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
@@ -12,7 +13,6 @@ DECLARE
   v_closed_pos_id uuid;
   v_pnl numeric;
   v_pnl_type text;
-  v_new_avg_price numeric;
   
   -- Brokerage local vars
   v_trading_mode text;
@@ -22,31 +22,28 @@ DECLARE
   v_carry_comm_val numeric;
   v_gtt_comm_type text;
   v_gtt_comm_val numeric;
+  
   v_raw_brokerage numeric := 0;
-  v_carry_brokerage numeric := 0;
   v_gtt_brokerage numeric := 0;
   v_brokerage numeric := 0;
-  v_closed_brokerage numeric := 0;
-  v_closed_entry_brokerage numeric := 0;
-  v_pos_found boolean;
-  v_opposite_pos_found boolean;
-  v_lot_size numeric;
-  v_lots numeric;
+  v_closed_entry_brokerage numeric;
+  v_closed_brokerage numeric;
+  v_lots integer := 1;
+  v_lot_size integer;
+  
+  v_opposite_pos_found boolean := false;
+  v_linked_pos_id uuid := NULL;
   
   -- Referral / First Trade Bonus vars
   v_has_traded boolean;
   v_parent_id_text text;
 BEGIN
-  -- Fetch the order
+  -- Fetch the order details
   SELECT * INTO v_order
   FROM public.orders
-  WHERE id = p_order_id;
+  WHERE id = p_order_id AND status = 'EXECUTED';
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Order % not found', p_order_id;
-  END IF;
-
-  IF v_order.status != 'EXECUTED' THEN
     RETURN;
   END IF;
 
@@ -83,7 +80,7 @@ BEGIN
     v_gtt_comm_val := 10;
   END IF;
 
-  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or 
+  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or symbol
   SELECT lot_size INTO v_lot_size 
   FROM public.instruments 
   WHERE tradingsymbol = v_order.kite_instrument 
@@ -134,7 +131,7 @@ BEGIN
     END IF;
   END IF;
 
-  v_lots := COALESCE(NULLIF(v_order.lots, 0), v_order.qty / v_lot_size);
+  v_lots := COALESCE(NULLIF(v_order.lots, 0), (v_order.qty / v_lot_size)::integer);
 
   -- 1. Intraday Commission (ALWAYS applied)
   IF v_comm_type = 'Per Crore' THEN
@@ -180,15 +177,37 @@ BEGIN
     VALUES (v_order.user_id, 'BUFFER_FEE_DEBIT', v_order.buffer_fee, 'APPROVED', 'BUF_' || v_order.id::text);
   END IF;
 
-  -- INTELLIGENT AUTO-NETTING: Check if an opposite position exists regardless of v_order.is_exit
-  SELECT * INTO v_pos
-  FROM public.positions
-  WHERE user_id = v_order.user_id 
-    AND symbol = v_order.symbol 
-    AND status = 'open' 
-    AND product_type = v_order.product_type
-    AND side != v_order.side
-  FOR UPDATE;
+  -- Attempt to parse info column as UUID if present
+  IF v_order.info IS NOT NULL THEN
+    BEGIN
+      v_linked_pos_id := v_order.info::uuid;
+    EXCEPTION WHEN invalid_text_representation THEN
+      v_linked_pos_id := NULL;
+    END;
+  END IF;
+
+  -- INTELLIGENT AUTO-NETTING FOR EXITS ONLY:
+  IF v_linked_pos_id IS NOT NULL THEN
+    -- If the order is explicitly linked to a position via info, target that position
+    SELECT * INTO v_pos
+    FROM public.positions
+    WHERE id = v_linked_pos_id
+      AND user_id = v_order.user_id 
+      AND status = 'open'
+    FOR UPDATE;
+  ELSE
+    -- Otherwise, find ANY opposite position for this symbol (FIFO)
+    SELECT * INTO v_pos
+    FROM public.positions
+    WHERE user_id = v_order.user_id 
+      AND symbol = v_order.symbol 
+      AND status = 'open' 
+      AND product_type = v_order.product_type
+      AND side != v_order.side
+    ORDER BY entry_time ASC
+    LIMIT 1
+    FOR UPDATE;
+  END IF;
   
   v_opposite_pos_found := FOUND;
 
@@ -267,49 +286,23 @@ BEGIN
 
   ELSE
     -- ─── ENTRY ORDER LOGIC (No opposite position found, treat as entry) ───
-    -- Check if a same-side position exists to accumulate
-    SELECT * INTO v_pos
-    FROM public.positions
-    WHERE user_id = v_order.user_id 
-      AND symbol = v_order.symbol 
-      AND status = 'open' 
-      AND product_type = v_order.product_type
-      AND side = v_order.side
-    FOR UPDATE;
+    -- [DISABLED] Check if a same-side position exists to accumulate
+    -- We now always insert a brand new position to keep them separate!
 
-    v_pos_found := FOUND;
-
-    IF v_pos_found THEN
-      -- Accumulate quantity & compute weighted average price
-      v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);
-
-      UPDATE public.positions
-      SET
-        qty_open = qty_open + v_order.qty,
-        qty_total = qty_total + v_order.qty,
-        avg_price = v_new_avg_price,
-        entry_price = v_new_avg_price,
-        entry_brokerage = entry_brokerage + v_brokerage,
-        brokerage = brokerage + v_brokerage,
-        updated_at = now()
-      WHERE id = v_pos.id;
-    ELSE
-      -- Insert a brand new open position
-      INSERT INTO public.positions (
-        user_id, symbol, side, status,
-        qty_total, qty_open,
-        avg_price, entry_price, ltp,
-        settlement, product_type, stop_loss, target, 
-        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
-      )
-      VALUES (
-        v_order.user_id, v_order.symbol, v_order.side, 'open',
-        v_order.qty, v_order.qty,
-        v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
-        v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
-        v_brokerage, 0, v_brokerage, now(), now()
-      );
-    END IF;
+    INSERT INTO public.positions (
+      user_id, symbol, side, status,
+      qty_total, qty_open,
+      avg_price, entry_price, ltp,
+      settlement, product_type, stop_loss, target, 
+      entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
+    )
+    VALUES (
+      v_order.user_id, v_order.symbol, v_order.side, 'open',
+      v_order.qty, v_order.qty,
+      v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
+      v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
+      v_brokerage, 0, v_brokerage, now(), now()
+    );
   END IF;
 
   -- ─── FIRST TRADE BONUS LOGIC ───

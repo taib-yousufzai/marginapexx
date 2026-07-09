@@ -1,5 +1,6 @@
--- Fix for simultaneous opposite positions (auto-netting)
--- Drops the old function and recreates it with intelligent auto-netting
+-- Disable auto-accumulation of same-side positions
+-- Replaces process_executed_position from 20260706_auto_net_positions.sql
+
 
 CREATE OR REPLACE FUNCTION public.process_executed_position(p_order_id uuid)
 RETURNS void
@@ -12,7 +13,6 @@ DECLARE
   v_closed_pos_id uuid;
   v_pnl numeric;
   v_pnl_type text;
-  v_new_avg_price numeric;
   
   -- Brokerage local vars
   v_trading_mode text;
@@ -22,31 +22,32 @@ DECLARE
   v_carry_comm_val numeric;
   v_gtt_comm_type text;
   v_gtt_comm_val numeric;
+  
   v_raw_brokerage numeric := 0;
-  v_carry_brokerage numeric := 0;
   v_gtt_brokerage numeric := 0;
   v_brokerage numeric := 0;
-  v_closed_brokerage numeric := 0;
-  v_closed_entry_brokerage numeric := 0;
-  v_pos_found boolean;
-  v_opposite_pos_found boolean;
-  v_lot_size numeric;
-  v_lots numeric;
+  v_closed_entry_brokerage numeric;
+  v_closed_brokerage numeric;
+  v_lots integer := 1;
+  v_lot_size integer;
+  
+  v_opposite_pos_found boolean := false;
+  v_linked_pos_id uuid := NULL;
+  
+  v_remaining_qty integer;
+  v_close_qty integer;
+  v_chunk_brokerage numeric;
   
   -- Referral / First Trade Bonus vars
   v_has_traded boolean;
   v_parent_id_text text;
 BEGIN
-  -- Fetch the order
+  -- Fetch the order details
   SELECT * INTO v_order
   FROM public.orders
-  WHERE id = p_order_id;
+  WHERE id = p_order_id AND status = 'EXECUTED';
 
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Order % not found', p_order_id;
-  END IF;
-
-  IF v_order.status != 'EXECUTED' THEN
     RETURN;
   END IF;
 
@@ -83,7 +84,7 @@ BEGIN
     v_gtt_comm_val := 10;
   END IF;
 
-  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or 
+  -- Fetch lot size from instruments table using kite_instrument (tradingsymbol) or symbol
   SELECT lot_size INTO v_lot_size 
   FROM public.instruments 
   WHERE tradingsymbol = v_order.kite_instrument 
@@ -134,7 +135,7 @@ BEGIN
     END IF;
   END IF;
 
-  v_lots := COALESCE(NULLIF(v_order.lots, 0), v_order.qty / v_lot_size);
+  v_lots := COALESCE(NULLIF(v_order.lots, 0), (v_order.qty / v_lot_size)::integer);
 
   -- 1. Intraday Commission (ALWAYS applied)
   IF v_comm_type = 'Per Crore' THEN
@@ -180,32 +181,46 @@ BEGIN
     VALUES (v_order.user_id, 'BUFFER_FEE_DEBIT', v_order.buffer_fee, 'APPROVED', 'BUF_' || v_order.id::text);
   END IF;
 
-  -- INTELLIGENT AUTO-NETTING: Check if an opposite position exists regardless of v_order.is_exit
-  SELECT * INTO v_pos
-  FROM public.positions
-  WHERE user_id = v_order.user_id 
-    AND symbol = v_order.symbol 
-    AND status = 'open' 
-    AND product_type = v_order.product_type
-    AND side != v_order.side
-  FOR UPDATE;
-  
-  v_opposite_pos_found := FOUND;
+  -- Attempt to parse info column as UUID if present
+  IF v_order.info IS NOT NULL THEN
+    BEGIN
+      v_linked_pos_id := v_order.info::uuid;
+    EXCEPTION WHEN invalid_text_representation THEN
+      v_linked_pos_id := NULL;
+    END;
+  END IF;
 
-  IF v_opposite_pos_found THEN
-    -- ─── EXIT ORDER LOGIC (Opposite position found, treat as exit) ───
-    IF v_order.qty > v_pos.qty_open THEN
-      RAISE EXCEPTION 'Order quantity (%) exceeds open opposite position quantity (%). Partial reversing not supported natively yet.', v_order.qty, v_pos.qty_open;
+  -- INTELLIGENT AUTO-NETTING FOR EXITS (LOOP):
+  v_remaining_qty := v_order.qty;
+
+  FOR v_pos IN
+    SELECT * 
+    FROM public.positions
+    WHERE user_id = v_order.user_id 
+      AND symbol = v_order.symbol 
+      AND status = 'open' 
+      AND product_type = v_order.product_type
+      AND side != v_order.side
+      AND (v_linked_pos_id IS NULL OR id = v_linked_pos_id)
+    ORDER BY entry_time ASC
+    FOR UPDATE
+  LOOP
+    IF v_remaining_qty <= 0 THEN
+      EXIT;
     END IF;
+
+    v_opposite_pos_found := true;
+    v_close_qty := LEAST(v_remaining_qty, v_pos.qty_open);
+    v_chunk_brokerage := (v_brokerage * v_close_qty) / v_order.qty;
 
     -- Calculate realized P&L (BUY = exit - entry, SELL = entry - exit)
     IF v_pos.side = 'BUY' THEN
-      v_pnl := (v_order.fill_price - v_pos.entry_price) * v_order.qty;
+      v_pnl := (v_order.fill_price - v_pos.entry_price) * v_close_qty;
     ELSE
-      v_pnl := (v_pos.entry_price - v_order.fill_price) * v_order.qty;
+      v_pnl := (v_pos.entry_price - v_order.fill_price) * v_close_qty;
     END IF;
 
-    IF v_order.qty = v_pos.qty_open THEN
+    IF v_close_qty = v_pos.qty_open THEN
       -- FULL EXIT: Close active position row and add exit brokerage
       UPDATE public.positions
       SET
@@ -215,8 +230,8 @@ BEGIN
         exit_time = now(),
         pnl = v_pnl,
         duration_seconds = EXTRACT(EPOCH FROM (now() - entry_time))::integer,
-        exit_brokerage = exit_brokerage + v_brokerage,
-        brokerage = brokerage + v_brokerage,
+        exit_brokerage = exit_brokerage + v_chunk_brokerage,
+        brokerage = brokerage + v_chunk_brokerage,
         updated_at = now()
       WHERE id = v_pos.id;
 
@@ -228,14 +243,14 @@ BEGIN
     ELSE
       -- PARTIAL EXIT: Split position
       -- Calculate proportional entry brokerage for the closed portion
-      v_closed_entry_brokerage := (v_pos.entry_brokerage * v_order.qty) / v_pos.qty_open;
-      v_closed_brokerage := (v_pos.brokerage * v_order.qty) / v_pos.qty_open;
+      v_closed_entry_brokerage := (v_pos.entry_brokerage * v_close_qty) / v_pos.qty_open;
+      v_closed_brokerage := (v_pos.brokerage * v_close_qty) / v_pos.qty_open;
 
       -- 1. Reduce quantity, entry brokerage and total brokerage of the active open position
       UPDATE public.positions
       SET
-        qty_open = qty_open - v_order.qty,
-        qty_total = qty_total - v_order.qty,
+        qty_open = qty_open - v_close_qty,
+        qty_total = qty_total - v_close_qty,
         entry_brokerage = entry_brokerage - v_closed_entry_brokerage,
         brokerage = brokerage - v_closed_brokerage,
         updated_at = now()
@@ -251,11 +266,11 @@ BEGIN
       )
       VALUES (
         v_order.user_id, v_order.symbol, v_pos.side, 'closed',
-        v_order.qty, 0,
+        v_close_qty, 0,
         v_pos.avg_price, v_pos.entry_price, v_order.ltp_at_entry,
         v_order.segment, v_pos.product_type, v_order.fill_price, now(), v_pnl,
         EXTRACT(EPOCH FROM (now() - v_pos.entry_time))::integer, 
-        v_closed_entry_brokerage, v_brokerage, v_closed_entry_brokerage + v_brokerage, now(), now()
+        v_closed_entry_brokerage, v_chunk_brokerage, v_closed_entry_brokerage + v_chunk_brokerage, now(), now()
       )
       RETURNING id INTO v_closed_pos_id;
 
@@ -265,51 +280,26 @@ BEGIN
       VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_closed_pos_id::text);
     END IF;
 
-  ELSE
-    -- ─── ENTRY ORDER LOGIC (No opposite position found, treat as entry) ───
-    -- Check if a same-side position exists to accumulate
-    SELECT * INTO v_pos
-    FROM public.positions
-    WHERE user_id = v_order.user_id 
-      AND symbol = v_order.symbol 
-      AND status = 'open' 
-      AND product_type = v_order.product_type
-      AND side = v_order.side
-    FOR UPDATE;
+    v_remaining_qty := v_remaining_qty - v_close_qty;
+  END LOOP;
 
-    v_pos_found := FOUND;
-
-    IF v_pos_found THEN
-      -- Accumulate quantity & compute weighted average price
-      v_new_avg_price := ((v_pos.avg_price * v_pos.qty_open) + (v_order.fill_price * v_order.qty)) / (v_pos.qty_open + v_order.qty);
-
-      UPDATE public.positions
-      SET
-        qty_open = qty_open + v_order.qty,
-        qty_total = qty_total + v_order.qty,
-        avg_price = v_new_avg_price,
-        entry_price = v_new_avg_price,
-        entry_brokerage = entry_brokerage + v_brokerage,
-        brokerage = brokerage + v_brokerage,
-        updated_at = now()
-      WHERE id = v_pos.id;
-    ELSE
-      -- Insert a brand new open position
-      INSERT INTO public.positions (
-        user_id, symbol, side, status,
-        qty_total, qty_open,
-        avg_price, entry_price, ltp,
-        settlement, product_type, stop_loss, target, 
-        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
-      )
-      VALUES (
-        v_order.user_id, v_order.symbol, v_order.side, 'open',
-        v_order.qty, v_order.qty,
-        v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
-        v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
-        v_brokerage, 0, v_brokerage, now(), now()
-      );
-    END IF;
+  IF NOT v_opposite_pos_found OR v_remaining_qty > 0 THEN
+    -- ─── ENTRY ORDER LOGIC (No opposite position found, or remaining qty > 0) ───
+    v_chunk_brokerage := (v_brokerage * v_remaining_qty) / v_order.qty;
+    INSERT INTO public.positions (
+      user_id, symbol, side, status,
+      qty_total, qty_open,
+      avg_price, entry_price, ltp,
+      settlement, product_type, stop_loss, target, 
+      entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
+    )
+    VALUES (
+      v_order.user_id, v_order.symbol, v_order.side, 'open',
+      v_remaining_qty, v_remaining_qty,
+      v_order.fill_price, v_order.fill_price, v_order.ltp_at_entry,
+      v_order.segment, v_order.product_type, v_order.stop_loss, v_order.target, 
+      v_chunk_brokerage, 0, v_chunk_brokerage, now(), now()
+    );
   END IF;
 
   -- ─── FIRST TRADE BONUS LOGIC ───

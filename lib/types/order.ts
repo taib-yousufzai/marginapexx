@@ -35,6 +35,8 @@ export interface PlaceOrderRequest {
   target?: number;
   /** Optional flag indicating if this is an exit order */
   is_exit?: boolean;
+  /** Optional position ID to directly exit a specific position */
+  linked_position_id?: string;
 }
 
 // ─── Response (POST /api/orders) ─────────────────────────────────────────────

@@ -1,9 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { ErrorModal } from '@/components/ErrorModal';
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [show, setShow] = useState(false);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function InstallPrompt() {
     };
   }, []);
 
-  if (!show || dismissed) return null;
+  if (!show || dismissed) return <ErrorModal error={modalMessage} onClose={() => setModalMessage(null)} title="Install Instructions" />;
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -46,7 +48,7 @@ export default function InstallPrompt() {
       setDeferredPrompt(null);
     } else {
       // iOS / unsupported: guide user
-      alert("To install: tap the Share button (Safari) or the browser menu → 'Add to Home Screen'");
+      setModalMessage("To install: tap the Share button (Safari) or the browser menu → 'Add to Home Screen'");
     }
     setShow(false);
   };
@@ -158,6 +160,7 @@ export default function InstallPrompt() {
           Install
         </button>
       </div>
+      <ErrorModal error={modalMessage} onClose={() => setModalMessage(null)} title="Install Instructions" />
     </div>
   );
 }
