@@ -1228,10 +1228,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Instrument-specific position: find open position matching the currently viewed chart symbol
   const currentInstrumentPosition = useMemo(() => {
-    return positions.find(p =>
+    const matchingPositions = positions.filter(p =>
       (p.status === 'open' || p.status === 'active') &&
       p.symbol === symbol
-    ) || null;
+    );
+    if (matchingPositions.length === 0) return null;
+    
+    // Group them like Cumulative view
+    const totalQty = matchingPositions.reduce((sum, p) => sum + p.qty_open, 0);
+    const repPos = matchingPositions[0]; // just take first for other metadata
+    return { ...repPos, qty_open: totalQty };
   }, [positions, symbol]);
 
   // Calculated Required Margin for current order block state
@@ -1473,7 +1479,28 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     if (currentSymbolPositions.length === 0) {
       return <div className="empty-state">No active positions.</div>;
     }
-    return currentSymbolPositions.map((pos) => {
+
+    // Group positions by symbol, side, and product_type to show cumulative totals
+    const groupedPositionsMap = new Map();
+    for (const pos of currentSymbolPositions) {
+      const key = `${pos.symbol}|${pos.side}|${pos.product_type}`;
+      if (!groupedPositionsMap.has(key)) {
+        groupedPositionsMap.set(key, { ...pos });
+      } else {
+        const existing = groupedPositionsMap.get(key);
+        const entryA = existing.avg_price || existing.entry_price || 0;
+        const entryB = pos.avg_price || pos.entry_price || 0;
+        const totalValue = (existing.qty_open * entryA) + (pos.qty_open * entryB);
+        existing.qty_open += pos.qty_open;
+        existing.entry_price = totalValue / existing.qty_open;
+        existing.avg_price = totalValue / existing.qty_open;
+        existing.unrealised_pnl = (existing.unrealised_pnl || 0) + (pos.unrealised_pnl || 0);
+        // Do NOT aggregate 'id' to a string, just keep the first representative pos ID for handleExitPosition
+      }
+    }
+    const groupedPositions = Array.from(groupedPositionsMap.values());
+
+    return groupedPositions.map((pos) => {
       const entryPrice = pos.avg_price || pos.entry_price;
       const pnl = pos.unrealised_pnl ?? 0;
       const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';

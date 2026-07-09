@@ -930,7 +930,7 @@ export default function PositionPage() {
                                   if (pos.hold_lock_active) {
                                     setLockModalPos(actualPos);
                                   } else {
-                                    openExitSheet(actualPos);
+                                    openExitSheet(actualPos, actualPos.qty_open, false);
                                   }
                                 }}
                               >
