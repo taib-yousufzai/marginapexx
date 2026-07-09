@@ -238,7 +238,8 @@ function getLotSize(symbol: string, dbSettings?: { symbol: string; lot_size: num
 function mapSymbolToSegment(symbol: string): string {
   const n = symbol.toUpperCase();
   if (n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDE') || n.includes('NATGAS') || n.includes('NATURALGAS')) {
-    return 'COMEX';
+    if (n.includes('CE') || n.includes('PE')) return 'MCX-OPT';
+    return 'MCX-FUT';
   }
   if (n.includes('FUT') || n.includes('FUTURES')) {
     if (n.includes('NIFTY') || n.includes('SENSEX') || n.includes('BANKEX') || n.includes('FINNIFTY') || n.includes('MIDCP') || n.includes('MIDCAP')) {
@@ -777,6 +778,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol, dbScriptSettings);
   const maxQty = (segSetting.max_order_lot as number) * symbolLotSize;
+  console.log('[DEBUG-LOT]', { symbol, qty, lots, symbolLotSize, max_order_lot: segSetting.max_order_lot, maxQty, getLotSize: getLotSize(symbol, dbScriptSettings) });
   if (qty > maxQty) {
     return NextResponse.json({
       error: `Order exceeds maximum allowed order limit of ${segSetting.max_order_lot} lots (${maxQty} units)`,
