@@ -584,9 +584,12 @@ export default function PositionPage() {
                   <div className="pos-brand">
                     <span>MARGIN<span className="apex-text">APEX</span></span>
                   </div>
-                  <div className="pos-brand-sub">Internal Positions • Real-time P&amp;L</div>
+                  <div className="pos-brand-sub">
+                    <div>Internal Positions</div>
+                    <div>Real-time P&amp;L</div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginRight: '8px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
                     <i className="fas fa-wallet" />
                     <div style={{ display: 'flex', alignItems: 'center' }}>

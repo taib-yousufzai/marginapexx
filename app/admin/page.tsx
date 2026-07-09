@@ -250,11 +250,11 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
         />
       </div>
       <div style={{ display: (activePage === 'actledger' || activePage === 'transactions') ? undefined : 'none' }}>
-        <ActLedgerPage 
-          selectedUser={selectedUser} 
-          onOpenUserPanel={onOpenUserPanel} 
-          isDemoMode={isDemoMode} 
-          forcedTab={activePage === 'transactions' ? 'transactions' : 'trade_logs'} 
+        <ActLedgerPage
+          selectedUser={selectedUser}
+          onOpenUserPanel={onOpenUserPanel}
+          isDemoMode={isDemoMode}
+          forcedTab={activePage === 'transactions' ? 'transactions' : 'trade_logs'}
         />
       </div>
       <div style={show('accounts')}><AccountsPage isDemoMode={isDemoMode} /></div>
