@@ -43,12 +43,41 @@ export async function GET(request: Request): Promise<Response> {
       .eq('tab', tab)
       .order('created_at', { ascending: true });
 
-    if (error) {
+    if (error || !data) {
       return Response.json({ error: 'Internal server error' }, { status: 500 });
     }
 
-    // Step 4: Return watchlist array
-    return Response.json(data ?? [], { status: 200 });
+    // Step 4: Filter out expired contracts and clean them up
+    const symbols = data.map((d: any) => d.symbol);
+    let filteredData = data;
+    
+    if (symbols.length > 0) {
+      const { data: instruments } = await adminClient
+        .from('instruments')
+        .select('id, expiry')
+        .in('id', symbols);
+
+      const today = new Date().toISOString().split('T')[0];
+      const expiredSymbols = new Set(
+        instruments
+          ?.filter((inst: any) => inst.expiry && inst.expiry < today)
+          .map((inst: any) => inst.id) || []
+      );
+
+      if (expiredSymbols.size > 0) {
+        filteredData = data.filter((d: any) => !expiredSymbols.has(d.symbol));
+        // Asynchronously delete expired entries to keep watchlist clean
+        adminClient
+          .from('watchlists')
+          .delete()
+          .in('symbol', Array.from(expiredSymbols))
+          .eq('user_id', callerUser.id)
+          .then();
+      }
+    }
+
+    // Step 5: Return active watchlist array
+    return Response.json(filteredData, { status: 200 });
   } catch {
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
