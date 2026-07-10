@@ -112,6 +112,8 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
             const q = JSON.parse(raw);
             if (q && q.last_price !== undefined) {
               result[inst] = q.last_price;
+              result[`${inst}_bid`] = Number(q.bid ?? q.buy_price ?? q.depth?.buy?.[0]?.price ?? q.last_price);
+              result[`${inst}_ask`] = Number(q.ask ?? q.sell_price ?? q.depth?.sell?.[0]?.price ?? q.last_price);
               foundKiteIds.add(inst);
             }
           } catch { /* malformed cache entry — fall through */ }
@@ -132,7 +134,10 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
           const json = await resTicker.json();
           if (json.success && json.data) {
             for (const [key, val] of Object.entries(json.data)) {
-              result[key] = (val as any).last_price;
+              const q = val as any;
+              result[key] = q.last_price;
+              result[`${key}_bid`] = Number(q.bid ?? q.buy_price ?? q.depth?.buy?.[0]?.price ?? q.last_price);
+              result[`${key}_ask`] = Number(q.ask ?? q.sell_price ?? q.depth?.sell?.[0]?.price ?? q.last_price);
               foundKiteIds.add(key);
             }
           }
@@ -169,9 +174,11 @@ async function fetchKiteQuotes(instruments: string[]): Promise<Record<string, nu
       const instrumentUpserts: any[] = [];
 
       for (const inst of missingKiteIds) {
-        const quote = data.data?.[inst];
+        const quote = (data.data as any)?.[inst];
         if (quote) {
           result[inst] = quote.last_price;
+          result[`${inst}_bid`] = Number(quote.depth?.buy?.[0]?.price ?? quote.last_price);
+          result[`${inst}_ask`] = Number(quote.depth?.sell?.[0]?.price ?? quote.last_price);
 
           const parts = inst.split(':');
           const exchange = parts[0] || 'NSE';
@@ -1175,18 +1182,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (side === 'BUY') {
         if (is_exit) {
           // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
-          priceWithBuffer = baseLtp * (1 + sellExitBuffer);
+          priceWithBuffer = kiteAsk * (1 + sellExitBuffer);
         } else {
           // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
-          priceWithBuffer = baseLtp * (1 + buyEntryBuffer);
+          priceWithBuffer = kiteAsk * (1 + buyEntryBuffer);
         }
       } else {
         if (is_exit) {
           // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - bidBuffer) of BUY side settings
-          priceWithBuffer = baseLtp * (1 - buyBidBuffer);
+          priceWithBuffer = kiteBid * (1 - buyBidBuffer);
         } else {
           // Short Entry (Selling) executes at: Bid * (1 - bidBuffer) of SELL side settings
-          priceWithBuffer = baseLtp * (1 - sellBidBuffer);
+          priceWithBuffer = kiteBid * (1 - sellBidBuffer);
         }
       }
 

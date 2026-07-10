@@ -24,7 +24,7 @@ import type { ClosePositionResponse } from '@/lib/types/order';
  * Fetch the Kite LTP for a single instrument key server-side.
  * Resolves from local market_quotes DB cache if available, falling back on-demand.
  */
-async function fetchKiteLtp(instrument: string): Promise<number | null> {
+async function fetchKiteLtp(instrument: string): Promise<{ltp: number, bid: number, ask: number} | null> {
   try {
     const admin = getAdminClient();
     
@@ -36,7 +36,12 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
       if (resTicker.ok) {
         const json = await resTicker.json();
         if (json.success && json.data && json.data[instrument]) {
-          return Number(json.data[instrument].last_price);
+          const q = json.data[instrument];
+          return {
+            ltp: Number(q.last_price),
+            bid: Number(q.bid ?? q.buy_price ?? q.depth?.buy?.[0]?.price ?? q.last_price),
+            ask: Number(q.ask ?? q.sell_price ?? q.depth?.sell?.[0]?.price ?? q.last_price)
+          };
         }
       }
     } catch (tickerErr) {
@@ -60,7 +65,7 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
 
     if (!res.ok) return null;
 
-    const data = await res.json() as { data?: Record<string, { last_price: number; instrument_token?: number; ohlc?: { close?: number } }> };
+    const data = await res.json() as { data?: Record<string, any> };
     const quote = data.data?.[instrument];
     if (!quote) return null;
 
@@ -85,7 +90,11 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
       }
     })();
 
-    return quote.last_price;
+    return {
+      ltp: Number(quote.last_price),
+      bid: Number(quote.depth?.buy?.[0]?.price ?? quote.last_price),
+      ask: Number(quote.depth?.sell?.[0]?.price ?? quote.last_price)
+    };
   } catch (err) {
     console.error('[fetchKiteLtp] Unexpected error:', err);
     return null;
@@ -96,7 +105,7 @@ async function fetchKiteLtp(instrument: string): Promise<number | null> {
  * Fetch the Binance LTP for a crypto symbol using the same
  * Redis → Ticker Daemon → Binance REST cascade as the Kite path.
  */
-async function fetchBinanceLtp(symbol: string): Promise<number | null> {
+async function fetchBinanceLtp(symbol: string): Promise<{ltp: number, bid: number, ask: number} | null> {
   let cleanSym = symbol.replace('/', '').toUpperCase();
   if (!cleanSym.endsWith('USDT')) cleanSym = cleanSym + 'USDT';
 
@@ -107,7 +116,13 @@ async function fetchBinanceLtp(symbol: string): Promise<number | null> {
     const cached = await redis.hget('market:quotes', cleanSym);
     if (cached) {
       const q = JSON.parse(cached);
-      if (q && q.last_price !== undefined) return Number(q.last_price);
+      if (q && q.last_price !== undefined) {
+        return {
+          ltp: Number(q.last_price),
+          bid: Number(q.bid || q.last_price * 0.9995),
+          ask: Number(q.ask || q.last_price * 1.0005)
+        };
+      }
     }
   } catch { /* fall through */ }
 
@@ -119,7 +134,12 @@ async function fetchBinanceLtp(symbol: string): Promise<number | null> {
     if (resTicker.ok) {
       const json = await resTicker.json();
       if (json.success && json.data && json.data[cleanSym]) {
-        return Number(json.data[cleanSym].last_price);
+        const q = json.data[cleanSym];
+        return {
+          ltp: Number(q.last_price),
+          bid: Number(q.bid || q.last_price * 0.9995),
+          ask: Number(q.ask || q.last_price * 1.0005)
+        };
       }
     }
   } catch { /* fall through */ }
@@ -129,7 +149,11 @@ async function fetchBinanceLtp(symbol: string): Promise<number | null> {
     const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSym}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.price ? parseFloat(data.price) : null;
+    if (data.price) {
+      const ltp = parseFloat(data.price);
+      return { ltp, bid: ltp * 0.9995, ask: ltp * 1.0005 };
+    }
+    return null;
   } catch (err) {
     console.error('[fetchBinanceLtp] Error:', err);
     return null;
@@ -139,7 +163,7 @@ async function fetchBinanceLtp(symbol: string): Promise<number | null> {
 /**
  * Fetch LTP for any instrument — routes to Binance for CRYPTO, Kite for everything else.
  */
-async function fetchLtp(symbol: string, settlement: string): Promise<number | null> {
+async function fetchLtp(symbol: string, settlement: string): Promise<{ltp: number, bid: number, ask: number} | null> {
   if ((settlement || '').toUpperCase().includes('CRYPTO')) {
     return fetchBinanceLtp(symbol);
   }
@@ -253,11 +277,14 @@ export async function POST(
   const profitHoldSec = segSetting?.profit_hold_sec ?? 120;
   const lossHoldSec = segSetting?.loss_hold_sec ?? 0;
 
-  const baseLtp = kiteLtp ?? Number(pos.ltp ?? pos.entry_price);
+  const baseLtp = kiteLtp?.ltp ?? Number(pos.ltp ?? pos.entry_price);
+  const kiteBid = kiteLtp?.bid ?? baseLtp;
+  const kiteAsk = kiteLtp?.ask ?? baseLtp;
 
-  // Exit price: exit_buffer applied to the live LTP (precision 2 for display/settlement)
+  // Exit price: exit_buffer applied to the live bid/ask (precision 2 for display/settlement)
   const exitBuffer = segSetting?.exit_buffer ?? 0.17;
-  const exitPrice = calculateExitPrice({ side: pos.side, ltp: baseLtp, exitBufferPct: exitBuffer }, 2);
+  const refPrice = pos.side === 'BUY' ? kiteBid : kiteAsk;
+  const exitPrice = calculateExitPrice({ side: pos.side, ltp: refPrice, exitBufferPct: exitBuffer }, 2);
 
   // ─── Anti-Scalping Check ───
   // Profit/loss determined by comparing live LTP to the buffered entry_price
