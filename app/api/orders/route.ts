@@ -451,9 +451,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   let dbSegment = mapSegmentToDbSegment(segment);
   const symUp = symbol.toUpperCase();
-  if (symUp.includes('GOLD') || symUp.includes('SILVER') || symUp.includes('CRUDE') || symUp.includes('NATGAS') || symUp.includes('NATURALGAS')) {
+  if (dbSegment !== 'COMEX' && (symUp.includes('GOLD') || symUp.includes('SILVER') || symUp.includes('CRUDE') || symUp.includes('NATGAS') || symUp.includes('NATURALGAS'))) {
     const isOptionSymbol = symUp.endsWith('CE') || symUp.endsWith('PE');
-    dbSegment = isOptionSymbol ? 'MCX-OPT' : 'COMEX';
+    dbSegment = isOptionSymbol ? 'MCX-OPT' : 'MCX-FUT';
   } else if (['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].some(c => symUp === c || symUp.startsWith(c + 'USDT'))) {
     dbSegment = 'CRYPTO';
   }
