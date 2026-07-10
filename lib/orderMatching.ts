@@ -349,12 +349,12 @@ export class InMemoryMatchingEngine {
           let priceWithBuffer = ltp;
           if (order.side === 'BUY') {
             priceWithBuffer = order.is_exit
-              ? ltp * (1 + sellExitBuffer)   // buying back a short: ask + exit buffer
-              : ltp * (1 + buyEntryBuffer);   // long entry: ask + entry buffer
+              ? ltp * (1 + sellExitBuffer)   // closing SELL/short: ask + SELL exit_buffer
+              : ltp * (1 + buyEntryBuffer);   // long entry: ask + BUY entry_buffer
           } else {
             priceWithBuffer = order.is_exit
-              ? ltp * (1 - buyBidBuffer)     // selling to close a long: bid - bid buffer
-              : ltp * (1 - sellBidBuffer);  // short entry: bid - bid buffer
+              ? ltp * (1 - buyExitBuffer)    // closing BUY/long: bid - BUY exit_buffer
+              : ltp * (1 - sellEntryBuffer); // short entry: bid - SELL entry_buffer
           }
 
           // Fill price is the actual execution price (ask for BUY, bid for SELL).

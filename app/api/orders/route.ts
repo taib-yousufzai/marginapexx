@@ -1184,19 +1184,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } else {
       if (side === 'BUY') {
         if (is_exit) {
-          // Exiting SELL/Short (Buying back) executes at: Ask * (1 + exitBuffer) of SELL side settings
+          // Closing a SELL/short position (buying back):
+          // use SELL side exit_buffer — the buffer belongs to the original position's side
           priceWithBuffer = kiteAsk * (1 + sellExitBuffer);
         } else {
-          // Long Entry (Buying) executes at: Ask * (1 + entryBuffer) of BUY side settings
+          // Long entry: ask + BUY side entry_buffer
           priceWithBuffer = kiteAsk * (1 + buyEntryBuffer);
         }
       } else {
         if (is_exit) {
-          // Exiting BUY/Long (Selling to close) executes at: Bid * (1 - bidBuffer) of BUY side settings
-          priceWithBuffer = kiteBid * (1 - buyBidBuffer);
+          // Closing a BUY/long position (selling to close):
+          // use BUY side exit_buffer — the buffer belongs to the original position's side
+          priceWithBuffer = kiteBid * (1 - buyExitBuffer);
         } else {
-          // Short Entry (Selling) executes at: Bid * (1 - bidBuffer) of SELL side settings
-          priceWithBuffer = kiteBid * (1 - sellBidBuffer);
+          // Short entry: bid - SELL side entry_buffer
+          priceWithBuffer = kiteBid * (1 - sellEntryBuffer);
         }
       }
 
