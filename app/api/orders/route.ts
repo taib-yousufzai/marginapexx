@@ -1169,11 +1169,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
       } else {
         if (is_exit) {
-          // Sell to close long: bid price - exit buffer only (spread already in kiteBid)
+          // Sell to close long: bid price - BUY exit buffer (spread already in kiteBid)
           priceWithBuffer = kiteBid * (1 - buyExitBuffer) - brokeragePerUnit;
         } else {
-          // Short entry: bid price - entry buffer only
-          priceWithBuffer = kiteBid * (1 - sellEntryBuffer) - brokeragePerUnit;
+          // Short entry: bid price - SELL bid_buffer (matches normal path)
+          priceWithBuffer = kiteBid * (1 - sellBidBuffer) - brokeragePerUnit;
         }
       }
       
