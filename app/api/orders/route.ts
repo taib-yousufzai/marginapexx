@@ -781,7 +781,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const symbolLotSize = lots > 0 ? (qty / lots) : getLotSize(symbol, dbScriptSettings);
   const maxQty = (segSetting.max_order_lot as number) * symbolLotSize;
   console.log('[DEBUG-LOT]', { symbol, qty, lots, symbolLotSize, max_order_lot: segSetting.max_order_lot, maxQty, getLotSize: getLotSize(symbol, dbScriptSettings) });
-  if (qty > maxQty) {
+  if (!is_exit && qty > maxQty) {
     return NextResponse.json({
       error: `Order exceeds maximum allowed order limit of ${segSetting.max_order_lot} lots (${maxQty} units)`,
     }, { status: 400 });
