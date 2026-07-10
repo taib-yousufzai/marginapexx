@@ -221,8 +221,11 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       bidPrice = rawBid * (1 - buyExitBuffer / 100);
       askPrice = rawAsk * (1 + sellExitBuffer / 100);
     } else {
-      bidPrice = rawBid * (1 - sellEntryBuffer / 100);
-      askPrice = rawAsk * (1 + buyEntryBuffer / 100);
+      // Normal buffer (entry_buffer) must NOT modify the displayed ask/bid price.
+      // It only affects the fill price at execution time (handled in the backend).
+      // The raw market ask/bid is shown as-is so the user sees the real spread.
+      bidPrice = rawBid;
+      askPrice = rawAsk;
     }
   }
 
