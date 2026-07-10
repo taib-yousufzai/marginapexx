@@ -228,6 +228,38 @@ export class InMemoryMatchingEngine {
       .subscribe();
   }
 
+  /**
+   * Periodic balance sync — runs every 5 seconds.
+   * Fetches balance + auto_sqoff for ALL users who currently have open positions
+   * in a single batched DB query. This is the safety net for Realtime misses
+   * (Railway restarts, network blips) without doing a per-tick DB read.
+   * One query per 5 seconds regardless of how many users are active.
+   */
+  public startBalanceSync() {
+    const admin = getAdminClient();
+    setInterval(async () => {
+      const userIds = Array.from(
+        new Set(Array.from(this.activePositions.values()).map((p: any) => p.user_id))
+      );
+      if (userIds.length === 0) return;
+
+      try {
+        const { data } = await admin
+          .from('profiles')
+          .select('id, balance, auto_sqoff, trading_mode')
+          .in('id', userIds);
+
+        if (data) {
+          for (const profile of data) {
+            if (profile?.id) this.userProfiles.set(profile.id, profile);
+          }
+        }
+      } catch {
+        // Non-fatal — Realtime will catch up
+      }
+    }, 5000);
+  }
+
   public async process(quotes: Quote[]) {
     const start = performance.now();
     const admin = getAdminClient();
@@ -476,25 +508,11 @@ export class InMemoryMatchingEngine {
           }
         }
 
-        // ── Live balance: always fetch from DB for liquidation accuracy ──────
-        // Realtime can miss events on Railway restarts or network blips.
-        // A per-tick DB read ensures we never use a stale balance and miss
-        // a liquidation that should have fired.
-        try {
-          const { data: liveProfile } = await admin
-            .from('profiles')
-            .select('id, balance, auto_sqoff, trading_mode')
-            .eq('id', userId)
-            .single();
-          if (liveProfile && liveProfile.id) {
-            this.userProfiles.set(liveProfile.id, liveProfile);
-            cachedProfile = liveProfile;
-          }
-        } catch {
-          // Non-fatal — fall through to cached value
-        }
-
-        if (!cachedProfile) continue;
+        // ── Live balance: trust Realtime-maintained cache ─────────────────
+        // The profiles Realtime subscription (setupRealtimeSync) updates
+        // userProfiles within ~100-200ms of any balance change (deposit, PnL, etc).
+        // The 5-second periodic sync (startBalanceSync) self-heals any missed
+        // Realtime events without hammering the DB on every tick.
         let balance = Number(cachedProfile.balance || 0);
         const autoSqoffPercent = Number(cachedProfile.auto_sqoff ?? 90);
         if (autoSqoffPercent <= 0) continue;

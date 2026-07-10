@@ -188,6 +188,7 @@ class TickerDaemon {
         logger.info({ attempt }, 'Seeding In-Memory Matching Engine cache from database...');
         await matchingEngine.initialize();
         matchingEngine.setupRealtimeSync();
+        matchingEngine.startBalanceSync();
         logger.info('In-Memory Matching Engine initialized and synced.');
         initSuccess = true;
         break;
