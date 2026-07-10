@@ -354,7 +354,7 @@ export class InMemoryMatchingEngine {
           } else {
             priceWithBuffer = order.is_exit
               ? ltp * (1 - buyExitBuffer)    // closing BUY/long: bid - BUY exit_buffer
-              : ltp * (1 - sellEntryBuffer); // short entry: bid - SELL entry_buffer
+              : ltp * (1 - sellBidBuffer);   // short entry: bid - SELL bid_buffer
           }
 
           // Fill price is the actual execution price (ask for BUY, bid for SELL).

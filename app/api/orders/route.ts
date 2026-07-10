@@ -1197,8 +1197,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           // use BUY side exit_buffer — the buffer belongs to the original position's side
           priceWithBuffer = kiteBid * (1 - buyExitBuffer);
         } else {
-          // Short entry: bid - SELL side entry_buffer
-          priceWithBuffer = kiteBid * (1 - sellEntryBuffer);
+          // Short entry: bid - SELL side bid_buffer (selling hits the bid by definition)
+          priceWithBuffer = kiteBid * (1 - sellBidBuffer);
         }
       }
 

@@ -75,11 +75,11 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('showcase_auto_sqoff')
+          .select('auto_sqoff')
           .eq('id', session.user.id)
           .single();
         if (profile && !cancelled) {
-          setAutoSqoffPercent(Number((profile as any).showcase_auto_sqoff ?? 85));
+          setAutoSqoffPercent(Number((profile as any).auto_sqoff ?? 90));
         }
       } catch (err) {
         console.error('Failed to fetch profile settings in Footer', err);
@@ -97,7 +97,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
             if (updated) {
               setBalance(Number(updated.balance ?? 0));
               setSettlementAmount(Math.abs(Number(updated.settlement_amount ?? 0)));
-              setAutoSqoffPercent(Number(updated.showcase_auto_sqoff ?? 85));
+              setAutoSqoffPercent(Number(updated.auto_sqoff ?? 90));
             }
           }
         )
