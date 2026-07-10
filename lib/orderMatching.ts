@@ -497,7 +497,11 @@ export class InMemoryMatchingEngine {
 
           if (ltp === undefined) {
             for (const key of pricesMap.keys()) {
-              if (key === pos.symbol || key.endsWith(`:${pos.symbol}`)) {
+              if (
+                key === pos.symbol || 
+                key.endsWith(`:${pos.symbol}`) || 
+                key === `${pos.symbol}USDT`
+              ) {
                 ltp = pricesMap.get(key);
                 break;
               }
