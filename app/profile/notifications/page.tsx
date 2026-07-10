@@ -52,40 +52,16 @@ function timeAgo(iso: string): string {
 // ── Fake notifications for preview (auto-replaced when real ones arrive) ──
 const FAKE_NOTIFICATIONS: Notification[] = [
     {
-        id: 'fn1', type: 'ORDER_EXECUTED', read: false,
-        created_at: new Date(Date.now() - 12 * 60000).toISOString(),
-        title: 'Order Executed',
-        message: 'BUY 75 NIFTY FUT @ ₹22,456.80 has been executed successfully.',
-    },
-    {
         id: 'fn2', type: 'DEPOSIT_APPROVED', read: false,
         created_at: new Date(Date.now() - 2 * 3600000).toISOString(),
         title: 'Deposit Approved',
         message: '₹10,000 has been credited to your trading account.',
     },
     {
-        id: 'fn3', type: 'POSITION_CLOSED', read: false,
-        created_at: new Date(Date.now() - 5 * 3600000).toISOString(),
-        title: 'Position Closed — Profit',
-        message: 'GOLD FUT position closed. Net P&L: +₹5,107.50.',
-    },
-    {
-        id: 'fn4', type: 'ORDER_REJECTED', read: true,
-        created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-        title: 'Order Rejected',
-        message: 'SELL 25 BANKNIFTY FUT rejected — insufficient margin available.',
-    },
-    {
         id: 'fn5', type: 'WITHDRAWAL_APPROVED', read: true,
         created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
         title: 'Withdrawal Processed',
         message: '₹5,000 withdrawal has been sent to your registered bank account.',
-    },
-    {
-        id: 'fn6', type: 'POSITION_CLOSED', read: true,
-        created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-        title: 'Position Closed — Loss',
-        message: 'BANKNIFTY FUT position closed. Net P&L: −₹3,200.00.',
     },
     {
         id: 'fn7', type: 'DEPOSIT_REJECTED', read: true,
