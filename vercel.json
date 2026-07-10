@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/eod-processing?secret=qwertyuiopasdfghjklzxcvbnm",
       "schedule": "55 18 * * *"
+    },
+    {
+      "path": "/api/cron/liquidation-check?secret=qwertyuiopasdfghjklzxcvbnm",
+      "schedule": "*/1 * * * *"
     }
   ]
 }
