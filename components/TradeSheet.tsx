@@ -7,6 +7,7 @@ import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import { useComexQuotes } from '@/hooks/useComexQuotes';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
+import { ErrorModal } from '@/components/ErrorModal';
 export interface TradeSheetItem {
   name: string;
   symbol: string;
@@ -112,6 +113,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const [gttSubOption, setGttSubOption] = useState<string>('LIMIT');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
   const isExpired = useMemo(() => {
     if (!item?.expiry || exitMode || isModify) return false;
@@ -849,7 +851,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         onSuccess?.();
         onClose();
       } else {
-        alert(`Order Failed:\n${res.error}`);
+        setErrorModalMsg(`Order Failed:\n${res.error}`);
         showToast(`${res.error}`);
       }
     } finally {
@@ -1562,6 +1564,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
       )}
 
       <div className={`ts2-toast${toast ? ' show' : ''}`}>{toast}</div>
+
+      <ErrorModal error={errorModalMsg} onClose={() => setErrorModalMsg(null)} />
     </>
   );
 }

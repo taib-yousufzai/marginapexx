@@ -1156,21 +1156,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (dbSegment === 'CRYPTO' && isCustomCalc) {
       const brokeragePerUnit = qty > 0 ? (brokerage / qty) : 0;
       
+      // kiteBid / kiteAsk already represent the real order-book bid/ask prices,
+      // so bid_buffer must NOT be added again — that would double-count the spread.
+      // Only entry_buffer / exit_buffer (the "normal" admin buffer) is applied on top.
       if (side === 'BUY') {
         if (is_exit) {
-          // Buy to close: bid + bid buffer + exit buffer + brokerage
-          priceWithBuffer = kiteBid * (1 + sellBidBuffer + sellExitBuffer) + brokeragePerUnit;
+          // Buy to close short: ask price + exit buffer only (ask/bid spread already in kiteAsk)
+          priceWithBuffer = kiteAsk * (1 + sellExitBuffer) + brokeragePerUnit;
         } else {
-          // Long Entry: bid + bid buffer + entry buffer + brokerage
-          priceWithBuffer = kiteBid * (1 + buyBidBuffer + buyEntryBuffer) + brokeragePerUnit;
+          // Long entry: ask price + entry buffer only
+          priceWithBuffer = kiteAsk * (1 + buyEntryBuffer) + brokeragePerUnit;
         }
       } else {
         if (is_exit) {
-          // Sell to close: ask - bid buffer - exit buffer - brokerage
-          priceWithBuffer = kiteAsk * (1 - buyBidBuffer - buyExitBuffer) - brokeragePerUnit;
+          // Sell to close long: bid price - exit buffer only (spread already in kiteBid)
+          priceWithBuffer = kiteBid * (1 - buyExitBuffer) - brokeragePerUnit;
         } else {
-          // Short Entry: ask - bid buffer - entry buffer - brokerage
-          priceWithBuffer = kiteAsk * (1 - sellBidBuffer - sellEntryBuffer) - brokeragePerUnit;
+          // Short entry: bid price - entry buffer only
+          priceWithBuffer = kiteBid * (1 - sellEntryBuffer) - brokeragePerUnit;
         }
       }
       
