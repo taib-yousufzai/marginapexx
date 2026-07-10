@@ -259,7 +259,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
                 <div className="summary-item">
                   <span className="summary-label">Equity</span>
                   <span className="summary-value">
-                    <TickFlash value={equity}>{equity < 0 ? '-' : ''}₹{fmt(equity)}</TickFlash>
+                    <TickFlash value={positionValue}>₹{fmt(positionValue)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
