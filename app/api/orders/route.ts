@@ -1172,8 +1172,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           // Sell to close long: bid price - BUY exit buffer (spread already in kiteBid)
           priceWithBuffer = kiteBid * (1 - buyExitBuffer) - brokeragePerUnit;
         } else {
-          // Short entry: bid price - SELL bid_buffer (matches normal path)
-          priceWithBuffer = kiteBid * (1 - sellBidBuffer) - brokeragePerUnit;
+          // Short entry: bid price - SELL entry_buffer
+          priceWithBuffer = kiteBid * (1 - sellEntryBuffer) - brokeragePerUnit;
         }
       }
       
@@ -1197,8 +1197,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           // use BUY side exit_buffer — the buffer belongs to the original position's side
           priceWithBuffer = kiteBid * (1 - buyExitBuffer);
         } else {
-          // Short entry: bid - SELL side bid_buffer (selling hits the bid by definition)
-          priceWithBuffer = kiteBid * (1 - sellBidBuffer);
+          // Short entry: bid - SELL side entry_buffer
+          priceWithBuffer = kiteBid * (1 - sellEntryBuffer);
         }
       }
 
