@@ -1420,7 +1420,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Equity</span>
                     <span className="ts2-mv" style={{ color: '#000', fontWeight: 800 }}>
-                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+                      ₹ {baseExposure.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
 
