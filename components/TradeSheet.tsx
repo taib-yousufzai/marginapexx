@@ -1410,7 +1410,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Available</span>
                     <span className="ts2-mv-avail">
-                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
+                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
                   <div className="ts2-margin-row">
@@ -1420,21 +1420,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Equity</span>
                     <span className="ts2-mv" style={{ color: '#000', fontWeight: 800 }}>
-                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '--'}
+                      {availableBalance !== null ? `₹ ${availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
                     </span>
                   </div>
 
                   {/* Collapsible Charges Breakdown */}
                   <div
                     className="ts2-margin-row"
-                    style={{ cursor: 'pointer', userSelect: 'none', borderTop: '1px solid var(--border-light, #F1F5F9)', paddingTop: '8px', marginTop: '4px' }}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
                     onClick={() => setShowCharges(!showCharges)}
                   >
                     <span className="ts2-ml" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                       Charges Breakdown {showCharges ? '▲' : '▼'}
                     </span>
                     <span className="ts2-mv" style={{ color: '#15803D', fontWeight: 800 }}>
-                      ₹ {calculatedBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      ₹ {calculatedBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   {showCharges && (
@@ -1442,19 +1442,19 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                       <div className="ts2-margin-row" style={{ paddingTop: '8px' }}>
                         <span className="ts2-ml">Intraday Brokerage</span>
                         <span className="ts2-mv">
-                          ₹ {displayIntraday.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹ {displayIntraday.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">Carry Charges</span>
                         <span className="ts2-mv" style={(targetPT === 'CARRY' || displayCarry > 0) ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                          ₹ {displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹ {displayCarry.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="ts2-margin-row">
                         <span className="ts2-ml">GTT Charges</span>
                         <span className="ts2-mv" style={orderType === 'GTT' ? { color: '#15803D', fontWeight: 700 } : { opacity: 0.45 }}>
-                          ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          ₹ {(orderType === 'GTT' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </>
