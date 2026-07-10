@@ -176,6 +176,27 @@ export async function checkAndExecuteAccountLiquidation(
 
   positionsClosed = closeResults.filter(Boolean).length;
 
+  // ── Notify user about liquidation ────────────────────────────────────────
+  // Send one notification per closed position so the user knows exactly
+  // which instruments were liquidated and at what threshold.
+  if (positionsClosed > 0) {
+    const closedPositions = positions.filter((_, i) => closeResults[i]);
+    const notifRows = closedPositions.map(pos => ({
+      user_id: userId,
+      type: 'GENERAL',
+      title: `⚠️ Auto Liquidation — ${pos.symbol}`,
+      message:
+        `Your ${pos.side} position in ${pos.symbol} (${pos.qty_open} qty) was automatically ` +
+        `closed due to margin call at ${confirmedAutoSqoff}% loss threshold. ` +
+        `Balance: ₹${confirmedBalance.toFixed(2)}. ` +
+        `Floating P&L at trigger: ₹${totalFloatingPnl.toFixed(2)}.`,
+      read: false,
+      created_at: new Date().toISOString(),
+    }));
+
+    await admin.from('notifications').insert(notifRows);
+  }
+
   //  determine settlement amount — computed directly, not read-back from profile
   // Sum up the actual PNL_DEBIT amounts for all positions we just closed.
   // This avoids a race condition where profiles.settlement_amount may not yet
