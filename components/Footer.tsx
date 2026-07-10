@@ -252,13 +252,13 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Floating P/L</span>
-                  <span className={`summary-value ${floatingPnl >= 0 ? 'positive' : 'negative'}`}>
+                  <span className={`summary-value ${floatingPnl >= 0 ? 'pnl-green' : 'negative'}`}>
                     <TickFlash value={floatingPnl}>{floatingPnl >= 0 ? '+' : '-'}₹{fmt(floatingPnl)}</TickFlash>
                   </span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Equity</span>
-                  <span className="summary-value highlight">
+                  <span className="summary-value">
                     <TickFlash value={equity}>{equity < 0 ? '-' : ''}₹{fmt(equity)}</TickFlash>
                   </span>
                 </div>
@@ -270,7 +270,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Liquidation ({autoSqoffPercent}%)</span>
-                  <span className={`summary-value negative`}>
+                  <span className="summary-value">
                     <TickFlash value={liquidationLevel}>{liquidationLevel < 0 ? '-' : ''}₹{fmt(liquidationLevel)}</TickFlash>
                   </span>
                 </div>

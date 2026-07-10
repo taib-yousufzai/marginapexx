@@ -315,6 +315,8 @@ body.dark .summary-item {
 
 body.dark .summary-value { color: var(--text-primary, #F5F5F5); }
 .summary-value.positive { color: #22c55e; background: none; }
+.summary-value.pnl-green { color: #006400; background: none; }
+body.dark .summary-value.pnl-green { color: #15803d; }
 .summary-value.negative { color: #ef4444; background: none; }
 .summary-value.highlight { color: var(--footer-active, #006400); background: none; }
 body.dark .summary-value.highlight { color: var(--footer-active, #008000); }

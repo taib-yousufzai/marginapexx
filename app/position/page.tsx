@@ -88,6 +88,8 @@ export default function PositionPage() {
 
   useEffect(() => {
     fetchClosed();
+    const iv = setInterval(fetchClosed, 5000);
+    return () => clearInterval(iv);
   }, []);
 
   const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
@@ -588,10 +590,7 @@ export default function PositionPage() {
                   <div className="pos-brand">
                     <span>MARGIN<span className="apex-text">APEX</span></span>
                   </div>
-                  <div className="pos-brand-sub">
-                    <div>Internal Positions</div>
-                    <div>Real-time P&amp;L</div>
-                  </div>
+
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginRight: '8px' }}>
                   <button className="pos-wallet-btn" onClick={() => router.push('/funds')}>
