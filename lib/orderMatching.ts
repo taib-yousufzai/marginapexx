@@ -476,14 +476,25 @@ export class InMemoryMatchingEngine {
           }
         }
 
-        if (!cachedProfile) continue;
+        // ── Live balance: always fetch from DB for liquidation accuracy ──────
+        // Realtime can miss events on Railway restarts or network blips.
+        // A per-tick DB read ensures we never use a stale balance and miss
+        // a liquidation that should have fired.
+        try {
+          const { data: liveProfile } = await admin
+            .from('profiles')
+            .select('id, balance, auto_sqoff, trading_mode')
+            .eq('id', userId)
+            .single();
+          if (liveProfile && liveProfile.id) {
+            this.userProfiles.set(liveProfile.id, liveProfile);
+            cachedProfile = liveProfile;
+          }
+        } catch {
+          // Non-fatal — fall through to cached value
+        }
 
-        // ── Live balance: trust Realtime-maintained cache ─────────────────
-        // The profiles Realtime subscription (setupRealtimeSync) updates
-        // userProfiles within ~100-200ms of any balance change (deposit, PnL, etc).
-        // A per-tick DB round-trip adds ~50-100ms latency on every flush and
-        // serialises all users — removing it makes liquidation ~3-5× faster.
-        // The sync timer (every 60s) self-heals any missed Realtime events.
+        if (!cachedProfile) continue;
         let balance = Number(cachedProfile.balance || 0);
         const autoSqoffPercent = Number(cachedProfile.auto_sqoff ?? 90);
         if (autoSqoffPercent <= 0) continue;
