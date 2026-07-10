@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
   try {
     const quotes: Record<string, {
       symbol: string;
+      contractSymbol: string;
       lastPrice: number;
       change: number;
       changePercent: number;
@@ -87,8 +88,11 @@ export async function GET(req: NextRequest) {
           const change = lastPrice - close;
           const changePercent = close !== 0 ? (change / close) * 100 : 0;
 
+          // meta.shortName gives the friendly contract name (e.g. "Gold Aug 26").
+          // meta.symbol is just the generic ticker (GC=F), not the front-month contract code.
           quotes[symbol] = {
             symbol,
+            contractSymbol: meta.shortName ?? symbol,
             lastPrice,
             change,
             changePercent,

@@ -24,8 +24,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface ComexQuoteData {
-  symbol: string;       // e.g. 'GC=F'
-  name: string;         // e.g. 'Gold Jun 25'
+  symbol: string;          // e.g. 'GC=F'
+  contractSymbol: string;  // e.g. 'GCQ26' (active front-month contract from Yahoo)
+  name: string;            // e.g. 'Gold Aug 25'
   lastPrice: number;
   change: number;       // absolute change
   changePercent: number;
