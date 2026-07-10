@@ -456,6 +456,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     dbSegment = isOptionSymbol ? 'MCX-OPT' : 'MCX-FUT';
   } else if (['BTC', 'ETH', 'DOGE', 'SOL', 'XRP', 'ADA', 'BNB', 'DOT', 'LTC', 'AVAX', 'MATIC'].some(c => symUp === c || symUp.startsWith(c + 'USDT'))) {
     dbSegment = 'CRYPTO';
+  } else {
+    dbSegment = mapSymbolToSegment(symbol);
   }
   
   const admin = getAdminClient();
@@ -842,6 +844,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     ? (segSetting.holding_type ?? 'Multiplier')
     : (segSetting.intraday_type ?? 'Multiplier');
 
+  console.log('[DEBUG-MARGIN]', {
+    symbol, dbSegment, side, targetProductType,
+    leverageType, leverageVal,
+    settingsFromDB: !!settingsList.find((s: any) => s.side === side),
+    settingsFromParent: !!parentSettingsList.find((s: any) => s.side === side),
+    usingFallbackDefaults: !settingsList.find((s: any) => s.side === side) && !parentSettingsList.find((s: any) => s.side === side),
+    intraday_type: segSetting.intraday_type,
+    holding_type: segSetting.holding_type,
+    intraday_leverage: segSetting.intraday_leverage,
+    holding_leverage: segSetting.holding_leverage,
+  });
+
   // 9. Base LTP from server
   if (!kiteLtp || kiteLtp <= 0) {
     return NextResponse.json({ error: 'Could not determine market price. Try again.' }, { status: 503 });
@@ -926,7 +940,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   );
   const freeMargin = calculateFreeMarginFromPositions(balance, openPositions);
 
-  if (freeMargin < requiredMargin) {
+  if (!is_exit && freeMargin < requiredMargin) {
     return NextResponse.json({
       error: `Insufficient margin. Free Margin: ₹${freeMargin.toFixed(2)}, Required: ₹${requiredMargin.toFixed(2)} (Balance: ₹${balance.toFixed(2)}, Used: ₹${totalLockedMargin.toFixed(2)})`,
     }, { status: 400 });

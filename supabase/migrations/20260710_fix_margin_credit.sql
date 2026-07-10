@@ -5,6 +5,19 @@
 --              are closed, partially closed, or converted, which syncs the balance.
 -- ==============================================================================
 
+-- 1. Add MARGIN_CREDIT to the transactions type check constraint
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
+ALTER TABLE public.transactions ADD CONSTRAINT transactions_type_check 
+  CHECK (type IN (
+    'DEPOSIT','WITHDRAWAL',
+    'PNL_CREDIT','PNL_DEBIT',
+    'BROKERAGE_DEBIT','BUFFER_FEE_DEBIT',
+    'MARGIN_ADJ_CREDIT','MARGIN_ADJ_DEBIT',
+    'LIQUIDATION_DEBIT',
+    'MARGIN_DEBIT','MARGIN_CREDIT'
+  ));
+
+-- 2. Update calculate_position_margin to return margin on close
 CREATE OR REPLACE FUNCTION public.calculate_position_margin()
 RETURNS trigger AS $$
 DECLARE
