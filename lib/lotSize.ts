@@ -20,12 +20,14 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Keep these updated when NSE revises lot sizes, but they're only used when
 // the instruments table hasn't been synced yet.
 const FALLBACK_LOT_SIZES: Record<string, number> = {
-  BANKNIFTY:   30,   // revised Nov 2024 (was 15)
-  BANKEX:      30,
-  FINNIFTY:    40,   // revised Nov 2024 (was 25)
+  BANKNIFTY:   15,
+  BANKEX:      15,
+  FINNIFTY:    25,
   MIDCPNIFTY:  50,
-  NIFTY:       75,   // revised Nov 2024 (was 25)
-  SENSEX:      20,   // revised Nov 2024 (was 10)
+  MIDCP:       50,
+  MIDCAP:      50,
+  NIFTY:       25,
+  SENSEX:      10,
   GOLD:        100,
   GOLDM:       10,
   SILVER:      30,
