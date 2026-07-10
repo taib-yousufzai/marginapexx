@@ -275,28 +275,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const gttCharge = (orderType === 'GTT' && segSetting ? computeCharge(
     segSetting.gtt_commission_type || 'Per Trade',
     segSetting.gtt_commission_value ?? 10
-  ) : (orderType === 'GTT' ? computeCharge('Per Trade', 15) : 0)) * multiplier;
+  ) : (orderType === 'GTT' ? computeCharge('Per Trade', 15) : 0));
 
   let displayIntraday = 0;
   let displayCarry = 0;
 
   if (orderType === 'GTT') {
-    displayIntraday = rawIntradayCharge * multiplier;
-    displayCarry = rawCarryCharge * multiplier;
+    displayIntraday = rawIntradayCharge;
+    displayCarry = rawCarryCharge;
   } else if (targetPT === 'CARRY') {
-    if (isExitTrade) {
-      // At exit, user pays for both entry and exit legs of the CARRY position
-      displayCarry = rawCarryCharge * 2;
-    } else {
-      // Preview of full round-trip
-      displayCarry = rawCarryCharge * 2;
-    }
+    displayCarry = rawCarryCharge;
   } else {
-    if (isExitTrade) {
-      displayIntraday = rawIntradayCharge; // Already paid entry, now paying exit
-    } else {
-      displayIntraday = rawIntradayCharge * 2; // Preview of full round-trip
-    }
+    displayIntraday = rawIntradayCharge;
   }
 
   const calculatedBrokerage = displayIntraday + displayCarry + gttCharge;

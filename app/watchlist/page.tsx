@@ -1882,8 +1882,8 @@ function WatchlistContent() {
                   else if (commType === 'Per Trade' || commType === 'Flat') charge = commVal;
                   else charge = exposure * 0.001;
                   
-                  if (isIntra) intradayCharges += (charge * 2);
-                  else carryCharges += (charge * 2);
+                  if (isIntra) intradayCharges += charge;
+                  else carryCharges += charge;
                 });
                 const totalCharges = intradayCharges + carryCharges;
 
