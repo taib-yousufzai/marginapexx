@@ -141,9 +141,7 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
     };
   }, [enrichedPositions, balance, autoSqoffPercent]);
 
-  // Equity = sum of (LTP × open qty) across all open positions
-  // This reflects the total market value of held positions.
-  const equity = positionValue;
+  const equity = balance + floatingPnl;
   const freeMargin = balance + floatingPnl - usedMargin;
   const fmt = (n: number) => Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
