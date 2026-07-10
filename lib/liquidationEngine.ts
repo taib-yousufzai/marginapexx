@@ -36,10 +36,7 @@ export function computeFreeMargin(
   walletBalance: number,
   totalLockedMargin: number,
 ): number {
-  // Delegates to the canonical implementation in floatingPnl.ts.
-  // Note: this signature uses lockedMargin as a proxy for floating loss
-  // (balance - lockedMargin) for backward compatibility with existing tests.
-  return calculateFreeMargin(walletBalance, -totalLockedMargin);
+  return calculateFreeMargin(walletBalance, totalLockedMargin, 0);
 }
 
 /**

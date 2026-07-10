@@ -77,7 +77,7 @@ export async function checkAndSquareOffPositionsForMargin(userId: string, adminC
     }
 
     // 5. Check if total available margin is negative
-    const freeMargin = calculateFreeMargin(balance, totalFloatingLoss);
+    const freeMargin = calculateFreeMargin(balance, totalLockedMargin, totalFloatingLoss);
     
     if (freeMargin < 0) {
       // User has insufficient margin now!

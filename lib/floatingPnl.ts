@@ -46,14 +46,14 @@ export interface FloatingPnlParams {
  * @param balance         - Current wallet balance
  * @param totalFloatingLoss - Sum of unrealised losses only (must be ≤ 0; profits ignored)
  */
-export function calculateFreeMargin(balance: number, totalFloatingLoss: number): number {
+export function calculateFreeMargin(balance: number, totalLockedMargin: number, totalFloatingLoss: number): number {
   // totalFloatingLoss should be ≤ 0; if caller accidentally passes a positive value
   // (i.e. total P&L including profits), clamp it so we never inflate free margin.
-  return balance + Math.min(0, totalFloatingLoss);
+  return balance - totalLockedMargin + Math.min(0, totalFloatingLoss);
 }
 
 /**
- * Convenience helper: derive totalFloatingLoss from an array of open positions
+ * Convenience helper: derive totalFloatingLoss and totalLockedMargin from an array of open positions
  * and then compute free margin.
  *
  * Positions are expected to have a numeric `pnl` field (the DB-cached value).
@@ -61,13 +61,15 @@ export function calculateFreeMargin(balance: number, totalFloatingLoss: number):
  */
 export function calculateFreeMarginFromPositions(
   balance: number,
-  openPositions: Array<{ pnl?: number | string | null }>,
+  openPositions: Array<{ pnl?: number | string | null; locked_margin?: number | string | null; margin_required?: number | string | null }>,
 ): number {
+  let totalLockedMargin = 0;
   const totalFloatingLoss = openPositions.reduce((sum, p) => {
+    totalLockedMargin += Number(p.locked_margin || p.margin_required || 0);
     const pnl = Number(p.pnl || 0);
     return sum + (pnl < 0 ? pnl : 0);
   }, 0);
-  return calculateFreeMargin(balance, totalFloatingLoss);
+  return calculateFreeMargin(balance, totalLockedMargin, totalFloatingLoss);
 }
 
 /**
