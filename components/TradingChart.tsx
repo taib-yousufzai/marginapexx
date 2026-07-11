@@ -285,11 +285,11 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
   useEffect(() => {
     setIsSearching(true);
     const abortController = new AbortController();
-    
+
     const timer = setTimeout(async () => {
       const actualQuery = normalizedQuery.length >= 2 ? normalizedQuery : (SEGMENT_DEFAULTS[activeSearchTab] || 'NIFTY');
       const qLower = actualQuery.toLowerCase();
-      
+
       const localMatches = localScripts.filter(s => {
         const match = wordStartMatch(s.name, qLower) || wordStartMatch(s.symbol, qLower);
         if (!match) return false;
@@ -310,10 +310,10 @@ const ChartSearchOverlay = ({ onClose, onSelect, starredInstruments, toggleStar 
       } catch (err: any) {
         if (err.name !== 'AbortError') console.error(err);
       }
-      
+
       const merged = [...liveMatches];
       const liveSymbols = new Set(liveMatches.map((r: any) => r.symbol));
-      
+
       for (const local of localMatches) {
         if (!liveSymbols.has(local.symbol)) {
           merged.push(local);
@@ -444,6 +444,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [isCssLandscape, setIsCssLandscape] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
   const hasLoadedData = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -1099,13 +1100,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setIsExitFlow(true);
     setIsAddMoreFlow(false);
     setExitPositionId(pos.id);
-    
+
     // Also set the target symbol info so the order block UI shows the correct position prices
     // instead of the chart's current instrument prices
     setAddMoreSymbol(pos.symbol);
     setAddMoreSegment(pos.settlement || segment);
     setAddMoreLtp(pos.current_ltp || pos.avg_price || pos.entry_price);
-    
+
     setOrderSide(pos.side === 'BUY' ? 'SELL' : 'BUY');
     setQtyValue(pos.qty_open);
     setUseLots(false);
@@ -1253,7 +1254,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       p.symbol === symbol
     );
     if (matchingPositions.length === 0) return null;
-    
+
     // Group them like Cumulative view
     const totalQty = matchingPositions.reduce((sum, p) => sum + p.qty_open, 0);
     const repPos = matchingPositions[0]; // just take first for other metadata
@@ -1560,18 +1561,20 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   return (
     <div
       className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}
-      style={isLandscape ? {
+      style={(isLandscape || isCssLandscape) ? {
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100vw',
-        height: '100dvh',
+        width: isCssLandscape ? '100dvh' : '100vw',
+        height: isCssLandscape ? '100vw' : '100dvh',
         zIndex: 999999,
         borderRadius: 0,
         margin: 0,
         overflow: 'hidden',
+        transform: isCssLandscape ? 'rotate(90deg) translateY(-100%)' : 'none',
+        transformOrigin: isCssLandscape ? 'top left' : 'center',
       } : undefined}
     >
       {/* Top Toolbar */}
@@ -1585,6 +1588,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             const overlay = document.getElementById('chartSheetOverlay');
             if (sheet) sheet.classList.remove('open');
             if (overlay) overlay.classList.remove('active');
+            setTimeout(() => {
+              setIsCssLandscape(false);
+            }, 350);
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -1778,6 +1784,19 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
         {/* Chart Container */}
         <div className="tc-chart-container">
+          {/* Rotate Button (Floating) */}
+          <div className="tc-rotate-btn" title={isCssLandscape ? "Rotate to Portrait" : "Rotate to Landscape"} onClick={() => {
+            setIsCssLandscape(!isCssLandscape);
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 300); // Fail-safe
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              <path d="M22 12h-2M4 12H2"></path>
+            </svg>
+          </div>
+
           {/* Legend Overlay */}
           <div className="tc-legend-overlay">
             <div className="tc-legend-top">
@@ -1891,413 +1910,413 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
       {/* Bottom Section */}
       {!isLandscape && (
-      <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
-        {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
-        {!isUnderlyingIndex && !isOrderBlockVisible && (
-          currentInstrumentPosition ? (
-            <div className="trade-buttons" id="tradeButtons">
-              {currentInstrumentPosition.side === 'BUY' ? (
-                <>
-                  <button id="buyButton" className="trade-btn buy" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
-                      handleQuickMarketOrder('BUY');
-                    } else {
-                      setIsPanelExpanded(false);
-                      setIsExitFlow(false);
-                      setIsAddMoreFlow(false);
-                      setExitPositionId(null);
-                      setOrderBlockTitle(symbol);
-                      setPostOrderSegment('main');
-                      setIsOrderBlockVisible(true);
-                      setOrderSide('BUY');
-                    }
-                  }}>
-                    <span className="btn-label">BUY</span>
-                  </button>
-                  <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                    <span className="btn-label">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                        <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
-                      </svg>
-                      EXIT LONG
-                    </span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                    <span className="btn-label">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                        <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
-                      </svg>
-                      EXIT SHORT
-                    </span>
-                  </button>
-                  <button id="sellButton" className="trade-btn sell" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
-                      handleQuickMarketOrder('SELL');
-                    } else {
-                      setIsPanelExpanded(false);
-                      setIsExitFlow(false);
-                      setIsAddMoreFlow(false);
-                      setExitPositionId(null);
-                      setOrderBlockTitle(symbol);
-                      setPostOrderSegment('main');
-                      setIsOrderBlockVisible(true);
-                      setOrderSide('SELL');
-                    }
-                  }}>
-                    <span className="btn-label">SELL</span>
-                  </button>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="trade-buttons" id="tradeButtons">
-              <button id="buyButton" className="trade-btn buy" onClick={() => {
-                if (isPanelExpanded && activeSegment === 'chain') {
-                  handleQuickMarketOrder('BUY');
-                } else {
-                  setIsPanelExpanded(false);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                  setPostOrderSegment('main');
-                  setIsOrderBlockVisible(true);
-                  setOrderSide('BUY');
-                }
-              }}>
-                <span className="btn-label">BUY</span>
-              </button>
-              <button id="sellButton" className="trade-btn sell" onClick={() => {
-                if (isPanelExpanded && activeSegment === 'chain') {
-                  handleQuickMarketOrder('SELL');
-                } else {
-                  setIsPanelExpanded(false);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                  setPostOrderSegment('main');
-                  setIsOrderBlockVisible(true);
-                  setOrderSide('SELL');
-                }
-              }}>
-                <span className="btn-label">SELL</span>
-              </button>
-            </div>
-          )
-        )}
-
-        {/* Order Block */}
-        {isOrderBlockVisible && (
-          <div className="order-block visible" id="orderBlock">
-            <div className="order-block-header">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
-                </span>
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
-                  <span style={{
-                    color: orderSide === 'BUY' ? '#1db954' : '#e53935',
-                    background: 'transparent',
-                    padding: '0',
-                    fontWeight: '600',
-                    fontSize: '11px'
-                  }}>
-                    {orderSide === 'BUY' ? 'Ask' : 'Bid'}: ₹{Number(orderSide === 'BUY' ? liveAsk : liveBid).toFixed(2)}
-                  </span>
-                  <span style={{ color: '#8b949e', fontSize: '11px', fontWeight: '500' }}>
-                    LTP: <span style={{ color: 'var(--text-primary)', fontWeight: '700' }}>₹{Number(liveLTP).toFixed(2)}</span>
-                  </span>
-                  {chainContract && chainContract.expiry && (
-                    <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                      {chainContract.expiry}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div
-                  style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1.2px solid var(--green, #1db954)' }}
-                  onClick={() => {
-                    const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
-                    setSymbol(targetSymbol);
-                    // Derive the correct display segment so mapSegmentToDbSegment works
-                    if (chainContract) {
-                      const n = chainContract.name.toUpperCase();
-                      const isBse = n.includes('SENSEX') || n.includes('BANKEX');
-                      const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
-                      if (isMcx) {
-                        setSegment('MCX - Options');
-                      } else if (isBse) {
-                        setSegment('BSE - Options');
+        <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
+          {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
+          {!isUnderlyingIndex && !isOrderBlockVisible && (
+            currentInstrumentPosition ? (
+              <div className="trade-buttons" id="tradeButtons">
+                {currentInstrumentPosition.side === 'BUY' ? (
+                  <>
+                    <button id="buyButton" className="trade-btn buy" onClick={() => {
+                      if (isPanelExpanded && activeSegment === 'chain') {
+                        handleQuickMarketOrder('BUY');
                       } else {
+                        setIsPanelExpanded(false);
+                        setIsExitFlow(false);
+                        setIsAddMoreFlow(false);
+                        setExitPositionId(null);
+                        setOrderBlockTitle(symbol);
+                        setPostOrderSegment('main');
+                        setIsOrderBlockVisible(true);
+                        setOrderSide('BUY');
+                      }
+                    }}>
+                      <span className="btn-label">BUY</span>
+                    </button>
+                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                      <span className="btn-label">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                        </svg>
+                        EXIT LONG
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                      <span className="btn-label">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                        </svg>
+                        EXIT SHORT
+                      </span>
+                    </button>
+                    <button id="sellButton" className="trade-btn sell" onClick={() => {
+                      if (isPanelExpanded && activeSegment === 'chain') {
+                        handleQuickMarketOrder('SELL');
+                      } else {
+                        setIsPanelExpanded(false);
+                        setIsExitFlow(false);
+                        setIsAddMoreFlow(false);
+                        setExitPositionId(null);
+                        setOrderBlockTitle(symbol);
+                        setPostOrderSegment('main');
+                        setIsOrderBlockVisible(true);
+                        setOrderSide('SELL');
+                      }
+                    }}>
+                      <span className="btn-label">SELL</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="trade-buttons" id="tradeButtons">
+                <button id="buyButton" className="trade-btn buy" onClick={() => {
+                  if (isPanelExpanded && activeSegment === 'chain') {
+                    handleQuickMarketOrder('BUY');
+                  } else {
+                    setIsPanelExpanded(false);
+                    setIsExitFlow(false);
+                    setIsAddMoreFlow(false);
+                    setExitPositionId(null);
+                    setOrderBlockTitle(symbol);
+                    setPostOrderSegment('main');
+                    setIsOrderBlockVisible(true);
+                    setOrderSide('BUY');
+                  }
+                }}>
+                  <span className="btn-label">BUY</span>
+                </button>
+                <button id="sellButton" className="trade-btn sell" onClick={() => {
+                  if (isPanelExpanded && activeSegment === 'chain') {
+                    handleQuickMarketOrder('SELL');
+                  } else {
+                    setIsPanelExpanded(false);
+                    setIsExitFlow(false);
+                    setIsAddMoreFlow(false);
+                    setExitPositionId(null);
+                    setOrderBlockTitle(symbol);
+                    setPostOrderSegment('main');
+                    setIsOrderBlockVisible(true);
+                    setOrderSide('SELL');
+                  }
+                }}>
+                  <span className="btn-label">SELL</span>
+                </button>
+              </div>
+            )
+          )}
+
+          {/* Order Block */}
+          {isOrderBlockVisible && (
+            <div className="order-block visible" id="orderBlock">
+              <div className="order-block-header">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                  <span className="order-block-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {(chainContract ? chainContract.name : orderBlockTitle).replace(/NFO[:\s]?/gi, '').trim()}
+                  </span>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+                    <span style={{
+                      color: orderSide === 'BUY' ? '#1db954' : '#e53935',
+                      background: 'transparent',
+                      padding: '0',
+                      fontWeight: '600',
+                      fontSize: '11px'
+                    }}>
+                      {orderSide === 'BUY' ? 'Ask' : 'Bid'}: ₹{Number(orderSide === 'BUY' ? liveAsk : liveBid).toFixed(2)}
+                    </span>
+                    <span style={{ color: '#8b949e', fontSize: '11px', fontWeight: '500' }}>
+                      LTP: <span style={{ color: 'var(--text-primary)', fontWeight: '700' }}>₹{Number(liveLTP).toFixed(2)}</span>
+                    </span>
+                    {chainContract && chainContract.expiry && (
+                      <span style={{ background: '#F0F2F5', color: '#8B92A8', padding: '1px 5px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
+                        {chainContract.expiry}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <div
+                    style={{ marginRight: '8px', cursor: 'pointer', background: 'var(--pill-bg, #1a2432)', width: '26px', height: '26px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green, #1db954)', border: '1.2px solid var(--green, #1db954)' }}
+                    onClick={() => {
+                      const targetSymbol = chainContract ? chainContract.name : orderBlockTitle.replace(/Add More · |Exit · |Modify · /g, '').trim();
+                      setSymbol(targetSymbol);
+                      // Derive the correct display segment so mapSegmentToDbSegment works
+                      if (chainContract) {
+                        const n = chainContract.name.toUpperCase();
+                        const isBse = n.includes('SENSEX') || n.includes('BANKEX');
+                        const isMcx = n.includes('GOLD') || n.includes('SILVER') || n.includes('CRUDEOIL') || n.includes('NATURALGAS') || n.includes('COPPER');
+                        if (isMcx) {
+                          setSegment('MCX - Options');
+                        } else if (isBse) {
+                          setSegment('BSE - Options');
+                        } else {
+                          setSegment('NSE - Options');
+                        }
+                      } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
                         setSegment('NSE - Options');
                       }
-                    } else if (targetSymbol.includes('CE') || targetSymbol.includes('PE')) {
-                      setSegment('NSE - Options');
-                    }
-                    setIsPanelExpanded(false);
+                      setIsPanelExpanded(false);
+                      setIsOrderBlockVisible(false);
+                      setChainContract(null);
+                    }}
+                    title="Open Chart"
+                  >
+                    <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', display: 'block' }}>
+                      <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                      <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                      <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                      <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                      <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+
+                  <div className="close-order-block" onClick={() => {
                     setIsOrderBlockVisible(false);
                     setChainContract(null);
-                  }}
-                  title="Open Chart"
-                >
-                  <svg viewBox="0 0 24 24" style={{ width: '16px', height: '16px', display: 'block' }}>
-                    <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
-                    <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
-                    <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
-                    <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                    <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-
-                <div className="close-order-block" onClick={() => {
-                  setIsOrderBlockVisible(false);
-                  setChainContract(null);
-                  if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
-                  setIsExitFlow(false);
-                  setIsAddMoreFlow(false);
-                  setExitPositionId(null);
-                  setOrderBlockTitle(symbol);
-                }}>
-                  <i className="ti ti-x"></i>
-                </div>
-              </div>
-            </div>
-            <div className="order-block-content">
-              {chainContract && (
-                <div id="chainBSToggle" style={{ display: 'flex', gap: '6px', padding: '0 0 8px' }}>
-                  <button
-                    onClick={() => {
-                      setOrderSide('BUY');
-                      const ask = chainContract.ask;
-                      setLimitPrice(ask.toFixed(2));
-                      setTriggerPrice(ask.toFixed(2));
-                    }}
-                    style={{
-                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
-                      background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
-                    }}
-                  >
-                    BUY
-                  </button>
-                  <button
-                    onClick={() => {
-                      setOrderSide('SELL');
-                      const bid = chainContract.bid;
-                      setLimitPrice(bid.toFixed(2));
-                      setTriggerPrice(bid.toFixed(2));
-                    }}
-                    style={{
-                      flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
-                      background: orderSide === 'SELL' ? '#e53935' : '#F0F2F5', color: orderSide === 'SELL' ? '#fff' : '#8B92A8'
-                    }}
-                  >
-                    SELL
-                  </button>
-                </div>
-              )}
-
-              {/* chainContractDetail moved to header */}
-
-              <div className="top-row">
-                <div className="quantity-box">
-                  <div className="qty-controls">
-                    <button className="qty-btn" onClick={() => handleQtyStep(-1)}>−</button>
-                    <input
-                      type="number"
-                      className="qty-value"
-                      value={qtyValue}
-                      step={useLots ? 0.5 : lotSize}
-                      min={useLots ? 0.5 : lotSize}
-                      onChange={(e) => {
-                        setQtyValue(e.target.value);
-                      }}
-                      onBlur={() => {
-                        const val = parseFloat(String(qtyValue));
-                        if (useLots) {
-                          setQtyValue(isNaN(val) || val <= 0 ? 0.5 : val);
-                        } else {
-                          const minVal = isCrypto ? 0.01 : lotSize;
-                          setQtyValue(isNaN(val) || val <= 0 ? minVal : val);
-                        }
-                      }}
-                    />
-                    <button className="qty-btn" onClick={() => handleQtyStep(1)}>+</button>
-                  </div>
-                  <div className="unit-toggle" id="unitSwitch">
-                    <div className={`unit-btn ${!useLots ? 'active' : ''}`} onClick={() => handleUnitChange(false)}>Qty</div>
-                    <div className={`unit-btn ${useLots ? 'active' : ''}`} onClick={() => handleUnitChange(true)}>Lot</div>
+                    if (isExitFlow || isAddMoreFlow) setIsPanelExpanded(true);
+                    setIsExitFlow(false);
+                    setIsAddMoreFlow(false);
+                    setExitPositionId(null);
+                    setOrderBlockTitle(symbol);
+                  }}>
+                    <i className="ti ti-x"></i>
                   </div>
                 </div>
-                <div className="carry-box" id="carryGroup">
-                  <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Intraday</div>
-                  <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
-                </div>
               </div>
-
-              <div className="bottom-row">
-                <div className="market-limit-box" id="orderTypeGroup" style={{ flex: 6 }}>
-                  <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
-                  <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>{isExitFlow ? 'Tgt' : 'Lmt'}</div>
-                  {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
-                  {isExitFlow && <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>}
-                  <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
-                </div>
-                {(orderType === 'limit' || (orderType === 'gtt' && !isExitFlow)) && (
-                  <div className="limit-price-box visible" id="limitPriceBox" style={{ flex: 4 }}>
-                    <span className="price-symbol">₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={limitPrice}
-                      onChange={(e) => setLimitPrice(e.target.value)}
-                      placeholder="price"
-                    />
+              <div className="order-block-content">
+                {chainContract && (
+                  <div id="chainBSToggle" style={{ display: 'flex', gap: '6px', padding: '0 0 8px' }}>
+                    <button
+                      onClick={() => {
+                        setOrderSide('BUY');
+                        const ask = chainContract.ask;
+                        setLimitPrice(ask.toFixed(2));
+                        setTriggerPrice(ask.toFixed(2));
+                      }}
+                      style={{
+                        flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
+                        background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
+                      }}
+                    >
+                      BUY
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOrderSide('SELL');
+                        const bid = chainContract.bid;
+                        setLimitPrice(bid.toFixed(2));
+                        setTriggerPrice(bid.toFixed(2));
+                      }}
+                      style={{
+                        flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
+                        background: orderSide === 'SELL' ? '#e53935' : '#F0F2F5', color: orderSide === 'SELL' ? '#fff' : '#8B92A8'
+                      }}
+                    >
+                      SELL
+                    </button>
                   </div>
                 )}
-                {(orderType === 'sl' || orderType === 'slm') && (
-                  <div className="limit-price-box visible" id="triggerPriceBox" style={{ flex: 4 }}>
-                    <span className="price-symbol" style={{ fontSize: '9px', color: '#8B92A8', fontWeight: 'bold', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>Trigger ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={triggerPrice}
-                      onChange={(e) => setTriggerPrice(e.target.value)}
-                      placeholder="trigger"
-                    />
-                  </div>
-                )}
-              </div>
 
-              {orderType === 'gtt' && (
-                <div className="gtt-row visible">
-                  <div className="gtt-field sl-field">
-                    <span className="gtt-tag">SL ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttSlPrice}
-                      onChange={(e) => setGttSlPrice(e.target.value)}
-                      placeholder="Optional"
-                    />
+                {/* chainContractDetail moved to header */}
+
+                <div className="top-row">
+                  <div className="quantity-box">
+                    <div className="qty-controls">
+                      <button className="qty-btn" onClick={() => handleQtyStep(-1)}>−</button>
+                      <input
+                        type="number"
+                        className="qty-value"
+                        value={qtyValue}
+                        step={useLots ? 0.5 : lotSize}
+                        min={useLots ? 0.5 : lotSize}
+                        onChange={(e) => {
+                          setQtyValue(e.target.value);
+                        }}
+                        onBlur={() => {
+                          const val = parseFloat(String(qtyValue));
+                          if (useLots) {
+                            setQtyValue(isNaN(val) || val <= 0 ? 0.5 : val);
+                          } else {
+                            const minVal = isCrypto ? 0.01 : lotSize;
+                            setQtyValue(isNaN(val) || val <= 0 ? minVal : val);
+                          }
+                        }}
+                      />
+                      <button className="qty-btn" onClick={() => handleQtyStep(1)}>+</button>
+                    </div>
+                    <div className="unit-toggle" id="unitSwitch">
+                      <div className={`unit-btn ${!useLots ? 'active' : ''}`} onClick={() => handleUnitChange(false)}>Qty</div>
+                      <div className={`unit-btn ${useLots ? 'active' : ''}`} onClick={() => handleUnitChange(true)}>Lot</div>
+                    </div>
                   </div>
-                  <div className="gtt-field tgt-field">
-                    <span className="gtt-tag">Target ₹</span>
-                    <input
-                      type="number"
-                      step="0.05"
-                      value={gttTargetPrice}
-                      onChange={(e) => setGttTargetPrice(e.target.value)}
-                      placeholder="Optional"
-                    />
+                  <div className="carry-box" id="carryGroup">
+                    <div className={`carry-option ${orderCarry === 'normal' ? 'active' : ''}`} onClick={() => setOrderCarry('normal')}>Intraday</div>
+                    <div className={`carry-option ${orderCarry === 'carry' ? 'active' : ''}`} onClick={() => setOrderCarry('carry')}>Carry</div>
                   </div>
                 </div>
-              )}
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 4px', marginBottom: '8px' }}>
-                <span style={{ color: '#8b949e', fontWeight: 500 }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
-                <span style={{ color: '#8b949e', fontWeight: 500 }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
-              </div>
-              <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--pill-bg, rgba(139, 148, 158, 0.1))', border: 'none', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <div
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
-                    onClick={() => setShowCharges(!showCharges)}
-                  >
-                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      Charges Breakdown {showCharges ? '▲' : '▼'}
-                    </span>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)' }}>
-                      ₹{totalBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
+                <div className="bottom-row">
+                  <div className="market-limit-box" id="orderTypeGroup" style={{ flex: 6 }}>
+                    <div className={`market-option ${orderType === 'market' ? 'active' : ''}`} onClick={() => setOrderType('market')}>Mkt</div>
+                    <div className={`market-option ${orderType === 'limit' ? 'active' : ''}`} onClick={() => setOrderType('limit')}>{isExitFlow ? 'Tgt' : 'Lmt'}</div>
+                    {!isExitFlow && <div className={`market-option ${orderType === 'slm' ? 'active' : ''}`} onClick={() => setOrderType('slm')}>SLM</div>}
+                    {isExitFlow && <div className={`market-option ${orderType === 'sl' ? 'active' : ''}`} onClick={() => setOrderType('sl')}>SL</div>}
+                    <div className={`market-option ${orderType === 'gtt' ? 'active' : ''}`} onClick={() => setOrderType('gtt')}>GTT</div>
                   </div>
-                  {showCharges && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
-                        <span style={{ color: 'var(--green)', fontWeight: 700 }}>
-                          ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
-                        <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
-                        <span style={{ color: orderType === 'gtt' ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
+                  {(orderType === 'limit' || (orderType === 'gtt' && !isExitFlow)) && (
+                    <div className="limit-price-box visible" id="limitPriceBox" style={{ flex: 4 }}>
+                      <span className="price-symbol">₹</span>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(e.target.value)}
+                        placeholder="price"
+                      />
+                    </div>
+                  )}
+                  {(orderType === 'sl' || orderType === 'slm') && (
+                    <div className="limit-price-box visible" id="triggerPriceBox" style={{ flex: 4 }}>
+                      <span className="price-symbol" style={{ fontSize: '9px', color: '#8B92A8', fontWeight: 'bold', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>Trigger ₹</span>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={triggerPrice}
+                        onChange={(e) => setTriggerPrice(e.target.value)}
+                        placeholder="trigger"
+                      />
                     </div>
                   )}
                 </div>
-              </div>
 
-              <button
-                className={`submit-btn ${orderSide === 'BUY' ? 'submit-buy' : 'submit-sell'}`}
-                onClick={handleSubmitOrder}
-              >
-                {modifyOrderId ? 'Update Order' : `${orderSide} ${useLots ? `${qtyValue} Lot` : `${qtyValue} Qty`}`}
+                {orderType === 'gtt' && (
+                  <div className="gtt-row visible">
+                    <div className="gtt-field sl-field">
+                      <span className="gtt-tag">SL ₹</span>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={gttSlPrice}
+                        onChange={(e) => setGttSlPrice(e.target.value)}
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <div className="gtt-field tgt-field">
+                      <span className="gtt-tag">Target ₹</span>
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={gttTargetPrice}
+                        onChange={(e) => setGttTargetPrice(e.target.value)}
+                        placeholder="Optional"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '0 4px', marginBottom: '8px' }}>
+                  <span style={{ color: '#8b949e', fontWeight: 500 }}>Free Margin: <span style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></span>
+                  <span style={{ color: '#8b949e', fontWeight: 500 }}>Required Margin: <span className={`${reqMargin > balance ? 'negative' : ''}`} style={{ color: 'var(--text-primary, #000)', fontWeight: 800 }}>₹{reqMargin.toLocaleString('en-IN')}</span></span>
+                </div>
+                <div className="order-margin-simple" style={{ flexDirection: 'column', gap: '0', alignItems: 'stretch', background: 'var(--pill-bg, rgba(139, 148, 158, 0.1))', border: 'none', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <div
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}
+                      onClick={() => setShowCharges(!showCharges)}
+                    >
+                      <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        Charges Breakdown {showCharges ? '▲' : '▼'}
+                      </span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--green)' }}>
+                        ₹{totalBrokerage.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    {showCharges && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Intraday Brokerage</span>
+                          <span style={{ color: 'var(--green)', fontWeight: 700 }}>
+                            ₹{intradayCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Carry Charges</span>
+                          <span style={{ color: (orderCarry === 'carry' || orderType === 'gtt') ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
+                            ₹{(orderCarry === 'carry' || orderType === 'gtt' ? carryCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>GTT Charges</span>
+                          <span style={{ color: orderType === 'gtt' ? 'var(--green)' : 'var(--text-muted)', fontWeight: 700 }}>
+                            ₹{(orderType === 'gtt' ? gttCharge : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  className={`submit-btn ${orderSide === 'BUY' ? 'submit-buy' : 'submit-sell'}`}
+                  onClick={handleSubmitOrder}
+                >
+                  {modifyOrderId ? 'Update Order' : `${orderSide} ${useLots ? `${qtyValue} Lot` : `${qtyValue} Qty`}`}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Segment Row */}
+          <div className="segment-row">
+            <div className="segment-pills">
+              <button className={`segment-pill ${activeSegment === 'chain' ? 'active' : ''}`} onClick={() => {
+                if (activeSegment === 'chain' && isPanelExpanded) { setIsPanelExpanded(false); }
+                else { setActiveSegment('chain'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+              }}>
+                <i className="ti ti-stack-2"></i>Chain
+              </button>
+              <button className={`segment-pill ${activeSegment === 'orders' ? 'active' : ''}`} onClick={() => {
+                if (activeSegment === 'orders' && isPanelExpanded) { setIsPanelExpanded(false); }
+                else { setActiveSegment('orders'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+              }}>
+                <i className="ti ti-list-check"></i>Orders
+              </button>
+              <button className={`segment-pill ${activeSegment === 'positions' ? 'active' : ''}`} onClick={() => {
+                if (activeSegment === 'positions' && isPanelExpanded) { setIsPanelExpanded(false); }
+                else { setActiveSegment('positions'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+              }}>
+                <i className="ti ti-briefcase"></i>Positions
               </button>
             </div>
+            <div className="toggle-panel-btn" onClick={() => {
+              setIsPanelExpanded(!isPanelExpanded);
+              if (!isPanelExpanded) setIsOrderBlockVisible(false);
+            }}>
+              <i className={`ti ${isPanelExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+            </div>
           </div>
-        )}
 
-        {/* Segment Row */}
-        <div className="segment-row">
-          <div className="segment-pills">
-            <button className={`segment-pill ${activeSegment === 'chain' ? 'active' : ''}`} onClick={() => {
-              if (activeSegment === 'chain' && isPanelExpanded) { setIsPanelExpanded(false); }
-              else { setActiveSegment('chain'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
-            }}>
-              <i className="ti ti-stack-2"></i>Chain
-            </button>
-            <button className={`segment-pill ${activeSegment === 'orders' ? 'active' : ''}`} onClick={() => {
-              if (activeSegment === 'orders' && isPanelExpanded) { setIsPanelExpanded(false); }
-              else { setActiveSegment('orders'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
-            }}>
-              <i className="ti ti-list-check"></i>Orders
-            </button>
-            <button className={`segment-pill ${activeSegment === 'positions' ? 'active' : ''}`} onClick={() => {
-              if (activeSegment === 'positions' && isPanelExpanded) { setIsPanelExpanded(false); }
-              else { setActiveSegment('positions'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
-            }}>
-              <i className="ti ti-briefcase"></i>Positions
-            </button>
-          </div>
-          <div className="toggle-panel-btn" onClick={() => {
-            setIsPanelExpanded(!isPanelExpanded);
-            if (!isPanelExpanded) setIsOrderBlockVisible(false);
-          }}>
-            <i className={`ti ${isPanelExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+          {/* Info Panel */}
+          <div className={`info-panel ${!isPanelExpanded ? 'collapsed' : ''}`} id="infoPanel">
+
+            <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
+              {renderPanelContent()}
+            </div>
           </div>
         </div>
-
-        {/* Info Panel */}
-        <div className={`info-panel ${!isPanelExpanded ? 'collapsed' : ''}`} id="infoPanel">
-
-          <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
-            {renderPanelContent()}
-          </div>
-        </div>
-      </div>
       )}
       {toast.visible && (
         <div className={`toast-message toast-show ${toast.isError ? 'neg' : ''}`}>
