@@ -468,11 +468,20 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       setIsLandscape(isSmallScreen && landscape);
     };
     checkLandscape();
+
+    const handleOrientationChange = () => {
+      // Browsers often need a slight delay to update innerWidth/innerHeight after rotation
+      setTimeout(() => {
+        checkLandscape();
+        window.dispatchEvent(new Event('resize'));
+      }, 200);
+    };
+
     window.addEventListener('resize', checkLandscape);
-    window.addEventListener('orientationchange', checkLandscape);
+    window.addEventListener('orientationchange', handleOrientationChange);
     return () => {
       window.removeEventListener('resize', checkLandscape);
-      window.removeEventListener('orientationchange', checkLandscape);
+      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
 
