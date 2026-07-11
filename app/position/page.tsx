@@ -8,6 +8,7 @@ import { pageCache } from '@/lib/pageCache';
 import { useMyPositions, EnrichedPosition } from '@/hooks/useMyPositions';
 import { useOrderEntry } from '@/hooks/useOrderEntry';
 import { useMobileBack } from '@/hooks/useMobileBack';
+import { useBalance } from '@/hooks/useBalance';
 import Sidebar from '@/components/Sidebar';
 import Footer from '@/components/Footer';
 import TradeSheet, { TradeSheetItem } from '@/components/TradeSheet';
@@ -92,32 +93,12 @@ export default function PositionPage() {
     return () => clearInterval(iv);
   }, []);
 
-  const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance') ?? null);
-  const [settlementAmount, setSettlementAmount] = useState<number>(0);
+  const { balance: balanceFromHook, settlementAmount } = useBalance();
+  const balance = balanceFromHook;
   const [rawOrders, setRawOrders] = useState<any[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    getSession().then((session) => {
-      if (cancelled || !session) return;
-      fetch('/api/pay/balance', { headers: { Authorization: `Bearer ${session.access_token}` } })
-        .then(res => {
-          const contentType = res.headers.get('content-type');
-          if (res.ok && contentType && contentType.includes('application/json')) {
-            return res.json();
-          }
-          return { balance: 0 };
-        })
-        .then(data => {
-          if (cancelled) return;
-          const bal = (data && data.balance) ?? 0;
-          const sett = (data && data.settlementAmount) ?? 0;
-          setBalance(bal);
-          setSettlementAmount(sett);
-          pageCache.set('funds:balance', bal);
-        })
-        .catch(() => { });
-    });
 
     const fetchOrders = () => {
       getSession().then((session) => {

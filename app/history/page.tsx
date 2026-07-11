@@ -169,6 +169,15 @@ export default function HistoryPage() {
       }
     }
     fetchHistory();
+
+    // Auto-refresh when positions or orders change via Realtime
+    const channel = supabase
+      .channel(`history-realtime-${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'positions' }, fetchHistory)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchHistory)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleApplyFilter = () => {

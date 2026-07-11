@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabaseClient';
 import Footer from '../../components/Footer';
 import Sidebar from '../../components/Sidebar';
 import QRCode from 'react-qr-code';
+import { useBalance } from '@/hooks/useBalance';
 
 type ActiveAccountResponse = {
   id: string;
@@ -40,10 +41,8 @@ export default function FundsPage() {
   const [depositStep, setDepositStep] = useState<1 | 2 | 3>(1);
   const [amount, setAmount] = useState<string>('1000');
 
-  const [balance, setBalance] = useState<number | null>(() => pageCache.get<number>('funds:balance'));
-  const [settlementAmount, setSettlementAmount] = useState<number>(0);
-  const [balanceLoading, setBalanceLoading] = useState<boolean>(false);
-  const [balanceError, setBalanceError] = useState<string | null>(null);
+  const { balance, settlementAmount, loading: balanceLoading } = useBalance();
+  const balanceError = null;
 
   const [accountName, setAccountName] = useState<string>('');
   const [bankName, setBankName] = useState<string>('');
@@ -88,7 +87,7 @@ export default function FundsPage() {
     const ctx = canvas.getContext("2d");
     const img = new Image();
     img.onload = () => {
-      canvas.width = 1000; // High resolution
+      canvas.width = 1000;
       canvas.height = 1000;
       if (ctx) {
         ctx.fillStyle = "white";
@@ -109,7 +108,6 @@ export default function FundsPage() {
     getSession().then((session) => {
       if (cancelled) return;
       if (session) {
-        fetchBalance(session.access_token);
         fetchSavedAccounts(session.access_token);
         fetch('/api/user/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
@@ -135,30 +133,6 @@ export default function FundsPage() {
       }
     } catch (err) {
       console.error('Failed to fetch bank accounts:', err);
-    }
-  };
-
-  const fetchBalance = async (accessToken: string) => {
-    setBalanceLoading(true);
-    setBalanceError(null);
-    try {
-      const res = await fetch('/api/pay/balance', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const bal = data.balance ?? 0;
-        setBalance(bal);
-        const sett = data.settlementAmount ?? 0;
-        setSettlementAmount(sett);
-        pageCache.set('funds:balance', bal);
-      } else {
-        setBalanceError('Failed to load balance');
-      }
-    } catch {
-      setBalanceError('Failed to load balance');
-    } finally {
-      setBalanceLoading(false);
     }
   };
 
