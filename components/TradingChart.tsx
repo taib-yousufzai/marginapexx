@@ -443,6 +443,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [timeframe, setTimeframe] = useState<Timeframe>('5m');
   const [chartType, setChartType] = useState<'candle' | 'area' | 'bar' | 'baseline'>('candle');
   const [openTopFlyout, setOpenTopFlyout] = useState<string | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
   const hasLoadedData = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -457,6 +458,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const stored = localStorage.getItem('marginApex_starred_instruments');
       if (stored) setStarredInstruments(JSON.parse(stored));
     } catch (e) { }
+  }, []);
+
+  // Landscape detection
+  useEffect(() => {
+    const checkLandscape = () => {
+      const isSmallScreen = window.innerWidth <= 950;
+      const landscape = window.innerWidth > window.innerHeight;
+      setIsLandscape(isSmallScreen && landscape);
+    };
+    checkLandscape();
+    window.addEventListener('resize', checkLandscape);
+    window.addEventListener('orientationchange', checkLandscape);
+    return () => {
+      window.removeEventListener('resize', checkLandscape);
+      window.removeEventListener('orientationchange', checkLandscape);
+    };
   }, []);
 
   const toggleStar = (item: any) => {
@@ -1532,7 +1549,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   };
 
   return (
-    <div className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}>
+    <div
+      className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}
+      style={isLandscape ? {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100dvh',
+        zIndex: 999999,
+        borderRadius: 0,
+        margin: 0,
+        overflow: 'hidden',
+      } : undefined}
+    >
       {/* Top Toolbar */}
       <div className="tc-top-toolbar" onMouseLeave={() => setOpenTopFlyout(null)}>
         {/* ── Back button ── */}
@@ -1732,7 +1764,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       </div>
 
       {/* Main Area */}
-      <div className="tc-main-area">
+      <div className="tc-main-area" style={isLandscape ? { height: 'calc(100dvh - 2.875rem)', flex: 1 } : undefined}>
 
 
         {/* Chart Container */}
@@ -1785,8 +1817,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
 
 
-      {/* P&L Card — hide when order block, or panel is expanded */}
-      {!isOrderBlockVisible && !isPanelExpanded && (
+      {/* P&L Card — hide when order block, or panel is expanded, or landscape */}
+      {!isOrderBlockVisible && !isPanelExpanded && !isLandscape && (
         <div className="pnl-card" id="pnlCard">
           {isTradeOnChartActive ? (
             <>
@@ -1849,6 +1881,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       )}
 
       {/* Bottom Section */}
+      {!isLandscape && (
       <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
         {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
         {!isUnderlyingIndex && !isOrderBlockVisible && (
@@ -2256,6 +2289,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           </div>
         </div>
       </div>
+      )}
       {toast.visible && (
         <div className={`toast-message toast-show ${toast.isError ? 'neg' : ''}`}>
           {toast.msg}
