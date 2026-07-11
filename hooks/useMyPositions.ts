@@ -162,6 +162,9 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     fetchPositions();
     const timer = setInterval(fetchPositions, 5000); // DB fetch fallback
 
+    // Listen to manual forced re-fetches (e.g., when an order is placed)
+    window.addEventListener('order_placed', fetchPositions);
+
     // Use a unique channel name per hook instance so multiple consumers
     // (e.g. position page + chart) can each have their own realtime subscription
     // without the stale-channel cleanup killing each other's subscriptions.
@@ -181,6 +184,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     return () => {
       clearInterval(timer);
       supabase.removeChannel(channel);
+      window.removeEventListener('order_placed', fetchPositions);
     };
   }, [fetchPositions]);
 

@@ -256,7 +256,7 @@ export default function HistoryPage() {
               <div className="app-header mobile-only">
                 <div className="header-top">
                   <div className="logo-area">
-                    <div className="logo-text">Trade History</div>
+                    <div className="logo-text">Weekly Trade History</div>
                   </div>
                   <div className="header-buttons">
                     <button
@@ -312,7 +312,7 @@ export default function HistoryPage() {
               <div className="desktop-only" style={{ padding: '20px 24px 0 24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                   <div>
-                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Trade History</h1>
+                    <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Weekly Trade History</h1>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 4 }}>Historical execution logs & performance</p>
                   </div>
                   <div className="header-buttons" style={{ display: 'flex', gap: 10, background: 'var(--bg-card)', padding: 4, borderRadius: 12, border: '1px solid var(--border-color)' }}>

@@ -105,10 +105,16 @@ const Footer: React.FC<FooterProps> = ({ activeTab, hideDrawer = false, position
     };
 
     initProfile();
+    
+    const handleOrderPlaced = () => {
+      initProfile();
+    };
+    window.addEventListener('order_placed', handleOrderPlaced);
 
     return () => {
       cancelled = true;
       if (channel) supabase.removeChannel(channel);
+      window.removeEventListener('order_placed', handleOrderPlaced);
     };
   }, []);
 

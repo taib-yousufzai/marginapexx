@@ -850,6 +850,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         is_exit: exitMode || (placeSide === 'BUY' && hasSellPos) || (placeSide === 'SELL' && hasBuyPos),
       });
       if (res.success) {
+        window.dispatchEvent(new Event('order_placed'));
         showToast(res.order?.message || `${placeSide} order placed for ${item.symbol}`);
         onSuccess?.();
         onClose();
@@ -1424,7 +1425,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </div>
                   <div className="ts2-margin-row">
                     <span className="ts2-ml">Equity</span>
-                    <span className="ts2-mv" style={{ color: '#000', fontWeight: 800 }}>
+                    <span className="ts2-mv" style={{ color: 'var(--text-primary, #111827)', fontWeight: 800 }}>
                       ₹ {baseExposure.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>

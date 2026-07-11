@@ -72,9 +72,15 @@ export function useBalance(): BalanceState {
 
     init();
 
+    const handleOrderPlaced = () => {
+      init();
+    };
+    window.addEventListener('order_placed', handleOrderPlaced);
+
     return () => {
       cancelled = true;
       if (channel) supabase.removeChannel(channel);
+      window.removeEventListener('order_placed', handleOrderPlaced);
     };
   }, []);
 
