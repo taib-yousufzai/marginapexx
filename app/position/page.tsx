@@ -1277,27 +1277,17 @@ export default function PositionPage() {
             {/* Profit Side Hold Timer Modal */}
             <div className={`pos-modal-overlay${lockModalPos ? ' open' : ''}`} onClick={() => setLockModalPos(null)}>
               <div className="pos-modal-card" onClick={e => e.stopPropagation()}>
-                <div className="pos-modal-icon" style={{ color: '#F59E0B', background: '#FEF3C7' }}>
-                  <i className="fas fa-lock" />
-                </div>
-                <div className="pos-modal-title">Profit Side Hold Timer</div>
-                <div className="pos-modal-desc">
-                  This position is currently in profit. You must hold profitable trades for a minimum period before exiting.
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '16px', padding: '12px 16px', background: 'var(--card-alt-bg)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Time Remaining</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {lockModalPos ? formatHoldTime(computeRemaining(lockModalPos)) : '00m 00s'}
+                  </span>
                 </div>
 
-                {lockModalPos && (
-                  <div style={{
-                    margin: '20px 0', padding: '16px', background: '#F8F9FA',
-                    borderRadius: '12px', border: '1px solid #E5E7EB', textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Time Remaining
-                    </div>
-                    <div style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', fontFamily: 'monospace' }}>
-                      {formatHoldTime(computeRemaining(lockModalPos))}
-                    </div>
-                  </div>
-                )}
+                <div className="pos-modal-title">Profit Side Hold Timer</div>
+                <div className="pos-modal-desc" style={{ color: 'var(--text-secondary)' }}>
+                  This position is currently in profit. You must hold profitable trades for a minimum period before exiting.
+                </div>
 
                 <div className="pos-modal-actions">
                   <button
