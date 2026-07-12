@@ -1209,7 +1209,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  fillPrice = Math.round(fillPrice * 100) / 100; // 2 dp
+  fillPrice = Math.max(0.01, Math.round(fillPrice * 100) / 100); // 2 dp
 
   // 11. Atomic write via Postgres RPC
   const targetOrderType = order_type ?? 'MARKET';

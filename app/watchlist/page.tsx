@@ -9,6 +9,7 @@ import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMobileBack } from '@/hooks/useMobileBack';
+import { useBalance } from '@/hooks/useBalance';
 import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import TradeSheet from '@/components/TradeSheet';
@@ -876,8 +877,8 @@ function WatchlistContent() {
   const deepLinkHandledRef = useRef(false);
   const watchlistItemsRef = useRef<WatchlistItem[]>([]);
 
-  // Available Balance State
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  // Available Balance — live via Realtime (no polling needed)
+  const { balance: availableBalance } = useBalance();
 
   useEffect(() => {
     (window as any).__activeTab = activeTab;

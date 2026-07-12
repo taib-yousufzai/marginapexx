@@ -392,7 +392,7 @@ export class InMemoryMatchingEngine {
           // Fill price is the actual execution price (ask for BUY, bid for SELL).
           // Buffer is baked into the fill price so avg_price reflects what the user paid.
           const bufferFee = 0;
-          const executionFillPrice = Math.round(priceWithBuffer * 100) / 100;
+          const executionFillPrice = Math.max(0.01, Math.round(priceWithBuffer * 100) / 100);
 
           // Trigger Executed Order Write (Business Event)
           const dbStart = performance.now();

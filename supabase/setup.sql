@@ -4912,10 +4912,12 @@ BEGIN
         updated_at = now()
       WHERE id = v_pos.id;
 
-      -- Record PNL transaction
-      v_pnl_type := CASE WHEN v_pnl >= 0 THEN 'PNL_CREDIT' ELSE 'PNL_DEBIT' END;
-      INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
-      VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_pos.id::text);
+      -- Record PNL transaction only if it's non-zero
+      IF v_pnl <> 0 THEN
+        v_pnl_type := CASE WHEN v_pnl > 0 THEN 'PNL_CREDIT' ELSE 'PNL_DEBIT' END;
+        INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
+        VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_pos.id::text);
+      END IF;
 
     ELSE
       -- PARTIAL EXIT: Split position
@@ -4951,10 +4953,12 @@ BEGIN
       )
       RETURNING id INTO v_closed_pos_id;
 
-      -- 3. Record PNL transaction for the closed portion
-      v_pnl_type := CASE WHEN v_pnl >= 0 THEN 'PNL_CREDIT' ELSE 'PNL_DEBIT' END;
-      INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
-      VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_closed_pos_id::text);
+      -- 3. Record PNL transaction for the closed portion only if it's non-zero
+      IF v_pnl <> 0 THEN
+        v_pnl_type := CASE WHEN v_pnl > 0 THEN 'PNL_CREDIT' ELSE 'PNL_DEBIT' END;
+        INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
+        VALUES (v_order.user_id, v_pnl_type, ABS(v_pnl), 'APPROVED', v_closed_pos_id::text);
+      END IF;
 
     END IF;
 
