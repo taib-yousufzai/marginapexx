@@ -27,6 +27,17 @@ export async function GET(request: NextRequest) {
         positionsQuery = positionsQuery.in('status', ['open', 'active']);
       } else {
         positionsQuery = positionsQuery.eq('status', statusParam);
+
+        // For closed positions, default to today-only unless 'all' param is passed
+        if (statusParam === 'closed' && !searchParams.get('all')) {
+          // Compute today's start in IST (UTC+5:30), then convert to UTC for the DB query
+          const now = new Date();
+          const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+          const istNow = new Date(now.getTime() + istOffset);
+          const istMidnight = new Date(istNow.getFullYear(), istNow.getMonth(), istNow.getDate());
+          const utcMidnight = new Date(istMidnight.getTime() - istOffset);
+          positionsQuery = positionsQuery.gte('updated_at', utcMidnight.toISOString());
+        }
       }
     } else {
       // Default: only return open/active — closed positions are fetched explicitly
