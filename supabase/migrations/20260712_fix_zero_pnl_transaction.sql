@@ -28,6 +28,7 @@ DECLARE
   v_brokerage numeric := 0;
   v_closed_brokerage numeric := 0;
   v_closed_entry_brokerage numeric := 0;
+  v_closed_margin numeric := 0;
   v_pos_found boolean;
   v_lot_size numeric;
   v_lots numeric;
@@ -212,9 +213,10 @@ BEGIN
 
     ELSE
       -- PARTIAL EXIT: Split position
-      -- Calculate proportional entry brokerage for the closed portion
+      -- Calculate proportional entry brokerage and margin for the closed portion
       v_closed_entry_brokerage := (v_pos.entry_brokerage * v_order.qty) / v_pos.qty_open;
       v_closed_brokerage := (v_pos.brokerage * v_order.qty) / v_pos.qty_open;
+      v_closed_margin := (v_pos.locked_margin * v_order.qty) / v_pos.qty_open;
 
       -- 1. Reduce quantity, entry brokerage and total brokerage of the active open position
       UPDATE public.positions
@@ -232,7 +234,8 @@ BEGIN
         qty_total, qty_open,
         avg_price, entry_price, ltp,
         settlement, product_type, exit_price, exit_time, pnl, duration_seconds, 
-        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at
+        entry_brokerage, exit_brokerage, brokerage, created_at, updated_at,
+        locked_margin, margin_required
       )
       VALUES (
         v_order.user_id, v_order.symbol, v_pos.side, 'closed',
@@ -240,7 +243,8 @@ BEGIN
         v_pos.avg_price, v_pos.entry_price, v_order.ltp_at_entry,
         v_order.segment, v_pos.product_type, v_order.fill_price, now(), v_pnl,
         EXTRACT(EPOCH FROM (now() - v_pos.entry_time))::integer, 
-        v_closed_entry_brokerage, v_brokerage, v_closed_entry_brokerage + v_brokerage, now(), now()
+        v_closed_entry_brokerage, v_brokerage, v_closed_entry_brokerage + v_brokerage, now(), now(),
+        v_closed_margin, v_closed_margin
       )
       RETURNING id INTO v_closed_pos_id;
 

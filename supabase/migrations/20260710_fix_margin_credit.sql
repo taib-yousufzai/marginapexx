@@ -31,11 +31,18 @@ DECLARE
   v_settings_table  text;
 BEGIN
   IF NEW.status = 'closed' OR NEW.qty_open = 0 THEN
-    NEW.margin_required := 0;
-    IF TG_OP = 'UPDATE' AND OLD.locked_margin > 0 THEN
+    IF TG_OP = 'UPDATE' AND OLD.status IN ('open', 'active') AND OLD.locked_margin > 0 THEN
       INSERT INTO public.transactions (user_id, type, amount, status, ref_id)
       VALUES (NEW.user_id, 'MARGIN_CREDIT', OLD.locked_margin, 'APPROVED', 'MRG_RET_' || NEW.id::text);
-      NEW.locked_margin := 0;
+      NEW.locked_margin := OLD.locked_margin;
+      NEW.margin_required := OLD.locked_margin;
+    ELSIF TG_OP = 'UPDATE' THEN
+      NEW.locked_margin := OLD.locked_margin;
+      NEW.margin_required := OLD.margin_required;
+    ELSE
+      -- On INSERT of a closed position (e.g. partial exit split), keep the inserted values
+      NEW.margin_required := COALESCE(NEW.margin_required, NEW.locked_margin, 0);
+      NEW.locked_margin := COALESCE(NEW.locked_margin, NEW.margin_required, 0);
     END IF;
     RETURN NEW;
   END IF;

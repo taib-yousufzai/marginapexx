@@ -382,8 +382,7 @@ BEGIN
     exit_time = now(),
     pnl = v_pnl,
     duration_seconds = v_duration_sec,
-    updated_at = now(),
-    locked_margin = 0
+    updated_at = now()
   WHERE id = p_position_id;
 
   -- Record PNL transaction
