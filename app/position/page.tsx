@@ -126,7 +126,7 @@ export default function PositionPage() {
   };
 
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
-  const [currentSub, setCurrentSub] = useState<'open' | 'closed' | 'pending'>('open');
+  const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -744,8 +744,8 @@ export default function PositionPage() {
                       </div>
                     )}
                     <div className="pos-pnl-col center">
-                      <div className={`pos-pnl-total${(currentSub === 'pending' ? 0 : (currentSub === 'open' ? unrealized : realized)) >= 0 ? ' green' : ' red'}`}>
-                        {fmtUSD(currentSub === 'pending' ? 0 : (currentSub === 'open' ? unrealized : realized))}
+                      <div className={`pos-pnl-total${(currentSub === 'open' ? unrealized : realized) >= 0 ? ' green' : ' red'}`}>
+                        {fmtUSD(currentSub === 'open' ? unrealized : realized)}
                       </div>
                     </div>
                     {currentMain === 'cumulative' && currentSub === 'closed' && (
@@ -769,12 +769,6 @@ export default function PositionPage() {
                     onClick={() => { setCurrentSub('closed'); setExpandedPosId(null); }}
                   >
                     Closed Positions
-                  </div>
-                  <div
-                    className={`pos-sub-tab${currentSub === 'pending' ? ' active' : ''}`}
-                    onClick={() => { setCurrentSub('pending'); setExpandedPosId(null); }}
-                  >
-                    Pending Orders
                   </div>
                 </div>
               </div>
@@ -882,7 +876,7 @@ export default function PositionPage() {
                           )}
                         </div>
                       ))
-                    ) : currentSub === 'closed' ? (
+                    ) : (
                       groupedClosedPositions.length === 0 ? (
                         <div className="pos-empty">
                           <i className="fas fa-history" />
@@ -919,48 +913,6 @@ export default function PositionPage() {
                               {fmtUSD(group.pnl, group.settlement)}
                             </div>
                             <div className="pos-card-ltp">Avg Exit: <strong>{fmtPrice(group.exit_price, group.settlement)}</strong></div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      groupedPendingOrders.length === 0 ? (
-                        <div className="pos-empty">
-                          <i className="fas fa-clock" />
-                          <p>No pending orders</p>
-                        </div>
-                      ) : groupedPendingOrders.map(group => (
-                        <div key={group.key} className="pos-card" style={{ cursor: 'default' }}>
-                          <div className="pos-card-left">
-                            <div className="pos-card-symbol">
-                              <span className="pos-symbol-text">{group.symbol}</span>
-                            </div>
-                            <div className="pos-card-details">
-                              <span>Price: <strong>{group.price > 0 ? fmtPrice(group.price, group.settlement) : 'MARKET'}</strong></span>
-                              <span>Qty: <strong>{group.qty}</strong></span>
-                            </div>
-                            <div style={{ marginTop: '5px', display: 'flex', gap: '8px' }}>
-                              {group.product_type && (
-                                <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
-                                  {group.product_type}
-                                </span>
-                              )}
-                              <span className="pos-product-badge" style={{ background: '#FEF3C7', color: '#D97706', border: '1px solid #FCD34D' }}>
-                                {group.order_type}
-                              </span>
-                              {group.ids.length > 1 && (
-                                <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
-                                  {group.ids.length} orders
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="pos-card-right">
-                            <span className={`pos-badge${group.side === 'BUY' ? ' long' : ' short'}`}>
-                              {group.side}
-                            </span>
-                            <div className="pos-card-pnl" style={{ color: '#D97706', fontSize: '1.1rem', fontWeight: 700 }}>
-                              PENDING
-                            </div>
                           </div>
                         </div>
                       ))
@@ -1085,7 +1037,7 @@ export default function PositionPage() {
                           </div>
                         );
                       })
-                    ) : currentSub === 'closed' ? (
+                    ) : (
                       closedPositions.length === 0 ? (
                         <div className="pos-empty">
                           <i className="fas fa-history" />
@@ -1127,55 +1079,6 @@ export default function PositionPage() {
                           </div>
                         </div>
                       ))
-                    ) : (
-                      rawOrders.filter(o => o.status === 'PENDING' || o.status === 'OPEN' || o.status === 'VALIDATION_PENDING').length === 0 ? (
-                        <div className="pos-empty">
-                          <i className="fas fa-clock" />
-                          <p>No pending orders</p>
-                        </div>
-                      ) : rawOrders.filter(o => o.status === 'PENDING' || o.status === 'OPEN' || o.status === 'VALIDATION_PENDING').map(order => {
-                        const orderDate = new Date(order.created_at);
-                        const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        return (
-                          <div key={order.id} className="pos-detail-card">
-                            <div className="pos-detail-main-layout">
-                              <div className="pos-detail-left-col">
-                                <div className="pos-detail-symbol">
-                                  <span className="pos-symbol-text">{order.symbol}</span>
-                                </div>
-                                <div className="pos-detail-meta">
-                                  <div className="pos-detail-meta-row">
-                                    <span>Qty: <strong>{order.qty}</strong></span>
-                                    <span>Price: <strong>{order.trigger_price || order.client_price ? fmtPrice(order.trigger_price || order.client_price || 0, order.segment) : 'MARKET'}</strong></span>
-                                  </div>
-                                  <div className="pos-detail-meta-row">
-                                    <span>Time: <strong>{timeStr}</strong></span>
-                                    <span>Type: <strong>{order.order_type}</strong></span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="pos-detail-right-col">
-                                <div className="pos-detail-pnl-group">
-                                  <div className="pos-detail-pnl" style={{ color: '#D97706', fontSize: '1.1rem', fontWeight: 700 }}>
-                                    PENDING
-                                  </div>
-                                  <span className="pos-detail-side">{order.side}</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  {order.product_type && (
-                                    <span className={`pos-product-badge ${order.product_type === 'CARRY' ? 'carry' : ''}`}>
-                                      {order.product_type}
-                                    </span>
-                                  )}
-                                  <span className="pos-status-badge pending" style={{ background: '#FEF3C7', color: '#D97706', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 600 }}>
-                                    {order.status}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
                     )
                   )
                 )}
