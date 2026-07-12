@@ -126,7 +126,7 @@ export default function PositionPage() {
   };
 
   const [currentMain, setCurrentMain] = useState<'cumulative' | 'detailed'>('cumulative');
-  const [currentSub, setCurrentSub] = useState<'open' | 'closed'>('open');
+  const [currentSub, setCurrentSub] = useState<'open' | 'closed' | 'pending'>('open');
   const [selectedPos, setSelectedPos] = useState<EnrichedPosition | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -496,6 +496,106 @@ export default function PositionPage() {
     return Array.from(map.values());
   }, [openPositions]);
 
+  // ── Cumulative grouping for Closed Positions ──
+  interface GroupedClosedPosition {
+    key: string;
+    symbol: string;
+    side: 'BUY' | 'SELL';
+    product_type: string;
+    settlement: string;
+    qty_total: number;
+    avg_price: number;
+    exit_price: number;
+    pnl: number;
+    pnl_percent: number;
+    ids: string[];
+  }
+
+  const groupedClosedPositions: GroupedClosedPosition[] = useMemo(() => {
+    const map = new Map<string, GroupedClosedPosition>();
+    for (const pos of closedPositions) {
+      const key = `${pos.symbol}|${pos.side}|${pos.product_type}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          symbol: pos.symbol,
+          side: pos.side,
+          product_type: pos.product_type || 'INTRADAY',
+          settlement: pos.settlement || '',
+          qty_total: pos.qty_total,
+          avg_price: pos.avg_price || pos.entry_price,
+          exit_price: pos.exit_price || 0,
+          pnl: pos.pnl || 0,
+          pnl_percent: pos.pnl_percent || 0,
+          ids: [pos.id],
+        });
+      } else {
+        const newQty = existing.qty_total + pos.qty_total;
+        const newAvgEntry = newQty > 0
+          ? (existing.avg_price * existing.qty_total + (pos.avg_price || pos.entry_price) * pos.qty_total) / newQty
+          : existing.avg_price;
+        const newAvgExit = newQty > 0
+          ? (existing.exit_price * existing.qty_total + (pos.exit_price || 0) * pos.qty_total) / newQty
+          : existing.exit_price;
+        const newPnl = existing.pnl + (pos.pnl || 0);
+        const investment = newAvgEntry * newQty;
+        existing.qty_total = newQty;
+        existing.avg_price = newAvgEntry;
+        existing.exit_price = newAvgExit;
+        existing.pnl = newPnl;
+        existing.pnl_percent = investment > 0 ? parseFloat(((newPnl / investment) * 100).toFixed(2)) : 0;
+        existing.ids.push(pos.id);
+      }
+    }
+    return Array.from(map.values());
+  }, [closedPositions]);
+
+  // ── Cumulative grouping for Pending Orders ──
+  interface GroupedPendingOrder {
+    key: string;
+    symbol: string;
+    side: 'BUY' | 'SELL';
+    product_type: string;
+    settlement: string;
+    qty: number;
+    price: number;
+    order_type: string;
+    ids: string[];
+  }
+
+  const groupedPendingOrders: GroupedPendingOrder[] = useMemo(() => {
+    const map = new Map<string, GroupedPendingOrder>();
+    const pendingList = rawOrders.filter(o => o.status === 'PENDING' || o.status === 'OPEN' || o.status === 'VALIDATION_PENDING');
+    for (const order of pendingList) {
+      const key = `${order.symbol}|${order.side}|${order.product_type}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          symbol: order.symbol,
+          side: order.side,
+          product_type: order.product_type || 'INTRADAY',
+          settlement: order.segment || '',
+          qty: order.qty,
+          price: order.trigger_price || order.client_price || order.fill_price || 0,
+          order_type: order.order_type,
+          ids: [order.id],
+        });
+      } else {
+        const newQty = existing.qty + order.qty;
+        const currentPrice = order.trigger_price || order.client_price || order.fill_price || 0;
+        const newPrice = newQty > 0
+          ? (existing.price * existing.qty + currentPrice * order.qty) / newQty
+          : existing.price;
+        existing.qty = newQty;
+        existing.price = newPrice;
+        existing.ids.push(order.id);
+      }
+    }
+    return Array.from(map.values());
+  }, [rawOrders]);
+
   const handleExitAllConfirm = async () => {
     if (!hasOpenPositions) return;
     setIsExitingAll(true);
@@ -644,8 +744,8 @@ export default function PositionPage() {
                       </div>
                     )}
                     <div className="pos-pnl-col center">
-                      <div className={`pos-pnl-total${(currentMain === 'detailed' ? unrealized : (currentSub === 'open' ? unrealized : realized)) >= 0 ? ' green' : ' red'}`}>
-                        {fmtUSD(currentMain === 'detailed' ? unrealized : (currentSub === 'open' ? unrealized : realized))}
+                      <div className={`pos-pnl-total${(currentSub === 'pending' ? 0 : (currentSub === 'open' ? unrealized : realized)) >= 0 ? ' green' : ' red'}`}>
+                        {fmtUSD(currentSub === 'pending' ? 0 : (currentSub === 'open' ? unrealized : realized))}
                       </div>
                     </div>
                     {currentMain === 'cumulative' && currentSub === 'closed' && (
@@ -657,22 +757,26 @@ export default function PositionPage() {
                   </div>
                 </div>
 
-                {currentMain === 'cumulative' && (
-                  <div className="pos-sub-tabs">
-                    <div
-                      className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
-                      onClick={() => { setCurrentSub('open'); setExpandedPosId(null); }}
-                    >
-                      Open Positions
-                    </div>
-                    <div
-                      className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
-                      onClick={() => { setCurrentSub('closed'); setExpandedPosId(null); }}
-                    >
-                      Closed Positions
-                    </div>
+                <div className="pos-sub-tabs">
+                  <div
+                    className={`pos-sub-tab${currentSub === 'open' ? ' active' : ''}`}
+                    onClick={() => { setCurrentSub('open'); setExpandedPosId(null); }}
+                  >
+                    Open Positions
                   </div>
-                )}
+                  <div
+                    className={`pos-sub-tab${currentSub === 'closed' ? ' active' : ''}`}
+                    onClick={() => { setCurrentSub('closed'); setExpandedPosId(null); }}
+                  >
+                    Closed Positions
+                  </div>
+                  <div
+                    className={`pos-sub-tab${currentSub === 'pending' ? ' active' : ''}`}
+                    onClick={() => { setCurrentSub('pending'); setExpandedPosId(null); }}
+                  >
+                    Pending Orders
+                  </div>
+                </div>
               </div>
 
               {/* ── Content ── */}
@@ -778,7 +882,210 @@ export default function PositionPage() {
                           )}
                         </div>
                       ))
+                    ) : currentSub === 'closed' ? (
+                      groupedClosedPositions.length === 0 ? (
+                        <div className="pos-empty">
+                          <i className="fas fa-history" />
+                          <p>No closed positions</p>
+                        </div>
+                      ) : groupedClosedPositions.map(group => (
+                        <div key={group.key} className="pos-card" style={{ cursor: 'default' }}>
+                          <div className="pos-card-left">
+                            <div className="pos-card-symbol">
+                              <span className="pos-symbol-text">{group.symbol}</span>
+                            </div>
+                            <div className="pos-card-details">
+                              <span>Avg Entry: <strong>{fmtPrice(group.avg_price, group.settlement)}</strong></span>
+                              <span>Qty: <strong>{group.qty_total}</strong></span>
+                            </div>
+                            <div style={{ marginTop: '5px', display: 'flex', gap: '8px' }}>
+                              {group.product_type && (
+                                <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
+                                  {group.product_type}
+                                </span>
+                              )}
+                              {group.ids.length > 1 && (
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
+                                  {group.ids.length} trades
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="pos-card-right">
+                            <span className={`pos-badge${group.side === 'BUY' ? ' long' : ' short'}`}>
+                              {group.side}
+                            </span>
+                            <div className={`pos-card-pnl${group.pnl >= 0 ? ' green' : ' red'}`}>
+                              {fmtUSD(group.pnl, group.settlement)}
+                            </div>
+                            <div className="pos-card-ltp">Avg Exit: <strong>{fmtPrice(group.exit_price, group.settlement)}</strong></div>
+                          </div>
+                        </div>
+                      ))
                     ) : (
+                      groupedPendingOrders.length === 0 ? (
+                        <div className="pos-empty">
+                          <i className="fas fa-clock" />
+                          <p>No pending orders</p>
+                        </div>
+                      ) : groupedPendingOrders.map(group => (
+                        <div key={group.key} className="pos-card" style={{ cursor: 'default' }}>
+                          <div className="pos-card-left">
+                            <div className="pos-card-symbol">
+                              <span className="pos-symbol-text">{group.symbol}</span>
+                            </div>
+                            <div className="pos-card-details">
+                              <span>Price: <strong>{group.price > 0 ? fmtPrice(group.price, group.settlement) : 'MARKET'}</strong></span>
+                              <span>Qty: <strong>{group.qty}</strong></span>
+                            </div>
+                            <div style={{ marginTop: '5px', display: 'flex', gap: '8px' }}>
+                              {group.product_type && (
+                                <span className={`pos-product-badge ${group.product_type === 'CARRY' ? 'carry' : ''}`}>
+                                  {group.product_type}
+                                </span>
+                              )}
+                              <span className="pos-product-badge" style={{ background: '#FEF3C7', color: '#D97706', border: '1px solid #FCD34D' }}>
+                                {group.order_type}
+                              </span>
+                              {group.ids.length > 1 && (
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, background: 'var(--card-alt-bg, #F1F5F9)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '20px' }}>
+                                  {group.ids.length} orders
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="pos-card-right">
+                            <span className={`pos-badge${group.side === 'BUY' ? ' long' : ' short'}`}>
+                              {group.side}
+                            </span>
+                            <div className="pos-card-pnl" style={{ color: '#D97706', fontSize: '1.1rem', fontWeight: 700 }}>
+                              PENDING
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  ) : (
+                    /* Detailed View */
+                    currentSub === 'open' ? (
+                      detailedTickets.length === 0 ? (
+                        <div className="pos-empty">
+                          <i className="fas fa-list" />
+                          <p>No trades available</p>
+                        </div>
+                      ) : detailedTickets.map(pos => {
+                        const entryDate = new Date(pos.entry_time);
+                        const timeStr = entryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        const actualPos = pos;
+
+                        return (
+                          <div
+                            key={pos.id}
+                            className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
+                            onClick={() => {
+                              if (pos.status === 'closed') {
+                                handleRowClick(pos);
+                              } else {
+                                toggleExpand(pos.id);
+                              }
+                            }}
+                          >
+                            <div className="pos-detail-main-layout">
+                              {/* Left Side: Symbol and Metadata */}
+                              <div className="pos-detail-left-col">
+                                <div className="pos-detail-symbol">
+                                  <span className="pos-symbol-text">{pos.symbol}</span>
+                                </div>
+                                <div className="pos-detail-meta">
+                                  <div className="pos-detail-meta-row">
+                                    <span>Qty: <strong>{pos.qty_open || pos.qty_total}</strong></span>
+                                    <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
+                                  </div>
+                                  <div className="pos-detail-meta-row">
+                                    <span>Time: <strong>{timeStr}</strong></span>
+                                    {pos.status === 'closed'
+                                      ? <span>Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></span>
+                                      : <span>Current: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
+                                    }
+                                  </div>
+                                </div>
+                                {pos.product_type && (
+                                  <div
+                                    className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      await toggleProductType(actualPos);
+                                    }}
+                                    style={{ marginTop: '5px', alignSelf: 'flex-start' }}
+                                  >
+                                    {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Right Side: P&L and Status Badge */}
+                              <div className="pos-detail-right-col">
+                                <div className="pos-detail-pnl-group">
+                                  <div className={`pos-detail-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
+                                    {fmtUSD(pos.total_pnl, pos.settlement)}
+                                  </div>
+                                  <div className="pos-detail-pct">{pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%</div>
+                                  <span className="pos-detail-side">{pos.side}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {pos.product_type && (
+                                    <span className={`pos-product-badge ${pos.product_type === 'CARRY' ? 'carry' : ''}`}>
+                                      {pos.product_type}
+                                    </span>
+                                  )}
+                                  <span className={`pos-status-badge ${pos.status}`}>
+                                    {pos.status.toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
+                              <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
+                                <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
+                                  <i className="fas fa-plus-circle" /> Add More
+                                </button>
+                                <button
+                                  className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
+                                  onClick={() => {
+                                    if (pos.hold_lock_active) {
+                                      setLockModalPos(actualPos);
+                                    } else {
+                                      openExitSheet(actualPos, actualPos.qty_open, false);
+                                    }
+                                  }}
+                                >
+                                  <i className="fas fa-times-circle" /> Exit
+                                </button>
+                                <button
+                                  style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '42px', height: '38px', borderRadius: '16px',
+                                    border: '1.5px solid var(--border-card, #CBD5E1)',
+                                    background: 'var(--card-bg, #ffffff)', color: 'var(--text-primary, #1F2937)',
+                                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s'
+                                  }}
+                                  onClick={() => openChart(pos)}
+                                >
+                                  <svg viewBox="0 0 24 24" style={{ width: '1.25rem', height: '1.25rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                                    <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
+                                    <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
+                                    <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
+                                    <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
+                                    <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : currentSub === 'closed' ? (
                       closedPositions.length === 0 ? (
                         <div className="pos-empty">
                           <i className="fas fa-history" />
@@ -820,126 +1127,56 @@ export default function PositionPage() {
                           </div>
                         </div>
                       ))
-                    )
-                  ) : (
-                    /* Detailed View */
-                    detailedTickets.length === 0 ? (
-                      <div className="pos-empty">
-                        <i className="fas fa-list" />
-                        <p>No trades available</p>
-                      </div>
-                    ) : detailedTickets.map(pos => {
-                      const entryDate = new Date(pos.entry_time);
-                      const timeStr = entryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                      const actualPos = pos;
-
-                      return (
-                        <div
-                          key={pos.id}
-                          className={`pos-detail-card${expandedPosId === pos.id ? ' pos-detail-card--expanded' : ''}${pos.hold_lock_active ? ' pos-card--locked' : ''}`}
-                          onClick={() => {
-                            if (pos.status === 'closed') {
-                              handleRowClick(pos);
-                            } else {
-                              toggleExpand(pos.id);
-                            }
-                          }}
-                        >
-                          <div className="pos-detail-main-layout">
-                            {/* Left Side: Symbol and Metadata */}
-                            <div className="pos-detail-left-col">
-                              <div className="pos-detail-symbol">
-                                <span className="pos-symbol-text">{pos.symbol}</span>
-                              </div>
-                              <div className="pos-detail-meta">
-                                <div className="pos-detail-meta-row">
-                                  <span>Qty: <strong>{pos.qty_open || pos.qty_total}</strong></span>
-                                  <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>
+                    ) : (
+                      rawOrders.filter(o => o.status === 'PENDING' || o.status === 'OPEN' || o.status === 'VALIDATION_PENDING').length === 0 ? (
+                        <div className="pos-empty">
+                          <i className="fas fa-clock" />
+                          <p>No pending orders</p>
+                        </div>
+                      ) : rawOrders.filter(o => o.status === 'PENDING' || o.status === 'OPEN' || o.status === 'VALIDATION_PENDING').map(order => {
+                        const orderDate = new Date(order.created_at);
+                        const timeStr = orderDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        return (
+                          <div key={order.id} className="pos-detail-card">
+                            <div className="pos-detail-main-layout">
+                              <div className="pos-detail-left-col">
+                                <div className="pos-detail-symbol">
+                                  <span className="pos-symbol-text">{order.symbol}</span>
                                 </div>
-                                <div className="pos-detail-meta-row">
-                                  <span>Time: <strong>{timeStr}</strong></span>
-                                  {pos.status === 'closed'
-                                    ? <span>Exit: <strong>{fmtPrice(pos.exit_price || 0, pos.settlement)}</strong></span>
-                                    : <span>Current: <strong>{fmtPrice(pos.current_ltp, pos.settlement)}</strong></span>
-                                  }
+                                <div className="pos-detail-meta">
+                                  <div className="pos-detail-meta-row">
+                                    <span>Qty: <strong>{order.qty}</strong></span>
+                                    <span>Price: <strong>{order.trigger_price || order.client_price ? fmtPrice(order.trigger_price || order.client_price || 0, order.segment) : 'MARKET'}</strong></span>
+                                  </div>
+                                  <div className="pos-detail-meta-row">
+                                    <span>Time: <strong>{timeStr}</strong></span>
+                                    <span>Type: <strong>{order.order_type}</strong></span>
+                                  </div>
                                 </div>
                               </div>
-                              {pos.product_type && (
-                                <div
-                                  className={`convert-type-btn ${pos.product_type === 'CARRY' ? 'carry' : 'intraday'}`}
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await toggleProductType(actualPos);
-                                  }}
-                                  style={{ marginTop: '5px', alignSelf: 'flex-start' }}
-                                >
-                                  {pos.product_type === 'INTRADAY' ? 'INTRADAY ⇄ CARRY' : 'CARRY ⇄ INTRADAY'}
+                              <div className="pos-detail-right-col">
+                                <div className="pos-detail-pnl-group">
+                                  <div className="pos-detail-pnl" style={{ color: '#D97706', fontSize: '1.1rem', fontWeight: 700 }}>
+                                    PENDING
+                                  </div>
+                                  <span className="pos-detail-side">{order.side}</span>
                                 </div>
-                              )}
-                            </div>
-
-                            {/* Right Side: P&L and Status Badge */}
-                            <div className="pos-detail-right-col">
-                              <div className="pos-detail-pnl-group">
-                                <div className={`pos-detail-pnl${pos.total_pnl >= 0 ? ' green' : ' red'}`}>
-                                  {fmtUSD(pos.total_pnl, pos.settlement)}
-                                </div>
-                                <div className="pos-detail-pct">{pos.pnl_percent >= 0 ? '+' : ''}{pos.pnl_percent.toFixed(2)}%</div>
-                                <span className="pos-detail-side">{pos.side}</span>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                {pos.product_type && (
-                                  <span className={`pos-product-badge ${pos.product_type === 'CARRY' ? 'carry' : ''}`}>
-                                    {pos.product_type}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {order.product_type && (
+                                    <span className={`pos-product-badge ${order.product_type === 'CARRY' ? 'carry' : ''}`}>
+                                      {order.product_type}
+                                    </span>
+                                  )}
+                                  <span className="pos-status-badge pending" style={{ background: '#FEF3C7', color: '#D97706', fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 600 }}>
+                                    {order.status}
                                   </span>
-                                )}
-                                <span className={`pos-status-badge ${pos.status}`}>
-                                  {pos.status.toUpperCase()}
-                                </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          {expandedPosId === pos.id && (pos.status === 'open' || pos.status === 'active') && (
-                            <div className="pos-card-actions" onClick={e => e.stopPropagation()}>
-                              <button className="pca-btn pca-add" onClick={() => openAddMore(actualPos)}>
-                                <i className="fas fa-plus-circle" /> Add More
-                              </button>
-                              <button
-                                className={`pca-btn pca-exit${pos.hold_lock_active ? ' disabled-lock' : ''}`}
-                                onClick={() => {
-                                  if (pos.hold_lock_active) {
-                                    setLockModalPos(actualPos);
-                                  } else {
-                                    openExitSheet(actualPos, actualPos.qty_open, false);
-                                  }
-                                }}
-                              >
-                                <i className="fas fa-times-circle" /> Exit
-                              </button>
-                              <button
-                                style={{
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  width: '42px', height: '38px', borderRadius: '16px',
-                                  border: '1.5px solid var(--border-card, #CBD5E1)',
-                                  background: 'var(--card-bg, #ffffff)', color: 'var(--text-primary, #1F2937)',
-                                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s'
-                                }}
-                                onClick={() => openChart(pos)}
-                              >
-                                <svg viewBox="0 0 24 24" style={{ width: '1.25rem', height: '1.25rem', display: 'inline-block', verticalAlign: 'middle' }}>
-                                  <rect x="4" y="16" width="2.5" height="4" rx="0.5" fill="currentColor" />
-                                  <rect x="9" y="13" width="2.5" height="7" rx="0.5" fill="currentColor" />
-                                  <rect x="14" y="14" width="2.5" height="6" rx="0.5" fill="currentColor" />
-                                  <rect x="19" y="11" width="2.5" height="9" rx="0.5" fill="currentColor" />
-                                  <path d="M 4 14 L 8 9 L 13 12 L 20 4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                  <polyline points="15 4 20 4 20 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
+                        );
+                      })
+                    )
                   )
                 )}
               </div>

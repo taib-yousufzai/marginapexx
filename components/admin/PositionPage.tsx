@@ -1,10 +1,12 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { signOut } from '@/lib/auth';
 import { apiCall, Toast, ToastState, ConfirmDialog, SkeletonLine, Position, PositionItem, positionItemToPosition } from './AdminUtils';
+import { useMarketQuotes } from '@/hooks/useMarketQuotes';
+import { useComexQuotes } from '@/hooks/useComexQuotes';
 
 export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode }: { selectedUser: { id: string; role: string; client_id?: string }, onOpenUserPanel?: () => void, isDemoMode: boolean }) {
-  const [tab, setTab] = useState<'open' | 'active' | 'closed'>('open');
+  const [tab, setTab] = useState<'open' | 'closed'>('open');
   const [search, setSearch] = useState('');
   const [rows, setRows] = useState('10');
   const [page, setPage] = useState(1);
@@ -46,10 +48,13 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
   }, [uid, tab, isDemoMode]);
 
   useEffect(() => {
-    setTimeout(() => fetchPositions(), 0);
+    fetchPositions();
+  }, [uid, tab, isDemoMode]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
-      fetchPositions(true); // silent refresh every second
-    }, 1000);
+      fetchPositions(true); // silent refresh
+    }, 5000);
     return () => clearInterval(interval);
   }, [fetchPositions]);
 
@@ -69,18 +74,94 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
     });
   }, [uid, isDemoMode]);
 
-  const openPnl = positions.reduce((s, p) => s + p.pnl, 0);
-  const totalSettlement = positions.reduce((s, p) => s + (p.settlementAmount ?? 0), 0);
+  // Smartly resolve Kite instrument prefixes if they are missing
+  const resolveKitePrefix = useCallback((key: string, settlement: string) => {
+    if (key.includes(':')) return key;
+    const seg = (settlement || '').toUpperCase();
+    let prefix = 'NSE:';
+    if (seg.includes('MCX')) prefix = 'MCX:';
+    else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
+    else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
+    else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
+    else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
 
-  const filtered = positions.filter(p =>
+    if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';
+    if (prefix === 'NFO:' && !key.match(/\d/)) prefix = 'NSE:';
+
+    return `${prefix}${key}`;
+  }, []);
+
+  // Group instrument keys to subscribe to quotes
+  const { kiteKeys, binanceKeys, comexKeys } = useMemo(() => {
+    const kite: string[] = [];
+    const binance: string[] = [];
+    const comex: string[] = [];
+
+    positions.filter(p => p.status === 'open' || p.status === 'active').forEach(p => {
+      const seg = (p.settlement || '').toUpperCase();
+      if (seg.includes('CRYPTO') || seg === 'USDT' || (p.symbol && p.symbol.endsWith('USDT'))) {
+        let sym = (p.symbol || '').replace('/', '');
+        if (!sym.endsWith('USDT')) sym = sym + 'USDT';
+        binance.push(sym);
+      } else if (seg.includes('COMEX') || (p.symbol && p.symbol.endsWith('=F'))) {
+        comex.push(p.symbol);
+      } else {
+        kite.push(resolveKitePrefix(p.symbol, p.settlement || ''));
+      }
+    });
+
+    return { kiteKeys: kite, binanceKeys: binance, comexKeys: comex };
+  }, [positions, resolveKitePrefix]);
+
+  const marketSymbols = useMemo(() => [...kiteKeys, ...binanceKeys], [kiteKeys, binanceKeys]);
+  const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
+  const { quotes: comexQuotes } = useComexQuotes(comexKeys);
+
+  const enrichedPositions = useMemo(() => {
+    return positions.map(p => {
+      if (p.status !== 'open' && p.status !== 'active') return p;
+      const seg = (p.settlement || '').toUpperCase();
+      let liveLtp = p.ltp || p.entry;
+
+      if (seg.includes('CRYPTO') || seg === 'USDT' || (p.symbol && p.symbol.endsWith('USDT'))) {
+        let binanceKey = (p.symbol || '').replace('/', '');
+        if (!binanceKey.endsWith('USDT')) binanceKey = binanceKey + 'USDT';
+        liveLtp = marketQuotes[binanceKey]?.lastPrice ?? liveLtp;
+      } else if (seg.includes('COMEX') || (p.symbol && p.symbol.endsWith('=F'))) {
+        liveLtp = comexQuotes[p.symbol]?.lastPrice ?? liveLtp;
+      } else {
+        const kiteKey = resolveKitePrefix(p.symbol, p.settlement || '');
+        liveLtp = marketQuotes[kiteKey]?.lastPrice ?? liveLtp;
+      }
+
+      const qtyOpen = Number(p.qty.split('/')[0]) || 0;
+      let livePnl = p.pnl;
+      if (qtyOpen > 0) {
+        if (p.side === 'BUY') {
+          livePnl = (liveLtp - p.avgPrice) * qtyOpen;
+        } else {
+          livePnl = (p.avgPrice - liveLtp) * qtyOpen;
+        }
+      }
+
+      return { ...p, ltp: liveLtp, pnl: livePnl };
+    });
+  }, [positions, marketQuotes, comexQuotes, resolveKitePrefix]);
+
+  const openPnl = enrichedPositions.reduce((s, p) => s + (p.status === 'open' || p.status === 'active' ? p.pnl : 0), 0);
+  const totalSettlement = enrichedPositions.reduce((s, p) => s + (p.settlementAmount ?? 0), 0);
+
+  const filtered = enrichedPositions.filter(p =>
     p.symbol.toLowerCase().includes(search.toLowerCase()) ||
-    uid.toLowerCase().includes(search.toLowerCase())
+    (p.client_id || '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.user_name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.user_id || '').toLowerCase().includes(search.toLowerCase())
   );
   const rowsNum = Number(rows);
   const totalPages = Math.max(1, Math.ceil(filtered.length / rowsNum));
   const displayed = filtered.slice((page - 1) * rowsNum, page * rowsNum);
 
-  const switchTab = (t: 'open' | 'active' | 'closed') => { setTab(t); setSearch(''); setPage(1); };
+  const switchTab = (t: 'open' | 'closed') => { setTab(t); setSearch(''); setPage(1); };
 
   const handleSqoff = (posId: string) => {
     apiCall(`/api/admin/positions/${posId}/sqoff`, { method: 'POST' })
@@ -204,12 +285,11 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
               <label className="adm-sheet-label">Status</label>
               <select 
                 className="adm-sheet-input" 
-                value={editStatus} 
+                value={editStatus === 'active' ? 'open' : editStatus} 
                 onChange={e => setEditStatus(e.target.value as any)}
                 style={{ background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d' }}
               >
                 <option value="open">Open</option>
-                <option value="active">Active</option>
                 <option value="closed">Closed</option>
               </select>
             </div>
@@ -322,9 +402,9 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
       </div>
 
       <div className="adm-pos-tabs">
-        {(['open', 'active', 'closed'] as const).map(t => (
+        {(['open', 'closed'] as const).map(t => (
           <button key={t} className={`adm-pos-tab ${tab === t ? 'active' : ''}`} onClick={() => switchTab(t)}>
-            {t === 'open' ? 'Open Position' : t === 'active' ? 'Active Trades' : 'Closed Position'}
+            {t === 'open' ? 'Open Position' : 'Closed Position'}
           </button>
         ))}
       </div>
@@ -468,13 +548,6 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
 
               <div className="adm-pos-actions-group">
                 {tab === 'open' && (
-                  <>
-                    <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
-                    <button className="adm-pos-btn-edit" onClick={() => openEdit(p)}>Edit</button>
-                    <button className="adm-pos-btn-delete" onClick={() => setConfirmDeleteId(p.id)}>Delete</button>
-                  </>
-                )}
-                {tab === 'active' && (
                   <>
                     <button className="adm-pos-btn-sqoff" onClick={() => handleSqoff(p.id)}>Square Off</button>
                     <button className="adm-pos-btn-edit" onClick={() => openEdit(p)}>Edit</button>

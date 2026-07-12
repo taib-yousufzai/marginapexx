@@ -139,7 +139,7 @@ export async function PATCH(
     const newValue = Number(updatedPosition.avg_price || 0) * Number(updatedPosition.qty_total || 0);
     const valueDiff = newValue - oldValue; // positive = user owes more, negative = user gets refund
 
-    if (Math.abs(valueDiff) > 0.01) {
+    if (updatedPosition.status !== 'closed' && Math.abs(valueDiff) > 0.01) {
       const adjRefId = `MADJ_${id}`;
       const adjType = valueDiff > 0 ? 'MARGIN_ADJ_DEBIT' : 'MARGIN_ADJ_CREDIT';
       const adjAmount = Math.abs(valueDiff);

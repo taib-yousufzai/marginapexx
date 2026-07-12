@@ -97,9 +97,7 @@ export async function GET(
     // Step 5: Apply tab filter
     // Validates: Requirements 7.3, 7.4, 7.5
     if (tab === 'open') {
-      query = query.eq('status', 'open');
-    } else if (tab === 'active') {
-      query = query.eq('status', 'active');
+      query = query.in('status', ['open', 'active']);
     } else if (tab === 'closed') {
       query = query.eq('status', 'closed');
     }
