@@ -1969,6 +1969,59 @@ function WatchlistContent() {
               disabled={isExecutingBasket}
               onClick={async () => {
                 if (isExecutingBasket) return;
+
+                // 1. Calculate total margin required + total charges
+                let totalRequiredMargin = 0;
+                let intradayCharges = 0;
+                let carryCharges = 0;
+
+                basketLegs.forEach((leg) => {
+                  const price = getLegPrice(leg.item);
+                  const seg = mapSegmentToDbSegment(leg.item.segment);
+                  const setting = segmentSettings.find(s => s.segment === seg && s.side === leg.side);
+                  const lotSz = scriptSettings.find(s => s.symbol === leg.item.symbol)?.lot_size ?? 1;
+                  const qty = leg.unit === 'lot' ? leg.qty * lotSz : leg.qty;
+                  const exposure = qty * price;
+                  
+                  // Margin
+                  const isIntra = (leg.productType || 'INTRADAY') === 'INTRADAY';
+                  const lev = Number(isIntra ? (setting?.intraday_leverage ?? 10) : (setting?.normal_leverage ?? 10));
+                  const levType = (isIntra ? setting?.intraday_type : setting?.normal_type) ?? 'Multiplier';
+                  let portion = 0;
+                  if (levType === '%') portion = exposure * (lev / 100);
+                  else if (levType === 'Fixed') portion = (qty / lotSz) * lev;
+                  else portion = exposure / lev;
+                  totalRequiredMargin += portion;
+
+                  // Commission
+                  const commType = (isIntra ? setting?.intraday_commission_type : setting?.commission_type) || setting?.commission_type || 'Per Crore';
+                  let commVal = Number((isIntra ? setting?.intraday_commission_value : setting?.commission_value) ?? setting?.commission_value ?? 0);
+                  
+                  if (!setting) {
+                    const sUpper = (leg.item.segment || '').toUpperCase();
+                    if (sUpper.includes('FOREX')) commVal = 2000;
+                    else if (sUpper.includes('CRYPTO')) commVal = 1000;
+                    else commVal = 4500;
+                  }
+
+                  let charge = 0;
+                  if (commType === 'Per Crore') charge = (exposure * commVal) / 10000000;
+                  else if (commType === 'Per Lot') charge = (qty / lotSz) * commVal;
+                  else if (commType === 'Per Trade' || commType === 'Flat') charge = commVal;
+                  else charge = exposure * 0.001;
+                  
+                  if (isIntra) intradayCharges += charge * 2;
+                  else carryCharges += charge * 2;
+                });
+
+                const totalNeeded = totalRequiredMargin + intradayCharges + carryCharges;
+                const avBal = availableBalance ?? 0;
+
+                if (avBal < totalNeeded) {
+                  showToast(`Insufficient funds. Required: ₹${totalNeeded.toLocaleString('en-IN', { minimumFractionDigits: 2 })}, Available: ₹${avBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, true);
+                  return;
+                }
+
                 setIsExecutingBasket(true);
                 try {
                   for (const leg of basketLegs) {
