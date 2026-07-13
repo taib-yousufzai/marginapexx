@@ -283,9 +283,19 @@ export default function FundsPage() {
 
   const handleWithdraw = async () => {
     const numAmount = Number(amount);
-    if (!amount || isNaN(numAmount) || numAmount <= 0) return;
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setToast({ message: 'Please enter a valid withdrawal amount.', type: 'error' });
+      return;
+    }
     const acc = savedAccounts.find(a => a.id === selectedAccountId);
-    if (!acc) return;
+    if (!acc) {
+      setToast({ message: 'Please select a destination account first.', type: 'error' });
+      return;
+    }
+    if (numAmount > (balance || 0)) {
+      setToast({ message: 'Insufficient balance for withdrawal.', type: 'error' });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -318,8 +328,7 @@ export default function FundsPage() {
     }
   };
 
-  const numAmount_val = Number(amount);
-  const withdrawDisabled = submitting || submitted || !amount || isNaN(numAmount_val) || numAmount_val <= 0 || !selectedAccountId;
+  const withdrawDisabled = submitting || submitted;
 
   return (
     <div className="desktop-layout">

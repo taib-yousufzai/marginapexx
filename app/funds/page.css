@@ -364,6 +364,14 @@
   transform: scale(0.98);
 }
 
+.submit-funds-btn:disabled {
+  background: var(--border-card);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
 /* ========================================================
    TABLET LAYOUT (501px – 1023px)
    ======================================================== */
