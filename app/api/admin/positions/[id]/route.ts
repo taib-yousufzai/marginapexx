@@ -189,28 +189,37 @@ export async function PATCH(
       const pnlType = updatedPosition.pnl >= 0 ? 'PNL_CREDIT' : 'PNL_DEBIT';
       const pnlAmount = Math.abs(updatedPosition.pnl);
 
-      if (existingPnlTx) {
-        await adminClient
-          .from('transactions')
-          .update({
-            type: pnlType,
-            amount: pnlAmount,
-            status: 'APPROVED',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingPnlTx.id);
+      if (pnlAmount > 0.000001) {
+        if (existingPnlTx) {
+          await adminClient
+            .from('transactions')
+            .update({
+              type: pnlType,
+              amount: pnlAmount,
+              status: 'APPROVED',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingPnlTx.id);
+        } else {
+          await adminClient
+            .from('transactions')
+            .insert({
+              user_id: updatedPosition.user_id,
+              type: pnlType,
+              amount: pnlAmount,
+              status: 'APPROVED',
+              ref_id: id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+        }
       } else {
-        await adminClient
-          .from('transactions')
-          .insert({
-            user_id: updatedPosition.user_id,
-            type: pnlType,
-            amount: pnlAmount,
-            status: 'APPROVED',
-            ref_id: id,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+        if (existingPnlTx) {
+          await adminClient
+            .from('transactions')
+            .delete()
+            .eq('id', existingPnlTx.id);
+        }
       }
     } else {
       // Position is open — only remove the PnL transaction if the admin explicitly

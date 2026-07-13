@@ -319,7 +319,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
   const entryBufferCost = baseExposure * (side === 'SELL' ? sellEntryBuffer : buyEntryBuffer);
   const exitBufferCost = baseExposure * (side === 'SELL' ? sellExitBuffer : buyExitBuffer);
 
-  const requiredMargin = Math.round(marginPortion + calculatedBrokerage);
+  const requiredMargin = isExitTrade ? 0 : Math.round(marginPortion + calculatedBrokerage);
 
   const userHasEditedQty = useRef(false);
   const activePositionsRef = useRef(activePositions);

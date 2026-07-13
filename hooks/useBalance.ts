@@ -27,8 +27,7 @@ export function useBalance(): BalanceState {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const init = async (session: any) => {
       if (!session || cancelled) return;
 
       // 1. Initial fetch
@@ -41,13 +40,16 @@ export function useBalance(): BalanceState {
           setBalance(Number(data.balance ?? 0));
           setSettlementAmount(Math.abs(Number(data.settlementAmount ?? 0)));
         }
-      } catch {
-        // non-fatal
+      } catch (err) {
+        console.error('[useBalance] failed to fetch balance:', err);
       } finally {
         if (!cancelled) setLoading(false);
       }
 
       // 2. Realtime subscription — fires on any UPDATE to this user's profile row
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
       channel = supabase
         .channel(`balance-realtime-${session.user.id}-${Date.now()}`)
         .on(
@@ -70,15 +72,37 @@ export function useBalance(): BalanceState {
         .subscribe();
     };
 
-    init();
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        init(session);
+      } else {
+        if (!cancelled) setLoading(false);
+      }
+    });
+
+    // Check current session immediately in case it's already cached
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        init(session);
+      } else {
+        // Give a tiny grace period, then mark loading as false if still no session
+        setTimeout(() => {
+          if (!cancelled && !session) setLoading(false);
+        }, 500);
+      }
+    });
 
     const handleOrderPlaced = () => {
-      init();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) init(session);
+      });
     };
     window.addEventListener('order_placed', handleOrderPlaced);
 
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
       if (channel) supabase.removeChannel(channel);
       window.removeEventListener('order_placed', handleOrderPlaced);
     };

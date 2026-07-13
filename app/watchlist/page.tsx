@@ -910,30 +910,7 @@ function WatchlistContent() {
     }
   }, [searchText]);
 
-  useEffect(() => {
-    async function fetchBalance() {
-      try {
-        const { supabase: sb } = await import('@/lib/supabaseClient');
-        const { data: { session } } = await sb.auth.getSession();
-        if (!session) return;
-        const res = await fetch('/api/pay/balance', {
-          headers: { Authorization: `Bearer ${session.access_token}` }
-        });
-        if (res.ok) {
-          const text = await res.text();
-          try {
-            const { balance } = JSON.parse(text);
-            setAvailableBalance(balance);
-          } catch (e) {
-            console.error('Failed to parse balance JSON:', text.substring(0, 100));
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch available balance', err);
-      }
-    }
-    fetchBalance();
-  }, []);
+
 
   useEffect(() => {
     const saved = localStorage.getItem('marginApexTheme');

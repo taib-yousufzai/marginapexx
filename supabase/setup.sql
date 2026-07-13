@@ -5077,7 +5077,17 @@ DECLARE
   v_current_bal   numeric;
   v_new_bal       numeric;
 BEGIN
-  -- ── Determine the user and the signed change amount ──────────────────────
+  -- Skip margin transactions so they don't affect profiles.balance
+  IF TG_OP = 'INSERT' OR TG_OP = 'UPDATE' THEN
+    IF NEW.type IN ('MARGIN_DEBIT', 'MARGIN_CREDIT') THEN
+      RETURN NEW;
+    END IF;
+  ELSIF TG_OP = 'DELETE' THEN
+    IF OLD.type IN ('MARGIN_DEBIT', 'MARGIN_CREDIT') THEN
+      RETURN OLD;
+    END IF;
+  END IF;
+
   IF (TG_OP = 'INSERT' AND NEW.status = 'APPROVED') THEN
     v_user_id := NEW.user_id;
     v_change  := CASE
@@ -5094,12 +5104,21 @@ BEGIN
                     ELSE -NEW.amount
                   END;
     ELSIF OLD.status = 'APPROVED' AND NEW.status <> 'APPROVED' THEN
-      -- Reversal: undo a previously approved transaction
       v_change := -( CASE
                        WHEN OLD.type IN ('DEPOSIT', 'PNL_CREDIT', 'MARGIN_ADJ_CREDIT')
                        THEN  OLD.amount
                        ELSE -OLD.amount
                      END );
+    ELSIF OLD.status = 'APPROVED' AND NEW.status = 'APPROVED' THEN
+      v_change := (CASE
+                     WHEN NEW.type IN ('DEPOSIT', 'PNL_CREDIT', 'MARGIN_ADJ_CREDIT')
+                     THEN  NEW.amount
+                     ELSE -NEW.amount
+                   END) - (CASE
+                             WHEN OLD.type IN ('DEPOSIT', 'PNL_CREDIT', 'MARGIN_ADJ_CREDIT')
+                             THEN  OLD.amount
+                             ELSE -OLD.amount
+                           END);
     END IF;
 
   ELSIF (TG_OP = 'DELETE' AND OLD.status = 'APPROVED') THEN
@@ -5115,7 +5134,6 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- ── Apply the change to balance ONLY — never touch settlement_amount ─────
   SELECT COALESCE(balance, 0)
     INTO v_current_bal
     FROM public.profiles
@@ -5132,13 +5150,13 @@ BEGIN
     UPDATE public.profiles
        SET balance    = v_new_bal,
            updated_at = now()
-     WHERE id = v_user_id;
+      WHERE id = v_user_id;
   ELSE
     UPDATE public.profiles
        SET balance          = 0,
            settlement_amount = COALESCE(settlement_amount, 0) + v_new_bal,
            updated_at        = now()
-     WHERE id = v_user_id;
+      WHERE id = v_user_id;
   END IF;
 
   RETURN NULL;
@@ -5684,3 +5702,50 @@ BEGIN
   RETURN v_pnl;
 END;
 $$;
+
+-- ==============================================================================
+-- SECTION: Re-baseline Profile Balances Function
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.rebaseline_profile_balances()
+RETURNS void AS $$
+DECLARE
+  r_profile RECORD;
+  r_tx      RECORD;
+  v_bal     numeric;
+  v_sett    numeric;
+  v_change  numeric;
+BEGIN
+  FOR r_profile IN SELECT id, email FROM public.profiles LOOP
+    v_bal := 0;
+    v_sett := 0;
+    
+    FOR r_tx IN 
+      SELECT type, amount 
+        FROM public.transactions 
+       WHERE user_id = r_profile.id 
+         AND status = 'APPROVED'
+         AND type NOT IN ('MARGIN_DEBIT', 'MARGIN_CREDIT')
+       ORDER BY created_at ASC, id ASC
+    LOOP
+      v_change := CASE 
+                    WHEN r_tx.type IN ('DEPOSIT', 'PNL_CREDIT', 'MARGIN_ADJ_CREDIT') 
+                    THEN r_tx.amount
+                    ELSE -r_tx.amount
+                  END;
+      v_bal := v_bal + v_change;
+      IF v_bal < 0 THEN
+        v_sett := v_sett + v_bal;
+        v_bal := 0;
+      END IF;
+    END LOOP;
+    
+    UPDATE public.profiles
+       SET balance = v_bal,
+           settlement_amount = v_sett,
+           updated_at = now()
+     WHERE id = r_profile.id;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+SELECT public.rebaseline_profile_balances();
