@@ -159,10 +159,10 @@ const getLastThursdayOfCurrentOrNextMonth = () => {
 };
 
 const getExpiryIndexes = () => [
-  { name: "NIFTY", fullName: "NIFTY 50", shortCode: "N50", expiry: getNextExpiryDate(4), lotSize: 65 },
+  { name: "NIFTY", fullName: "NIFTY 50", shortCode: "N50", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 65 },
   { name: "BANKNIFTY", fullName: "BANK NIFTY", shortCode: "BNF", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 30 },
   { name: "FINNIFTY", fullName: "FIN NIFTY", shortCode: "FIN", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 60 },
-  { name: "SENSEX", fullName: "SENSEX", shortCode: "SEN", expiry: getNextExpiryDate(5), lotSize: 20 },
+  { name: "SENSEX", fullName: "SENSEX", shortCode: "SEN", expiry: getLastThursdayOfCurrentOrNextMonth(), lotSize: 20 },
   { name: "MIDCAP", fullName: "MIDCAP NIFTY", shortCode: "MID", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 120 },
   { name: "BANKEX", fullName: "BANKEX", shortCode: "BKX", expiry: getLastThursdayOfCurrentOrNextMonth(), lotSize: 30 },
 ];
