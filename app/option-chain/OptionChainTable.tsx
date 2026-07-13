@@ -43,8 +43,6 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   }, [strikes, spotPrice]);
 
   React.useEffect(() => {
-    // Wait until both strikes are loaded AND spotPrice is valid so atmRef is actually attached.
-    // Once we've scrolled, never scroll again (avoids jumping on price ticks).
     if (hasScrolledRef.current) return;
     if (!atmRef.current || strikes.length === 0 || spotPrice <= 0 || !atmStrike) return;
 
@@ -54,7 +52,6 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
       const el = atmRef.current;
       if (!el) return;
 
-      // Walk up to find the nearest scrollable ancestor
       let scrollParent: HTMLElement | null = el.parentElement;
       while (scrollParent) {
         const { overflowY } = window.getComputedStyle(scrollParent);
@@ -69,12 +66,10 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
       container.scrollTo({ top: offset, behavior: 'smooth' });
     };
 
-    // Small delay to let layout settle after data renders
     const t = setTimeout(doScroll, 150);
     return () => clearTimeout(t);
   }, [strikes, spotPrice, atmStrike]);
 
-  // Detect when CALLS/STRIKE/PUTS header scrolls out of view
   React.useEffect(() => {
     const scrollEl = tableHeaderRef.current?.closest('.main-content') as HTMLElement | null;
     if (!scrollEl) return;
@@ -106,7 +101,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
       {/* Single outer container */}
       <div className="oct-table">
 
-        {/* ── Header row (scrolls away) ── */}
+        {/* Header row (scrolls away) */}
         {!hideMainHeader && (
           <div className="oct-head" ref={tableHeaderRef}>
             <div className="oct-head-calls">{priceMode === 'LTP' ? 'CALL LTP' : 'CALLS'}</div>
@@ -115,7 +110,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           </div>
         )}
 
-        {/* ── Sub-header: sticky ── */}
+        {/* Sub-header: sticky */}
         <div className={`oct-subhead${subheadFloating ? ' floating' : ''}`}>
           <div className="oct-sub-calls">
             {priceMode === 'BA' ? <><span>BID</span><span>ASK</span></> : <span>{hideMainHeader ? 'CALL' : 'LTP'}</span>}
@@ -126,7 +121,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           </div>
         </div>
 
-        {/* â”€â”€ Data rows â”€â”€ */}
+        {/* Data rows */}
         <div className="oct-body">
           {strikes.map((s) => {
             const ceQuote = getQuote(s.ce?.id, s.ce?.token);
@@ -141,8 +136,8 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const peBid = peLtpVal ? peLtpVal.toFixed(1) : '---';
             const peAsk = peLtpVal ? peLtpVal.toFixed(1) : '---';
 
-            const ceLtp = ceLtpVal ? `₹${ceLtpVal.toFixed(1)}` : '---';
-            const peLtp = peLtpVal ? `₹${peLtpVal.toFixed(1)}` : '---';
+            const ceLtp = ceLtpVal ? `\u20b9${ceLtpVal.toFixed(1)}` : '---';
+            const peLtp = peLtpVal ? `\u20b9${peLtpVal.toFixed(1)}` : '---';
 
             return (
               <div
@@ -202,7 +197,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             );
           })}
         </div>
-      </div>{/* oct-table */}
+      </div>
 
       <style jsx>{`
         .oct-wrap {
@@ -210,7 +205,6 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 0 0 80px 0;
         }
 
-        /* â”€â”€ Single outer container â”€â”€ */
         .oct-table {
           width: 100%;
           background: #fff;
@@ -227,7 +221,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           box-shadow: 0 2px 16px rgba(0,0,0,0.4);
         }
 
-        /* ── Header ── */
+        /* Header */
         .oct-head {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -256,20 +250,11 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 14px 0 18px 0;
         }
 
-        :global(body.dark) .oct-head-calls {
-          background: #1a2e1c;
-          color: #ffffff;
-        }
-        :global(body.dark) .oct-head-puts {
-          background: #2e1a1a;
-          color: #ffffff;
-        }
-        :global(body.dark) .oct-head-strike {
-          background: #252010;
-          color: #ffffff;
-        }
+        :global(body.dark) .oct-head-calls  { background: #1a2e1c; color: #ffffff; }
+        :global(body.dark) .oct-head-puts   { background: #2e1a1a; color: #ffffff; }
+        :global(body.dark) .oct-head-strike { background: #252010; color: #ffffff; }
 
-        /* ——— Sticky sub-header ——— */
+        /* Sticky sub-header */
         .oct-subhead {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -283,28 +268,16 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           transition: border-radius 0.15s ease, box-shadow 0.15s ease;
         }
 
-        /* When header scrolled away — round top corners */
         .oct-subhead.floating {
           border-radius: 20px 20px 0 0;
           box-shadow: 0 4px 16px rgba(0,0,0,0.1);
           overflow: hidden;
         }
+        .oct-subhead.floating .oct-sub-calls { border-radius: 20px 0 0 0; }
+        .oct-subhead.floating .oct-sub-puts  { border-radius: 0 20px 0 0; }
 
-        .oct-subhead.floating .oct-sub-calls {
-          border-radius: 20px 0 0 0;
-        }
-
-        .oct-subhead.floating .oct-sub-puts {
-          border-radius: 0 20px 0 0;
-        }
-
-        :global(body.dark) .oct-subhead {
-          border-bottom-color: #252525;
-        }
-
-        :global(body.dark) .oct-subhead.floating {
-          box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-        }
+        :global(body.dark) .oct-subhead { border-bottom-color: #252525; }
+        :global(body.dark) .oct-subhead.floating { box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
 
         .oct-sub-calls {
           background: #ffffff;
@@ -333,26 +306,17 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           padding: 10px 8px;
         }
 
-        :global(body.dark) .oct-sub-calls {
-          background: #141414;
-          color: #a3a3a3;
-        }
-        :global(body.dark) .oct-sub-puts {
-          background: #141414;
-          color: #a3a3a3;
-        }
-        :global(body.dark) .oct-sub-strike {
-          background: #141414;
-          color: #a3a3a3;
-        }
+        :global(body.dark) .oct-sub-calls  { background: #141414; color: #a3a3a3; }
+        :global(body.dark) .oct-sub-puts   { background: #141414; color: #a3a3a3; }
+        :global(body.dark) .oct-sub-strike { background: #141414; color: #a3a3a3; }
 
-        /* â”€â”€ Body â”€â”€ */
+        /* Body */
         .oct-body {
           display: flex;
           flex-direction: column;
         }
 
-        /* â”€â”€ Row â”€â”€ */
+        /* Row */
         .oct-row {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
@@ -367,11 +331,9 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           border-bottom: 2px solid rgba(198,46,46,0.25);
         }
 
-        :global(body.dark) .oct-row {
-          border-bottom-color: #1f1f1f;
-        }
+        :global(body.dark) .oct-row { border-bottom-color: #1f1f1f; }
 
-        /* â”€â”€ Cells â”€â”€ */
+        /* Cells */
         .oct-cell-calls {
           position: relative;
           background: #f4fbf4;
@@ -403,87 +365,56 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         .oct-cell-calls:active,
         .oct-cell-puts:active { opacity: 0.7; }
 
-        .oct-cell-strike.atm {
-          background: #fff8f0;
-        }
+        .oct-cell-strike.atm { background: #fff8f0; }
 
-        :global(body.dark) .oct-cell-calls {
-          background: #161c17;
-        }
-        :global(body.dark) .oct-cell-puts {
-          background: #1c1616;
-        }
-        :global(body.dark) .oct-cell-strike {
-          background: #141414;
-        }
-        :global(body.dark) .oct-cell-strike.atm {
-          background: #1e1414;
-        }
+        :global(body.dark) .oct-cell-calls  { background: #161c17; }
+        :global(body.dark) .oct-cell-puts   { background: #1c1616; }
+        :global(body.dark) .oct-cell-strike { background: #141414; }
+        :global(body.dark) .oct-cell-strike.atm { background: #1e1414; }
 
-        /* ── Values ── */
+        /* Values */
         .oct-val {
           font-size: 14px;
           font-weight: 700;
           font-family: 'Inter', sans-serif;
         }
-
         .oct-val.call { color: #1e293b; }
         .oct-val.put  { color: #1e293b; }
+        .oct-val.ltp-single { font-size: 14px; font-weight: 700; }
 
-        .oct-val.ltp-single {
-          font-size: 14px;
-          font-weight: 700;
-        }
+        :global(body.dark) .oct-val.call { color: #f1f5f9; }
+        :global(body.dark) .oct-val.put  { color: #f1f5f9; }
 
-        :global(body.dark) .oct-val.call {
-          color: #f1f5f9;
-        }
-        :global(body.dark) .oct-val.put {
-          color: #f1f5f9;
-        }
-
-        /* ── Strike value ── */
+        /* Strike value */
         .oct-strike-val {
           font-size: 14px;
           font-weight: 700;
           color: #C62E2E;
           font-family: 'Inter', sans-serif;
         }
-
         .oct-strike-val.atm {
           color: #C62E2E;
           font-weight: 800;
           font-size: 14px;
         }
 
-        :global(body.dark) .oct-strike-val {
-          color: #f87171;
-        }
-        :global(body.dark) .oct-strike-val.atm {
-          color: #ff6b6b;
-          font-weight: 800;
-        }
+        :global(body.dark) .oct-strike-val     { color: #f87171; }
+        :global(body.dark) .oct-strike-val.atm { color: #ff6b6b; font-weight: 800; }
 
-        /* ── Hover Actions ── */
+        /* Hover actions */
         .hover-actions {
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 6px;
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(255,255,255,0.95);
           opacity: 0;
           transition: opacity 0.15s ease-in-out;
           pointer-events: none;
         }
-
-        :global(body.dark) .hover-actions {
-          background: rgba(20, 20, 20, 0.95);
-        }
+        :global(body.dark) .hover-actions { background: rgba(20,20,20,0.95); }
 
         .oct-cell-calls:hover .hover-actions,
         .oct-cell-puts:hover .hover-actions {
@@ -505,18 +436,9 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
           justify-content: center;
           transition: transform 0.1s;
         }
-
-        .btn-buy:active, .btn-sell:active {
-          transform: scale(0.9);
-        }
-
-        .btn-buy {
-          background: #12B76A;
-        }
-
-        .btn-sell {
-          background: #F04438;
-        }
+        .btn-buy:active, .btn-sell:active { transform: scale(0.9); }
+        .btn-buy  { background: #12B76A; }
+        .btn-sell { background: #F04438; }
       `}</style>
     </div>
   );

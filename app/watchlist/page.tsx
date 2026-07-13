@@ -690,8 +690,12 @@ function WatchlistContent() {
       if (i.kiteSymbol) list.push(i.kiteSymbol);
       if (i.binanceSymbol) list.push(i.binanceSymbol);
     });
+    // Also subscribe to the detail sheet item's symbol if it's not already on the watchlist
+    if (selectedItem?.kiteSymbol && !list.includes(selectedItem.kiteSymbol)) {
+      list.push(selectedItem.kiteSymbol);
+    }
     return list;
-  }, [watchlistItems]);
+  }, [watchlistItems, selectedItem?.kiteSymbol]);
 
   const { quotes: marketQuotes } = useMarketQuotes(marketSymbols);
 
