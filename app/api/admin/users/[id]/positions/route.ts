@@ -114,6 +114,13 @@ export async function GET(
     const to = from + rows - 1;
     query = query.range(from, to);
 
+    // Apply newest to oldest sorting
+    if (tab === 'closed') {
+      query = query.order('exit_time', { ascending: false, nullsFirst: false }).order('entry_time', { ascending: false });
+    } else {
+      query = query.order('entry_time', { ascending: false });
+    }
+
     const { data, error } = await query;
 
     if (error) {

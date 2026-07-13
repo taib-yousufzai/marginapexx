@@ -273,99 +273,279 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
           loading={deleteLoading}
         />
       )}
-      {editPos && (
+      {editPos && (() => {
+        const entry = parseFloat(editAvgPrice) || 0;
+        const exit = parseFloat(editExitPrice) || 0;
+        const qty = parseFloat(editQtyTotal) || 0;
+        const brok = parseFloat(editBrokerage) || 0;
+        const entryValue = entry * qty;
+        const exitValue = exit * qty;
+        const rawPnl = editSide === 'BUY' ? (exit - entry) * qty : (entry - exit) * qty;
+        const netPnl = rawPnl - brok;
+        const isPositive = netPnl >= 0;
+        const entrySideLabel = editSide === 'BUY' ? 'Buy' : 'Sell';
+        const exitSideLabel = editSide === 'BUY' ? 'Sell' : 'Buy';
+        const fmtVal = (v: number) => v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Shared inline styles for the competitor-matching design
+        const labelSm: React.CSSProperties = { fontSize: '0.6rem', fontWeight: 600, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.4px', display: 'block', marginBottom: '4px' };
+        const inputSm: React.CSSProperties = { fontSize: '0.78rem', padding: '9px 10px', borderRadius: '8px', background: '#0d1117', border: '1px solid #30363d', color: '#e6edf3', width: '100%', boxSizing: 'border-box', fontVariantNumeric: 'tabular-nums' };
+        const readonlyBox: React.CSSProperties = { ...inputSm, background: '#161b22', color: '#8b949e', cursor: 'default', display: 'flex', alignItems: 'center', minHeight: '38px' };
+
+        return (
         <div className="adm-modal-overlay" onClick={() => setEditPos(null)}>
-          <div className="adm-modal" onClick={e => e.stopPropagation()}>
-            <div className="adm-modal-header">
-              <span className="adm-modal-title">Edit Position — {editPos.symbol}</span>
-              <button className="adm-modal-close" onClick={() => setEditPos(null)}>✕</button>
-            </div>
-            
-            <div className="adm-sheet-field">
-              <label className="adm-sheet-label">Status</label>
-              <select 
-                className="adm-sheet-input" 
-                value={editStatus === 'active' ? 'open' : editStatus} 
-                onChange={e => setEditStatus(e.target.value as any)}
-                style={{ background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d' }}
-              >
-                <option value="open">Open</option>
-                <option value="closed">Closed</option>
-              </select>
+          <div className="adm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <span style={{ fontSize: '1.05rem', fontWeight: 700, color: '#e6edf3' }}>Edit Position</span>
+              <button onClick={() => setEditPos(null)} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: '1.1rem', cursor: 'pointer', padding: '4px' }}>✕</button>
             </div>
 
-            <div className="adm-sheet-field">
-              <label className="adm-sheet-label">Side</label>
-              <select 
-                className="adm-sheet-input" 
-                value={editSide} 
+            {/* Side dropdown */}
+            <div style={{ marginBottom: '8px' }}>
+              <label style={labelSm}>Side</label>
+              <select
+                value={editSide}
                 onChange={e => setEditSide(e.target.value as any)}
-                style={{ background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d' }}
+                style={{ ...inputSm, appearance: 'auto', cursor: 'pointer' }}
               >
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
               </select>
             </div>
 
+            {/* Direction hint */}
+            <div style={{ fontSize: '0.65rem', color: '#6e7681', fontWeight: 500, marginBottom: '12px' }}>
+              (Entry = {entrySideLabel}) (Exit = {exitSideLabel})
+            </div>
+
             {editStatus === 'closed' ? (
               <>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Entry Price</label>
-                  <input className="adm-sheet-input" type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} />
+                {/* ── Entry Section ── */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e6edf3', marginBottom: '8px' }}>
+                    Entry ({entrySideLabel})
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.65fr 1.1fr', gap: '8px' }}>
+                    <div>
+                      <label style={labelSm}>Price</label>
+                      <input type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} style={inputSm} />
+                    </div>
+                    <div>
+                      <label style={labelSm}>Quantity</label>
+                      <input type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} style={inputSm} />
+                    </div>
+                    <div>
+                      <label style={labelSm}>Value</label>
+                      <div style={readonlyBox}>{fmtVal(entryValue)}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Exit Price</label>
-                  <input className="adm-sheet-input" type="number" step="any" value={editExitPrice} onChange={e => setEditExitPrice(e.target.value)} />
+
+                {/* ── Exit Section ── */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e6edf3', marginBottom: '8px' }}>
+                    Exit ({exitSideLabel})
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.65fr 1.1fr', gap: '8px' }}>
+                    <div>
+                      <label style={labelSm}>Price</label>
+                      <input type="number" step="any" value={editExitPrice} onChange={e => setEditExitPrice(e.target.value)} style={inputSm} />
+                    </div>
+                    <div>
+                      <label style={labelSm}>Quantity <span style={{ fontSize: '0.48rem', color: '#484f58' }}>(auto)</span></label>
+                      <div style={readonlyBox}>{editQtyTotal}</div>
+                    </div>
+                    <div>
+                      <label style={labelSm}>Value</label>
+                      <div style={readonlyBox}>{fmtVal(exitValue)}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Qty Total</label>
-                  <input className="adm-sheet-input" type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} />
+
+                {/* Brokerage & Settlement row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+                  <div>
+                    <label style={labelSm}>Brokerage</label>
+                    <input type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} style={inputSm} />
+                  </div>
+                  <div>
+                    <label style={labelSm}>Segment</label>
+                    <input type="text" value={editSettlement} onChange={e => setEditSettlement(e.target.value)} placeholder="e.g. NSE-EQ" style={inputSm} />
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Brokerage</label>
-                  <input className="adm-sheet-input" type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} />
-                </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Settlement</label>
-                  <input className="adm-sheet-input" type="text" value={editSettlement} onChange={e => setEditSettlement(e.target.value)} placeholder="e.g. NSE-EQ" />
+
+                {/* ── Realized P&L ── */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ ...labelSm, marginBottom: '6px' }}>Realized P&L</label>
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${isPositive ? '#23895540' : '#da363340'}`,
+                    background: isPositive ? 'rgba(35, 134, 54, 0.06)' : 'rgba(218, 54, 51, 0.06)',
+                    textAlign: 'center',
+                    fontSize: '1.35rem',
+                    fontWeight: 800,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: isPositive ? '#3fb950' : '#f85149',
+                    letterSpacing: '-0.3px',
+                  }}>
+                    {netPnl.toFixed(2)}
+                  </div>
+                  {brok > 0 && (
+                    <div style={{ fontSize: '0.65rem', color: '#6e7681', marginTop: '4px', textAlign: 'center' }}>
+                      Gross: {rawPnl >= 0 ? '+' : ''}{rawPnl.toFixed(2)} | Brokerage: -{brok.toFixed(2)}
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
               <>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">SL</label>
-                  <input className="adm-sheet-input" type="number" value={editSl} onChange={e => setEditSl(e.target.value)} placeholder="–" />
+                {/* Status selection */}
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={labelSm}>Status</label>
+                  <select
+                    value={editStatus === 'active' ? 'open' : editStatus}
+                    onChange={e => setEditStatus(e.target.value as any)}
+                    style={{ ...inputSm, appearance: 'auto', cursor: 'pointer' }}
+                  >
+                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                  </select>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">TP</label>
-                  <input className="adm-sheet-input" type="number" value={editTp} onChange={e => setEditTp(e.target.value)} placeholder="–" />
+
+                {/* SL / TP Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+                  <div>
+                    <label style={labelSm}>SL</label>
+                    <input type="number" value={editSl} onChange={e => setEditSl(e.target.value)} placeholder="–" style={inputSm} />
+                  </div>
+                  <div>
+                    <label style={labelSm}>TP</label>
+                    <input type="number" value={editTp} onChange={e => setEditTp(e.target.value)} placeholder="–" style={inputSm} />
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Qty Open</label>
-                  <input className="adm-sheet-input" type="number" value={editQtyOpen} onChange={e => setEditQtyOpen(e.target.value)} />
+
+                {/* ── Entry Section ── */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e6edf3', marginBottom: '8px' }}>
+                    Entry ({entrySideLabel})
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.65fr 1.1fr', gap: '8px' }}>
+                    <div>
+                      <label style={labelSm}>Price</label>
+                      <input type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} style={inputSm} />
+                    </div>
+                    <div>
+                      <label style={labelSm}>Qty Open</label>
+                      <input type="number" value={editQtyOpen} onChange={e => setEditQtyOpen(e.target.value)} style={inputSm} />
+                    </div>
+                    <div>
+                      <label style={labelSm}>Value</label>
+                      <div style={readonlyBox}>
+                        {fmtVal((parseFloat(editAvgPrice) || 0) * (parseFloat(editQtyOpen) || 0))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Qty Total</label>
-                  <input className="adm-sheet-input" type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} />
+
+                {/* ── Exit Section (LTP) ── */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#e6edf3', marginBottom: '8px' }}>
+                    Exit (LTP)
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.65fr 1.1fr', gap: '8px' }}>
+                    <div>
+                      <label style={labelSm}>LTP</label>
+                      <div style={readonlyBox}>
+                        {(editPos.ltp ?? editPos.avgPrice ?? 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={labelSm}>Quantity <span style={{ fontSize: '0.48rem', color: '#484f58' }}>(auto)</span></label>
+                      <div style={readonlyBox}>{editQtyOpen}</div>
+                    </div>
+                    <div>
+                      <label style={labelSm}>Value</label>
+                      <div style={readonlyBox}>
+                        {fmtVal((editPos.ltp ?? editPos.avgPrice ?? 0) * (parseFloat(editQtyOpen) || 0))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Avg/Entry Price</label>
-                  <input className="adm-sheet-input" type="number" step="any" value={editAvgPrice} onChange={e => setEditAvgPrice(e.target.value)} />
+
+                {/* Brokerage & Qty Total row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                  <div className="adm-sheet-field" style={{ marginBottom: 0 }}>
+                    <label className="adm-sheet-label">Brokerage</label>
+                    <input className="adm-sheet-input" type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} />
+                  </div>
+                  <div className="adm-sheet-field" style={{ marginBottom: 0 }}>
+                    <label className="adm-sheet-label">Qty Total</label>
+                    <input className="adm-sheet-input" type="number" value={editQtyTotal} onChange={e => setEditQtyTotal(e.target.value)} />
+                  </div>
                 </div>
-                <div className="adm-sheet-field">
-                  <label className="adm-sheet-label">Brokerage</label>
-                  <input className="adm-sheet-input" type="number" step="any" value={editBrokerage} onChange={e => setEditBrokerage(e.target.value)} />
-                </div>
+
+                {/* ── Active P&L Preview ── */}
+                {(() => {
+                  const entryPrice = parseFloat(editAvgPrice) || 0;
+                  const ltp = editPos.ltp ?? editPos.avgPrice ?? 0;
+                  const qtyOpen = parseFloat(editQtyOpen) || 0;
+                  const brokerage = parseFloat(editBrokerage) || 0;
+                  const rawPnl = editSide === 'BUY'
+                    ? (ltp - entryPrice) * qtyOpen
+                    : (entryPrice - ltp) * qtyOpen;
+                  const netPnl = rawPnl - brokerage;
+                  const isPositive = netPnl >= 0;
+
+                  return (
+                    <div style={{ marginBottom: '16px', marginTop: '6px' }}>
+                      <label style={{ ...labelSm, marginBottom: '6px' }}>Active P&L Preview (Based on LTP)</label>
+                      <div style={{
+                        padding: '14px 16px',
+                        borderRadius: '10px',
+                        border: `1.5px solid ${isPositive ? '#23895540' : '#da363340'}`,
+                        background: isPositive ? 'rgba(35, 134, 54, 0.06)' : 'rgba(218, 54, 51, 0.06)',
+                        textAlign: 'center',
+                        fontSize: '1.35rem',
+                        fontWeight: 800,
+                        fontVariantNumeric: 'tabular-nums',
+                        color: isPositive ? '#3fb950' : '#f85149',
+                        letterSpacing: '-0.3px',
+                      }}>
+                        {isPositive ? '+' : ''}{netPnl.toFixed(2)}
+                      </div>
+                    </div>
+                  );
+                })()}
               </>
             )}
 
-            <div className="adm-modal-actions">
-              <button className="adm-sheet-cancel" onClick={() => setEditPos(null)}>Cancel</button>
-              <button className="adm-btn-primary" onClick={handleEdit}>Save</button>
+            {/* Footer buttons — matches competitor layout */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
+              <button
+                onClick={() => setEditPos(null)}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600,
+                  background: '#21262d', border: '1px solid #30363d', color: '#c9d1d9', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEdit}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 600,
+                  background: '#238636', border: '1px solid #2ea043', color: '#ffffff', cursor: 'pointer',
+                }}
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       <div className="adm-pos-stats-grid">
         <div className="adm-pos-stat-card">

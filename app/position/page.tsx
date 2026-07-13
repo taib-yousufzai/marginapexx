@@ -81,6 +81,8 @@ export default function PositionPage() {
           required_hold_seconds: 0,
         };
       });
+      // Sort newest to oldest closed positions by updated_at (closure date)
+      enriched.sort((a: any, b: any) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
       setClosedPositions(enriched);
     } catch { /* non-critical */ } finally {
       setClosedLoading(false);
