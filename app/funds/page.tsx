@@ -631,7 +631,7 @@ export default function FundsPage() {
               </div>
 
               <div className="form-group">
-                <label>UPI ID (Optional)</label>
+                <label>UPI ID</label>
                 <input type="text" value={upi} onChange={(e) => setUpi(e.target.value)} placeholder="name@upi" />
               </div>
 

@@ -511,7 +511,7 @@ export default function BankDetailsPage() {
                                     <input
                                       className="bd-inline-input"
                                       value={inlineForm.upiId}
-                                      placeholder="name@upi (optional)"
+                                      placeholder="name@upi"
                                       onChange={e => setInlineForm(f => ({ ...f, upiId: e.target.value }))}
                                       suppressHydrationWarning
                                     />
@@ -604,7 +604,7 @@ export default function BankDetailsPage() {
                 { label: 'Account Number *', icon: 'fa-hashtag', key: 'accountNumber', placeholder: 'Enter account number' },
                 { label: 'IFSC Code *', icon: 'fa-code-branch', key: 'ifsc', placeholder: 'e.g. SBIN0001234' },
                 { label: 'Account Holder Name *', icon: 'fa-user', key: 'accountHolderName', placeholder: 'Name as per bank records' },
-                { label: 'UPI ID (Optional)', icon: 'fa-qrcode', key: 'upiId', placeholder: 'name@upi' },
+                { label: 'UPI ID', icon: 'fa-qrcode', key: 'upiId', placeholder: 'name@upi' },
               ].map(f => (
                 <div key={f.key} className="bd-form-group">
                   <label><i className={`fas ${f.icon}`} /> {f.label}</label>
