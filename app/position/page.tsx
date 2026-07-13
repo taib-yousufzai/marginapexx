@@ -736,10 +736,10 @@ export default function PositionPage() {
               <div className="pos-sticky-subheader">
                 <div className="pos-pnl-card">
                   <div className="pos-pnl-card-title">
-                    {currentMain === 'cumulative' && currentSub === 'closed' ? "Today's P&L" : "Live P&L Summary"}
+                    {currentSub === 'closed' ? "Today's P&L" : "Live P&L Summary"}
                   </div>
-                  <div className={`pos-pnl-card-body${currentMain === 'cumulative' && currentSub === 'closed' ? ' three-cols' : ''}`}>
-                    {currentMain === 'cumulative' && currentSub === 'closed' && (
+                  <div className={`pos-pnl-card-body${currentSub === 'closed' ? ' three-cols' : ''}`}>
+                    {currentSub === 'closed' && (
                       <div className="pos-pnl-col left">
                         <div className="pos-pnl-label">Realized</div>
                         <div className={`pos-pnl-val${realized >= 0 ? ' green' : ' red'}`}>{fmtUSD(realized)}</div>
@@ -750,7 +750,7 @@ export default function PositionPage() {
                         {fmtUSD(currentSub === 'open' ? unrealized : realized)}
                       </div>
                     </div>
-                    {currentMain === 'cumulative' && currentSub === 'closed' && (
+                    {currentSub === 'closed' && (
                       <div className="pos-pnl-col right">
                         <div className="pos-pnl-label">Unrealized</div>
                         <div className={`pos-pnl-val${unrealized >= 0 ? ' green' : ' red'}`}>{fmtUSD(unrealized)}</div>
