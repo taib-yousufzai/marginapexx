@@ -110,13 +110,61 @@ const getNextExpiryDate = (dayOfWeek: number) => {
   };
 };
 
+const getLastTuesdayOfCurrentOrNextMonth = () => {
+  const getLastTuesday = (year: number, month: number) => {
+    const date = new Date(year, month + 1, 0);
+    const day = date.getDay();
+    const diff = (day >= 2) ? (day - 2) : (day + 5);
+    date.setDate(date.getDate() - diff);
+    return date;
+  };
+
+  const today = new Date();
+  const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let lastTuesday = getLastTuesday(today.getFullYear(), today.getMonth());
+  if (lastTuesday < todayZero) {
+    const nextMonth = today.getMonth() === 11 ? 0 : today.getMonth() + 1;
+    const nextYear = today.getMonth() === 11 ? today.getFullYear() + 1 : today.getFullYear();
+    lastTuesday = getLastTuesday(nextYear, nextMonth);
+  }
+  const daysDiff = Math.ceil((lastTuesday.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
+  return {
+    dateStr: lastTuesday.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    isToday: daysDiff === 0
+  };
+};
+
+const getLastThursdayOfCurrentOrNextMonth = () => {
+  const getLastThursday = (year: number, month: number) => {
+    const date = new Date(year, month + 1, 0);
+    const day = date.getDay();
+    const diff = (day >= 4) ? (day - 4) : (day + 3);
+    date.setDate(date.getDate() - diff);
+    return date;
+  };
+
+  const today = new Date();
+  const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let lastThursday = getLastThursday(today.getFullYear(), today.getMonth());
+  if (lastThursday < todayZero) {
+    const nextMonth = today.getMonth() === 11 ? 0 : today.getMonth() + 1;
+    const nextYear = today.getMonth() === 11 ? today.getFullYear() + 1 : today.getFullYear();
+    lastThursday = getLastThursday(nextYear, nextMonth);
+  }
+  const daysDiff = Math.ceil((lastThursday.getTime() - todayZero.getTime()) / (1000 * 60 * 60 * 24));
+  return {
+    dateStr: lastThursday.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    isToday: daysDiff === 0
+  };
+};
+
 const getExpiryIndexes = () => [
   { name: "NIFTY", fullName: "NIFTY 50", shortCode: "N50", expiry: getNextExpiryDate(4), lotSize: 65 },
-  { name: "BANKNIFTY", fullName: "BANK NIFTY", shortCode: "BNF", expiry: getNextExpiryDate(3), lotSize: 30 },
-  { name: "FINNIFTY", fullName: "FIN NIFTY", shortCode: "FIN", expiry: getNextExpiryDate(2), lotSize: 60 },
+  { name: "BANKNIFTY", fullName: "BANK NIFTY", shortCode: "BNF", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 30 },
+  { name: "FINNIFTY", fullName: "FIN NIFTY", shortCode: "FIN", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 60 },
   { name: "SENSEX", fullName: "SENSEX", shortCode: "SEN", expiry: getNextExpiryDate(5), lotSize: 20 },
-  { name: "MIDCAP", fullName: "MIDCAP NIFTY", shortCode: "MID", expiry: getNextExpiryDate(1), lotSize: 120 },
-  { name: "BANKEX", fullName: "BANKEX", shortCode: "BKX", expiry: getNextExpiryDate(5), lotSize: 30 },
+  { name: "MIDCAP", fullName: "MIDCAP NIFTY", shortCode: "MID", expiry: getLastTuesdayOfCurrentOrNextMonth(), lotSize: 120 },
+  { name: "BANKEX", fullName: "BANKEX", shortCode: "BKX", expiry: getLastThursdayOfCurrentOrNextMonth(), lotSize: 30 },
 ];
 
 
