@@ -246,6 +246,28 @@ export default function Page() {
     fetchNotifications();
   }, []);
 
+  // Mark all notifications as read when the drawer is opened
+  useEffect(() => {
+    if (isNotifDrawerOpen && notifications.some(n => !n.read)) {
+      const markAllRead = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          const res = await fetch('/api/notifications/all', {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+          if (res.ok) {
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          }
+        } catch (err) {
+          console.error('Failed to mark notifications as read', err);
+        }
+      };
+      markAllRead();
+    }
+  }, [isNotifDrawerOpen, notifications]);
+
   const allKiteInstruments = [...KITE_INSTRUMENTS_ROW1, ...KITE_INSTRUMENTS_ROW2];
   const { quotes } = useMarketQuotes(allKiteInstruments);
   const kiteConnected = true;

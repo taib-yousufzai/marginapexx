@@ -1174,6 +1174,8 @@ body.dark .overview-header h4 {
 .notif-sheet-body {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
   padding: 0 0.75rem;
   display: flex;
   flex-direction: column;

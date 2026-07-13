@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
     }
 
-    const unreadCount = (data ?? []).filter(n => !n.read).length;
-    return NextResponse.json({ notifications: data ?? [], unread_count: unreadCount });
+    // Filter out old market open/close notifications
+    const filteredData = (data ?? []).filter(n => {
+        const t = n.title ?? '';
+        return !t.startsWith('[Market Open]') && !t.startsWith('[Market Close]') && !t.startsWith('[Market Closed]');
+    });
+
+    const unreadCount = filteredData.filter(n => !n.read).length;
+    return NextResponse.json({ notifications: filteredData, unread_count: unreadCount });
 }
