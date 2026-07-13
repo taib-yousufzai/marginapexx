@@ -882,8 +882,26 @@ export default function PositionPage() {
                           <i className="fas fa-history" />
                           <p>No closed positions</p>
                         </div>
-                      ) : groupedClosedPositions.map(group => (
-                        <div key={group.key} className="pos-card" style={{ cursor: 'default' }}>
+                      ) : groupedClosedPositions.map(group => {
+                        // Find the first underlying closed position to use as the detail sheet target
+                        const representativePos = closedPositions.find(p => group.ids.includes(p.id));
+                        return (
+                        <div key={group.key} className="pos-card" style={{ cursor: 'pointer' }} onClick={() => {
+                          if (representativePos) {
+                            // Build a synthetic enriched position with the grouped averages for the sheet
+                            handleRowClick({
+                              ...representativePos,
+                              avg_price: group.avg_price,
+                              entry_price: group.avg_price,
+                              exit_price: group.exit_price,
+                              qty_total: group.qty_total,
+                              qty_open: group.qty_total,
+                              pnl: group.pnl,
+                              total_pnl: group.pnl,
+                              pnl_percent: group.pnl_percent,
+                            });
+                          }
+                        }}>
                           <div className="pos-card-left">
                             <div className="pos-card-symbol">
                               <span className="pos-symbol-text">{group.symbol}</span>
@@ -915,7 +933,8 @@ export default function PositionPage() {
                             <div className="pos-card-ltp">Avg Exit: <strong>{fmtPrice(group.exit_price, group.settlement)}</strong></div>
                           </div>
                         </div>
-                      ))
+                        );
+                      })
                     )
                   ) : (
                     /* Detailed View */
