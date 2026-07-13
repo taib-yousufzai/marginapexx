@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 const TradingChart = dynamic(() => import('@/components/TradingChart'), { ssr: false });
 import TradeSheet from '@/components/TradeSheet';
 import WatchlistSearch from '@/components/WatchlistSearch';
+import { ErrorModal } from '@/components/ErrorModal';
 import './page.css';
 
 export interface WatchlistItem {
@@ -504,6 +505,7 @@ function WatchlistContent() {
   const [blockedSymbols, setBlockedSymbols] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string>('');
   const [tradingHours, setTradingHours] = useState<any[]>([]);
+  const [errorModalMsg, setErrorModalMsg] = useState<string | null>(null);
 
   const isMarketOpen = (item: WatchlistItem) => {
     const segUpper = (item.segment || '').toUpperCase();
@@ -1995,7 +1997,7 @@ function WatchlistContent() {
                 const avBal = availableBalance ?? 0;
 
                 if (avBal < totalNeeded) {
-                  showToast(`Insufficient funds. Required: ₹${totalNeeded.toLocaleString('en-IN', { minimumFractionDigits: 2 })}, Available: ₹${avBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, true);
+                  setErrorModalMsg(`Required: ₹${totalNeeded.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\nAvailable: ₹${avBal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`);
                   return;
                 }
 
@@ -2220,6 +2222,7 @@ function WatchlistContent() {
         </div>
       </div>
 
+      <ErrorModal error={errorModalMsg} onClose={() => setErrorModalMsg(null)} title="Insufficient Funds" />
       <Footer activeTab="watchlist" />
         </div>
       </main>
