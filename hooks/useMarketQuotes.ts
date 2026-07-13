@@ -44,6 +44,33 @@ class MarketWSManager {
       }
     }
     this.wsUrl = url || 'ws://localhost:8080';
+
+    if (typeof window !== 'undefined') {
+      let lastHiddenTime = 0;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          lastHiddenTime = Date.now();
+        } else if (document.visibilityState === 'visible') {
+          // If backgrounded for more than 10 seconds, force a reconnect to avoid zombie sockets
+          if (lastHiddenTime > 0 && Date.now() - lastHiddenTime > 10000) {
+            console.log('[MarketWS] App returned to foreground, forcing reconnect...');
+            if (this.ws) {
+              this.ws.close(); 
+            } else {
+              this.connect();
+            }
+          }
+          lastHiddenTime = 0;
+        }
+      });
+
+      window.addEventListener('online', () => {
+        console.log('[MarketWS] Network came online, ensuring connection...');
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          this.connect();
+        }
+      });
+    }
   }
 
   private connect() {
