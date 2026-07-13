@@ -232,6 +232,11 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setToast({ message: `${label} copied!`, type: 'success' });
+  };
+
   const rowsNum = Number(rows);
   const totalPages = Math.max(1, Math.ceil(requests.length / rowsNum));
   const displayed = requests.slice((page - 1) * rowsNum, page * rowsNum);
@@ -468,13 +473,100 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                     </td>
                     <td style={{ padding: '16px', color: '#c9d1d9', fontWeight: 600 }}>₹{r.amount}</td>
                     {tab === 'withdrawal' && (
-                      <td style={{ padding: '16px', color: '#c9d1d9' }}>
-                        {r.account_name === 'System Credit' || r.account_name === 'System Debit' 
-                          ? r.account_name 
-                          : ((r as any).user_bank_name || r.account_name || '—')}
+                      <td style={{ padding: '16px', color: '#c9d1d9', lineHeight: '1.5' }}>
+                        {r.account_name === 'System Credit' || r.account_name === 'System Debit' ? (
+                          <strong style={{ color: '#8b949e' }}>{r.account_name}</strong>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.8rem', minWidth: '220px' }}>
+                            {r.account_name && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <span>
+                                  <span style={{ color: '#8b949e', marginRight: '4px' }}>Name:</span>
+                                  <strong>{r.account_name}</strong>
+                                </span>
+                                <button 
+                                  onClick={() => handleCopy(r.account_name || '', 'Name')}
+                                  title="Copy Name"
+                                  style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', padding: '2px 4px', fontSize: '0.75rem' }}
+                                >
+                                  <i className="far fa-copy" />
+                                </button>
+                              </div>
+                            )}
+                            {r.account_no && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <span>
+                                  <span style={{ color: '#8b949e', marginRight: '4px' }}>Acc:</span>
+                                  <strong>{r.account_no}</strong>
+                                  {(r as any).user_bank_name && (
+                                    <span style={{ color: '#58a6ff', marginLeft: '6px', fontSize: '0.7rem', background: 'rgba(88, 166, 255, 0.1)', padding: '1px 5px', borderRadius: '4px' }}>
+                                      {(r as any).user_bank_name}
+                                    </span>
+                                  )}
+                                </span>
+                                <button 
+                                  onClick={() => handleCopy(r.account_no || '', 'Account Number')}
+                                  title="Copy Account Number"
+                                  style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', padding: '2px 4px', fontSize: '0.75rem' }}
+                                >
+                                  <i className="far fa-copy" />
+                                </button>
+                              </div>
+                            )}
+                            {r.ifsc && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <span>
+                                  <span style={{ color: '#8b949e', marginRight: '4px' }}>IFSC:</span>
+                                  <strong>{r.ifsc}</strong>
+                                </span>
+                                <button 
+                                  onClick={() => handleCopy(r.ifsc || '', 'IFSC')}
+                                  title="Copy IFSC"
+                                  style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', padding: '2px 4px', fontSize: '0.75rem' }}
+                                >
+                                  <i className="far fa-copy" />
+                                </button>
+                              </div>
+                            )}
+                            {r.upi && (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                <span>
+                                  <span style={{ color: '#8b949e', marginRight: '4px' }}>UPI:</span>
+                                  <strong style={{ color: '#58a6ff' }}>{r.upi}</strong>
+                                </span>
+                                <button 
+                                  onClick={() => handleCopy(r.upi || '', 'UPI ID')}
+                                  title="Copy UPI ID"
+                                  style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', padding: '2px 4px', fontSize: '0.75rem' }}
+                                >
+                                  <i className="far fa-copy" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
                     )}
-                    <td style={{ padding: '16px', color: '#8b949e' }}>{r.reference_id ? 'System' : '—'}</td>
+                    <td style={{ padding: '16px', color: '#c9d1d9' }}>
+                      {r.type === 'DEPOSIT' && r.utr ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <code style={{ fontSize: '0.8rem', color: '#c9d1d9', background: '#21262d', padding: '2px 6px', borderRadius: '4px', border: '1px solid #30363d', fontFamily: 'monospace' }}>
+                            {r.utr}
+                          </code>
+                          <button 
+                            onClick={() => handleCopy(r.utr || '', 'UTR')}
+                            title="Copy UTR"
+                            style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', padding: '2px 4px', fontSize: '0.75rem' }}
+                          >
+                            <i className="far fa-copy" />
+                          </button>
+                        </div>
+                      ) : r.reference_id ? (
+                        <span style={{ color: '#8b949e' }}>System</span>
+                      ) : (
+                        <span style={{ color: '#8b949e' }}>—</span>
+                      )}
+                    </td>
                     <td style={{ padding: '16px' }}>
                       {r.screenshot_url ? (
                         <span style={{ color: '#58a6ff', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setLightboxImg(r.screenshot_url!)}>View</span>
@@ -521,26 +613,6 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
                           opacity: isPending ? 1 : 0.4
                         }}>
                         {actionLoading[r.id] ? <i className="fas fa-spinner fa-spin" /> : 'R'}
-                      </button>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <button 
-                        style={{ 
-                          width: 28, height: 28, borderRadius: 4, border: 'none',
-                          background: 'rgba(88, 166, 255, 0.15)', color: '#58a6ff', 
-                          fontWeight: 'bold', cursor: 'pointer'
-                        }}>
-                        P
-                      </button>
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      <button 
-                        style={{ 
-                          width: 28, height: 28, borderRadius: 4, border: 'none',
-                          background: 'rgba(163, 113, 247, 0.15)', color: '#a371f7', 
-                          fontWeight: 'bold', cursor: 'pointer'
-                        }}>
-                        L
                       </button>
                     </td>
                   </tr>
