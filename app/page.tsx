@@ -119,30 +119,8 @@ const getExpiryIndexes = () => [
   { name: "BANKEX", fullName: "BANKEX", shortCode: "BKX", expiry: getNextExpiryDate(5), lotSize: 30 },
 ];
 
-const playNotificationSound = () => {
-  try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const now = ctx.currentTime;
 
-    // Play a gentle two-tone chime
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(587.33, now); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-    gain1.gain.setValueAtTime(0.12, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
 
-    osc1.start(now);
-    osc1.stop(now + 0.4);
-  } catch (err) {
-    console.warn('Audio play failed:', err);
-  }
-};
 
 export default function Page() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -207,7 +185,7 @@ export default function Page() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
-  const [activePopupNotif, setActivePopupNotif] = useState<{ id: string; title: string; message: string } | null>(null);
+
 
   const [tradingHours, setTradingHours] = useState<{ id: string; name: string; start_time: string; end_time: string; is_active: boolean }[]>([]);
 
@@ -244,25 +222,7 @@ export default function Page() {
     }
   };
 
-  const handleDismissPopup = async () => {
-    if (!activePopupNotif) return;
-    const dismissedId = activePopupNotif.id;
 
-    // Optimistically update notifications list to mark it read
-    setNotifications(prev => prev.map(n => n.id === dismissedId ? { ...n, read: true } : n));
-    setActivePopupNotif(null);
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await fetch(`/api/notifications/${dismissedId}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      });
-    } catch (err) {
-      console.error('Failed to mark notification as read', err);
-    }
-  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -277,13 +237,6 @@ export default function Page() {
           if (result && result.notifications) {
             const list = result.notifications ?? [];
             setNotifications(list);
-
-            // Check if there is an unread notification to display as a popup
-            const firstUnread = list.find((n: any) => !n.read);
-            if (firstUnread) {
-              setActivePopupNotif(firstUnread);
-              playNotificationSound();
-            }
           }
         }
       } catch (err) {
@@ -649,20 +602,7 @@ export default function Page() {
 
         {toastMessage && <div className="toast-msg">{toastMessage}</div>}
 
-        {activePopupNotif && (
-          <div className="notif-popup-overlay">
-            <div className="notif-popup-card">
-              <div className="notif-popup-icon">
-                <i className="fas fa-bell"></i>
-              </div>
-              <h3 className="notif-popup-title">{activePopupNotif.title}</h3>
-              <p className="notif-popup-message">{activePopupNotif.message}</p>
-              <button className="notif-popup-btn" onClick={handleDismissPopup}>
-                Acknowledge
-              </button>
-            </div>
-          </div>
-        )}
+
       </main>
     </div>
   );
