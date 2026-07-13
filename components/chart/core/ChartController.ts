@@ -199,7 +199,8 @@ export class ChartController {
 
   private applySeriesData(candles: Candle[]) {
     const formatted = candles.map(c => {
-      const timeVal = (c.timestamp / 1000) as Time;
+      // Lightweight charts displays in UTC by default. Add 19800s (5.5 hrs) to force IST display.
+      const timeVal = (c.timestamp / 1000 + 19800) as Time;
       if (this.chartType === 'area' || this.chartType === 'baseline') {
         return { time: timeVal, value: c.close };
       }
@@ -262,7 +263,8 @@ export class ChartController {
     }
 
     // Update main series on chart
-    const timeVal = (updatedCandle.timestamp / 1000) as Time;
+    // Shift by 19800s to display IST
+    const timeVal = (updatedCandle.timestamp / 1000 + 19800) as Time;
     if (this.chartType === 'area' || this.chartType === 'baseline') {
       this.mainSeries.update({ time: timeVal, value: updatedCandle.close });
     } else {

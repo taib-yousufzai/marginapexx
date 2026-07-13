@@ -175,7 +175,7 @@ export function useMarketQuotes(symbols: string[]) {
           const q = quote as any;
           const close = q.ohlc?.close || q.close || 0;
           
-          let finalPrice = q.last_price;
+          let finalPrice = q.last_price || close;
           
           // Ensure LTP is between bid and ask if they exist
           if (q.bid > 0 && q.ask > 0) {
@@ -194,8 +194,8 @@ export function useMarketQuotes(symbols: string[]) {
             low: q.ohlc?.low || q.low || 0,
             close: close,
             volume: q.volume || 0,
-            bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
-            ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
+            bid: (q.bid != null && q.bid > 0) ? q.bid : finalPrice * 0.9995,
+            ask: (q.ask != null && q.ask > 0) ? q.ask : finalPrice * 1.0005,
           };
           mapped[key] = quoteData;
         }
@@ -208,7 +208,7 @@ export function useMarketQuotes(symbols: string[]) {
         const q = quote as any;
         const close = q.ohlc?.close || q.close || 0;
         
-        let finalPrice = q.last_price;
+        let finalPrice = q.last_price || close;
         
         // Ensure LTP is between bid and ask if they exist
         if (q.bid > 0 && q.ask > 0) {
@@ -227,8 +227,8 @@ export function useMarketQuotes(symbols: string[]) {
           low: q.ohlc?.low || q.low || 0,
           close: close,
           volume: q.volume || 0,
-          bid: (q.bid != null && q.bid > 0) ? q.bid : q.last_price * 0.9995,
-          ask: (q.ask != null && q.ask > 0) ? q.ask : q.last_price * 1.0005,
+          bid: (q.bid != null && q.bid > 0) ? q.bid : finalPrice * 0.9995,
+          ask: (q.ask != null && q.ask > 0) ? q.ask : finalPrice * 1.0005,
         };
 
         globalMarketQuotesCache[symbol] = quoteData;
