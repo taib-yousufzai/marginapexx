@@ -87,6 +87,21 @@ function parseOptionQuery(q: string): { underlying: string; strike: number; opti
 }
 
 /**
+ * Format YYYY-MM-DD date to DD MMM YYYY (e.g. 26 Jun 2026)
+ */
+function formatUIExpiry(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return dateStr;
+  
+  const [, year, month, day] = match;
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthName = monthNames[parseInt(month, 10) - 1];
+  
+  return `${parseInt(day, 10)} ${monthName} ${year}`;
+}
+
+/**
  * Build a human-readable display name from a Zerodha tradingsymbol.
  * e.g. NIFTY26MAY24050CE  →  NIFTY 24050 CE  (19 May 26)
  *      NIFTY2651924050CE  →  NIFTY 24050 CE  (19 May 26)
@@ -505,7 +520,7 @@ export async function GET(request: NextRequest) {
         inst.underlying_symbol || inst.name || inst.tradingsymbol,
         inst.strike_price ?? null,
         inst.option_type ?? null,
-        null,
+        formatUIExpiry(inst.expiry) || null,
       );
 
       return {
@@ -515,7 +530,7 @@ export async function GET(request: NextRequest) {
         price: livePrice,
         change: '0%',
         segment: segmentLabel,
-        contractDate: inst.expiry || '',
+        contractDate: formatUIExpiry(inst.expiry) || '',
         open: 0,
         high: 0,
         low: 0,

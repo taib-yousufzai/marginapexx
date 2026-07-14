@@ -110,7 +110,7 @@ export function getDefaultWatchlistItems(): WatchlistItem[] {
       price: 22456.80,
       change: '+0.45%',
       segment: 'NSE - Futures',
-      contractDate: '28 Mar 2025',
+      contractDate: '',
       open: 22350,
       high: 22580,
       low: 22320,
@@ -123,7 +123,7 @@ export function getDefaultWatchlistItems(): WatchlistItem[] {
       price: 48210.50,
       change: '-0.21%',
       segment: 'NSE - Futures',
-      contractDate: '28 Mar 2025',
+      contractDate: '',
       open: 48350,
       high: 48500,
       low: 48100,
@@ -136,7 +136,7 @@ export function getDefaultWatchlistItems(): WatchlistItem[] {
       price: 74230.15,
       change: '+0.32%',
       segment: 'BSE - Futures',
-      contractDate: '28 Mar 2025',
+      contractDate: '',
       open: 73950,
       high: 74500,
       low: 73800,
@@ -353,6 +353,15 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
     onDetail({ ...item, preferredView: priceView } as any);
   };
 
+  const formatUIExpiry = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return '';
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return dateStr;
+    const [, year, month, day] = match;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${parseInt(day, 10)} ${monthNames[parseInt(month, 10) - 1]} ${year}`;
+  };
+
   return (
     <div className="instr-row watchlist-card" data-symbol={item.symbol}>
       <div className="wc-swipe-actions">
@@ -384,7 +393,7 @@ function InstrumentRow({ item, quote, binanceQuote, comexQuote, onTrade, onDetai
             )}
           </div>
           {item.contractDate && (
-            <div className="instr-row__date">{item.contractDate}</div>
+            <div className="instr-row__date">{formatUIExpiry(item.contractDate)}</div>
           )}
           {isCrypto && (
             <div className="instr-row__date" style={{ color: '#6B7280', fontSize: '0.7rem' }}>{item.binanceSymbol}</div>
@@ -1128,6 +1137,11 @@ function WatchlistContent() {
       if (item.kiteSymbol && item.kiteSymbol === 'MCX:SILVER26JULFUT') {
         const match = DEFAULT_COMEX_ITEMS.find(d => d.symbol === 'SILVER_FUT');
         if (match) { migrated = true; return { ...match }; }
+      }
+      // Fix spot index items with erroneous hardcoded contract dates
+      if (item.symbol.endsWith('_INDEX') && item.contractDate) {
+        migrated = true;
+        return { ...item, contractDate: '' };
       }
       return item;
     });
