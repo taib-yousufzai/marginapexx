@@ -44,7 +44,7 @@ class PositionStoreClass {
         for (const row of data) {
           const parsed = parseOptionSymbol(row.symbol);
           if (parsed) {
-            const keyStr = positionKeyString(parsed.strike, parsed.optionType);
+            const keyStr = positionKeyString({ symbol: row.symbol, strike_price: parsed.strike, option_type: parsed.optionType });
             userMap.set(keyStr, {
               strike_price: parsed.strike,
               option_type: parsed.optionType,
@@ -92,7 +92,7 @@ class PositionStoreClass {
             const parsed = parseOptionSymbol(row.symbol);
             if (!parsed) return;
 
-            const keyStr = positionKeyString(parsed.strike, parsed.optionType);
+            const keyStr = positionKeyString({ symbol: row.symbol, strike_price: parsed.strike, option_type: parsed.optionType });
 
             if (row.status === 'open' && Number(row.qty_open) > 0) {
               userMap.set(keyStr, {
@@ -129,7 +129,7 @@ class PositionStoreClass {
       await this.initialize(userId);
     }
     const userMap = this.cache.get(userId);
-    const keyStr = positionKeyString(key.strike_price, key.option_type);
+    const keyStr = positionKeyString(key);
     return userMap?.get(keyStr) ?? null;
   }
 
@@ -166,7 +166,7 @@ class PositionStoreClass {
 
     // Update the cache immediately for latency and consistency
     const userMap = this.cache.get(userId) || new Map<PositionKeyString, PositionState>();
-    const keyStr = positionKeyString(order.position_key.strike_price, order.position_key.option_type);
+    const keyStr = positionKeyString(order.position_key);
 
     let nextQty = currentPosition?.quantity ?? 0;
     let nextSide: PositionSide = currentPosition?.side ?? null;

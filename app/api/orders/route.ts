@@ -1285,6 +1285,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (parsedOption) {
       const incomingOrder = {
         position_key: {
+          symbol: symbol,
           strike_price: parsedOption.strike,
           option_type: parsedOption.optionType,
         },

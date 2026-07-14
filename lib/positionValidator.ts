@@ -14,9 +14,10 @@ export type PositionSide = 'BUY' | 'SELL' | null;
 export type OrderAction = 'BUY' | 'BUY_EXIT' | 'SELL' | 'SELL_EXIT';
 
 /** Canonical string key for a position, e.g. "26500_CE" */
-export type PositionKeyString = `${number}_${'CE' | 'PE'}`;
+export type PositionKeyString = string;
 
 export interface PositionKey {
+  symbol: string;
   strike_price: number;
   option_type: OptionType;
 }
@@ -64,10 +65,10 @@ export const ERRORS = {
 
 /**
  * Produces the canonical position key string used as a cache/map key.
- * Example: positionKeyString(26500, 'CE') → "26500_CE"
+ * Example: positionKeyString({ symbol: 'NIFTY25JAN24000CE', ... }) → "NIFTY25JAN24000CE"
  */
-export function positionKeyString(strike: number, optionType: OptionType): PositionKeyString {
-  return `${strike}_${optionType}`;
+export function positionKeyString(key: PositionKey): PositionKeyString {
+  return key.symbol;
 }
 
 /**
