@@ -23,9 +23,9 @@ export default function Page() {
     script.innerHTML = `
     // COMPLETE TRADING DATABASE
     var allScripts = [
-        { name: "NIFTY FUT",     symbol: "NIFTY_FUT",     kiteInstrument: "NFO:NIFTY25MAYFUT",     price: 22456.80, change: "+0.45%", segment: "INDEX - FUTURE",  lotSize: 50,  maxLots: 100,  marginPercent: 0.12 },
-        { name: "SENSEX FUT",    symbol: "SENSEX_FUT",    kiteInstrument: "BSE:SENSEX",             price: 74230.15, change: "+0.32%", segment: "INDEX - FUTURE",  lotSize: 15,  maxLots: 100,  marginPercent: 0.12 },
-        { name: "BANKNIFTY FUT", symbol: "BANKNIFTY_FUT", kiteInstrument: "NFO:BANKNIFTY25MAYFUT", price: 48210.50, change: "-0.21%", segment: "INDEX - FUTURE",  lotSize: 25,  maxLots: 150,  marginPercent: 0.12 },
+        { name: "NIFTY FUT",     symbol: "NIFTY_FUT",     kiteInstrument: "NFO:NIFTY25MAYFUT",     price: 22456.80, change: "+0.45%", segment: "INDEX - FUTURE",  lotSize: 65,  maxLots: 100,  marginPercent: 0.12 },
+        { name: "SENSEX FUT",    symbol: "SENSEX_FUT",    kiteInstrument: "BSE:SENSEX",             price: 74230.15, change: "+0.32%", segment: "INDEX - FUTURE",  lotSize: 20,  maxLots: 100,  marginPercent: 0.12 },
+        { name: "BANKNIFTY FUT", symbol: "BANKNIFTY_FUT", kiteInstrument: "NFO:BANKNIFTY25MAYFUT", price: 48210.50, change: "-0.21%", segment: "INDEX - FUTURE",  lotSize: 30,  maxLots: 150,  marginPercent: 0.12 },
         { name: "RELIANCE FUT",  symbol: "RELIANCE_FUT",  kiteInstrument: "NFO:RELIANCE25MAYFUT",  price: 2856.40,  change: "+0.75%", segment: "STOCKS - FUTURE", lotSize: 250, maxLots: 50,   marginPercent: 0.15 },
         { name: "RELIANCE EQ",   symbol: "RELIANCE",      kiteInstrument: "NSE:RELIANCE",           price: 2845.30,  change: "+0.68%", segment: "NSE - EQ",        lotSize: 1,   maxLots: 5000, marginPercent: 0.20 },
         { name: "BTC/USDT",      symbol: "BTCUSDT",       kiteInstrument: "CRYPTO:BTC",             price: 68450.20, change: "+2.1%",  segment: "CRYPTO",          lotSize: 0.01,maxLots: 100,  marginPercent: 0.05 },
