@@ -281,9 +281,9 @@ export async function POST(
   const kiteBid = kiteLtp?.bid ?? baseLtp;
   const kiteAsk = kiteLtp?.ask ?? baseLtp;
 
-  // Exit price: exit_buffer applied to the live bid/ask (precision 2 for display/settlement)
+  // Exit price: exit_buffer applied to the live LTP (precision 2 for display/settlement)
   const exitBuffer = segSetting?.exit_buffer ?? 0.17;
-  const refPrice = pos.side === 'BUY' ? kiteBid : kiteAsk;
+  const refPrice = baseLtp;
   const exitPrice = calculateExitPrice({ side: pos.side, ltp: refPrice, exitBufferPct: exitBuffer }, 2);
 
   // ─── Anti-Scalping Check ───
