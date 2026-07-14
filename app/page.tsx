@@ -224,6 +224,28 @@ export default function Page() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+  const [dbExpiries, setDbExpiries] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function fetchExpiries() {
+      try {
+        const res = await fetch('/api/market/expiries');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.expiries) {
+            setDbExpiries(json.expiries);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch expiries', err);
+      }
+    }
+    fetchExpiries();
+  }, []);
+
   // Build expiry index list, overriding hardcoded lot sizes with DB values and real expiries
   const expiryIndexes = getExpiryIndexes().map(item => {
     const n = item.name.toUpperCase();
@@ -244,28 +266,6 @@ export default function Page() {
     const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
     return dbMatch ? { ...item, expiry: finalExpiry, lotSize: Number(dbMatch.lot_size) } : { ...item, expiry: finalExpiry };
   });
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
-  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
-
-  const [dbExpiries, setDbExpiries] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    async function fetchExpiries() {
-      try {
-        const res = await fetch('/api/market/expiries');
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.expiries) {
-            setDbExpiries(json.expiries);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch expiries', err);
-      }
-    }
-    fetchExpiries();
-  }, []);
 
   const [tradingHours, setTradingHours] = useState<{ id: string; name: string; start_time: string; end_time: string; is_active: boolean }[]>([]);
 
