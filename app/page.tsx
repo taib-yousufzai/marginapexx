@@ -224,16 +224,65 @@ export default function Page() {
   const [theme, setTheme] = useState<'light' | 'dark' | 'black' | 'blue'>('light');
   const [isExpiryDrawerOpen, setIsExpiryDrawerOpen] = useState(false);
 
-  // Build expiry index list, overriding hardcoded lot sizes with DB values
+  // Build expiry index list, overriding hardcoded lot sizes with DB values and real expiries
   const expiryIndexes = getExpiryIndexes().map(item => {
     const n = item.name.toUpperCase();
+    const dbName = n === 'MIDCAP' ? 'MIDCPNIFTY' : n;
+    
+    let finalExpiry = item.expiry; // fallback to calculated
+    const realExpiryDateStr = dbExpiries[dbName];
+    if (realExpiryDateStr) {
+       const realDate = new Date(realExpiryDateStr);
+       const today = new Date();
+       const isToday = realDate.getDate() === today.getDate() && realDate.getMonth() === today.getMonth() && realDate.getFullYear() === today.getFullYear();
+       finalExpiry = {
+          dateStr: realDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+          isToday
+       };
+    }
+
     const dbMatch = scriptSettings.find(s => n.includes(s.symbol.toUpperCase()) || s.symbol.toUpperCase().includes(n));
-    return dbMatch ? { ...item, lotSize: Number(dbMatch.lot_size) } : item;
+    return dbMatch ? { ...item, expiry: finalExpiry, lotSize: Number(dbMatch.lot_size) } : { ...item, expiry: finalExpiry };
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; read?: boolean }[]>([]);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
 
+  const [dbExpiries, setDbExpiries] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function fetchExpiries() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data, error } = await supabase
+        .from('instruments')
+        .select('name, expiry')
+        .in('name', ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'])
+        .in('exchange', ['NFO', 'BFO'])
+        .gte('expiry', todayStr)
+        .order('expiry', { ascending: true });
+        
+      if (!error && data) {
+        const earliest: Record<string, string> = {};
+        const now = new Date();
+        const marketClose = new Date();
+        marketClose.setHours(15, 30, 0, 0);
+        
+        for (const row of data) {
+           if (!row.expiry) continue;
+           const expDate = new Date(row.expiry);
+           const isToday = expDate.getDate() === now.getDate() && expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
+           
+           if (isToday && now > marketClose) {
+              continue; // Skip today's expiry if market is closed
+           }
+           if (!earliest[row.name]) earliest[row.name] = row.expiry;
+        }
+        setDbExpiries(earliest);
+      }
+    }
+    fetchExpiries();
+  }, []);
 
   const [tradingHours, setTradingHours] = useState<{ id: string; name: string; start_time: string; end_time: string; is_active: boolean }[]>([]);
 
