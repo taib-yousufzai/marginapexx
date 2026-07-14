@@ -252,33 +252,16 @@ export default function Page() {
 
   useEffect(() => {
     async function fetchExpiries() {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const { supabase } = await import('@/lib/supabaseClient');
-      const { data, error } = await supabase
-        .from('instruments')
-        .select('name, expiry')
-        .in('name', ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'])
-        .in('exchange', ['NFO', 'BFO'])
-        .gte('expiry', todayStr)
-        .order('expiry', { ascending: true });
-        
-      if (!error && data) {
-        const earliest: Record<string, string> = {};
-        const now = new Date();
-        const marketClose = new Date();
-        marketClose.setHours(15, 30, 0, 0);
-        
-        for (const row of data) {
-           if (!row.expiry) continue;
-           const expDate = new Date(row.expiry);
-           const isToday = expDate.getDate() === now.getDate() && expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
-           
-           if (isToday && now > marketClose) {
-              continue; // Skip today's expiry if market is closed
-           }
-           if (!earliest[row.name]) earliest[row.name] = row.expiry;
+      try {
+        const res = await fetch('/api/market/expiries');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.expiries) {
+            setDbExpiries(json.expiries);
+          }
         }
-        setDbExpiries(earliest);
+      } catch (err) {
+        console.error('Failed to fetch expiries', err);
       }
     }
     fetchExpiries();
