@@ -10,39 +10,38 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
 export async function GET() {
   try {
     const todayStr = new Date().toISOString().split('T')[0];
-    
-    // Fetch expiries for options only
-    const { data, error } = await supabase
-      .from('instruments')
-      .select('name, expiry')
-      .in('name', ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'])
-      .in('exchange', ['NFO', 'BFO'])
-      .in('option_type', ['CE', 'PE'])
-      .not('expiry', 'is', null)
-      .gte('expiry', todayStr)
-      .order('expiry', { ascending: true });
-
-    if (error) throw error;
-
+    const symbols = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
     const earliest: Record<string, string> = {};
-    if (data) {
-      const now = new Date();
-      const marketClose = new Date();
-      marketClose.setHours(15, 30, 0, 0);
 
-      for (const row of data) {
-        if (!row.expiry) continue;
-        const expDate = new Date(row.expiry);
-        const isToday = expDate.getDate() === now.getDate() && expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
-        
-        if (isToday && now > marketClose) {
-          continue; // Skip today's expiry if market is closed
-        }
-        if (!earliest[row.name]) {
-          earliest[row.name] = row.expiry;
+    const now = new Date();
+    const marketClose = new Date();
+    marketClose.setHours(15, 30, 0, 0);
+
+    // Fetch expiries per symbol to bypass 1000 row limit on 'instruments'
+    await Promise.all(symbols.map(async (sym) => {
+      const { data, error } = await supabase.rpc('get_option_expiries', { 
+        p_min_date: todayStr, 
+        p_symbol: sym 
+      });
+
+      if (!error && data && data.length > 0) {
+        // Find the earliest active expiry
+        for (const row of data) {
+          if (!row.expiry) continue;
+          const expDate = new Date(row.expiry);
+          const isToday = expDate.getDate() === now.getDate() && 
+                          expDate.getMonth() === now.getMonth() && 
+                          expDate.getFullYear() === now.getFullYear();
+          
+          if (isToday && now > marketClose) {
+            continue; // Skip today's expiry if market is closed
+          }
+          
+          earliest[sym] = row.expiry;
+          break; // Found the earliest active one!
         }
       }
-    }
+    }));
 
     return NextResponse.json({ success: true, expiries: earliest });
   } catch (err: any) {
