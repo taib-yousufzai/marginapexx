@@ -95,16 +95,8 @@ export async function GET(request: Request): Promise<Response> {
     // NOTE: Search is now done client-side after merging profiles so we can
     // match by name, client_id, user_id, or request id.
 
-    // Apply offset-based pagination (without search — pagination applied after search filter below)
-    // We skip server-side pagination when search is active so we can filter by name/client_id first.
-    if (!search && pageParam && rowsParam) {
-      const page = parseInt(pageParam, 10);
-      const rows = parseInt(rowsParam, 10);
-      if (!isNaN(page) && !isNaN(rows) && page >= 1 && rows >= 1) {
-        const offset = (page - 1) * rows;
-        query = query.range(offset, offset + rows - 1);
-      }
-    }
+    // Note: We skip server-side pagination because the frontend relies on receiving all 
+    // filtered records for client-side pagination, real-time search, and CSV exports.
 
     const { data, error } = await query;
 

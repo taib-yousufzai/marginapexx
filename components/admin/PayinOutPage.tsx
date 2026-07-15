@@ -55,9 +55,11 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo) params.set('date_to', dateTo);
     if (search) params.set('search', search);
-    params.set('page', String(page));
-    params.set('rows', rows);
     params.set('demo', String(isDemoMode));
+    
+    // Reset page to 1 when filters change
+    setPage(1);
+    
     apiCall(`/api/admin/payinout?${params.toString()}`, { method: 'GET' })
       .then(({ ok, status: httpStatus, data }) => {
         if (httpStatus === 401) { signOut(); return; }
@@ -75,7 +77,7 @@ export default function PayinOutPage({ isDemoMode }: { isDemoMode: boolean }) {
       })
       .finally(() => setLoading(false));
      
-  }, [tab, dateFrom, dateTo, status, search, page, rows, refreshKey, isDemoMode]);
+  }, [tab, dateFrom, dateTo, status, search, refreshKey, isDemoMode]);
 
   // Realtime subscription
   useEffect(() => {
