@@ -320,6 +320,12 @@ export default function ProfilePage() {
                                 <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
                             </Link>
 
+                            <div className="us-item" onClick={() => window.dispatchEvent(new Event('triggerPwaInstall'))} style={{ color: '#059669' }}>
+                                <div className="us-icon" style={{ color: '#059669' }}><i className="fas fa-download"></i></div>
+                                <div className="us-text" style={{ color: '#059669' }}>Install APK</div>
+                                <div className="us-caret" style={{ color: '#A7F3D0' }}><i className="fas fa-chevron-right"></i></div>
+                            </div>
+
                             <div className="us-item" onClick={() => signOut()} style={{ color: '#DC2626' }}>
                                 <div className="us-icon" style={{ color: '#DC2626' }}><i className="fas fa-power-off"></i></div>
                                 <div className="us-text" style={{ color: '#DC2626' }}>Logout</div>

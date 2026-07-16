@@ -38,6 +38,24 @@ export default function InstallPrompt() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleCustomTrigger = async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setDismissed(true);
+          setShow(false);
+        }
+        setDeferredPrompt(null);
+      } else {
+        setModalMessage("To install: tap the Share button (Safari) or the browser menu → 'Add to Home Screen'");
+      }
+    };
+    window.addEventListener('triggerPwaInstall', handleCustomTrigger as EventListener);
+    return () => window.removeEventListener('triggerPwaInstall', handleCustomTrigger as EventListener);
+  }, [deferredPrompt]);
+
   if (!show || dismissed) return <ErrorModal error={modalMessage} onClose={() => setModalMessage(null)} title="Install Instructions" />;
 
   const handleInstall = async () => {
