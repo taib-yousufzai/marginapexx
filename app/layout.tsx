@@ -3,6 +3,8 @@ import Script from 'next/script';
 import './globals.css';
 import InstallPrompt from '@/components/InstallPrompt';
 import { MarketDataProvider } from '@/contexts/MarketDataContext';
+import { BinanceDataProvider } from '@/contexts/BinanceDataContext';
+import { ComexDataProvider } from '@/contexts/ComexDataContext';
 
 export const viewport: Viewport = {
   themeColor: [{ media: '(prefers-color-scheme: light)', color: '#ffffff' }, { media: '(prefers-color-scheme: dark)', color: '#1E1E1E' }],
@@ -56,8 +58,12 @@ export default function RootLayout({
           })();
         `}} />
         <MarketDataProvider>
-          {children}
-          <InstallPrompt />
+          <BinanceDataProvider>
+            <ComexDataProvider>
+              {children}
+              <InstallPrompt />
+            </ComexDataProvider>
+          </BinanceDataProvider>
         </MarketDataProvider>
       </body>
     </html>
