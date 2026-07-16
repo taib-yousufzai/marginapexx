@@ -1479,16 +1479,6 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                 </div>
               )}
               <div className="ts2-btn-row">
-                {(side === 'BUY' || side === 'BOTH') && (
-                  <button
-                    className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
-                    disabled={placingOrder || isExpired}
-                    style={isExpired ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                    onClick={() => handlePlace('BUY')}
-                  >
-                    {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'BUY'}
-                  </button>
-                )}
                 {(side === 'SELL' || side === 'BOTH') && (
                   <button
                     className="ts2-btn ts2-btn-sell"
@@ -1497,6 +1487,16 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     onClick={() => handlePlace('SELL')}
                   >
                     {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'SELL'}
+                  </button>
+                )}
+                {(side === 'BUY' || side === 'BOTH') && (
+                  <button
+                    className={`ts2-btn${(exitMode || hasSellPos) ? ' ts2-btn-buy' : ' ts2-btn-buy'}`}
+                    disabled={placingOrder || isExpired}
+                    style={isExpired ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    onClick={() => handlePlace('BUY')}
+                  >
+                    {placingOrder ? 'PLACING...' : isModify ? 'MODIFY' : exitMode ? 'EXIT POSITION' : 'BUY'}
                   </button>
                 )}
               </div>

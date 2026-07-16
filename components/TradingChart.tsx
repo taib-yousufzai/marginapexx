@@ -1917,6 +1917,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               <div className="trade-buttons" id="tradeButtons">
                 {currentInstrumentPosition.side === 'BUY' ? (
                   <>
+                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                      <span className="btn-label">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                        </svg>
+                        EXIT LONG
+                      </span>
+                    </button>
                     <button id="buyButton" className="trade-btn buy" onClick={() => {
                       if (isPanelExpanded && activeSegment === 'chain') {
                         handleQuickMarketOrder('BUY');
@@ -1933,25 +1941,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     }}>
                       <span className="btn-label">BUY</span>
                     </button>
-                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                      <span className="btn-label">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
-                        </svg>
-                        EXIT LONG
-                      </span>
-                    </button>
                   </>
                 ) : (
                   <>
-                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                      <span className="btn-label">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
-                        </svg>
-                        EXIT SHORT
-                      </span>
-                    </button>
                     <button id="sellButton" className="trade-btn sell" onClick={() => {
                       if (isPanelExpanded && activeSegment === 'chain') {
                         handleQuickMarketOrder('SELL');
@@ -1968,27 +1960,19 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     }}>
                       <span className="btn-label">SELL</span>
                     </button>
+                    <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
+                      <span className="btn-label">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+                          <path d="M10 1l3 3-3 3" /><path d="M13 4H5" /><path d="M7 13H2a1 1 0 01-1-1V2a1 1 0 011-1h5" />
+                        </svg>
+                        EXIT SHORT
+                      </span>
+                    </button>
                   </>
                 )}
               </div>
             ) : (
               <div className="trade-buttons" id="tradeButtons">
-                <button id="buyButton" className="trade-btn buy" onClick={() => {
-                  if (isPanelExpanded && activeSegment === 'chain') {
-                    handleQuickMarketOrder('BUY');
-                  } else {
-                    setIsPanelExpanded(false);
-                    setIsExitFlow(false);
-                    setIsAddMoreFlow(false);
-                    setExitPositionId(null);
-                    setOrderBlockTitle(symbol);
-                    setPostOrderSegment('main');
-                    setIsOrderBlockVisible(true);
-                    setOrderSide('BUY');
-                  }
-                }}>
-                  <span className="btn-label">BUY</span>
-                </button>
                 <button id="sellButton" className="trade-btn sell" onClick={() => {
                   if (isPanelExpanded && activeSegment === 'chain') {
                     handleQuickMarketOrder('SELL');
@@ -2004,6 +1988,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   }
                 }}>
                   <span className="btn-label">SELL</span>
+                </button>
+                <button id="buyButton" className="trade-btn buy" onClick={() => {
+                  if (isPanelExpanded && activeSegment === 'chain') {
+                    handleQuickMarketOrder('BUY');
+                  } else {
+                    setIsPanelExpanded(false);
+                    setIsExitFlow(false);
+                    setIsAddMoreFlow(false);
+                    setExitPositionId(null);
+                    setOrderBlockTitle(symbol);
+                    setPostOrderSegment('main');
+                    setIsOrderBlockVisible(true);
+                    setOrderSide('BUY');
+                  }
+                }}>
+                  <span className="btn-label">BUY</span>
                 </button>
               </div>
             )
@@ -2093,20 +2093,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   <div id="chainBSToggle" style={{ display: 'flex', gap: '6px', padding: '0 0 8px' }}>
                     <button
                       onClick={() => {
-                        setOrderSide('BUY');
-                        const ask = chainContract.ask;
-                        setLimitPrice(ask.toFixed(2));
-                        setTriggerPrice(ask.toFixed(2));
-                      }}
-                      style={{
-                        flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
-                        background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
-                      }}
-                    >
-                      BUY
-                    </button>
-                    <button
-                      onClick={() => {
                         setOrderSide('SELL');
                         const bid = chainContract.bid;
                         setLimitPrice(bid.toFixed(2));
@@ -2118,6 +2104,20 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                       }}
                     >
                       SELL
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOrderSide('BUY');
+                        const ask = chainContract.ask;
+                        setLimitPrice(ask.toFixed(2));
+                        setTriggerPrice(ask.toFixed(2));
+                      }}
+                      style={{
+                        flex: 1, padding: '8px', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Inter,sans-serif', letterSpacing: '0.4px',
+                        background: orderSide === 'BUY' ? '#1db954' : '#F0F2F5', color: orderSide === 'BUY' ? '#fff' : '#8B92A8'
+                      }}
+                    >
+                      BUY
                     </button>
                   </div>
                 )}

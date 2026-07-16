@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { isContractExpired } from '@/lib/contractExpiry';
 
 export interface QuoteData {
@@ -243,15 +243,15 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
-  const subscribe = (symbols: string[]) => {
+  const subscribe = useCallback((symbols: string[]) => {
     const validSymbols = symbols.filter(Boolean).filter(s => !isContractExpired(s));
     if (validSymbols.length > 0) wsManager.subscribe(validSymbols);
-  };
+  }, []);
 
-  const unsubscribe = (symbols: string[]) => {
+  const unsubscribe = useCallback((symbols: string[]) => {
     const validSymbols = symbols.filter(Boolean).filter(s => !isContractExpired(s));
     if (validSymbols.length > 0) wsManager.unsubscribe(validSymbols);
-  };
+  }, []);
 
   return (
     <MarketDataContext.Provider value={{ quotes, subscribe, unsubscribe }}>
