@@ -508,17 +508,7 @@ export default function Page() {
                       <div className="expiry-text">
                         <h4>EXPIRY TODAY</h4>
                         <p>
-                          {(() => {
-                            const day = new Date().getDay();
-                            switch (day) {
-                              case 1: return "MIDCPNIFTY";
-                              case 2: return "FINNIFTY";
-                              case 3: return "BANKNIFTY";
-                              case 4: return "NIFTY 50";
-                              case 5: return "SENSEX & BANKEX";
-                              default: return "No Expiry Today";
-                            }
-                          })()}
+                          {expiryIndexes.filter(item => item.expiry.isToday).map(item => item.fullName).join(" & ") || "No Expiry Today"}
                         </p>
                       </div>
                     </div>
