@@ -370,9 +370,8 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
           setGttSubOption(exitMode ? 'TARGET' : 'LIMIT');
         }
       } else {
-        const ls = getLotSize(item.name, scriptSettings);
-        setOrderQty(ls);
-        setQtyInput(String(ls));
+        setOrderQty(lotSize);
+        setQtyInput(String(lotSize));
         setOrderUnit('qty');
         setOrderType('MARKET');
         setProductType(propProductType || 'INTRADAY');
@@ -849,7 +848,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
         segment: item.segment,
         side: placeSide,
         qty: orderUnit === 'lot' ? parsedInputQty * lotSize : parsedInputQty,
-        lots: orderUnit === 'lot' ? parsedInputQty : 0,
+        lots: orderUnit === 'lot' ? parsedInputQty : (parsedInputQty / lotSize),
         order_type: resolvedOrderType as any,
         product_type: exitMode ? (propProductType || 'INTRADAY') : productType,
         client_price: resolvedClientPrice,
@@ -1244,7 +1243,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Order Lots</div>
-                      <div className="ts2-ic-val">{segSetting?.max_order_lot ?? '--'}</div>
+                      <div className="ts2-ic-val">{orderUnit === 'lot' ? orderQty : (orderQty / lotSize)}</div>
                     </div>
                     <div className="ts2-info-card">
                       <div className="ts2-ic-label">Total Qty</div>
