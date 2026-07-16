@@ -31,6 +31,14 @@ export default function ProfilePage() {
     const overlayRef = useRef<HTMLDivElement>(null);
     const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
     const themeDropdownRef = useRef<HTMLDivElement>(null);
+    const [isStandalone, setIsStandalone] = useState(false);
+
+    useEffect(() => {
+        setIsStandalone(
+            window.matchMedia('(display-mode: standalone)').matches ||
+            (window.navigator as any).standalone === true
+        );
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -320,11 +328,19 @@ export default function ProfilePage() {
                                 <div className="us-caret"><i className="fas fa-chevron-right"></i></div>
                             </Link>
 
-                            <div className="us-item" onClick={() => window.dispatchEvent(new Event('triggerPwaInstall'))} style={{ color: '#059669' }}>
-                                <div className="us-icon" style={{ color: '#059669' }}><i className="fas fa-download"></i></div>
-                                <div className="us-text" style={{ color: '#059669' }}>Install APK</div>
-                                <div className="us-caret" style={{ color: '#A7F3D0' }}><i className="fas fa-chevron-right"></i></div>
-                            </div>
+                            {isStandalone ? (
+                                <div className="us-item" style={{ color: '#6B7280', cursor: 'default' }}>
+                                    <div className="us-icon" style={{ color: '#6B7280' }}><i className="fas fa-check-circle"></i></div>
+                                    <div className="us-text" style={{ color: '#6B7280' }}>App Installed</div>
+                                    <div className="us-caret" style={{ color: '#E5E7EB' }}><i className="fas fa-check"></i></div>
+                                </div>
+                            ) : (
+                                <div className="us-item" onClick={() => window.dispatchEvent(new Event('triggerPwaInstall'))} style={{ color: '#059669' }}>
+                                    <div className="us-icon" style={{ color: '#059669' }}><i className="fas fa-download"></i></div>
+                                    <div className="us-text" style={{ color: '#059669' }}>Install APK</div>
+                                    <div className="us-caret" style={{ color: '#A7F3D0' }}><i className="fas fa-chevron-right"></i></div>
+                                </div>
+                            )}
 
                             <div className="us-item" onClick={() => signOut()} style={{ color: '#DC2626' }}>
                                 <div className="us-icon" style={{ color: '#DC2626' }}><i className="fas fa-power-off"></i></div>
