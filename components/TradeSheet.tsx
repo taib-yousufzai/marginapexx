@@ -466,12 +466,21 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
   const topLimit = segSetting?.top_limit ?? 0;
   const minLimit = segSetting?.min_limit ?? 0;
-  const maxAllowedPrice = currentLtp * (1 + topLimit / 100);
-  const minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
+  
+  let maxAllowedPrice = topLimit > 0 ? currentLtp * (1 + topLimit / 100) : Infinity;
+  let minAllowedPrice = minLimit > 0 ? currentLtp * (1 - minLimit / 100) : 0;
+
+  if (orderType === 'LIMIT' || (orderType === 'GTT' && !exitMode)) {
+    if (side === 'BUY') {
+      maxAllowedPrice = Math.min(maxAllowedPrice, currentLtp);
+    } else if (side === 'SELL') {
+      minAllowedPrice = Math.max(minAllowedPrice, currentLtp);
+    }
+  }
 
   const priceRangeHelp = currentLtp > 0 ? (
     <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary, #6B7280)', marginTop: '6px', fontWeight: 600 }}>
-      Allowed price: {minLimit > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to {topLimit > 0 ? `₹${maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'No Limit'}
+      Allowed price: {minAllowedPrice > 0 ? `₹${minAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00'} to {maxAllowedPrice !== Infinity ? `₹${maxAllowedPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'No Limit'}
     </div>
   ) : null;
 
