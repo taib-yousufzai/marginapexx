@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import InstallPrompt from '@/components/InstallPrompt';
+import { MarketDataProvider } from '@/contexts/MarketDataContext';
 
 export const viewport: Viewport = {
   themeColor: [{ media: '(prefers-color-scheme: light)', color: '#ffffff' }, { media: '(prefers-color-scheme: dark)', color: '#1E1E1E' }],
@@ -54,8 +55,10 @@ export default function RootLayout({
             if('scrollRestoration' in history) history.scrollRestoration = 'manual';
           })();
         `}} />
-        {children}
-        <InstallPrompt />
+        <MarketDataProvider>
+          {children}
+          <InstallPrompt />
+        </MarketDataProvider>
       </body>
     </html>
   );
