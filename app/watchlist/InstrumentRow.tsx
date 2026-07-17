@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { QuoteData } from '@/hooks/useMarketQuotes';
-import { ComexQuoteData } from '@/hooks/useComexQuotes';
+import { ComexQuoteData } from '@/contexts/ComexDataContext';
 import TickFlash from '@/components/TickFlash';
 
 export interface WatchlistItem {
@@ -27,7 +27,7 @@ interface InstrumentRowProps {
   quote?: QuoteData;
   binanceQuote?: QuoteData;
   comexQuote?: ComexQuoteData;
-  onTrade: (item: WatchlistItem) => void;
+  onTrade: (item: WatchlistItem, side?: 'BUY' | 'SELL' | 'BOTH') => void;
   onDetail?: (item: WatchlistItem) => void;
   basketMode?: boolean;
   onBasketBuy?: (item: WatchlistItem) => void;

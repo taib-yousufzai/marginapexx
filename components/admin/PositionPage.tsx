@@ -81,8 +81,8 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
     let prefix = 'NSE:';
     if (seg.includes('MCX')) prefix = 'MCX:';
     else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
-    else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
     else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
+    else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
     else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
 
     if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';

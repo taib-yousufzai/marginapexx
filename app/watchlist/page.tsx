@@ -5,7 +5,8 @@ import Footer from '@/components/Footer';
 import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useMarketQuotes, QuoteData } from '@/hooks/useMarketQuotes';
-import { useComexQuotes, ComexQuoteData } from '@/hooks/useComexQuotes';
+import { useComexQuotes } from '@/hooks/useComexQuotes';
+import { ComexQuoteData } from '@/contexts/ComexDataContext';
 import { useOrderEntry, OrderSide, OrderType, ProductType } from '@/hooks/useOrderEntry';
 import { useActivePositions } from '@/hooks/useActivePositions';
 import { useMobileBack } from '@/hooks/useMobileBack';
@@ -538,6 +539,21 @@ function WatchlistContent() {
     
     return true;
   };
+  
+  const isSpotIndex = (item: WatchlistItem) => {
+    if (!item) return false;
+    const spotKiteSymbols = [
+      'NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'BSE:BANKEX', 
+      'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'NSE:INDIA VIX'
+    ];
+    if (item.kiteSymbol && spotKiteSymbols.includes(item.kiteSymbol.toUpperCase())) return true;
+    
+    const nameUpper = (item.name || '').toUpperCase();
+    if (nameUpper.includes('INDEX') && !nameUpper.includes('FUT') && !nameUpper.includes('CE') && !nameUpper.includes('PE')) return true;
+    
+    return false;
+  };
+  
   const [isExecutingBasket, setIsExecutingBasket] = useState(false);
 
   const getWatchlistLotSize = (item: any): number => {
@@ -1329,6 +1345,10 @@ function WatchlistContent() {
   }, [watchlistItems, activeTab, userId]);
 
   const openTradeSheet = (item: WatchlistItem, side: 'BUY' | 'SELL' | 'BOTH' = 'BOTH') => {
+    if (isSpotIndex(item)) {
+      showToast('Indices cannot be traded directly. Trade their Futures or Options.', true);
+      return;
+    }
     setTradeSide(side);
     setSelectedItem(item);
     // Reset defaults or set based on item type
@@ -1503,13 +1523,14 @@ function WatchlistContent() {
                 quote={marketQuotes[item.kiteSymbol]}
                 binanceQuote={item.binanceSymbol ? marketQuotes[item.binanceSymbol] : undefined}
                 comexQuote={item.comexSymbol ? comexQuotes[item.comexSymbol] : undefined}
-                onTrade={(it, type) => {
+                onTrade={(it: WatchlistItem, type?: 'BUY' | 'SELL' | 'BOTH') => {
                   if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
                   openTradeSheet(it, type);
                 }}
                 onDetail={openDetailSheet}
                 basketMode={basketMode}
                 onBasketBuy={(it) => {
+                  if (isSpotIndex(it)) { showToast('Indices cannot be traded directly.', true); return; }
                   if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
                   setBasketLegs(prev => {
                     // If BUY leg already exists for this symbol, remove it (toggle off)
@@ -1523,6 +1544,7 @@ function WatchlistContent() {
                   });
                 }}
                 onBasketSell={(it) => {
+                  if (isSpotIndex(it)) { showToast('Indices cannot be traded directly.', true); return; }
                   if (!isMarketOpen(it)) { showToast('Market is closed', true); return; }
                   setBasketLegs(prev => {
                     // If SELL leg already exists for this symbol, remove it (toggle off)
@@ -2171,7 +2193,7 @@ function WatchlistContent() {
                             </div>
                             {subOpen && (
                               <div className="children-container" style={{ display: 'block' }}>
-                                {sub.instruments.map((inst) => (
+                                {sub.instruments.map((inst: any) => (
                                   <div key={inst.symbol} className="script-item">
                                     <span>{inst.name}</span>
                                     <button className="add-script-btn" onClick={() => {

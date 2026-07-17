@@ -1784,18 +1784,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
         {/* Chart Container */}
         <div className="tc-chart-container">
-          {/* Rotate Button (Floating) */}
-          <div className="tc-rotate-btn" title={isCssLandscape ? "Rotate to Portrait" : "Rotate to Landscape"} onClick={() => {
-            setIsCssLandscape(!isCssLandscape);
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 300); // Fail-safe
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
-              <path d="M22 12h-2M4 12H2"></path>
-            </svg>
-          </div>
+
 
           {/* Legend Overlay */}
           <div className="tc-legend-overlay">

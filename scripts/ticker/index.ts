@@ -44,8 +44,8 @@ class TickerDaemon {
 
   constructor() {
     this.subscriptionManager = new SubscriptionManager();
-    // Flush to DB once per 200ms for faster SL/TP and liquidation response
-    this.dbWriter = new DbBatchWriter(200);
+    // Flush to DB once per 50ms for faster SL/TP and liquidation response
+    this.dbWriter = new DbBatchWriter(50);
     this.processor = new TickProcessor(this.subscriptionManager, this.dbWriter);
     this.binanceTicker = new BinanceTicker(this.dbWriter);
     this.sessionMonitor = new KiteSessionMonitor();

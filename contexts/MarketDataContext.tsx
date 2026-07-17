@@ -186,7 +186,7 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
           if (finalPrice < q.bid) finalPrice = q.bid;
         }
         const changePercent = close > 0 ? ((finalPrice - close) / close) * 100 : 0;
-        pendingUpdatesRef.current[symbol] = {
+        const newQuote = {
           lastPrice: parseFloat(finalPrice.toFixed(2)),
           change: finalPrice - close,
           changePercent: parseFloat(changePercent.toFixed(2)),
@@ -198,19 +198,14 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
           bid: (q.bid != null && q.bid > 0) ? q.bid : finalPrice * 0.9995,
           ask: (q.ask != null && q.ask > 0) ? q.ask : finalPrice * 1.0005,
         };
+        setQuotes(prev => ({ ...prev, [symbol]: newQuote }));
       }
     };
 
     // We subscribe globally to nothing initially, but we attach the global listener
     wsManager.subscribe([], onMessage);
 
-    const flushInterval = setInterval(() => {
-      const pending = pendingUpdatesRef.current;
-      if (Object.keys(pending).length > 0) {
-        setQuotes(prev => ({ ...prev, ...pending }));
-        pendingUpdatesRef.current = {};
-      }
-    }, 50);
+
 
     const fetchInitialQuotes = async () => {
       const symbols = Array.from(wsManager.symbolRefCount.keys());
@@ -237,7 +232,6 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
     const pollInterval = setInterval(fetchInitialQuotes, 3000);
 
     return () => {
-      clearInterval(flushInterval);
       clearInterval(pollInterval);
       wsManager.unsubscribe([], onMessage);
     };

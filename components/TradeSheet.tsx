@@ -124,6 +124,20 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
     return expiryDate < now;
   }, [item?.expiry, exitMode, isModify]);
 
+  const isSpotIndex = useMemo(() => {
+    if (!item) return false;
+    const spotKiteSymbols = [
+      'NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'BSE:BANKEX', 
+      'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'NSE:INDIA VIX'
+    ];
+    if (item.kiteSymbol && spotKiteSymbols.includes(item.kiteSymbol.toUpperCase())) return true;
+    
+    const nameUpper = (item.name || '').toUpperCase();
+    if (nameUpper.includes('INDEX') && !nameUpper.includes('FUT') && !nameUpper.includes('CE') && !nameUpper.includes('PE')) return true;
+    
+    return false;
+  }, [item]);
+
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
   const [showCharges, setShowCharges] = useState(false);
@@ -1481,11 +1495,18 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
 
             {/* Footer */}
             <div className="ts2-footer">
-              {isExpired && (
+              {isExpired ? (
                 <div style={{ padding: '8px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13px', fontWeight: '500', textAlign: 'center', width: '100%' }}>
                   This instrument has expired.
                 </div>
-              )}
+              ) : isSpotIndex ? (
+                <div style={{ padding: '12px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderRadius: '8px', fontSize: '13.5px', fontWeight: '600', textAlign: 'center', width: '100%', lineHeight: '1.4' }}>
+                  Indices cannot be traded directly.<br/>
+                  <span style={{ fontSize: '12px', fontWeight: '500', opacity: 0.9 }}>Please trade their Futures or Options.</span>
+                </div>
+              ) : null}
+              
+              {!isSpotIndex && (
               <div className="ts2-btn-row">
                 {(side === 'SELL' || side === 'BOTH') && (
                   <button
@@ -1508,6 +1529,7 @@ export default function TradeSheet({ item, side, onClose, onSuccess, exitMode = 
                   </button>
                 )}
               </div>
+              )}
             </div>
           </>
         )}
