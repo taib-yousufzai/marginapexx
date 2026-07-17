@@ -72,8 +72,8 @@ export const ComexDataProvider = ({ children }: { children: React.ReactNode }) =
   useEffect(() => {
     // Fetch initially
     fetchQuotes();
-    // Poll every 250ms for commodity prices to move instantly
-    const interval = setInterval(fetchQuotes, 250);
+    // Poll every 1000ms for commodity prices (slowed down to match Zerodha's pace)
+    const interval = setInterval(fetchQuotes, 1000);
     return () => clearInterval(interval);
   }, [fetchQuotes]);
 
