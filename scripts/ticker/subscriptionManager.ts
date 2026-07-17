@@ -80,7 +80,7 @@ export class SubscriptionManager {
               else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
               else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
               else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-              else if (s.includes('BSE')) exchange = 'BSE';
+              else if (s.includes('BSE') || s.includes('BFO')) exchange = 'BFO';
             }
             symbolsToResolve.add(`${exchange}:${sym}`);
           }
@@ -111,7 +111,7 @@ export class SubscriptionManager {
                 else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
                 else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
                 else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
-                else if (s.includes('BSE')) exchange = 'BSE';
+                else if (s.includes('BSE') || s.includes('BFO')) exchange = 'BFO';
               }
               symbolsToResolve.add(`${exchange}:${sym}`);
             }
@@ -147,18 +147,8 @@ export class SubscriptionManager {
       }
 
       let resolvedInstruments: any[] = [];
-      if (prefixedSymbols.length > 0 && rawSymbols.length > 0) {
-        const { data, error: resolveError } = await admin
-          .from('instruments')
-          .select('id, instrument_token')
-          .or(`id.in.(${prefixedSymbols.map(s => `"${s}"`).join(',')}),tradingsymbol.in.(${rawSymbols.map(s => `"${s}"`).join(',')})`);
-        
-        if (resolveError) {
-          logger.error({ err: resolveError }, 'Error resolving instrument tokens from db via OR');
-          return [];
-        }
-        resolvedInstruments = data || [];
-      } else if (prefixedSymbols.length > 0) {
+      
+      if (prefixedSymbols.length > 0) {
         const { data, error: resolveError } = await admin
           .from('instruments')
           .select('id, instrument_token')
@@ -166,10 +156,12 @@ export class SubscriptionManager {
 
         if (resolveError) {
           logger.error({ err: resolveError }, 'Error resolving prefixed instrument tokens');
-          return [];
+        } else if (data) {
+          resolvedInstruments.push(...data);
         }
-        resolvedInstruments = data || [];
-      } else if (rawSymbols.length > 0) {
+      }
+
+      if (rawSymbols.length > 0) {
         const { data, error: resolveError } = await admin
           .from('instruments')
           .select('id, instrument_token')
@@ -177,9 +169,9 @@ export class SubscriptionManager {
 
         if (resolveError) {
           logger.error({ err: resolveError }, 'Error resolving raw instrument tokens');
-          return [];
+        } else if (data) {
+          resolvedInstruments.push(...data);
         }
-        resolvedInstruments = data || [];
       }
 
       const mappings: InstrumentMapping[] = [];

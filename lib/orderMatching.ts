@@ -4,7 +4,7 @@ import { telemetry } from './metrics.ts';
 import { checkAndExecuteAccountLiquidation } from './liquidationEngine.ts';
 import { calculateCarryBrokerage } from './brokerage.ts';
 import { isContractExpired } from './contractExpiry.ts';
-import { calculateFloatingPnl, calculateExitPrice } from './floatingPnl';
+import { calculateFloatingPnl, calculateExitPrice } from './floatingPnl.ts';
 
 export interface Quote {
   id: string; // e.g. "NSE:INFY"
