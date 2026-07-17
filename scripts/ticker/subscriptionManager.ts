@@ -79,8 +79,9 @@ export class SubscriptionManager {
               if (s.includes('MCX')) exchange = 'MCX';
               else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
               else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-              else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
               else if (s.includes('BSE') || s.includes('BFO')) exchange = 'BFO';
+              else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+              if (sym.startsWith('SENSEX') || sym.startsWith('BANKEX')) exchange = 'BFO';
             }
             symbolsToResolve.add(`${exchange}:${sym}`);
           }
@@ -110,8 +111,9 @@ export class SubscriptionManager {
                 if (s.includes('MCX')) exchange = 'MCX';
                 else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
                 else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
-                else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
                 else if (s.includes('BSE') || s.includes('BFO')) exchange = 'BFO';
+                else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
+                if (sym.startsWith('SENSEX') || sym.startsWith('BANKEX')) exchange = 'BFO';
               }
               symbolsToResolve.add(`${exchange}:${sym}`);
             }
