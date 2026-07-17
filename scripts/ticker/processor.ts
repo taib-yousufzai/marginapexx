@@ -97,7 +97,7 @@ export class TickProcessor extends EventEmitter {
       }
       this.lastSeenPrice.set(token, tick.last_price);
 
-      logger.info({ symbol: symbolKey, price: tick.last_price }, 'Received real-time tick');
+      logger.debug({ symbol: symbolKey, price: tick.last_price }, 'Received real-time tick');
 
       // 3. Store in bounded memory-efficient ring buffer (max 100 ticks per instrument)
       let window = this.slidingWindows.get(token);

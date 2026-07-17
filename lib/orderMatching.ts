@@ -542,10 +542,11 @@ export class InMemoryMatchingEngine {
             // Only warn when the symbol is a live (non-expired) contract.
             // Expired futures simply have no feed — that's expected, not a bug.
             if (!isContractExpired(pos.symbol)) {
-              console.warn(
-                `[OrderMatching] No live LTP for ${pos.symbol} (user ${userId}). ` +
-                `Using fallback ltp=${ltp}. Check ticker subscription.`,
-              );
+              // Removed console.warn to prevent Railway log rate limiting
+              // console.warn(
+              //   `[OrderMatching] No live LTP for ${pos.symbol} (user ${userId}). ` +
+              //     `Using fallback ltp=${ltp}. Check ticker subscription.`
+              // );
             }
           }
 

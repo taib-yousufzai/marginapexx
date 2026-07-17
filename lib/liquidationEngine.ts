@@ -69,11 +69,12 @@ export async function checkAndExecuteAccountLiquidation(
 
   // Not yet at liquidation level — return early, nothing to do
   if (totalFloatingPnl > threshold) {
-    console.log(
-      `[LiquidationEngine] SKIP user ${userId}: ` +
-      `PnL=₹${totalFloatingPnl.toFixed(2)} > threshold=₹${threshold.toFixed(2)} ` +
-      `(balance=₹${balance.toFixed(2)}, sqoff=${autoSqoffPercent}%, positions=${positions.length})`,
-    );
+    // Removed to avoid rate limit console spam
+    // console.log(
+    //   `[LiquidationEngine] SKIP user ${userId}: ` +
+    //   `PnL=₹${totalFloatingPnl.toFixed(2)} > threshold=₹${threshold.toFixed(2)} ` +
+    //   `(balance=₹${balance.toFixed(2)}, sqoff=${autoSqoffPercent}%, positions=${positions.length})`,
+    // );
     return { liquidated: false, positionsClosed: 0, totalPnl: totalFloatingPnl, settlementAmount: 0 };
   }
 
