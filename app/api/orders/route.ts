@@ -794,23 +794,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }, { status: 400 });
   }
 
-  // Verify cumulative segment limits (max_lot)
+  // Verify cumulative position limits (max_lot) per symbol
   let totalOpenLots = 0;
   if (openPositions.length > 0) {
     for (const pos of openPositions) {
-      const posSegment = mapSymbolToSegment(pos.symbol);
-      if (posSegment === dbSegment) {
+      if (pos.symbol === symbol) {
         const size = getLotSize(pos.symbol, dbScriptSettings);
         totalOpenLots += Number(pos.qty_open) / size;
       }
     }
   }
 
-  // Include PENDING entry orders in the segment limit check
+  // Include PENDING entry orders in the position limit check
   if (pendingOrders.length > 0) {
     for (const po of pendingOrders) {
       if (po.is_exit) continue; // Skip pending exit orders
-      if (po.segment === dbSegment || mapSymbolToSegment(po.symbol) === dbSegment) {
+      if (po.symbol === symbol) {
         const size = getLotSize(po.symbol, dbScriptSettings);
         const poLots = Number(po.lots) > 0 ? Number(po.lots) : (Number(po.qty) / size);
         totalOpenLots += poLots;
@@ -821,7 +820,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const newOrderLots = lots > 0 ? lots : (qty / symbolLotSize);
   if (!is_exit && (totalOpenLots + newOrderLots > (segSetting.max_lot as number))) {
     return NextResponse.json({
-      error: `Order exceeds maximum segment limit of ${segSetting.max_lot} lots. Current open/pending positions: ${totalOpenLots.toFixed(2)} lots.`,
+      error: `Order exceeds maximum position limit of ${segSetting.max_lot} lots for ${symbol}. Current open/pending positions: ${totalOpenLots.toFixed(2)} lots.`,
     }, { status: 400 });
   }
 

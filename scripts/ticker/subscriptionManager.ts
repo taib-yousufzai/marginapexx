@@ -77,6 +77,7 @@ export class SubscriptionManager {
             if (p.settlement) {
               const s = p.settlement.toUpperCase();
               if (s.includes('MCX')) exchange = 'MCX';
+              else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
               else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
               else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
               else if (s.includes('BSE')) exchange = 'BSE';
@@ -107,6 +108,7 @@ export class SubscriptionManager {
               if (o.segment) {
                 const s = o.segment.toUpperCase();
                 if (s.includes('MCX')) exchange = 'MCX';
+                else if (s.includes('NCO') || s.includes('NSE COMMODITY')) exchange = 'NCO';
                 else if (s.includes('CDS') || s.includes('FOREX')) exchange = 'CDS';
                 else if (s.includes('OPT') || s.includes('FUT') || s.includes('NFO')) exchange = 'NFO';
                 else if (s.includes('BSE')) exchange = 'BSE';

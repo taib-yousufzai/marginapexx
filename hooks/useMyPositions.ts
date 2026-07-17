@@ -194,6 +194,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     const seg = (settlement || '').toUpperCase();
     let prefix = 'NSE:';
     if (seg.includes('MCX')) prefix = 'MCX:';
+    else if (seg.includes('NCO')) prefix = 'NCO:';
     else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
     else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
     else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
