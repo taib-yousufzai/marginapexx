@@ -75,9 +75,12 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
   }, [uid, isDemoMode]);
 
   // Smartly resolve Kite instrument prefixes if they are missing
-  const resolveKitePrefix = useCallback((key: string, settlement: string) => {
-    if (key.includes(':')) return key;
-    const seg = (settlement || '').toUpperCase();
+  const resolveKitePrefix = useCallback((key: string, settlementType: string) => {
+    let baseKey = key;
+    if (baseKey.includes(':')) {
+      baseKey = baseKey.split(':').slice(1).join(':');
+    }
+    const seg = (settlementType || '').toUpperCase();
     let prefix = 'NSE:';
     if (seg.includes('MCX')) prefix = 'MCX:';
     else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
@@ -85,10 +88,10 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
     else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
     else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
 
-    if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';
-    if (prefix === 'NFO:' && !key.match(/\d/)) prefix = 'NSE:';
+    if (prefix === 'BFO:' && !baseKey.match(/\d/)) prefix = 'BSE:';
+    if (prefix === 'NFO:' && !baseKey.match(/\d/)) prefix = 'NSE:';
 
-    return `${prefix}${key}`;
+    return `${prefix}${baseKey}`;
   }, []);
 
   // Group instrument keys to subscribe to quotes

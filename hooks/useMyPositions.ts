@@ -190,7 +190,10 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
   // Helper to smartly resolve Kite prefixes if the database is missing them
   const resolveKitePrefix = useCallback((key: string, settlement: string) => {
-    if (key.includes(':')) return key;
+    let baseKey = key;
+    if (baseKey.includes(':')) {
+      baseKey = baseKey.split(':').slice(1).join(':'); // Strip existing prefix
+    }
     const seg = (settlement || '').toUpperCase();
     let prefix = 'NSE:';
     if (seg.includes('MCX')) prefix = 'MCX:';
@@ -201,10 +204,10 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
     else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
 
     // Catch base indexes
-    if (prefix === 'BFO:' && !key.match(/\d/)) prefix = 'BSE:';
-    if (prefix === 'NFO:' && !key.match(/\d/)) prefix = 'NSE:';
+    if (prefix === 'BFO:' && !baseKey.match(/\d/)) prefix = 'BSE:';
+    if (prefix === 'NFO:' && !baseKey.match(/\d/)) prefix = 'NSE:';
 
-    return `${prefix}${key}`;
+    return `${prefix}${baseKey}`;
   }, []);
 
   // Group instrument keys by segment
