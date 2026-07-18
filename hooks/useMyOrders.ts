@@ -64,14 +64,7 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      await fetchOrders();
-      if (cancelled) return;
-      intervalRef.current = setInterval(fetchOrders, refreshInterval);
-    }
-
-    init();
-
+    let isSubscribed = false;
     const channelName = `my-orders-realtime-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
       .channel(channelName)
@@ -81,8 +74,21 @@ export function useMyOrders(refreshInterval = 10_000): UseMyOrdersResult {
         () => {
           fetchOrders();
         }
-      )
-      .subscribe();
+      );
+      
+    channel.subscribe((status) => {
+      isSubscribed = status === 'SUBSCRIBED';
+    });
+
+    async function init() {
+      await fetchOrders();
+      if (cancelled) return;
+      intervalRef.current = setInterval(() => {
+        if (!isSubscribed) fetchOrders();
+      }, refreshInterval);
+    }
+
+    init();
 
     return () => {
       cancelled = true;

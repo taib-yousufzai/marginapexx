@@ -160,14 +160,7 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
 
   useEffect(() => {
     fetchPositions();
-    const timer = setInterval(fetchPositions, 5000); // DB fetch fallback
-
-    // Listen to manual forced re-fetches (e.g., when an order is placed)
-    window.addEventListener('order_placed', fetchPositions);
-
-    // Use a unique channel name per hook instance so multiple consumers
-    // (e.g. position page + chart) can each have their own realtime subscription
-    // without the stale-channel cleanup killing each other's subscriptions.
+    let isSubscribed = false;
     const channelName = `my-positions-realtime-${Math.random().toString(36).slice(2)}`;
 
     const channel = supabase
@@ -178,8 +171,18 @@ export function useMyPositions(refreshInterval = 5000): UseMyPositionsResult {
         () => {
           fetchPositions();
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe((status) => {
+      isSubscribed = status === 'SUBSCRIBED';
+    });
+
+    // Listen to manual forced re-fetches (e.g., when an order is placed)
+    window.addEventListener('order_placed', fetchPositions);
+
+    const timer = setInterval(() => {
+      if (!isSubscribed) fetchPositions();
+    }, 5000); // DB fetch fallback
 
     return () => {
       clearInterval(timer);

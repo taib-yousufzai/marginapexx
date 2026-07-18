@@ -39,6 +39,10 @@ class BinanceWSManager {
   private wsUrl = 'wss://stream.binance.com:9443/ws';
   private subscriptionId = 1;
 
+  public get isConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
+
   private connect() {
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) return;
     this.ws = new WebSocket(this.wsUrl);
@@ -141,6 +145,8 @@ export const BinanceDataProvider = ({ children }: { children: React.ReactNode })
     }, 500); // 500ms for crypto to save renders
 
     const fetchInitialQuotes = async () => {
+      if (wsManager.isConnected) return;
+      
       const symbols = Array.from(wsManager.symbolRefCount.keys());
       if (symbols.length === 0) return;
       try {

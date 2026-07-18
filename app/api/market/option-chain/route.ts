@@ -27,6 +27,14 @@ function getOptionChainSegment(sym: string): string {
   return 'STOCK-OPT';
 }
 
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let symbol = (searchParams.get('symbol') || 'NIFTY').toUpperCase();
+    if (symbol === 'MIDCAP') symbol = 'MIDCPNIFTY';
+    const expiry = searchParams.get('expiry');
+    const today = new Date().toISOString().split('T')[0];
+    
     const cacheKey = `optionChain:${symbol}_${expiry || 'default'}`;
     const redis = getRedisClient();
 
