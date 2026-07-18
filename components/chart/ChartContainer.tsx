@@ -167,6 +167,7 @@ export default function ChartContainer({
         saved_data:   savedData,
         client_id:    'marginapexx',
         user_id:      'public_user',
+        auto_save_delay: 1,
         disabled_features: ['header_widget'],
       });
 
