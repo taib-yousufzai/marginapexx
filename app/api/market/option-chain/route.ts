@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getRedisClient } from '@/lib/redis';
+import { getRedisClient, isRedisMock } from '@/lib/redis';
 import {
   loadStrikeConfig,
   applyExpiryFilter,
@@ -27,22 +27,18 @@ function getOptionChainSegment(sym: string): string {
   return 'STOCK-OPT';
 }
 
-// IN-MEMORY CACHE FOR API ROUTE
-const optionChainCache: Record<string, { data: any, timestamp: number }> = {};
-const CACHE_TTL_MS = 1000 * 60; // 1 minute cache
+    const cacheKey = `optionChain:${symbol}_${expiry || 'default'}`;
+    const redis = getRedisClient();
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    let symbol = (searchParams.get('symbol') || 'NIFTY').toUpperCase();
-    if (symbol === 'MIDCAP') symbol = 'MIDCPNIFTY';
-    const expiry = searchParams.get('expiry');
-    const today = new Date().toISOString().split('T')[0];
-    
-    const cacheKey = `${symbol}_${expiry || 'default'}`;
-    const now = Date.now();
-    if (optionChainCache[cacheKey] && now - optionChainCache[cacheKey].timestamp < CACHE_TTL_MS) {
-      return NextResponse.json(optionChainCache[cacheKey].data);
+    if (!isRedisMock()) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return NextResponse.json(JSON.parse(cached));
+        }
+      } catch (e) {
+        console.error('Redis cache error for option chain:', e);
+      }
     }
 
     let usedFallback = false;
@@ -120,7 +116,6 @@ export async function GET(request: Request) {
     if (options && options.length > 0) {
       try {
         const strikeConfig = await loadStrikeConfig(supabase);
-        const redis = getRedisClient();
 
         // Determine the segment to pick the right strike range
         const isIndex = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'].includes(symbol);
@@ -230,10 +225,13 @@ export async function GET(request: Request) {
     };
 
     // Store in cache only if we got a real spot price
-    if (!usedFallback) {
-      optionChainCache[cacheKey] = { data: responseData, timestamp: now };
-      // Also cache under the specific expiry key to prevent next lookup
-      optionChainCache[`${symbol}_${selectedExpiry}`] = { data: responseData, timestamp: now };
+    if (!usedFallback && !isRedisMock()) {
+      try {
+        await redis.setex(cacheKey, 60, JSON.stringify(responseData));
+        await redis.setex(`optionChain:${symbol}_${selectedExpiry}`, 60, JSON.stringify(responseData));
+      } catch (e) {
+        console.error('Redis cache set error for option chain:', e);
+      }
     }
 
     return NextResponse.json(responseData);
