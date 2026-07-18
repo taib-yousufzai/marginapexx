@@ -1786,27 +1786,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         <div className="tc-chart-container">
 
 
-          {/* Legend Overlay */}
-          <div className="tc-legend-overlay">
-            <div className="tc-legend-top">
-              <span className="tc-legend-title">{symbol}</span>
-              <span style={{ color: '#9CA3AF' }}>•</span>
-              <span className="tc-legend-tf">{timeframe.replace('m', '').replace('day', 'D')}</span>
-              <span style={{ color: '#9CA3AF' }}>•</span>
-              <span className="tc-legend-exchange">{displayExchange}</span>
-              <span className="tc-legend-status"></span>
-            </div>
-            {currentPrice > 0 && (
-              <div className="tc-legend-bottom">
-                <span className={`tc-legend-price ${isUp ? 'up' : 'down'}`}>
-                  ₹{currentPrice.toFixed(2)}
-                </span>
-                <span className={`tc-legend-price ${isUp ? 'up' : 'down'}`} style={{ fontSize: '0.8rem', marginLeft: '2px' }}>
-                  {isUp ? '+' : ''}{priceChange.toFixed(2)} ({isUp ? '+' : ''}{priceChangePct.toFixed(2)}%)
-                </span>
-              </div>
-            )}
-          </div>
+
 
           {/* BUY/price/SELL widget — HIDDEN */}
 

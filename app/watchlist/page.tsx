@@ -3056,11 +3056,11 @@ export default function WatchlistPage() {
   }, []);
 
   if (!mounted) {
-    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist...</div>;
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist (mounted false)...</div>;
   }
 
   return (
-    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist...</div>}>
+    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading watchlist (Suspense)...</div>}>
       <WatchlistContent />
     </Suspense>
   );
