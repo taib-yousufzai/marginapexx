@@ -144,6 +144,16 @@ export default function ChartContainer({
 
       datafeedRef.current = new Datafeed(segment);
 
+      let savedData;
+      try {
+        const stored = localStorage.getItem('marginapexx_tv_layout');
+        if (stored) {
+          savedData = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Failed to parse saved chart layout:', e);
+      }
+
       tvWidgetRef.current = new window.TradingView.widget({
         container:    containerRef.current,
         symbol,
@@ -154,6 +164,9 @@ export default function ChartContainer({
         timezone:     'Asia/Kolkata',
         theme:        isDark ? 'dark' : 'light',
         autosize:     true,
+        saved_data:   savedData,
+        client_id:    'marginapexx',
+        user_id:      'public_user',
         disabled_features: ['header_widget'],
       });
 
@@ -186,6 +199,17 @@ export default function ChartContainer({
         syncIndicators();
       }
       pendingRef.current = {};
+
+      // Subscribe to auto save needed event
+      tvWidgetRef.current?.subscribe('onAutoSaveNeeded', () => {
+        tvWidgetRef.current?.save((state: any) => {
+          try {
+            localStorage.setItem('marginapexx_tv_layout', JSON.stringify(state));
+          } catch (e) {
+            console.error('Failed to save chart layout:', e);
+          }
+        });
+      });
     };
 
     // Arm 30-second timeout
