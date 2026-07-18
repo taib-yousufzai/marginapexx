@@ -142,6 +142,9 @@ class MarketWSManager {
       }
     }
   }
+  public get isConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+  }
 }
 
 const wsManager = new MarketWSManager();
@@ -208,6 +211,7 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
 
 
     const fetchInitialQuotes = async () => {
+      if (wsManager.isConnected) return;
       const symbols = Array.from(wsManager.symbolRefCount.keys());
       if (symbols.length === 0) return;
       try {

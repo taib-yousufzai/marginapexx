@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSharedKiteSession } from '@/lib/kiteSession';
+import { getRedisClient, isRedisMock } from '@/lib/redis';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +13,18 @@ const supabase = createClient(
  * Runs strategies in parallel for speed.
  */
 async function resolveInstrumentToken(symbol: string): Promise<number | null> {
+  const redis = getRedisClient();
+  const cacheKey = `instrument_token:${symbol}`;
+  
+  if (!isRedisMock()) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) return parseInt(cached, 10);
+    } catch (e) {
+      console.error('Redis cache error for instrument token:', e);
+    }
+  }
+
   // Fast path: symbol contains ':' (e.g. "NFO:NIFTY2661623700CE") — exact id match
   if (symbol.includes(':')) {
     const { data } = await supabase
@@ -79,7 +92,17 @@ async function resolveInstrumentToken(symbol: string): Promise<number | null> {
   // Run all queries in parallel, return first non-null result
   // Priority: exact > tradingsymbol > prefix > mapped > fuzzy
   const results = await Promise.all(queries);
-  return results.find(r => r !== null) ?? null;
+  const token = results.find(r => r !== null) ?? null;
+  
+  if (token && !isRedisMock()) {
+      try {
+          // Cache for 24 hours
+          await redis.setex(cacheKey, 86400, token.toString());
+      } catch (e) {
+          console.error('Redis cache set error for instrument token:', e);
+      }
+  }
+  return token;
 }
 
 export async function GET(request: Request) {
@@ -119,6 +142,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: `Instrument not found for symbol: ${symbol}` }, { status: 404 });
     }
 
+    const redis = getRedisClient();
+    const cacheKey = `historical:${instrumentToken}:${interval}:${from}:${to}`;
+
+    if (!isRedisMock()) {
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          return NextResponse.json(JSON.parse(cached));
+        }
+      } catch (e) {
+        console.error('Redis cache error for historical data:', e);
+      }
+    }
+
     // Fetch from Kite Historical API
     const url = `https://api.kite.trade/instruments/historical/${instrumentToken}/${interval}?from=${from}&to=${to}`;
     
@@ -134,6 +171,16 @@ export async function GET(request: Request) {
     if (!response.ok || data.status !== 'success') {
       const errorMessage = data.message || data.error_type || 'Kite API error';
       return NextResponse.json({ error: errorMessage, details: data }, { status: response.status || 500 });
+    }
+
+    if (!isRedisMock()) {
+      try {
+        // Cache daily data longer, intraday data shorter
+        const ttl = (interval === 'day' || interval === 'week') ? 3600 : (interval.includes('minute') || interval.includes('min') || ['1m','5m','15m','30m','60m'].includes(interval)) ? 60 : 300;
+        await redis.setex(cacheKey, ttl, JSON.stringify(data.data));
+      } catch (e) {
+        console.error('Redis cache set error for historical data:', e);
+      }
     }
 
     return NextResponse.json(data.data);

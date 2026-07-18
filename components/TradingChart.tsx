@@ -773,13 +773,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
         if (isCrypto) {
           const interval = getIntervalString();
-          let binanceSymbol = symbol.replace('/', '');
-          if (!binanceSymbol.endsWith('USDT')) {
-            binanceSymbol += 'USDT';
-          }
-          const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=500`);
+          const res = await fetch(`/api/market/historical-crypto?symbol=${encodeURIComponent(symbol)}&interval=${interval}&limit=500`);
           const json = await res.json();
-          if (!Array.isArray(json)) throw new Error(json.msg || 'Failed to fetch');
+          if (!Array.isArray(json)) throw new Error(json.error || json.msg || 'Failed to fetch');
           data = json.map((k: any) => ({
             timestamp: parseInt(k[0]),
             open: parseFloat(k[1]),
