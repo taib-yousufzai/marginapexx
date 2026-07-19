@@ -120,6 +120,8 @@ export async function GET(request: Request) {
       });
     }
 
+    let underlyingSymbol: string | undefined = undefined;
+
     // 5. Apply strike range filter using Redis ATM price
     if (options && options.length > 0) {
       try {
@@ -136,18 +138,9 @@ export async function GET(request: Request) {
           'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
           'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
         };
-        const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;
-        const cached = await redis.hget('market:quotes', kiteId);
+        underlyingSymbol = kiteIdMap[symbol] ?? `MCX:${symbol}`;
 
-        let underlyingSymbol = kiteId;
-
-        // atmPrice already declared in outer scope
-        if (cached) {
-          const q = JSON.parse(cached);
-          atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
-        }
-        
-        if (!atmPrice && isMcx) {
+        if (isMcx) {
           let baseSymbol = symbol;
           if (symbol === 'GOLDM') baseSymbol = 'GOLD';
           else if (symbol === 'SILVERM') baseSymbol = 'SILVER';
@@ -172,14 +165,21 @@ export async function GET(request: Request) {
               atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
             }
           }
-        }
-
-        if (!atmPrice) {
-          const altKey = kiteId.split(':')[1] || symbol;
-          const altCached = await redis.hget('market:quotes', altKey);
-          if (altCached) {
-            const q = JSON.parse(altCached);
+        } else {
+          // For indices, rely on the kiteId cache
+          const cached = await redis.hget('market:quotes', underlyingSymbol);
+          if (cached) {
+            const q = JSON.parse(cached);
             atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+          }
+          
+          if (!atmPrice) {
+            const altKey = underlyingSymbol.split(':')[1] || symbol;
+            const altCached = await redis.hget('market:quotes', altKey);
+            if (altCached) {
+              const q = JSON.parse(altCached);
+              atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
+            }
           }
         }
 
@@ -226,13 +226,12 @@ export async function GET(request: Request) {
 
     const sortedStrikes = Object.values(strikeMap).sort((a: any, b: any) => a.strike - b.strike);
 
-    // Make sure underlyingSymbol is available even if usedFallback is true
-    let finalUnderlyingSymbol = kiteIdMap[symbol] ?? `MCX:${symbol}`;
-    if (usedFallback) {
-      // If we fell back, maybe just return what we have
-    } else {
-      // It will be whatever `underlyingSymbol` was set to
-    }
+    const kiteIdMapFallback: Record<string, string> = {
+      'NIFTY': 'NSE:NIFTY 50', 'BANKNIFTY': 'NSE:NIFTY BANK',
+      'FINNIFTY': 'NSE:NIFTY FIN SERVICE', 'MIDCPNIFTY': 'NSE:NIFTY MID SELECT',
+      'SENSEX': 'BSE:SENSEX', 'BANKEX': 'BSE:BANKEX',
+    };
+    let finalUnderlyingSymbol = underlyingSymbol || kiteIdMapFallback[symbol] || `MCX:${symbol}`;
 
     const responseData = {
       success: true,
