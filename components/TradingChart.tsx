@@ -2428,12 +2428,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           </div>
         </div>
       )}
-      {/* End of Right / Bottom Panel Area */}' : ''}`}>
-              {renderPanelContent()}
-            </div>
-          </div>
-        </div>
-      </div>
       {/* End of Right / Bottom Panel Area */}
       </div>
       {/* End of Content Split Container */}
