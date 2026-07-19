@@ -79,26 +79,26 @@ export default function ChartContainer({
   setShowSettingsModal,
 }: ChartContainerProps) {
   // ── Refs ──────────────────────────────────────────────────────────────────
-  const containerRef  = useRef<HTMLDivElement>(null);
-  const tvWidgetRef   = useRef<any | null>(null);
-  const datafeedRef   = useRef<Datafeed | null>(null);
-  const isReadyRef    = useRef(false);
-  const pendingRef    = useRef<PendingChanges>({});
-  const entityIdsRef  = useRef<IndicatorEntityIds>({ sma: null, ema: null, rsi: null, macd: null });
-  const initTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const tvWidgetRef = useRef<any | null>(null);
+  const datafeedRef = useRef<Datafeed | null>(null);
+  const isReadyRef = useRef(false);
+  const pendingRef = useRef<PendingChanges>({});
+  const entityIdsRef = useRef<IndicatorEntityIds>({ sma: null, ema: null, rsi: null, macd: null });
+  const initTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── State (drives overlay rendering only) ─────────────────────────────────
   const [chartStatus, setChartStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [chartError,  setChartError]  = useState<string | null>(null);
-  const [isDark,      setIsDark]      = useState(getIsDark);
-  const [activeTab,   setActiveTab]   = useState<'indicators' | 'settings'>('indicators');
+  const [chartError, setChartError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(getIsDark);
+  const [activeTab, setActiveTab] = useState<'indicators' | 'settings'>('indicators');
 
   // ── Study name / input config ─────────────────────────────────────────────
   const studyConfig: Record<IndicatorKey, { name: string; inputs: Record<string, number> }> = {
-    sma:  { name: 'Moving Average',              inputs: { length: settings.smaPeriod } },
-    ema:  { name: 'Moving Average Exponential',  inputs: { length: settings.emaPeriod } },
-    rsi:  { name: 'Relative Strength Index',     inputs: { length: settings.rsiPeriod } },
-    macd: { name: 'MACD',                        inputs: { fast_length: settings.macdFast, slow_length: settings.macdSlow, signal_smoothing: settings.macdSignal } },
+    sma: { name: 'Moving Average', inputs: { length: settings.smaPeriod } },
+    ema: { name: 'Moving Average Exponential', inputs: { length: settings.emaPeriod } },
+    rsi: { name: 'Relative Strength Index', inputs: { length: settings.rsiPeriod } },
+    macd: { name: 'MACD', inputs: { fast_length: settings.macdFast, slow_length: settings.macdSlow, signal_smoothing: settings.macdSignal } },
   };
 
   // ── syncIndicators ────────────────────────────────────────────────────────
@@ -111,8 +111,8 @@ export default function ChartContainer({
     if (!chart) return;
 
     (Object.keys(studyConfig) as IndicatorKey[]).forEach((key) => {
-      const isActive  = activeIndicators[key];
-      const entityId  = entityIdsRef.current[key];
+      const isActive = activeIndicators[key];
+      const entityId = entityIdsRef.current[key];
       const { name, inputs } = studyConfig[key];
 
       if (isActive && entityId === null) {
@@ -155,18 +155,18 @@ export default function ChartContainer({
       }
 
       tvWidgetRef.current = new window.TradingView.widget({
-        container:    containerRef.current,
+        container: containerRef.current,
         symbol,
-        interval:     toUdfResolution(timeframe) as any,
-        datafeed:     datafeedRef.current,
+        interval: toUdfResolution(timeframe) as any,
+        datafeed: datafeedRef.current,
         library_path: '/charting_library/',
-        locale:       'en',
-        timezone:     'Asia/Kolkata',
-        theme:        isDark ? 'dark' : 'light',
-        autosize:     true,
-        saved_data:   savedData,
-        client_id:    'marginapexx',
-        user_id:      'public_user',
+        locale: 'en',
+        timezone: 'Asia/Kolkata',
+        theme: isDark ? 'dark' : 'light',
+        autosize: true,
+        saved_data: savedData,
+        client_id: 'marginapexx',
+        user_id: 'public_user',
         auto_save_delay: 1,
         disabled_features: ['header_widget'],
       });
@@ -236,7 +236,7 @@ export default function ChartContainer({
       tvWidgetRef.current?.remove();
       tvWidgetRef.current = null;
       datafeedRef.current = null;
-      isReadyRef.current  = false;
+      isReadyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -428,10 +428,10 @@ export default function ChartContainer({
                         textTransform: 'uppercase',
                         color: isDark ? '#D1D4DC' : '#0A2540',
                       }}>
-                        {key === 'sma'  ? 'Simple Moving Average (SMA)'     :
-                         key === 'ema'  ? 'Exponential Moving Average (EMA)' :
-                         key === 'rsi'  ? 'Relative Strength Index (RSI)'    :
-                                          'MACD Lines & Histogram'}
+                        {key === 'sma' ? 'Simple Moving Average (SMA)' :
+                          key === 'ema' ? 'Exponential Moving Average (EMA)' :
+                            key === 'rsi' ? 'Relative Strength Index (RSI)' :
+                              'MACD Lines & Histogram'}
                       </span>
                       <button
                         onClick={() => handleIndicatorToggle(key)}

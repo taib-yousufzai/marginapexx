@@ -7,6 +7,9 @@ export async function GET(request: Request) {
     const interval = searchParams.get('interval') || '5m';
     const limit = searchParams.get('limit') || '500';
 
+    const startTime = searchParams.get('startTime');
+    const endTime = searchParams.get('endTime');
+
     if (!symbol) {
       return NextResponse.json({ error: 'Missing required parameter: symbol' }, { status: 400 });
     }
@@ -16,7 +19,11 @@ export async function GET(request: Request) {
       binanceSymbol += 'USDT';
     }
 
-    const response = await fetch(`https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`);
+    let url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`;
+    if (startTime) url += `&startTime=${startTime}`;
+    if (endTime) url += `&endTime=${endTime}`;
+
+    const response = await fetch(url);
     
     if (!response.ok) {
         const errorData = await response.json();

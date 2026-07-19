@@ -1774,15 +1774,44 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         </div>
       </div>
 
+      {/* Content Split Container */}
+      <div style={{ display: 'flex', flexDirection: (isLandscape || isCssLandscape) ? 'row' : 'column', flex: 1, overflow: 'hidden' }}>
+
       {/* Main Area */}
-      <div className="tc-main-area" style={isLandscape ? { height: 'calc(100dvh - 2.875rem)', flex: 1 } : undefined}>
+      <div className="tc-main-area" style={{ flex: 1, minWidth: 0, position: 'relative' }}>
 
 
         {/* Chart Container */}
-        <div className="tc-chart-container">
+        <div className="tc-chart-container" style={{ position: 'relative', overflow: 'hidden' }}>
 
-
-
+          {/* Floating Order Panel Toggle */}
+          <div 
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: '24px',
+              height: '56px',
+              background: 'var(--bg-card, #1E222D)',
+              border: '1px solid var(--border-color, #2B3139)',
+              borderRight: 'none',
+              borderRadius: '6px 0 0 6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '-2px 0 12px rgba(0,0,0,0.2)',
+              color: 'var(--text-secondary, #787B86)',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => setIsPanelExpanded(!isPanelExpanded)}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {isPanelExpanded ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
+            </svg>
+          </div>
 
           {/* BUY/price/SELL widget — HIDDEN */}
 
@@ -1808,10 +1837,26 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         </div>
       </div>
 
+      {/* Right / Bottom Panel Area */}
+      <div 
+        style={(isLandscape || isCssLandscape) ? {
+          width: '340px',
+          display: 'flex',
+          flexDirection: 'column',
+          borderLeft: '1px solid var(--border-color, #2b3543)',
+          background: 'var(--bg-card, #1E222D)',
+          zIndex: 10,
+          flexShrink: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        } : {
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
 
-
-      {/* P&L Card — hide when order block, or panel is expanded, or landscape */}
-      {!isOrderBlockVisible && !isPanelExpanded && !isLandscape && (
+      {/* P&L Card — hide when order block, or panel is expanded */}
+      {!isOrderBlockVisible && !isPanelExpanded && (
         <div className="pnl-card" id="pnlCard">
           {isTradeOnChartActive ? (
             <>
@@ -1874,8 +1919,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       )}
 
       {/* Bottom Section */}
-      {!isLandscape && (
-        <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
+      <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
           {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
           {!isUnderlyingIndex && !isOrderBlockVisible && (
             currentInstrumentPosition ? (
@@ -2282,7 +2326,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </div>
           </div>
         </div>
-      )}
+        </div>
+      </div>
+      {/* End of Right / Bottom Panel Area */}
+      </div>
+      {/* End of Content Split Container */}
       {toast.visible && (
         <div className={`toast-message toast-show ${toast.isError ? 'neg' : ''}`}>
           {toast.msg}

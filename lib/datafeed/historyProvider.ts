@@ -46,14 +46,17 @@ async function fetchBinanceBars(
 ): Promise<{ bars: Bar[]; noData: boolean }> {
   const interval = resolutionToBinanceInterval(resolution);
   const url =
-    `https://api.binance.com/api/v3/klines` +
+    `/api/market/historical-crypto` +
     `?symbol=${symbol}` +
     `&interval=${interval}` +
     `&startTime=${periodParams.from * 1000}` +
     `&endTime=${periodParams.to * 1000}` +
     `&limit=1000`;
 
-  const data: BinanceKline[] = await fetch(url).then((r) => r.json());
+  const data: BinanceKline[] = await fetch(url).then((r) => {
+    if (!r.ok) throw new Error('Network response was not ok');
+    return r.json();
+  });
 
   const bars: Bar[] = data.map((k) => ({
     time: k[0], // already in milliseconds
