@@ -1860,7 +1860,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             setSettings={setSettings}
             showSettingsModal={showSettingsModal}
             setShowSettingsModal={setShowSettingsModal}
-            {/* Right / Bottom Panel Area */}
+          />
+        </div>
+      </div>
+
+      {/* Right / Bottom Panel Area */}
       {(isLandscape || isCssLandscape) ? (
         <div 
           style={{
