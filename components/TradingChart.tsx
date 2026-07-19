@@ -1784,6 +1784,35 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         {/* Chart Container */}
         <div className="tc-chart-container" style={{ position: 'relative', overflow: 'hidden' }}>
 
+          {/* Floating Rotate Screen Button */}
+          <div
+            title="Toggle Landscape Layout"
+            style={{
+              position: 'absolute',
+              right: '16px',
+              top: '16px',
+              zIndex: 20,
+              width: '38px',
+              height: '38px',
+              background: '#ffffff',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              color: '#1E222D',
+              transition: 'transform 0.3s ease',
+              transform: isCssLandscape ? 'rotate(-90deg)' : 'none'
+            }}
+            onClick={() => setIsCssLandscape(!isCssLandscape)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+
           {/* Floating Order Panel Toggle */}
           <div 
             style={{
