@@ -2326,7 +2326,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </div>
           </div>
         </div>
-        </div>
       </div>
       {/* End of Right / Bottom Panel Area */}
       </div>
