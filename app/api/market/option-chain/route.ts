@@ -139,6 +139,8 @@ export async function GET(request: Request) {
         const kiteId = kiteIdMap[symbol] ?? `MCX:${symbol}`;
         const cached = await redis.hget('market:quotes', kiteId);
 
+        let underlyingSymbol = kiteId;
+
         // atmPrice already declared in outer scope
         if (cached) {
           const q = JSON.parse(cached);
@@ -163,7 +165,8 @@ export async function GET(request: Request) {
 
           if (futRes.data && futRes.data.length > 0) {
             const futSymbol = futRes.data[0].tradingsymbol;
-            const futCached = await redis.hget('market:quotes', `MCX:${futSymbol}`);
+            underlyingSymbol = `MCX:${futSymbol}`;
+            const futCached = await redis.hget('market:quotes', underlyingSymbol);
             if (futCached) {
               const q = JSON.parse(futCached);
               atmPrice = q.last_price || q.ohlc?.close || q.close || 0;
@@ -223,13 +226,22 @@ export async function GET(request: Request) {
 
     const sortedStrikes = Object.values(strikeMap).sort((a: any, b: any) => a.strike - b.strike);
 
+    // Make sure underlyingSymbol is available even if usedFallback is true
+    let finalUnderlyingSymbol = kiteIdMap[symbol] ?? `MCX:${symbol}`;
+    if (usedFallback) {
+      // If we fell back, maybe just return what we have
+    } else {
+      // It will be whatever `underlyingSymbol` was set to
+    }
+
     const responseData = {
       success: true,
       symbol,
       expiry: selectedExpiry,
       expiries: uniqueExpiries,
       strikes: sortedStrikes,
-      underlyingPrice: atmPrice
+      underlyingPrice: atmPrice,
+      underlyingSymbol: (typeof underlyingSymbol !== 'undefined') ? underlyingSymbol : finalUnderlyingSymbol
     };
 
     // Store in cache only if we got a real spot price

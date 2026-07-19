@@ -242,6 +242,7 @@ function OptionChainContent() {
     strikes: any[];
     expiry: string;
     underlyingPrice?: number;
+    underlyingSymbol?: string;
   } | null>(getLocalCache(cacheKey));
   
   const [loading, setLoading] = useState(!getLocalCache(cacheKey));
@@ -313,37 +314,24 @@ function OptionChainContent() {
   // Extract all instrument IDs for real-time quotes
   const instrumentIds = React.useMemo(() => {
     if (!data) return [];
-    const underlyingId = symbol === 'NIFTY' ? 'NSE:NIFTY 50' :
-      symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
-        symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
-          symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
-            symbol === 'SENSEX' ? 'BSE:SENSEX' :
-              symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
-    const ids: string[] = underlyingId ? [underlyingId] : [];
+    const ids: string[] = data.underlyingSymbol ? [data.underlyingSymbol] : [];
     data.strikes.forEach(s => {
       if (s.ce?.id) ids.push(s.ce.id);
       if (s.pe?.id) ids.push(s.pe.id);
     });
     return ids;
-  }, [data, symbol]);
+  }, [data]);
 
   const { quotes } = useMarketQuotes(instrumentIds);
   const connected = true;
 
-  const underlyingId = symbol === 'NIFTY' ? 'NSE:NIFTY 50' :
-    symbol === 'BANKNIFTY' ? 'NSE:NIFTY BANK' :
-      symbol === 'FINNIFTY' ? 'NSE:NIFTY FIN SERVICE' :
-        symbol === 'MIDCAP' || symbol === 'MIDCPNIFTY' ? 'NSE:NIFTY MID SELECT' :
-          symbol === 'SENSEX' ? 'BSE:SENSEX' :
-            symbol === 'BANKEX' ? 'BSE:BANKEX' : null;
-
   const spotPrice = React.useMemo(() => {
-    if (underlyingId) {
-      const q = quotes[underlyingId] || quotes[underlyingId.split(':')[1] || ''];
+    if (data?.underlyingSymbol) {
+      const q = quotes[data.underlyingSymbol] || quotes[data.underlyingSymbol.split(':')[1] || ''];
       if (q && q.lastPrice) return q.lastPrice;
     }
     return data?.underlyingPrice || 0;
-  }, [underlyingId, quotes, data]);
+  }, [quotes, data]);
 
   const handleTrade = (instrSymbol: string, side: 'BUY' | 'SELL') => {
     const strikeMatch = data?.strikes.find(s => s.ce?.symbol === instrSymbol || s.pe?.symbol === instrSymbol);
