@@ -1885,16 +1885,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '16px', color: '#1E222D' }}>Margin</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
                 <span style={{ color: '#787B86' }}>Req. Margin</span>
-                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{reqMargin.toLocaleString('en-IN')}</span>
+                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{Number(reqMargin).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
                 <span style={{ color: '#787B86' }}>Free Margin</span>
-                <span style={{ fontWeight: 'bold', color: '#1E222D' }}>{balance.toLocaleString('en-IN')}</span>
+                <span style={{ fontWeight: 'bold', color: '#1E222D' }}>{Number(balance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
               </div>
               <div style={{ borderTop: '1px solid #eaecef', margin: '12px 0' }}></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                 <span style={{ color: '#787B86' }}>Holding</span>
-                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{pnlTotal.toFixed(2)}</span>
+                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{Number(pnlTotal).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
@@ -1916,7 +1916,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button onClick={() => { setOrderSide('SELL'); setIsOrderBlockVisible(true); }} style={{ flex: 1, background: '#e53935', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <span style={{ fontSize: '11px', fontWeight: '500' }}>Sell</span>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{liveBid}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(liveBid).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
                 </button>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
@@ -1930,7 +1930,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
                 <button onClick={() => { setOrderSide('BUY'); setIsOrderBlockVisible(true); }} style={{ flex: 1, background: '#1db954', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <span style={{ fontSize: '11px', fontWeight: '500' }}>Buy</span>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{liveAsk}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(liveAsk).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
                 </button>
               </div>
               
