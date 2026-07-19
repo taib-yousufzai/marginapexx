@@ -1138,3 +1138,22 @@ body.blue .ew-arrow--today {
   background: #A01010;
   color: #ffffff;
 }
+
+.ls-toggle {
+  width: 32px;
+  height: 18px;
+  background: #E8EAED;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+}
+.ls-toggle-knob {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
