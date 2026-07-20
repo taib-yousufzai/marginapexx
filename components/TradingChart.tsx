@@ -1688,6 +1688,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           );
         })()}
 
+        <div className="tc-divider"></div>
+
         {/* ── Chart Type flyout ── */}
         {(() => {
           const types: { key: 'candle' | 'area' | 'bar' | 'baseline'; label: string; icon: React.ReactNode }[] = [
@@ -1738,13 +1740,22 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           className="tc-tb-btn tc-tb-indicators"
           title="Indicators"
           onClick={() => setShowSettingsModal(true)}
-          style={{ display: 'none' }}
+        >
+          <span style={{ fontSize: '14px', fontWeight: 700, fontStyle: 'italic' }}>Fx</span>
+        </div>
+
+        <div className="tc-divider"></div>
+
+        {/* ── Tools ── */}
+        <div
+          className="tc-tb-btn tc-tb-indicators"
+          title="Drawing Tools"
+          onClick={() => showToast('Drawing tools are coming soon in the modernized engine')}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <path d="M1 10 L4 6 L7 8 L10 3 L13 5" />
-            <line x1="1" y1="12" x2="13" y2="12" strokeDasharray="2 1" opacity="0.5" />
+            <path d="M11 2l-7 7-2 4 4-2 7-7-2-2z" />
           </svg>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>Indicators</span>
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Tools</span>
         </div>
 
         {/* ── Compare ── HIDDEN */}
