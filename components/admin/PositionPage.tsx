@@ -82,11 +82,11 @@ export default function PositionPage({ selectedUser, onOpenUserPanel, isDemoMode
     }
     const seg = (settlementType || '').toUpperCase();
     let prefix = 'NSE:';
-    if (seg.includes('MCX')) prefix = 'MCX:';
+    if (baseKey.startsWith('SENSEX') || baseKey.startsWith('BANKEX')) prefix = 'BFO:';
+    else if (seg.includes('MCX')) prefix = 'MCX:';
     else if (seg.includes('CDS') || seg.includes('FOREX')) prefix = 'CDS:';
     else if (seg.includes('BSE') || seg.includes('BFO')) prefix = 'BFO:';
     else if (seg.includes('OPT') || seg.includes('FUT') || seg.includes('NFO')) prefix = 'NFO:';
-    else if (key.startsWith('SENSEX') || key.startsWith('BANKEX')) prefix = 'BFO:';
 
     if (prefix === 'BFO:' && !baseKey.match(/\d/)) prefix = 'BSE:';
     if (prefix === 'NFO:' && !baseKey.match(/\d/)) prefix = 'NSE:';
