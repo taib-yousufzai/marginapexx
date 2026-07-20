@@ -1571,6 +1571,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         overflow: 'hidden',
         transform: isCssLandscape ? 'rotate(90deg) translateY(-100%)' : 'none',
         transformOrigin: isCssLandscape ? 'top left' : 'center',
+        background: 'var(--container-bg, #FFFFFF)',
       } : undefined}
     >
       {/* Top Toolbar */}
