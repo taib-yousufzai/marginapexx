@@ -1755,7 +1755,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
             <path d="M11 2l-7 7-2 4 4-2 7-7-2-2z" />
           </svg>
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>Tools</span>
         </div>
 
         {/* ── Compare ── HIDDEN */}
