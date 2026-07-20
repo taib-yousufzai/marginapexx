@@ -168,7 +168,7 @@ export default function ChartContainer({
         client_id: 'marginapexx',
         user_id: 'public_user',
         auto_save_delay: 1,
-        disabled_features: ['header_widget'],
+        disabled_features: ['header_widget', 'timeframes_toolbar'],
       });
 
       tvWidgetRef.current.onChartReady(onChartReady);
