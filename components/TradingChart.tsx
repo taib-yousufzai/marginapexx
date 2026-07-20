@@ -1816,33 +1816,33 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           )}
 
           {/* Floating Order Panel Toggle */}
-          <div 
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 10,
-              width: '24px',
-              height: '56px',
-              background: 'var(--bg-card, #1E222D)',
-              border: '1px solid var(--border-color, #2B3139)',
-              borderRight: 'none',
-              borderRadius: '6px 0 0 6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '-2px 0 12px rgba(0,0,0,0.2)',
-              color: 'var(--text-secondary, #787B86)',
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              {isPanelExpanded ? <path d="M9 18l6-6-6-6" /> : <path d="M15 18l-6-6 6-6" />}
-            </svg>
-          </div>
+          {(isLandscape || isCssLandscape) && (
+            <div 
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 10,
+                width: '24px',
+                height: '56px',
+                background: 'var(--bg-card, #1E222D)',
+                border: '1px solid var(--border-color, #2B3139)',
+                borderRight: 'none',
+                borderRadius: '6px 0 0 6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '-2px 0 12px rgba(0,0,0,0.2)',
+                color: 'var(--text-secondary, #787B86)',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setIsPanelExpanded(!isPanelExpanded)}
+            >
+              <i className={`ti ${isPanelExpanded ? 'ti-chevron-right' : 'ti-chevron-left'}`} style={{ fontSize: '18px' }}></i>
+            </div>
+          )}
 
           {/* BUY/price/SELL widget — HIDDEN */}
 
