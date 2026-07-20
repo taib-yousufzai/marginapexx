@@ -1887,7 +1887,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       >
 
         {/* P&L Card — hide when order block, or panel is expanded */}
-        {!isOrderBlockVisible && !isPanelExpanded && (
+        {!isOrderBlockVisible && (!isPanelExpanded || isLandscape || isCssLandscape) && (
           <div className="pnl-card" id="pnlCard">
             {isTradeOnChartActive ? (
               <>
