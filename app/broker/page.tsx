@@ -8,12 +8,14 @@ import '../admin-layout.css';
 import './page.css';
 import { ConfirmDialog } from '@/components/admin/AdminUtils';
 import UpdatePage from '@/components/admin/UpdatePage';
+import TemplatesPage from '@/components/admin/TemplatesPage';
+import PaymentAccountsPage from '@/components/admin/PayAccountsPage';
 
 // --- Constants ---
 const PAGE_SIZE = 20;
 
 // --- Types ---
-type NavPage = 'dashboard' | 'users' | 'position' | 'order' | 'actledger' | 'accounts' | 'payinout' | 'update';
+type NavPage = 'dashboard' | 'users' | 'position' | 'order' | 'actledger' | 'accounts' | 'payinout' | 'templates' | 'pay-accounts' | 'update';
 
 type ToastState = { message: string; type: 'success' | 'error' | 'info' } | null;
 
@@ -48,104 +50,8 @@ interface UserListItem extends UserProfile {
   settlement_amount?: number;
 }
 
-// --- Fake/Demo users for preview when no real users exist ---
-const DEMO_USERS: UserListItem[] = [
-  {
-    id: 'user-001',
-    full_name: 'Rahul Sharma',
-    email: 'rahul.sharma@example.com',
-    phone: '9876543210',
-    role: 'user',
-    active: true,
-    balance: 125000,
-    ledgerBal: 125000,
-    mAvailable: 87500,
-    openPnl: 3240.50,
-    m2m: 3240.50,
-    weeklyPnl: 8750.00,
-    alltimePnl: 42300.00,
-    marginUsed: 37500,
-    holdingMargin: 37500,
-    brokerage: 1200,
-    totalPositions: 5,
-    openPositions: 3,
-    totalOrders: 18,
-    read_only: false,
-    demo_user: false,
-    segments: ['NSE', 'MCX'],
-    created_at: '2024-11-15T10:30:00Z',
-  },
-  {
-    id: 'user-002',
-    full_name: 'Priya Mehta',
-    email: 'priya.mehta@example.com',
-    phone: '9123456780',
-    role: 'user',
-    active: true,
-    balance: 75000,
-    ledgerBal: 75000,
-    mAvailable: 60000,
-    openPnl: -1850.00,
-    m2m: -1850.00,
-    weeklyPnl: -3200.00,
-    alltimePnl: 15600.00,
-    marginUsed: 15000,
-    holdingMargin: 15000,
-    brokerage: 640,
-    totalPositions: 3,
-    openPositions: 2,
-    totalOrders: 9,
-    read_only: false,
-    demo_user: false,
-    segments: ['NSE'],
-    created_at: '2025-01-08T09:00:00Z',
-  },
-  {
-    id: 'user-003',
-    full_name: 'Amit Verma',
-    email: 'amit.verma@example.com',
-    phone: '',
-    role: 'user',
-    active: false,
-    balance: 50000,
-    ledgerBal: 50000,
-    mAvailable: 50000,
-    openPnl: 0,
-    m2m: 0,
-    weeklyPnl: 0,
-    alltimePnl: -4200.00,
-    marginUsed: 0,
-    holdingMargin: 0,
-    brokerage: 320,
-    totalPositions: 2,
-    openPositions: 0,
-    totalOrders: 6,
-    read_only: true,
-    demo_user: false,
-    segments: ['BSE', 'NSE'],
-    created_at: '2025-03-20T14:00:00Z',
-  },
-];
 
-// --- Demo positions per user ---
-const DEMO_POSITIONS: Record<string, any[]> = {
-  'user-001': [
-    { id: 'p1', symbol: 'NIFTY 25JUN FUT',  exchange: 'NSE', side: 'BUY',  qty: 50,  avg_price: 24320.00, ltp: 24385.50, pnl: 3277.50,  status: 'open' },
-    { id: 'p2', symbol: 'RELIANCE',          exchange: 'NSE', side: 'BUY',  qty: 10,  avg_price: 2910.00,  ltp: 2893.20,  pnl: -168.00,  status: 'open' },
-    { id: 'p3', symbol: 'CRUDEOIL JUN FUT',  exchange: 'MCX', side: 'SELL', qty: 1,   avg_price: 6850.00,  ltp: 6718.00,  pnl: 1320.00,  status: 'open' },
-    { id: 'p4', symbol: 'TCS',               exchange: 'NSE', side: 'BUY',  qty: 5,   avg_price: 3780.00,  ltp: 3780.00,  pnl: 0,        status: 'closed' },
-    { id: 'p5', symbol: 'BANKNIFTY 25JUN FUT',exchange: 'NSE',side: 'SELL', qty: 15,  avg_price: 52400.00, ltp: 52400.00, pnl: 0,        status: 'closed' },
-  ],
-  'user-002': [
-    { id: 'p6', symbol: 'INFY',              exchange: 'NSE', side: 'BUY',  qty: 20,  avg_price: 1540.00,  ltp: 1512.50,  pnl: -550.00,  status: 'open' },
-    { id: 'p7', symbol: 'HDFC BANK',         exchange: 'NSE', side: 'SELL', qty: 8,   avg_price: 1680.00,  ltp: 1695.00,  pnl: -1200.00, status: 'open' },
-    { id: 'p8', symbol: 'WIPRO',             exchange: 'NSE', side: 'BUY',  qty: 15,  avg_price: 460.00,   ltp: 460.00,   pnl: 0,        status: 'closed' },
-  ],
-  'user-003': [
-    { id: 'p9',  symbol: 'SBIN',             exchange: 'NSE', side: 'BUY',  qty: 30,  avg_price: 820.00,   ltp: 820.00,   pnl: 0,        status: 'closed' },
-    { id: 'p10', symbol: 'TATAMOTORS',       exchange: 'BSE', side: 'SELL', qty: 25,  avg_price: 975.00,   ltp: 975.00,   pnl: 0,        status: 'closed' },
-  ],
-};
+
 const navItems: { id: NavPage; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-th-large' },
   { id: 'users', label: 'Users', icon: 'fas fa-users' },
@@ -154,6 +60,8 @@ const navItems: { id: NavPage; label: string; icon: string }[] = [
   { id: 'actledger', label: 'Activity Logs', icon: 'fas fa-history' },
   { id: 'accounts', label: 'P&L Accounts', icon: 'fas fa-wallet' },
   { id: 'payinout', label: 'Pay In / Out', icon: 'fas fa-exchange-alt' },
+  { id: 'templates', label: 'Templates', icon: 'fas fa-shield-alt' },
+  { id: 'pay-accounts', label: 'Bank Details', icon: 'fas fa-university' },
 ];
 
 // --- Shared Components ---
@@ -338,6 +246,8 @@ function PageContent({ page, broker, apiCall, setToast, setSelectedUser, selecte
     case 'actledger': return <BrokerActLogs apiCall={apiCall} />;
     case 'accounts': return <BrokerAccounts apiCall={apiCall} />;
     case 'payinout': return <BrokerPayInOut apiCall={apiCall} />;
+    case 'templates': return <TemplatesPage isBroker={true} />;
+    case 'pay-accounts': return <PaymentAccountsPage isBroker={true} />;
     case 'update': return <UpdatePage selectedUser={selectedUser} isBroker={true} initialTab={selectedUserTab} />;
     default: return (
       <div className="adm-card" style={{ padding: 40, textAlign: 'center' }}>
@@ -356,7 +266,7 @@ function BrokerDashboard({ broker, apiCall, onNavigate, onSelectUser }: any) {
   const [loading, setLoading] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  const referralLink = broker?.id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${broker.id}` : '';
+  const referralLink = broker?.referral_code ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${broker.referral_code}` : (broker?.id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${broker.id}` : '');
 
   const handleCopyLink = () => {
     if (!referralLink) return;
@@ -368,16 +278,15 @@ function BrokerDashboard({ broker, apiCall, onNavigate, onSelectUser }: any) {
   useEffect(() => {
     const fetchData = async () => {
       const { ok, data } = await apiCall('/api/broker/users');
-      if (ok) {
-        const users = Array.isArray(data) ? data as UserListItem[] : DEMO_USERS;
+      if (ok && Array.isArray(data)) {
+        const users = data as UserListItem[];
         setStats({
           totalUsers: users.length,
           activeUsers: users.filter(u => u.active).length,
           todayPnl: users.reduce((acc, u) => acc + (u.openPnl || 0), 0),
         });
       } else {
-        // fallback to demo stats
-        setStats({ totalUsers: 3, activeUsers: 2, todayPnl: 1390.50 });
+        setStats({ totalUsers: 0, activeUsers: 0, todayPnl: 0 });
       }
       setLoading(false);
     };
@@ -467,8 +376,7 @@ function BrokerUsers({ apiCall, onSelectUser, onNavigate, setSelectedUserTab, se
       if (ok && Array.isArray(data) && data.length > 0) {
         setUsers(data);
       } else {
-        // Show demo users when no real users exist
-        setUsers(DEMO_USERS);
+        setUsers([]);
       }
       setLoading(false);
     });
@@ -702,7 +610,7 @@ function BrokerPositions({ apiCall, selectedUser }: any) {
   useEffect(() => {
     apiCall('/api/broker/users').then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) setUsers(data);
-      else setUsers(DEMO_USERS);
+      else setUsers([]);
     });
   }, [apiCall]);
 
@@ -730,17 +638,15 @@ function BrokerPositions({ apiCall, selectedUser }: any) {
   useEffect(() => {
     if (!activeUid) return;
     setLoading(true);
-    apiCall(`/api/broker/accounts?user_id=${activeUid}`).then(({ ok, data }: any) => {
+    apiCall(`/api/admin/users/${activeUid}/positions?demo=false`).then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) {
         setPositions(data); setIsDemo(false);
-      } else if (DEMO_POSITIONS[activeUid]) {
-        setPositions(DEMO_POSITIONS[activeUid]); setIsDemo(true);
       } else {
         setPositions([]); setIsDemo(false);
       }
       setLoading(false);
     });
-  }, [apiCall, activeUid]);
+  }, [activeUid, apiCall]);
 
   const fmt = (n: number) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -930,32 +836,11 @@ function BrokerPositions({ apiCall, selectedUser }: any) {
   );
 }
 
-// --- Demo orders per user ---
-const DEMO_ORDERS: Record<string, any[]> = {
-  'user-001': [
-    { id: 'o1',  symbol: 'NIFTY 25JUN FUT',   exchange: 'NSE', side: 'BUY',  qty: 50,  price: 24320.00, status: 'executed',  time: '2025-04-29T09:15:00Z' },
-    { id: 'o2',  symbol: 'RELIANCE',           exchange: 'NSE', side: 'BUY',  qty: 10,  price: 2910.00,  status: 'executed',  time: '2025-04-29T09:32:00Z' },
-    { id: 'o3',  symbol: 'CRUDEOIL JUN FUT',   exchange: 'MCX', side: 'SELL', qty: 1,   price: 6850.00,  status: 'executed',  time: '2025-04-28T11:05:00Z' },
-    { id: 'o4',  symbol: 'TCS',                exchange: 'NSE', side: 'BUY',  qty: 5,   price: 3800.00,  status: 'limit',     time: '2025-04-29T10:00:00Z' },
-    { id: 'o5',  symbol: 'BANKNIFTY 25JUN FUT',exchange: 'NSE', side: 'SELL', qty: 15,  price: 52000.00, status: 'limit',     time: '2025-04-29T10:10:00Z' },
-    { id: 'o6',  symbol: 'INFY',               exchange: 'NSE', side: 'BUY',  qty: 20,  price: 1560.00,  status: 'rejected',  time: '2025-04-28T14:22:00Z', reason: 'Insufficient margin' },
-  ],
-  'user-002': [
-    { id: 'o7',  symbol: 'INFY',               exchange: 'NSE', side: 'BUY',  qty: 20,  price: 1540.00,  status: 'executed',  time: '2025-04-29T09:45:00Z' },
-    { id: 'o8',  symbol: 'HDFC BANK',          exchange: 'NSE', side: 'SELL', qty: 8,   price: 1680.00,  status: 'executed',  time: '2025-04-29T10:05:00Z' },
-    { id: 'o9',  symbol: 'WIPRO',              exchange: 'NSE', side: 'BUY',  qty: 15,  price: 470.00,   status: 'rejected',  time: '2025-04-28T15:30:00Z', reason: 'Price out of range' },
-  ],
-  'user-003': [
-    { id: 'o10', symbol: 'SBIN',               exchange: 'NSE', side: 'BUY',  qty: 30,  price: 820.00,   status: 'executed',  time: '2025-04-27T09:20:00Z' },
-    { id: 'o11', symbol: 'TATAMOTORS',         exchange: 'BSE', side: 'SELL', qty: 25,  price: 975.00,   status: 'executed',  time: '2025-04-27T11:00:00Z' },
-    { id: 'o12', symbol: 'MARUTI',             exchange: 'NSE', side: 'BUY',  qty: 2,   price: 12500.00, status: 'limit',     time: '2025-04-29T09:00:00Z' },
-  ],
-};
+
 
 function BrokerOrders({ apiCall, selectedUser }: any) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
   const [tab, setTab] = useState<'executed' | 'limit' | 'rejected'>('executed');
   const [activeUid, setActiveUid] = useState<string>(selectedUser?.id || '');
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -996,11 +881,9 @@ function BrokerOrders({ apiCall, selectedUser }: any) {
     setLoading(true);
     apiCall(`/api/broker/orders?user_id=${activeUid}&tab=${tab}`).then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) {
-        setOrders(data); setIsDemo(false);
-      } else if (DEMO_ORDERS[activeUid]) {
-        setOrders(DEMO_ORDERS[activeUid]); setIsDemo(true);
+        setOrders(data);
       } else {
-        setOrders([]); setIsDemo(false);
+        setOrders([]);
       }
       setLoading(false);
     });
@@ -1016,10 +899,8 @@ function BrokerOrders({ apiCall, selectedUser }: any) {
 
   const activeUser = users.find(u => u.id === activeUid);
 
-  // Filter orders by tab (for demo data)
-  const shownOrders = isDemo
-    ? orders.filter(o => o.status === tab)
-    : orders;
+  // Filter orders by tab
+  const shownOrders = orders;
 
   const selectUser = (u: UserListItem) => {
     setActiveUid(u.id);
@@ -1225,42 +1106,11 @@ function BrokerOrders({ apiCall, selectedUser }: any) {
   );
 }
 
-// --- Demo activity logs ---
-const DEMO_ACTLOGS = [
-  { id: 'a1',  type: 'ORDER_PLACED',    time: '2025-04-29T09:15:00Z', target: 'user-001', by: 'user-001', symbol: 'NIFTY 25JUN FUT',    qty: 50,  price: 24320, reason: null },
-  { id: 'a2',  type: 'ORDER_PLACED',    time: '2025-04-29T09:32:00Z', target: 'user-001', by: 'user-001', symbol: 'RELIANCE',            qty: 10,  price: 2910,  reason: null },
-  { id: 'a3',  type: 'ORDER_REJECTED',  time: '2025-04-28T14:22:00Z', target: 'user-001', by: 'user-001', symbol: 'INFY',                qty: 20,  price: 1560,  reason: 'Insufficient margin' },
-  { id: 'a4',  type: 'LOGIN',           time: '2025-04-29T09:10:00Z', target: 'user-001', by: 'user-001', symbol: null,                  qty: null, price: null,  reason: null },
-  { id: 'a5',  type: 'ORDER_PLACED',    time: '2025-04-29T10:00:00Z', target: 'user-001', by: 'user-001', symbol: 'TCS',                 qty: 5,   price: 3800,  reason: null },
-  { id: 'a6',  type: 'ORDER_PLACED',    time: '2025-04-29T10:15:00Z', target: 'user-001', by: 'user-001', symbol: 'BANKNIFTY 25JUN FUT', qty: 15,  price: 52000, reason: null },
-  { id: 'a7',  type: 'POSITION_CLOSED', time: '2025-04-29T11:30:00Z', target: 'user-001', by: 'user-001', symbol: 'TCS',                 qty: 5,   price: 3820,  reason: null },
-  { id: 'a8',  type: 'SQ_OFF',          time: '2025-04-28T15:20:00Z', target: 'user-001', by: 'broker',   symbol: 'BANKNIFTY 25JUN FUT', qty: 15,  price: 51800, reason: 'Intraday sq-off' },
-  { id: 'a9',  type: 'LOGOUT',          time: '2025-04-29T15:30:00Z', target: 'user-001', by: 'user-001', symbol: null,                  qty: null, price: null,  reason: null },
-  { id: 'a10', type: 'BALANCE_CREDIT',  time: '2025-04-27T10:00:00Z', target: 'user-001', by: 'broker',   symbol: null,                  qty: null, price: 25000, reason: null },
 
-  { id: 'a11', type: 'LOGIN',           time: '2025-04-29T09:40:00Z', target: 'user-002', by: 'user-002', symbol: null,                  qty: null, price: null,  reason: null },
-  { id: 'a12', type: 'ORDER_PLACED',    time: '2025-04-29T09:45:00Z', target: 'user-002', by: 'user-002', symbol: 'INFY',                qty: 20,  price: 1540,  reason: null },
-  { id: 'a13', type: 'ORDER_PLACED',    time: '2025-04-29T10:05:00Z', target: 'user-002', by: 'user-002', symbol: 'HDFC BANK',           qty: 8,   price: 1680,  reason: null },
-  { id: 'a14', type: 'ORDER_REJECTED',  time: '2025-04-28T15:30:00Z', target: 'user-002', by: 'user-002', symbol: 'WIPRO',               qty: 15,  price: 470,   reason: 'Price out of range' },
-  { id: 'a15', type: 'POSITION_CLOSED', time: '2025-04-28T15:45:00Z', target: 'user-002', by: 'user-002', symbol: 'WIPRO',               qty: 15,  price: 465,   reason: null },
-  { id: 'a16', type: 'ORDER_REJECTED',  time: '2025-04-27T11:10:00Z', target: 'user-002', by: 'user-002', symbol: 'HDFC BANK',           qty: 5,   price: 1700,  reason: 'Market closed' },
-  { id: 'a17', type: 'BALANCE_DEBIT',   time: '2025-04-26T16:00:00Z', target: 'user-002', by: 'broker',   symbol: null,                  qty: null, price: 5000,  reason: 'Brokerage settlement' },
-  { id: 'a18', type: 'LOGOUT',          time: '2025-04-29T15:00:00Z', target: 'user-002', by: 'user-002', symbol: null,                  qty: null, price: null,  reason: null },
-
-  { id: 'a19', type: 'LOGIN',           time: '2025-04-27T09:00:00Z', target: 'user-003', by: 'user-003', symbol: null,                  qty: null, price: null,  reason: null },
-  { id: 'a20', type: 'ORDER_PLACED',    time: '2025-04-27T09:20:00Z', target: 'user-003', by: 'user-003', symbol: 'SBIN',                qty: 30,  price: 820,   reason: null },
-  { id: 'a21', type: 'ORDER_PLACED',    time: '2025-04-27T11:00:00Z', target: 'user-003', by: 'user-003', symbol: 'TATAMOTORS',          qty: 25,  price: 975,   reason: null },
-  { id: 'a22', type: 'POSITION_CLOSED', time: '2025-04-27T14:00:00Z', target: 'user-003', by: 'user-003', symbol: 'SBIN',                qty: 30,  price: 835,   reason: null },
-  { id: 'a23', type: 'ORDER_PLACED',    time: '2025-04-29T09:00:00Z', target: 'user-003', by: 'user-003', symbol: 'MARUTI',              qty: 2,   price: 12500, reason: null },
-  { id: 'a24', type: 'ORDER_REJECTED',  time: '2025-04-29T09:05:00Z', target: 'user-003', by: 'user-003', symbol: 'MARUTI',              qty: 2,   price: 12500, reason: 'Read-only account' },
-  { id: 'a25', type: 'BALANCE_CREDIT',  time: '2025-04-26T10:00:00Z', target: 'user-003', by: 'broker',   symbol: null,                  qty: null, price: 50000, reason: null },
-  { id: 'a26', type: 'LOGOUT',          time: '2025-04-27T15:00:00Z', target: 'user-003', by: 'user-003', symbol: null,                  qty: null, price: null,  reason: null },
-];
 
 function BrokerActLogs({ apiCall }: any) {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'orders' | 'rejected' | 'logins'>('all');
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -1275,9 +1125,9 @@ function BrokerActLogs({ apiCall }: any) {
   useEffect(() => {
     apiCall('/api/broker/actlogs').then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) {
-        setLogs(data); setIsDemo(false);
+        setLogs(data);
       } else {
-        setLogs(DEMO_ACTLOGS); setIsDemo(true);
+        setLogs([]);
       }
       setLoading(false);
     });
@@ -1429,11 +1279,7 @@ function BrokerActLogs({ apiCall }: any) {
                 );
               })}
             </div>
-            {isDemo && (
-              <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#484f58', padding: '10px 0' }}>
-                Showing demo data · Real logs will appear when users are active
-              </div>
-            )}
+
           </>
         )}
       </div>
@@ -1441,49 +1287,19 @@ function BrokerActLogs({ apiCall }: any) {
   );
 }
 
-// --- Demo P&L accounts ---
-const DEMO_ACCOUNTS = [
-  {
-    id: 'user-001',
-    full_name: 'Rahul Sharma',
-    email: 'rahul.sharma@example.com',
-    net_pnl: 42300.00,
-    brokerage: 1200.00,
-    pnl_bkg: 43500.00,
-    settlement: 38000.00,
-  },
-  {
-    id: 'user-002',
-    full_name: 'Priya Mehta',
-    email: 'priya.mehta@example.com',
-    net_pnl: 15600.00,
-    brokerage: 640.00,
-    pnl_bkg: 16240.00,
-    settlement: 14000.00,
-  },
-  {
-    id: 'user-003',
-    full_name: 'Amit Verma',
-    email: 'amit.verma@example.com',
-    net_pnl: -4200.00,
-    brokerage: 320.00,
-    pnl_bkg: -3880.00,
-    settlement: 0.00,
-  },
-];
+
 
 function BrokerAccounts({ apiCall }: any) {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     apiCall('/api/broker/accounts').then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) {
-        setAccounts(data); setIsDemo(false);
+        setAccounts(data);
       } else {
-        setAccounts(DEMO_ACCOUNTS); setIsDemo(true);
+        setAccounts([]);
       }
       setLoading(false);
     });
@@ -1599,39 +1415,25 @@ function BrokerAccounts({ apiCall }: any) {
         </div>
       )}
 
-      {isDemo && (
-        <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#484f58', paddingTop: 4 }}>
-          Showing demo data · Real P&L will appear when positions are active
-        </div>
-      )}
+
     </div>
   );
 }
 
-// --- Demo Pay In/Out requests ---
-const DEMO_PAYINOUT = [
-  { id: 'pay-001', user_id: 'user-001', full_name: 'Rahul Sharma',  email: 'rahul.sharma@example.com', type: 'DEPOSIT',    amount: 25000, status: 'APPROVED', account_name: 'Rahul Sharma',  account_no: '****4521', ifsc: 'HDFC0001234', upi: null,              created_at: '2025-04-27T10:00:00Z' },
-  { id: 'pay-002', user_id: 'user-001', full_name: 'Rahul Sharma',  email: 'rahul.sharma@example.com', type: 'WITHDRAWAL', amount: 10000, status: 'PENDING',  account_name: 'Rahul Sharma',  account_no: '****4521', ifsc: 'HDFC0001234', upi: null,              created_at: '2025-04-29T08:30:00Z' },
-  { id: 'pay-003', user_id: 'user-002', full_name: 'Priya Mehta',   email: 'priya.mehta@example.com',  type: 'DEPOSIT',    amount: 15000, status: 'APPROVED', account_name: null,            account_no: null,       ifsc: null,          upi: 'priya@upi',      created_at: '2025-04-26T14:00:00Z' },
-  { id: 'pay-004', user_id: 'user-002', full_name: 'Priya Mehta',   email: 'priya.mehta@example.com',  type: 'WITHDRAWAL', amount: 5000,  status: 'REJECTED', account_name: null,            account_no: null,       ifsc: null,          upi: 'priya@upi',      created_at: '2025-04-28T11:00:00Z' },
-  { id: 'pay-005', user_id: 'user-003', full_name: 'Amit Verma',    email: 'amit.verma@example.com',   type: 'DEPOSIT',    amount: 50000, status: 'APPROVED', account_name: 'Amit Verma',    account_no: '****8832', ifsc: 'SBIN0005678', upi: null,              created_at: '2025-04-26T10:00:00Z' },
-  { id: 'pay-006', user_id: 'user-001', full_name: 'Rahul Sharma',  email: 'rahul.sharma@example.com', type: 'DEPOSIT',    amount: 50000, status: 'APPROVED', account_name: 'Rahul Sharma',  account_no: '****4521', ifsc: 'HDFC0001234', upi: null,              created_at: '2025-04-20T09:00:00Z' },
-  { id: 'pay-007', user_id: 'user-002', full_name: 'Priya Mehta',   email: 'priya.mehta@example.com',  type: 'DEPOSIT',    amount: 20000, status: 'PENDING',  account_name: null,            account_no: null,       ifsc: null,          upi: 'priya@upi',      created_at: '2025-04-29T09:15:00Z' },
-];
+
 
 function BrokerPayInOut({ apiCall }: any) {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
   const [tab, setTab] = useState<'ALL' | 'DEPOSIT' | 'WITHDRAWAL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
   useEffect(() => {
     apiCall('/api/broker/payinout').then(({ ok, data }: any) => {
       if (ok && Array.isArray(data) && data.length > 0) {
-        setRequests(data); setIsDemo(false);
+        setRequests(data);
       } else {
-        setRequests(DEMO_PAYINOUT); setIsDemo(true);
+        setRequests([]);
       }
       setLoading(false);
     });
@@ -1768,11 +1570,7 @@ function BrokerPayInOut({ apiCall }: any) {
           </div>
         )}
 
-        {isDemo && (
-          <div style={{ textAlign: 'center', fontSize: '0.72rem', color: '#484f58', padding: '12px 0' }}>
-            Showing demo data
-          </div>
-        )}
+
       </div>
     </div>
   );

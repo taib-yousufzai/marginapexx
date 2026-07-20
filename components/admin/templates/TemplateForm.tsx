@@ -13,9 +13,10 @@ interface TemplateFormProps {
   onBack: () => void;
   onSaved: () => void;
   isDemoMode?: boolean;
+  isBroker?: boolean;
 }
 
-export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: TemplateFormProps) {
+export default function TemplateForm({ template, onBack, onSaved, isDemoMode, isBroker }: TemplateFormProps) {
   const isEdit = !!template;
   const [activeTab, setActiveTab] = useState<FormTab>('profile');
   const [saving, setSaving] = useState(false);
@@ -70,9 +71,10 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
   const loadSegments = useCallback(async () => {
     if (!template?.id) return;
     setLoadingSegs(true);
+    const baseUrl = isBroker ? `/api/broker/templates/${template.id}/segments` : `/api/admin/templates/${template.id}/segments`;
     const [normalRes, scalperRes] = await Promise.all([
-      apiCall(`/api/admin/templates/${template.id}/segments?mode=normal`, { method: 'GET' }),
-      apiCall(`/api/admin/templates/${template.id}/segments?mode=scalper`, { method: 'GET' }),
+      apiCall(`${baseUrl}?mode=normal`, { method: 'GET' }),
+      apiCall(`${baseUrl}?mode=scalper`, { method: 'GET' }),
     ]);
     setLoadingSegs(false);
     if (normalRes.ok) {
@@ -153,46 +155,35 @@ export default function TemplateForm({ template, onBack, onSaved, isDemoMode }: 
 
     let templateId = template?.id;
 
-    // Create or update template profile
-    const profileRes = isEdit && templateId
-      ? await apiCall(`/api/admin/templates/${templateId}`, { method: 'PATCH', body: JSON.stringify(profilePayload) })
-      : await apiCall('/api/admin/templates', { method: 'POST', body: JSON.stringify(profilePayload) });
+    try {
+      const url = isBroker ? `/api/broker/templates${isEdit ? `/${templateId}` : ''}` : `/api/admin/templates${isEdit ? `/${templateId}` : ''}`;
+      const res = await apiCall(url, {
+        method: isEdit ? 'PATCH' : 'POST',
+        body: JSON.stringify(profilePayload),
+      });
 
-    if (!profileRes.ok) {
-      const err = profileRes.data as { error?: string };
-      setToast({ message: err.error ?? 'Failed to save template', type: 'error' });
+      if (!res.ok) throw new Error((res.data as any)?.error || 'Failed to save template');
+      const savedTemplate = res.data as AccountTemplate;
+
+      const segRows = settingsToRows(segSettings, savedTemplate.id);
+      const scalperRows = settingsToRows(scalperSettings, savedTemplate.id);
+
+      const segUrl = isBroker ? `/api/broker/templates/${savedTemplate.id}/segments` : `/api/admin/templates/${savedTemplate.id}/segments`;
+      
+      const [nRes, sRes] = await Promise.all([
+        apiCall(`${segUrl}?mode=normal`, { method: 'POST', body: JSON.stringify(segRows) }),
+        apiCall(`${segUrl}?mode=scalper`, { method: 'POST', body: JSON.stringify(scalperRows) }),
+      ]);
+
+      if (!nRes.ok || !sRes.ok) throw new Error('Template profile saved but segment settings failed');
+
+      setToast({ message: `Template "${name}" ${isEdit ? 'updated' : 'created'} successfully`, type: 'success' });
+      setTimeout(onSaved, 800);
+    } catch (e: any) {
+      setToast({ message: e.message, type: 'error' });
+    } finally {
       setSaving(false);
-      return;
     }
-
-    if (!isEdit) {
-      templateId = (profileRes.data as AccountTemplate).id;
-    }
-
-    // Save both segment settings in parallel
-    const normalRows = settingsToRows(segSettings, templateId!);
-    const scalperRows = settingsToRows(scalperSettings, templateId!);
-
-    const [segSaveRes, scalperSaveRes] = await Promise.all([
-      apiCall(`/api/admin/templates/${templateId}/segments?mode=normal`, {
-        method: 'POST',
-        body: JSON.stringify(normalRows),
-      }),
-      apiCall(`/api/admin/templates/${templateId}/segments?mode=scalper`, {
-        method: 'POST',
-        body: JSON.stringify(scalperRows),
-      }),
-    ]);
-
-    setSaving(false);
-
-    if (!segSaveRes.ok || !scalperSaveRes.ok) {
-      setToast({ message: 'Template profile saved but segment settings failed', type: 'error' });
-      return;
-    }
-
-    setToast({ message: `Template "${name}" ${isEdit ? 'updated' : 'created'} successfully`, type: 'success' });
-    setTimeout(onSaved, 800);
   };
 
   const toggleSegment = (seg: string) => {

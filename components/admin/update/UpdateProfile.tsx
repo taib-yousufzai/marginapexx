@@ -5,7 +5,7 @@ import { apiCall, Toast, ToastState, UserListItem } from '../AdminUtils';
 
 const ALL_SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
-export default function UpdateProfile({ selectedUser }: { selectedUser: { id: string; role: string } }) {
+export default function UpdateProfile({ selectedUser, isBroker = false }: { selectedUser: { id: string; role: string }, isBroker?: boolean }) {
   const uid = selectedUser.id;
 
   const [activation, setActivation] = useState(false);
@@ -24,7 +24,8 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
   const [sqoffMethod, setSqoffMethod] = useState('Credit');
   const [tradingMode, setTradingMode] = useState('normal');
   const [segments, setSegments] = useState<string[]>([]);
-  const [templateName, setTemplateName] = useState<string | null>(null);
+  const [templateId, setTemplateId] = useState<string>('');
+  const [templates, setTemplates] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
@@ -59,13 +60,14 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
       setTradingMode(p.trading_mode ?? 'normal');
       setSegments(p.segments ?? []);
       
-      if (p.template_id) {
-        apiCall(`/api/admin/templates/${p.template_id}`, { method: 'GET' }).then(res => {
-          if (res.ok && res.data) {
-            setTemplateName((res.data as any).name);
-          }
-        });
-      }
+      setTemplateId(p.template_id ?? '');
+
+      const tempUrl = isBroker ? '/api/broker/templates' : '/api/admin/templates';
+      apiCall(tempUrl, { method: 'GET' }).then(res => {
+        if (res.ok && Array.isArray(res.data)) {
+          setTemplates(res.data);
+        }
+      });
     }).catch((err: unknown) => {
       setLoading(false);
       setToast({ message: err instanceof Error ? err.message : 'Network error', type: 'error' });
@@ -94,6 +96,7 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
         sqoff_method: sqoffMethod,
         trading_mode: tradingMode,
         segments,
+        template_id: templateId || null,
       }),
     });
     setLoading(false);
@@ -121,12 +124,15 @@ export default function UpdateProfile({ selectedUser }: { selectedUser: { id: st
           <label className="adm-upd-label">Username</label>
           <input className="adm-upd-input" value={uid} readOnly />
         </div>
-        {templateName && (
-          <div className="adm-upd-field">
-            <label className="adm-upd-label">Applied Template</label>
-            <input className="adm-upd-input" style={{ color: '#58a6ff', borderColor: '#30363d', background: '#0d1117' }} value={templateName} readOnly />
-          </div>
-        )}
+        <div className="adm-upd-field">
+          <label className="adm-upd-label">Assigned Template</label>
+          <select className="adm-upd-input adm-upd-select" style={{ borderColor: '#30363d', background: '#0d1117' }} value={templateId} onChange={e => setTemplateId(e.target.value)}>
+            <option value="">No Template (Custom Settings)</option>
+            {templates.map(t => (
+              <option key={t.id} value={t.id}>{t.name} {t.is_default ? '(Default)' : ''}</option>
+            ))}
+          </select>
+        </div>
         <div className="adm-upd-field">
           <label className="adm-upd-label">Email</label>
           <input className="adm-upd-input" value={email} onChange={e => setEmail(e.target.value)} />

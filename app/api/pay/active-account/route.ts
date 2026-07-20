@@ -62,17 +62,46 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Step 2: Fetch all active payment accounts ordered by sort_order ASC
-    // Validates: Requirements 28.2
-    const { data: accounts, error: accountsError } = await adminClient
-      .from('payment_accounts')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true });
+    const { data: userProfile } = await adminClient
+      .from('profiles')
+      .select('parent_id')
+      .eq('id', userData.user.id)
+      .single();
+    
+    const parentId = userProfile?.parent_id;
+    let accounts: any[] = [];
 
-    if (accountsError) {
-      console.error('[GET /api/pay/active-account] payment_accounts fetch error:', accountsError.message);
-      return Response.json({ error: 'Internal server error' }, { status: 500 });
+    // First try broker accounts if parent exists
+    if (parentId) {
+      const { data: brokerAccounts, error: brokerErr } = await adminClient
+        .from('payment_accounts')
+        .select('*')
+        .eq('is_active', true)
+        .eq('created_by', parentId)
+        .order('sort_order', { ascending: true });
+        
+      if (brokerErr) {
+        console.error('[GET /api/pay/active-account] broker payment_accounts error:', brokerErr.message);
+      }
+      if (brokerAccounts && brokerAccounts.length > 0) {
+        accounts = brokerAccounts;
+      }
+    }
+
+    // Fallback to global admin accounts if no broker accounts found
+    if (accounts.length === 0) {
+      const { data: globalAccounts, error: accountsError } = await adminClient
+        .from('payment_accounts')
+        .select('*')
+        .eq('is_active', true)
+        .is('created_by', null)
+        .order('sort_order', { ascending: true });
+        
+      if (accountsError) {
+        console.error('[GET /api/pay/active-account] global payment_accounts error:', accountsError.message);
+        return Response.json({ error: 'Internal server error' }, { status: 500 });
+      }
+      accounts = globalAccounts || [];
     }
 
     // Step 3: Return 404 if no active accounts

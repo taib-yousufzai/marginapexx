@@ -28,6 +28,7 @@ import PayAccountsPage from '@/components/admin/PayAccountsPage';
 import TransactionsPage from '@/components/admin/TransactionsPage';
 import UserPanel from '@/components/admin/UserPanel';
 import TemplatesPage from '@/components/admin/TemplatesPage';
+import BrokersPage from '@/components/admin/BrokersPage';
 
 const navItems = [
   { key: 'telegram', label: 'TELEGRAM' },
@@ -38,6 +39,7 @@ const navItems = [
   { key: 'position', label: 'POSITION' },
   { key: 'update', label: 'UPDATE' },
   { key: 'users', label: 'USERS' },
+  { key: 'brokers', label: 'BROKERS' },
   { key: 'templates', label: 'TEMPLATES' },
   { key: 'actledger', label: 'ACT LEDGER' },
   { key: 'accounts', label: 'ACCOUNTS' },
@@ -238,6 +240,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
       <div style={show('position')}><PositionPage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} isDemoMode={isDemoMode} /></div>
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} isDemoMode={isDemoMode} /></div>
+      <div style={show('brokers')}><BrokersPage isDemoMode={isDemoMode} /></div>
       <div style={show('templates')}><TemplatesPage isDemoMode={isDemoMode} /></div>
       <div style={show('create')}>
         <CreateUserForm

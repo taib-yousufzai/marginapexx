@@ -26,6 +26,7 @@ const PROFILE_FIELDS = [
   'sqoff_method',
   'trading_mode',
   'mode_locked_until',
+  'template_id',
 ] as const;
 
 export async function GET(

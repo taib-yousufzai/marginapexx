@@ -61,6 +61,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Resolve brokerRef ─────────────────────────────────────────────────────
+    let resolvedBrokerRef = brokerRef?.trim() || null;
+    if (resolvedBrokerRef) {
+      if (resolvedBrokerRef.length === 8 && !resolvedBrokerRef.includes('-')) {
+        const { data: brokerProfile } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', resolvedBrokerRef)
+          .single();
+        if (brokerProfile) {
+          resolvedBrokerRef = brokerProfile.id;
+        } else {
+          resolvedBrokerRef = null; // Invalid referral code
+        }
+      } else if (resolvedBrokerRef.length !== 36) {
+        // Not a UUID and not an 8-char code
+        resolvedBrokerRef = null;
+      }
+    }
+
     // ── Generate OTP ──────────────────────────────────────────────────────────
     const otp = String(randomInt(100000, 999999));
     const otpHash = hashOtp(otp);
@@ -75,7 +95,7 @@ export async function POST(req: NextRequest) {
         otp_hash: otpHash,
         full_name: fullName.trim(),
         phone: phone?.trim() || null,
-        broker_ref: brokerRef?.trim() || null,
+        broker_ref: resolvedBrokerRef,
         expires_at: expiresAt,
         created_at: new Date().toISOString(), // refresh timestamp for rate-limit
       },

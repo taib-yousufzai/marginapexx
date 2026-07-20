@@ -55,7 +55,7 @@ export default function UpdatePage({
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'profile':
-        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to edit their profile." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} isBroker={isBroker} /> : <EmptyState message="Please select a user first to edit their profile." onOpen={onOpenUserPanel} />;
       case 'segments':
         return selectedUser?.id ? <UpdateSegments selectedUser={selectedUser} /> : <EmptyState message="Please select a user first to configure their segments." onOpen={onOpenUserPanel} />;
       case 'ledger':
@@ -71,7 +71,7 @@ export default function UpdatePage({
       case 'multiple_settings':
         return <UpdateMultipleSettings selectedUser={selectedUser} />;
       default:
-        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} /> : <EmptyState message="Please select a user first." onOpen={onOpenUserPanel} />;
+        return selectedUser?.id ? <UpdateProfile selectedUser={selectedUser} isBroker={isBroker} /> : <EmptyState message="Please select a user first." onOpen={onOpenUserPanel} />;
     }
   };
 

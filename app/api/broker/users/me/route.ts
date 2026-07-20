@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   const { data: profile, error } = await adminClient
     .from('profiles')
-    .select('id, email, full_name, role, phone')
+    .select('id, email, full_name, role, phone, referral_code')
     .eq('id', broker.id)
     .single();
 

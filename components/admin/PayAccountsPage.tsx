@@ -53,7 +53,7 @@ export function accountToForm(a: PaymentAccount): PAFormState {
   };
 }
 
-export default function PaymentAccountsPage() {
+export default function PaymentAccountsPage({ isBroker = false }: { isBroker?: boolean }) {
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>([]);
   const [paLoading, setPaLoading] = useState(false);
   const [paError, setPaError] = useState<string | null>(null);
@@ -74,7 +74,7 @@ export default function PaymentAccountsPage() {
     setPaLoading(true);
     setPaError(null);
     try {
-      const { ok, status: httpStatus, data } = await apiCall('/api/admin/payment-accounts', { method: 'GET' });
+      const { ok, status: httpStatus, data } = await apiCall(isBroker ? '/api/broker/payment-accounts' : '/api/admin/payment-accounts', { method: 'GET' });
       if (httpStatus === 401) { signOut(); return; }
       if (!ok) {
         setPaError((data as { error?: string })?.error ?? 'Failed to load payment accounts');
@@ -136,7 +136,7 @@ export default function PaymentAccountsPage() {
 
       if (editingAccount) {
         // PATCH existing account
-        const res = await fetch(`/api/admin/payment-accounts/${editingAccount.id}`, {
+        const res = await fetch(isBroker ? `/api/broker/payment-accounts/${editingAccount.id}` : `/api/admin/payment-accounts/${editingAccount.id}`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
@@ -153,7 +153,7 @@ export default function PaymentAccountsPage() {
         await fetchAccounts();
       } else {
         // POST new account
-        const res = await fetch('/api/admin/payment-accounts', {
+        const res = await fetch(isBroker ? '/api/broker/payment-accounts' : '/api/admin/payment-accounts', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
@@ -180,7 +180,7 @@ export default function PaymentAccountsPage() {
   const handleToggleActive = async (account: PaymentAccount) => {
     setPaActionLoading(prev => ({ ...prev, [account.id]: true }));
     try {
-      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payment-accounts/${account.id}`, {
+      const { ok, status: httpStatus, data } = await apiCall(isBroker ? `/api/broker/payment-accounts/${account.id}` : `/api/admin/payment-accounts/${account.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ is_active: !account.is_active }),
       });
@@ -204,7 +204,7 @@ export default function PaymentAccountsPage() {
     if (!deleteTarget) return;
     setDeleteLoading(true);
     try {
-      const { ok, status: httpStatus, data } = await apiCall(`/api/admin/payment-accounts/${deleteTarget.id}`, {
+      const { ok, status: httpStatus, data } = await apiCall(isBroker ? `/api/broker/payment-accounts/${deleteTarget.id}` : `/api/admin/payment-accounts/${deleteTarget.id}`, {
         method: 'DELETE',
       });
       if (httpStatus === 401) { signOut(); return; }

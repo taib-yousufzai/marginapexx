@@ -31,11 +31,24 @@ export async function GET(request: Request): Promise<Response> {
     if (authResult instanceof Response) return authResult;
     const { adminClient } = authResult;
 
+    // Fetch all admins and super_admins
+    const { data: adminProfiles } = await adminClient
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'super_admin']);
+    
+    const adminIds = adminProfiles?.map((p: any) => p.id) || [];
+    let filterStr = 'created_by.is.null'; // Always include global accounts with null created_by
+    if (adminIds.length > 0) {
+      filterStr = `created_by.in.(${adminIds.join(',')}),` + filterStr;
+    }
+
     // Step 2: Query payment_accounts ordered by sort_order ASC
     // Validates: Requirements 25.2
     const { data, error } = await adminClient
       .from('payment_accounts')
       .select('*')
+      .or(filterStr)
       .order('sort_order', { ascending: true });
 
     if (error) {

@@ -25,7 +25,7 @@ export interface AccountTemplate {
 type View = 'list' | 'create' | 'edit';
 type Tab = 'templates' | 'scripts';
 
-export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) {
+export default function TemplatesPage({ isDemoMode, isBroker = false }: { isDemoMode?: boolean, isBroker?: boolean }) {
   const [tab, setTab] = useState<Tab>('templates');
   const [view, setView] = useState<View>('list');
   const [templates, setTemplates] = useState<AccountTemplate[]>([]);
@@ -38,19 +38,21 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
 
   const loadTemplates = useCallback(async () => {
     setLoading(true);
-    const res = await apiCall('/api/admin/templates', { method: 'GET' });
+    const url = isBroker ? '/api/broker/templates' : '/api/admin/templates';
+    const res = await apiCall(url, { method: 'GET' });
     setLoading(false);
     if (res.ok) {
       setTemplates(res.data as AccountTemplate[]);
     } else {
       setToast({ message: 'Failed to load templates', type: 'error' });
     }
-  }, []);
+  }, [isBroker]);
 
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
 
   const handleSetDefault = async (template: AccountTemplate) => {
-    const res = await apiCall(`/api/admin/templates/${template.id}`, {
+    const url = isBroker ? `/api/broker/templates/${template.id}` : `/api/admin/templates/${template.id}`;
+    const res = await apiCall(url, {
       method: 'PATCH',
       body: JSON.stringify({ is_default: true }),
     });
@@ -65,7 +67,8 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    const res = await apiCall(`/api/admin/templates/${deleteTarget.id}`, { method: 'DELETE' });
+    const url = isBroker ? `/api/broker/templates/${deleteTarget.id}` : `/api/admin/templates/${deleteTarget.id}`;
+    const res = await apiCall(url, { method: 'DELETE' });
     setDeleting(false);
     if (res.ok || res.status === 204) {
       setToast({ message: `Template "${deleteTarget.name}" deleted`, type: 'success' });
@@ -84,6 +87,7 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
         onBack={() => setView('list')}
         onSaved={() => { setView('list'); loadTemplates(); }}
         isDemoMode={isDemoMode}
+        isBroker={isBroker}
       />
     );
   }
@@ -95,6 +99,7 @@ export default function TemplatesPage({ isDemoMode }: { isDemoMode?: boolean }) 
         onBack={() => setView('list')}
         onSaved={() => { setView('list'); loadTemplates(); }}
         isDemoMode={isDemoMode}
+        isBroker={isBroker}
       />
     );
   }

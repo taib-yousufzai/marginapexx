@@ -9,6 +9,7 @@ import { getRole } from '../../../lib/auth';
 
 export interface BrokerContext {
   adminClient: SupabaseClient;
+  brokerClient: SupabaseClient; // Alias to adminClient to fix destructuring errors
   callerUser: User;
   role: string;
 }
@@ -57,5 +58,5 @@ export async function requireBroker(
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  return { adminClient, callerUser: userData.user, role };
+  return { adminClient, brokerClient: adminClient, callerUser: userData.user, role };
 }
