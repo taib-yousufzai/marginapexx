@@ -2389,8 +2389,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
             </div>
 
-            {/* In landscape: show P&L + Buy/Sell ONLY when the info panel is collapsed */}
-            {(isLandscape || isCssLandscape) && isPanelExpanded && isInfoPanelCollapsed && !isOrderBlockVisible && (
+            {/* In landscape: show P&L + Buy/Sell even when the info panel is expanded */}
+            {(isLandscape || isCssLandscape) && isPanelExpanded && !isOrderBlockVisible && (
               <>
                 {/* P&L Card in landscape panel */}
                 <div className="pnl-card" style={{ margin: '8px 12px 4px', flexShrink: 0 }}>
