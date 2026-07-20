@@ -559,6 +559,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [chainContract, setChainContract] = useState<{ name: string; expiry: string; ltp: number; iv: number; bid: number; ask: number; kiteId?: string } | null>(null);
   const [activeSegment, setActiveSegment] = useState<'chain' | 'orders' | 'positions'>('orders');
   const [isPanelExpanded, setIsPanelExpanded] = useState<boolean>(false);
+  const [isInfoPanelCollapsed, setIsInfoPanelCollapsed] = useState<boolean>(false);
   const [isBottomSectionVisible, setIsBottomSectionVisible] = useState<boolean>(true);
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
@@ -610,7 +611,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const activeLiveQuote = marketQuotes[symbol] || (symbol === propSymbol ? propLiveQuote : null);
 
   const openChainOrder = (defaultAction: 'BUY' | 'SELL', contractName: string, expiry: string, ltp: number, iv: number, kiteId?: string) => {
-    setIsPanelExpanded(false);
+    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+    else setIsPanelExpanded(false);
     const bid = ltp;
     const ask = parseFloat((ltp + Math.max(0.05, ltp * 0.005)).toFixed(2));
     const contract = { name: contractName, expiry, ltp, iv, bid, ask, kiteId };
@@ -1072,7 +1074,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   };
 
   const handleModifyOrder = (o: MyOrder) => {
-    setIsPanelExpanded(false);
+    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+    else setIsPanelExpanded(false);
     setModifyOrderId(o.id);
     setOrderSide(o.side);
     setQtyValue(o.qty);
@@ -1092,7 +1095,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Exit position via order panel (allows choosing Market/SL)
   const handleExitPosition = (pos: EnrichedPosition) => {
-    setIsPanelExpanded(false);
+    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+    else setIsPanelExpanded(false);
     setIsExitFlow(true);
     setIsAddMoreFlow(false);
     setExitPositionId(pos.id);
@@ -1132,7 +1136,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Add more to a position (may be a different symbol from the current chart)
   const handleAddMorePosition = (pos: EnrichedPosition) => {
-    setIsPanelExpanded(false);
+    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+    else setIsPanelExpanded(false);
     setIsExitFlow(false);
     setIsAddMoreFlow(true);
     setExitPositionId(null);
@@ -2333,33 +2338,58 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             <div className="segment-row">
               <div className="segment-pills">
                 <button className={`segment-pill ${activeSegment === 'chain' ? 'active' : ''}`} onClick={() => {
-                  if (activeSegment === 'chain' && isPanelExpanded) { setIsPanelExpanded(false); }
-                  else { setActiveSegment('chain'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+                  if (activeSegment === 'chain') {
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                    else if (isPanelExpanded) setIsPanelExpanded(false);
+                  } else {
+                    setActiveSegment('chain');
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(false);
+                    else setIsPanelExpanded(true);
+                    setIsOrderBlockVisible(false);
+                  }
                 }}>
                   <i className="ti ti-stack-2"></i>Chain
                 </button>
                 <button className={`segment-pill ${activeSegment === 'orders' ? 'active' : ''}`} onClick={() => {
-                  if (activeSegment === 'orders' && isPanelExpanded) { setIsPanelExpanded(false); }
-                  else { setActiveSegment('orders'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+                  if (activeSegment === 'orders') {
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                    else if (isPanelExpanded) setIsPanelExpanded(false);
+                  } else {
+                    setActiveSegment('orders');
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(false);
+                    else setIsPanelExpanded(true);
+                    setIsOrderBlockVisible(false);
+                  }
                 }}>
                   <i className="ti ti-list-check"></i>Orders
                 </button>
                 <button className={`segment-pill ${activeSegment === 'positions' ? 'active' : ''}`} onClick={() => {
-                  if (activeSegment === 'positions' && isPanelExpanded) { setIsPanelExpanded(false); }
-                  else { setActiveSegment('positions'); setIsPanelExpanded(true); setIsOrderBlockVisible(false); }
+                  if (activeSegment === 'positions') {
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                    else if (isPanelExpanded) setIsPanelExpanded(false);
+                  } else {
+                    setActiveSegment('positions');
+                    if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(false);
+                    else setIsPanelExpanded(true);
+                    setIsOrderBlockVisible(false);
+                  }
                 }}>
                   <i className="ti ti-briefcase"></i>Positions
                 </button>
               </div>
               <div className="toggle-panel-btn" onClick={() => {
-                setIsPanelExpanded(!isPanelExpanded);
-                if (!isPanelExpanded) setIsOrderBlockVisible(false);
+                if (isLandscape || isCssLandscape) {
+                  setIsInfoPanelCollapsed(!isInfoPanelCollapsed);
+                } else {
+                  setIsPanelExpanded(!isPanelExpanded);
+                  if (!isPanelExpanded) setIsOrderBlockVisible(false);
+                }
               }}>
-                <i className={`ti ${isPanelExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+                <i className={`ti ${((isLandscape || isCssLandscape) ? !isInfoPanelCollapsed : isPanelExpanded) ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
               </div>
             </div>
 
-            <div className={`info-panel ${!isPanelExpanded ? 'collapsed' : ''}`} id="infoPanel">
+            <div className={`info-panel ${((isLandscape || isCssLandscape) ? isInfoPanelCollapsed : !isPanelExpanded) ? 'collapsed' : ''}`} id="infoPanel">
               <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
                 {renderPanelContent()}
               </div>
