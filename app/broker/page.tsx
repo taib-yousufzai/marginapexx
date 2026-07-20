@@ -332,7 +332,7 @@ function BrokerDashboard({ broker, apiCall, onNavigate, onSelectUser }: any) {
                 readOnly
                 value={referralLink}
                 className="adm-input"
-                style={{ flex: 1, backgroundColor: '#0d1117', color: '#c9d1d9', cursor: 'text' }}
+                style={{ flex: 1, minWidth: 0, backgroundColor: '#0d1117', color: '#c9d1d9', cursor: 'text' }}
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button className="adm-btn-primary" onClick={handleCopyLink} style={{ whiteSpace: 'nowrap', minWidth: '90px' }}>
