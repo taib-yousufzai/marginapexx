@@ -1959,7 +1959,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           </div>
         )}
 
-        {/* Bottom Section */}
+        {/* Bottom Section — hidden in landscape (P&L/Buy/Sell moved to side panel) */}
         <div className={`bottom-section ${(!isBottomSectionVisible && !(isPanelExpanded && (isLandscape || isCssLandscape))) ? 'collapsed' : ''}`} id="bottomSection">
             {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
             {!isUnderlyingIndex && !isOrderBlockVisible && (
@@ -2359,56 +2359,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
             </div>
 
-            {/* Info Panel */}
-            {/* In landscape: show P&L + Buy/Sell above the chain/orders/positions panel */}
-            {(isLandscape || isCssLandscape) && isPanelExpanded && !isOrderBlockVisible && (
-              <>
-                {/* P&L Card in landscape panel */}
-                <div className="pnl-card" style={{ margin: '8px 12px 4px', flexShrink: 0 }}>
-                  <div>
-                    <span className="pnl-text">P/L: </span>
-                    <span className={`pnl-amount ${pnlTotal >= 0 ? 'positive' : 'negative'}`}>
-                      {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                {/* Trade Buttons in landscape panel */}
-                {!isUnderlyingIndex && (
-                  currentInstrumentPosition ? (
-                    <div className="trade-buttons" style={{ flexShrink: 0 }}>
-                      {currentInstrumentPosition.side === 'BUY' ? (
-                        <>
-                          <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                            <span className="btn-label">EXIT LONG</span>
-                          </button>
-                          <button className="trade-btn buy" onClick={() => { setIsPanelExpanded(false); setIsOrderBlockVisible(true); setOrderSide('BUY'); }}>
-                            <span className="btn-label">BUY</span>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="trade-btn sell" onClick={() => { setIsPanelExpanded(false); setIsOrderBlockVisible(true); setOrderSide('SELL'); }}>
-                            <span className="btn-label">SELL</span>
-                          </button>
-                          <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                            <span className="btn-label">EXIT SHORT</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="trade-buttons" style={{ flexShrink: 0 }}>
-                      <button className="trade-btn sell" onClick={() => { setIsPanelExpanded(false); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); setPostOrderSegment('main'); setIsOrderBlockVisible(true); setOrderSide('SELL'); }}>
-                        <span className="btn-label">SELL</span>
-                      </button>
-                      <button className="trade-btn buy" onClick={() => { setIsPanelExpanded(false); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); setPostOrderSegment('main'); setIsOrderBlockVisible(true); setOrderSide('BUY'); }}>
-                        <span className="btn-label">BUY</span>
-                      </button>
-                    </div>
-                  )
-                )}
-              </>
-            )}
             <div className={`info-panel ${!isPanelExpanded ? 'collapsed' : ''}`} id="infoPanel">
               <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
                 {renderPanelContent()}
