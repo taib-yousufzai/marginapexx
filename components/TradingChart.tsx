@@ -1896,8 +1896,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         }}
       >
 
-        {/* P&L Card — hide when order block, or panel is expanded */}
-        {!isOrderBlockVisible && (!isPanelExpanded || isLandscape || isCssLandscape) && (
+        {/* P&L Card */}
+        {!isOrderBlockVisible && (
           <div className="pnl-card" id="pnlCard">
             {isTradeOnChartActive ? (
               <>
@@ -1960,7 +1960,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         )}
 
         {/* Bottom Section */}
-        <div className={`bottom-section ${!isBottomSectionVisible ? 'collapsed' : ''}`} id="bottomSection">
+        <div className={`bottom-section ${(!isBottomSectionVisible && !(isPanelExpanded && (isLandscape || isCssLandscape))) ? 'collapsed' : ''}`} id="bottomSection">
             {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
             {!isUnderlyingIndex && !isOrderBlockVisible && (
               currentInstrumentPosition ? (
