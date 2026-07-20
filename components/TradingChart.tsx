@@ -1561,7 +1561,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   return (
     <div
-      className={`tc-wrapper ${isPanelExpanded ? 'panel-expanded' : ''}`}
+      className={`tc-wrapper ${isPanelExpanded && !(isLandscape || isCssLandscape) ? 'panel-expanded' : ''}`}
       style={(isLandscape || isCssLandscape) ? {
         position: 'fixed',
         top: 0,
@@ -1880,14 +1880,13 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         </div>
       </div>
 
-      {/* Right / Bottom Panel Area */}
       <div 
         style={(isLandscape || isCssLandscape) ? {
           width: isPanelExpanded ? '340px' : '0px',
           display: isPanelExpanded ? 'flex' : 'none',
           flexDirection: 'column',
           borderLeft: '1px solid var(--border-color, #eaecef)',
-          background: 'var(--bg-card, #1E222D)',
+          background: 'var(--surface, #FFFFFF)',
           zIndex: 10,
           flexShrink: 0,
           overflowY: 'auto',
@@ -1964,8 +1963,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           </div>
         )}
 
-        {/* Bottom Section — hidden in landscape (P&L/Buy/Sell moved to side panel) */}
-        <div className={`bottom-section ${(!isBottomSectionVisible && !(isPanelExpanded && (isLandscape || isCssLandscape))) ? 'collapsed' : ''}`} id="bottomSection">
+        {/* Bottom Section */}
+        <div 
+          className={`bottom-section ${(!isBottomSectionVisible && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`} 
+          id="bottomSection"
+          style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : {}}
+        >
             {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
             {!isUnderlyingIndex && !isOrderBlockVisible && (
               currentInstrumentPosition ? (
@@ -2389,57 +2392,15 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
             </div>
 
-            {/* In landscape: show P&L + Buy/Sell even when the info panel is expanded */}
-            {(isLandscape || isCssLandscape) && isPanelExpanded && !isOrderBlockVisible && (
-              <>
-                {/* P&L Card in landscape panel */}
-                <div className="pnl-card" style={{ margin: '8px 12px 4px', flexShrink: 0 }}>
-                  <div>
-                    <span className="pnl-text">P/L: </span>
-                    <span className={`pnl-amount ${pnlTotal >= 0 ? 'positive' : 'negative'}`}>
-                      {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                {/* Trade Buttons in landscape panel */}
-                {!isUnderlyingIndex && (
-                  currentInstrumentPosition ? (
-                    <div className="trade-buttons" style={{ flexShrink: 0 }}>
-                      {currentInstrumentPosition.side === 'BUY' ? (
-                        <>
-                          <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                            <span className="btn-label">EXIT LONG</span>
-                          </button>
-                          <button className="trade-btn buy" onClick={() => { setIsInfoPanelCollapsed(false); setIsOrderBlockVisible(true); setOrderSide('BUY'); }}>
-                            <span className="btn-label">BUY</span>
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="trade-btn sell" onClick={() => { setIsInfoPanelCollapsed(false); setIsOrderBlockVisible(true); setOrderSide('SELL'); }}>
-                            <span className="btn-label">SELL</span>
-                          </button>
-                          <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
-                            <span className="btn-label">EXIT SHORT</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="trade-buttons" style={{ flexShrink: 0 }}>
-                      <button className="trade-btn sell" onClick={() => { setIsInfoPanelCollapsed(false); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); setPostOrderSegment('main'); setIsOrderBlockVisible(true); setOrderSide('SELL'); }}>
-                        <span className="btn-label">SELL</span>
-                      </button>
-                      <button className="trade-btn buy" onClick={() => { setIsInfoPanelCollapsed(false); setIsExitFlow(false); setIsAddMoreFlow(false); setExitPositionId(null); setOrderBlockTitle(symbol); setPostOrderSegment('main'); setIsOrderBlockVisible(true); setOrderSide('BUY'); }}>
-                        <span className="btn-label">BUY</span>
-                      </button>
-                    </div>
-                  )
-                )}
-              </>
-            )}
-            <div className={`info-panel ${((isLandscape || isCssLandscape) ? isInfoPanelCollapsed : !isPanelExpanded) ? 'collapsed' : ''}`} id="infoPanel">
-              <div className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}>
+            <div 
+              className={`info-panel ${(!isPanelExpanded && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`} 
+              id="infoPanel"
+              style={(isLandscape || isCssLandscape) ? { flex: 1, minHeight: 0, maxHeight: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : {}}
+            >
+              <div 
+                className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}
+                style={(isLandscape || isCssLandscape) ? { flex: 1, minHeight: 0, maxHeight: 'none', overflowY: 'scroll' } : {}}
+              >
                 {renderPanelContent()}
               </div>
             </div>
