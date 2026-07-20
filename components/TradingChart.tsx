@@ -1865,96 +1865,25 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       </div>
 
       {/* Right / Bottom Panel Area */}
-      {(isLandscape || isCssLandscape) ? (
-        <div 
-          style={{
-            width: '320px',
-            display: 'flex',
-            flexDirection: 'column',
-            borderLeft: '1px solid var(--border-color, #eaecef)',
-            background: '#F8F9FA',
-            zIndex: 10,
-            flexShrink: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden'
-          }}
-        >
-          <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
-            {/* Margin Card */}
-            <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-              <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '16px', color: '#1E222D' }}>Margin</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
-                <span style={{ color: '#787B86' }}>Req. Margin</span>
-                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{Number(reqMargin).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '13px' }}>
-                <span style={{ color: '#787B86' }}>Free Margin</span>
-                <span style={{ fontWeight: 'bold', color: '#1E222D' }}>{Number(balance).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-              </div>
-              <div style={{ borderTop: '1px solid #eaecef', margin: '12px 0' }}></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: '#787B86' }}>Holding</span>
-                <span style={{ fontWeight: 'bold', color: '#e53935' }}>{Number(pnlTotal).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
-              </div>
-            </div>
-
-            {/* Order Area */}
-            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Market status banner */}
-              <div style={{ background: '#ECA959', color: '#1e222d', textAlign: 'center', padding: '8px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
-                Open in 1D 07H : 03M : 17S
-              </div>
-              
-              {/* Toggles */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{fontSize: '11px', color: '#a3a6af'}}>Limit</span> <div className="ls-toggle"><div className="ls-toggle-knob"></div></div></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{fontSize: '11px', color: '#a3a6af'}}>TP</span> <div className="ls-toggle"><div className="ls-toggle-knob"></div></div></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{fontSize: '11px', color: '#a3a6af'}}>SL</span> <div className="ls-toggle"><div className="ls-toggle-knob"></div></div></div>
-              </div>
-              
-              {/* Buy / Sell Row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button onClick={() => { setOrderSide('SELL'); setIsOrderBlockVisible(true); }} style={{ flex: 1, background: '#e53935', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '500' }}>Sell</span>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(liveBid).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
-                </button>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 4px' }}>
-                  <span style={{ fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#1E222D' }} onClick={() => handleQtyStep(-1)}>-</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '10px', color: '#787B86' }}>Qty (Lots)</span>
-                    <input type="number" value={qtyValue} onChange={(e) => setQtyValue(e.target.value)} style={{ width: '40px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold', border: 'none', background: 'transparent', color: '#1E222D', padding: 0 }} />
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: 'bold', cursor: 'pointer', color: '#1E222D' }} onClick={() => handleQtyStep(1)}>+</span>
-                </div>
-
-                <button onClick={() => { setOrderSide('BUY'); setIsOrderBlockVisible(true); }} style={{ flex: 1, background: '#1db954', color: '#fff', border: 'none', padding: '12px 0', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '500' }}>Buy</span>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{Number(liveAsk).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</span>
-                </button>
-              </div>
-              
-              {/* Navigation Icons */}
-              <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #eaecef', paddingTop: '12px', marginTop: '4px', color: '#787B86' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => setActiveSegment('positions')}>
-                  <i className="ti ti-briefcase" style={{ fontSize: '20px' }}></i>
-                  <span style={{ fontSize: '10px' }}>Portfolio</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer' }} onClick={() => setActiveSegment('chain')}>
-                  <i className="ti ti-user" style={{ fontSize: '20px' }}></i>
-                  <span style={{ fontSize: '10px' }}>Account</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div 
-          style={{
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
+      <div 
+        style={(isLandscape || isCssLandscape) ? {
+          width: isPanelExpanded ? '340px' : '0px',
+          display: isPanelExpanded ? 'flex' : 'none',
+          flexDirection: 'column',
+          borderLeft: '1px solid var(--border-color, #eaecef)',
+          background: 'var(--bg-card, #1E222D)',
+          zIndex: 10,
+          flexShrink: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        } : {
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          flexShrink: 0,
+          zIndex: 10
+        }}
+      >
 
         {/* P&L Card — hide when order block, or panel is expanded */}
         {!isOrderBlockVisible && !isPanelExpanded && (
@@ -2427,7 +2356,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             </div>
           </div>
         </div>
-      )}
       {/* End of Right / Bottom Panel Area */}
       </div>
       {/* End of Content Split Container */}
