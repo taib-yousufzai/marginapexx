@@ -13,6 +13,7 @@ import { useMarketQuotes } from '@/hooks/useMarketQuotes';
 import useSWR from 'swr';
 import { parseOptionSymbol } from '@/lib/parseOptionSymbol';
 import { calculateMarginPortion } from '@/lib/marginCalculator';
+import { formatShortName } from '@/lib/datafeed/symbolResolver';
 import './trading-chart.css';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -1626,7 +1627,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <span className="tc-symbol-name">{symbol.replace(/NSE:|BSE:|NFO:|BFO:|MCX:/g, '')}</span>
+            <span className="tc-symbol-name">{formatShortName(symbol.replace(/NSE:|BSE:|NFO:|BFO:|MCX:/g, ''))}</span>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
           </div>
         )}
@@ -1762,8 +1763,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
 
 
+          {/* Mobile Rotate Screen */}
+          <div className="tc-tb-icon mobile-only" title="Toggle Landscape Layout" onClick={() => setIsCssLandscape(!isCssLandscape)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCssLandscape ? 'rotate(-90deg)' : 'none', transition: 'transform 0.3s ease' }}>
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </div>
+
           {/* Fullscreen */}
-          <div className="tc-tb-icon" title="Fullscreen" onClick={() => {
+          <div className="tc-tb-icon desktop-only" title="Fullscreen" onClick={() => {
             const el = document.getElementById('chartSheet');
             if (el) el.requestFullscreen?.();
           }}>
@@ -1784,34 +1793,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         {/* Chart Container */}
         <div className="tc-chart-container" style={{ position: 'relative', overflow: 'hidden' }}>
 
-          {/* Floating Rotate Screen Button */}
-          <div
-            title="Toggle Landscape Layout"
-            style={{
-              position: 'absolute',
-              right: '16px',
-              top: '16px',
-              zIndex: 20,
-              width: '38px',
-              height: '38px',
-              background: '#ffffff',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              color: '#1E222D',
-              transition: 'transform 0.3s ease',
-              transform: isCssLandscape ? 'rotate(-90deg)' : 'none'
-            }}
-            onClick={() => setIsCssLandscape(!isCssLandscape)}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
-            </svg>
-          </div>
+          {/* Floating Rotate Screen Button removed and moved to header */}
 
           {/* Floating Order Panel Toggle */}
           {(isLandscape || isCssLandscape) && (
@@ -1863,6 +1845,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           width: isPanelExpanded ? '340px' : '0px',
           display: isPanelExpanded ? 'flex' : 'none',
           flexDirection: 'column',
+          justifyContent: 'flex-end',
           borderLeft: '1px solid var(--border-color, #eaecef)',
           background: 'var(--surface, #FFFFFF)',
           zIndex: 10,
@@ -1873,7 +1856,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           display: 'flex',
           flexDirection: 'column',
           width: '100%',
-          flexShrink: 0,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
           zIndex: 10
         }}
       >

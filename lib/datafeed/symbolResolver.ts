@@ -31,12 +31,30 @@ export function deriveExchange(symbolName: string): string {
  *   has_intraday: true, supported_resolutions: ['1','5','15','60','D'],
  *   format: 'price', data_status: 'streaming'
  */
+export function formatShortName(name: string): string {
+  // Check for Options (e.g., NIFTY2672124200CE)
+  const optMatch = name.match(/^([A-Z]+).*?(\d+)(CE|PE)$/i);
+  if (optMatch) {
+    return `${optMatch[1]} ${optMatch[2]} ${optMatch[3].toUpperCase()}`;
+  }
+
+  // Check for Futures (e.g., NIFTY26JULFUT)
+  const futMatch = name.match(/^([A-Z]+).*?(FUT)$/i);
+  if (futMatch) {
+    return `${futMatch[1]} FUT`;
+  }
+
+  // Default fallback
+  return name;
+}
+
 export function buildSymbolInfo(symbolName: string, segment: string): LibrarySymbolInfo {
   const isCrypto =
     symbolName.endsWith('USDT') || segment.toUpperCase() === 'CRYPTO';
 
   const colonIdx = symbolName.indexOf(':');
-  const name = colonIdx >= 0 ? symbolName.slice(colonIdx + 1) : symbolName;
+  const rawName = colonIdx >= 0 ? symbolName.slice(colonIdx + 1) : symbolName;
+  const name = formatShortName(rawName);
   const ticker = symbolName;
 
   const exchange = isCrypto ? 'BINANCE' : deriveExchange(symbolName);
@@ -45,7 +63,7 @@ export function buildSymbolInfo(symbolName: string, segment: string): LibrarySym
   return {
     name,
     ticker,
-    description: name,
+    description: rawName, // Keep the full original name in description
     type: isCrypto ? 'crypto' : 'stock',
     exchange,
     listed_exchange: exchange,
