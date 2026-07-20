@@ -216,7 +216,6 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  height: calc(100% - 9.375rem);
   min-height: 0;
 }
 
@@ -2455,10 +2454,6 @@
     z-index: 999999 !important;
     border-radius: 0 !important;
     margin: 0 !important;
-  }
-
-  .tc-main-area {
-    height: calc(100vh - 2.875rem) !important;
   }
 
   .tc-wrapper .bottom-section {
