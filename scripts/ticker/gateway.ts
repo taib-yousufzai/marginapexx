@@ -103,6 +103,7 @@ export class WebSocketGateway extends EventEmitter {
             // Fetch latest quotes from Redis Hash cache
             const redis = getRedisClient();
             try {
+              const missingKiteSymbols: string[] = [];
               await Promise.all(payload.symbols.map(async (sym: string) => {
                 const cached = await redis.hget('market:quotes', sym);
                 if (cached) {
@@ -133,8 +134,57 @@ export class WebSocketGateway extends EventEmitter {
                   } catch (restErr) {
                     logger.warn({ err: restErr, sym }, 'Failed to fetch initial quote from Binance REST API');
                   }
+                } else if (sym.includes(':')) {
+                  missingKiteSymbols.push(sym);
                 }
               }));
+
+              // Batch fallback for missing Kite symbols
+              if (missingKiteSymbols.length > 0) {
+                try {
+                  const { getSharedKiteSession } = await import('../../lib/kiteSession.ts');
+                  const session = await getSharedKiteSession();
+                  if (session && session.accessToken) {
+                    const apiKey = process.env.KITE_API_KEY;
+                    
+                    // Kite supports up to 500 instruments per request. We batch them in chunks of 100.
+                    const batchSize = 100;
+                    for (let i = 0; i < missingKiteSymbols.length; i += batchSize) {
+                      const batch = missingKiteSymbols.slice(i, i + batchSize);
+                      const query = batch.map(s => `i=${encodeURIComponent(s)}`).join('&');
+                      const res = await fetch(`https://api.kite.trade/quote?${query}`, {
+                        headers: {
+                          'X-Kite-Version': '3',
+                          'Authorization': `token ${apiKey}:${session.accessToken}`
+                        }
+                      });
+                      
+                      if (res.ok) {
+                        const json = await res.json();
+                        if (json.status === 'success' && json.data) {
+                          for (const sym of batch) {
+                            if (json.data[sym]) {
+                              const data = json.data[sym];
+                              const tick: TickData = {
+                                last_price: data.last_price,
+                                volume: data.volume || 0,
+                                ohlc: data.ohlc,
+                                timestamp: new Date(data.timestamp || Date.now()),
+                                bid: data.depth?.buy?.[0]?.price || 0,
+                                ask: data.depth?.sell?.[0]?.price || 0,
+                              };
+                              initialQuotes[sym] = tick;
+                              redis.hset('market:quotes', sym, JSON.stringify(tick)).catch(() => {});
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch (kiteErr) {
+                  logger.warn({ err: kiteErr }, 'Failed to fetch batch initial quotes from Kite REST API');
+                }
+              }
             } catch (cacheErr) {
               logger.error({ err: cacheErr }, 'Error fetching initial quotes from Redis');
             }
