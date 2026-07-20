@@ -192,19 +192,23 @@ export async function getSession(): Promise<Session | null> {
       // Refresh user data from server to get latest user_metadata (e.g. role)
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
-      if (userError || !userData?.user) {
-        _cachedSession = null;
-        return null;
+      let freshSession = sessionData.session;
+      if (!userError && userData?.user) {
+        // Merge fresh user into session and cache it
+        freshSession = { ...sessionData.session, user: userData.user };
+      } else {
+        console.warn('getUser() failed, falling back to sessionData.session:', userError);
       }
 
-      // Merge fresh user into session and cache it
-      const freshSession = { ...sessionData.session, user: userData.user };
       _cachedSession = freshSession;
       _cacheTimestamp = Date.now();
       return freshSession;
     } catch (err) {
       console.error('getSession unexpected error:', err);
-      _cachedSession = null;
+      // Fallback to cached session if available instead of hard failing
+      if (_cachedSession) {
+        return _cachedSession;
+      }
       return null;
     } finally {
       _sessionPromise = null;
