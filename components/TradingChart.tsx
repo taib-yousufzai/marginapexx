@@ -1641,7 +1641,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <span className="tc-symbol-name">{symbol.replace('NSE:', '').replace('BSE:', '')}</span>
+            <span className="tc-symbol-name">{symbol.replace(/NSE:|BSE:|NFO:|BFO:|MCX:/g, '')}</span>
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" style={{ opacity: 0.5 }}><path d="M2 3l3 4 3-4z" /></svg>
           </div>
         )}
