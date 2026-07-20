@@ -157,7 +157,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch from Kite Historical API
-    const url = `https://api.kite.trade/instruments/historical/${instrumentToken}/${interval}?from=${from}&to=${to}`;
+    const url = `https://api.kite.trade/instruments/historical/${instrumentToken}/${interval}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
     
     const response = await fetch(url, {
       headers: {

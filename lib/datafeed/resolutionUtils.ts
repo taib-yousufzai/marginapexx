@@ -10,8 +10,12 @@ export type ResolutionString = string;
 export function toUdfResolution(timeframe: Timeframe): ResolutionString {
   switch (timeframe) {
     case '1m':  return '1';
+    case '2m':  return '2';
+    case '3m':  return '3';
     case '5m':  return '5';
+    case '10m': return '10';
     case '15m': return '15';
+    case '30m': return '30';
     case '60m': return '60';
     case 'day': return 'D';
     default:    return '5';
@@ -25,8 +29,12 @@ export function toUdfResolution(timeframe: Timeframe): ResolutionString {
 export function resolutionToKiteInterval(r: ResolutionString): string {
   switch (r) {
     case '1':  return 'minute';
+    case '2':  return '2minute';
+    case '3':  return '3minute';
     case '5':  return '5minute';
+    case '10': return '10minute';
     case '15': return '15minute';
+    case '30': return '30minute';
     case '60': return '60minute';
     case 'D':  return 'day';
     default:   return '5minute';
@@ -40,8 +48,12 @@ export function resolutionToKiteInterval(r: ResolutionString): string {
 export function resolutionToBinanceInterval(r: ResolutionString): string {
   switch (r) {
     case '1':  return '1m';
+    case '2':  return '1m'; // fallback
+    case '3':  return '3m';
     case '5':  return '5m';
+    case '10': return '5m'; // fallback
     case '15': return '15m';
+    case '30': return '30m';
     case '60': return '1h';
     case 'D':  return '1d';
     default:   return '5m';
@@ -55,8 +67,12 @@ export function resolutionToBinanceInterval(r: ResolutionString): string {
 export function resolutionToMs(r: ResolutionString): number {
   switch (r) {
     case '1':  return 60_000;
+    case '2':  return 120_000;
+    case '3':  return 180_000;
     case '5':  return 300_000;
+    case '10': return 600_000;
     case '15': return 900_000;
+    case '30': return 1_800_000;
     case '60': return 3_600_000;
     case 'D':  return 86_400_000;
     default:   return 300_000;

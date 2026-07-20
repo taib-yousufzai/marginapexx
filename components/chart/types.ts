@@ -7,7 +7,7 @@ export interface Candle {
   volume?: number;
 }
 
-export type Timeframe = '1m' | '5m' | '15m' | '60m' | 'day';
+export type Timeframe = '1m' | '2m' | '3m' | '5m' | '10m' | '15m' | '30m' | '60m' | 'day';
 
 export interface IndicatorValueMap {
   [key: string]: number | undefined;

@@ -80,12 +80,28 @@ async function fetchKiteBars(
   periodParams: PeriodParams,
 ): Promise<{ bars: Bar[]; noData: boolean }> {
   const interval = resolutionToKiteInterval(resolution);
+
+  const formatDate = (tsSeconds: number) => {
+    const d = new Date(tsSeconds * 1000);
+    // Format to YYYY-MM-DD HH:mm:ss for Kite API
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const secs = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${mins}:${secs}`;
+  };
+
+  const fromFmt = encodeURIComponent(formatDate(periodParams.from));
+  const toFmt = encodeURIComponent(formatDate(periodParams.to));
+
   const url =
     `/api/market/historical` +
     `?symbol=${encodeURIComponent(ticker)}` +
     `&interval=${interval}` +
-    `&from=${periodParams.from}` +
-    `&to=${periodParams.to}`;
+    `&from=${fromFmt}` +
+    `&to=${toFmt}`;
 
   const json = await fetch(url).then((r) => r.json());
 

@@ -497,26 +497,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
 
 
-  // Indicators toggle state
-  const [activeIndicators, setActiveIndicators] = useState({
-    sma: false,
-    ema: false,
-    rsi: false,
-    macd: false
-  });
-
-  // Indicators values settings state
-  const [settings, setSettings] = useState({
-    smaPeriod: 20,
-    emaPeriod: 20,
-    rsiPeriod: 14,
-    macdFast: 12,
-    macdSlow: 26,
-    macdSignal: 9
-  });
-
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-
   // For the legend overlay
   const [currentPrice, setCurrentPrice] = useState<number>(0);
   const [priceChange, setPriceChange] = useState<number>(0);
@@ -1657,8 +1637,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         {(() => {
           const intervals: { label: string; tf: Timeframe }[] = [
             { label: '1m', tf: '1m' },
+            { label: '2m', tf: '2m' },
+            { label: '3m', tf: '3m' },
             { label: '5m', tf: '5m' },
+            { label: '10m', tf: '10m' },
             { label: '15m', tf: '15m' },
+            { label: '30m', tf: '30m' },
             { label: '1H', tf: '60m' },
             { label: 'D', tf: 'day' },
           ];
@@ -1744,7 +1728,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         <div
           className="tc-tb-btn tc-tb-indicators"
           title="Indicators"
-          onClick={() => setShowSettingsModal(true)}
+          onClick={() => document.dispatchEvent(new CustomEvent('tv-show-indicators'))}
         >
           <span style={{ fontSize: '14px', fontWeight: 700, fontStyle: 'italic' }}>Fx</span>
         </div>
@@ -1755,7 +1739,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
         <div
           className="tc-tb-btn tc-tb-indicators"
           title="Drawing Tools"
-          onClick={() => showToast('Drawing tools are coming soon in the modernized engine')}
+          onClick={() => document.dispatchEvent(new CustomEvent('tv-toggle-drawings'))}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4">
             <path d="M11 2l-7 7-2 4 4-2 7-7-2-2z" />
@@ -1870,12 +1854,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             liveQuote={activeLiveQuote}
             loading={loading && !hasLoadedData.current}
             error={error}
-            activeIndicators={activeIndicators}
-            setActiveIndicators={setActiveIndicators}
-            settings={settings}
-            setSettings={setSettings}
-            showSettingsModal={showSettingsModal}
-            setShowSettingsModal={setShowSettingsModal}
           />
         </div>
       </div>
