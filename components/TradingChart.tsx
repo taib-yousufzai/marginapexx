@@ -1957,7 +1957,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                         if (isPanelExpanded && activeSegment === 'chain') {
                           handleQuickMarketOrder('BUY');
                         } else {
-                          setIsPanelExpanded(false);
+                          if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                          else setIsPanelExpanded(false);
                           setIsExitFlow(false);
                           setIsAddMoreFlow(false);
                           setExitPositionId(null);
@@ -1976,7 +1977,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                         if (isPanelExpanded && activeSegment === 'chain') {
                           handleQuickMarketOrder('SELL');
                         } else {
-                          setIsPanelExpanded(false);
+                          if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                          else setIsPanelExpanded(false);
                           setIsExitFlow(false);
                           setIsAddMoreFlow(false);
                           setExitPositionId(null);
@@ -2005,7 +2007,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     if (isPanelExpanded && activeSegment === 'chain') {
                       handleQuickMarketOrder('SELL');
                     } else {
-                      setIsPanelExpanded(false);
+                      if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                      else setIsPanelExpanded(false);
                       setIsExitFlow(false);
                       setIsAddMoreFlow(false);
                       setExitPositionId(null);
@@ -2021,7 +2024,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     if (isPanelExpanded && activeSegment === 'chain') {
                       handleQuickMarketOrder('BUY');
                     } else {
-                      setIsPanelExpanded(false);
+                      if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
+                      else setIsPanelExpanded(false);
                       setIsExitFlow(false);
                       setIsAddMoreFlow(false);
                       setExitPositionId(null);
