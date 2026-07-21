@@ -35,13 +35,25 @@ export class RealtimeProvider {
   update(lastPrice: number, nowMs: number): void {
     for (const entry of this.subscribers.values()) {
       const resMs = resolutionToMs(entry.resolution);
-      const boundary = Math.floor(nowMs / resMs) * resMs;
       const prev = entry.lastBar;
+
+      let boundary = Math.floor(nowMs / resMs) * resMs;
+      
+      // Anchor boundary to historical session times to avoid creating disjoint candles
+      // on timeframes that don't align with UTC (e.g., NSE 30m, 1h, 1D).
+      if (prev) {
+        if (nowMs < prev.time + resMs) {
+          boundary = prev.time;
+        } else {
+          const periods = Math.floor((nowMs - prev.time) / resMs);
+          boundary = prev.time + periods * resMs;
+        }
+      }
 
       const isNewCandle = !prev || boundary > prev.time;
       const bar: Bar = {
         time:  boundary,
-        open:  isNewCandle ? (prev?.close ?? lastPrice) : (prev?.open ?? lastPrice),
+        open:  isNewCandle ? lastPrice : (prev?.open ?? lastPrice),
         high:  isNewCandle ? lastPrice : Math.max(prev!.high, lastPrice),
         low:   isNewCandle ? lastPrice : Math.min(prev!.low, lastPrice),
         close: lastPrice,
