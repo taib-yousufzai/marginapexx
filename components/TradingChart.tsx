@@ -981,6 +981,14 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
       orderKiteInstrument = chainContract.kiteId || `${prefix}:${orderSymbol}`;
       orderSegment = 'INDEX-OPT';
+    } else {
+      // For exit/add-more flows on options, ensure kite instrument has prefix
+      if (orderSymbol && (orderSymbol.endsWith('CE') || orderSymbol.endsWith('PE')) && !orderKiteInstrument.includes(':')) {
+        let prefix = 'NFO';
+        if (orderSymbol.startsWith('SENSEX') || orderSymbol.startsWith('BANKEX')) prefix = 'BFO';
+        else if (orderSymbol.startsWith('GOLD') || orderSymbol.startsWith('SILVER') || orderSymbol.startsWith('CRUDE') || orderSymbol.startsWith('NATGAS')) prefix = 'MCX';
+        orderKiteInstrument = `${prefix}:${orderSymbol}`;
+      }
     }
 
     if (modifyOrderId) {
@@ -1003,7 +1011,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       lots: useLots ? Number(qtyValue) : 0,
       order_type: orderType.toUpperCase() as any,
       product_type: orderCarry === 'carry' ? 'CARRY' : 'INTRADAY',
-      client_price: orderType === 'market' ? 0 : finalPrice,
+      client_price: finalPrice,
       trigger_price: (orderType === 'sl' || orderType === 'slm') ? parseFloat(triggerPrice) : undefined,
       stop_loss: gttSlPrice ? parseFloat(gttSlPrice) : undefined,
       target: gttTargetPrice ? parseFloat(gttTargetPrice) : undefined,
