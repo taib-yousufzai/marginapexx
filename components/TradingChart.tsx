@@ -2365,7 +2365,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             <div
               className={`info-panel ${(!isPanelExpanded && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`}
               id="infoPanel"
-              style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column', width: '100%' } : {}}
+              style={(isLandscape || isCssLandscape) ? { display: isInfoPanelCollapsed ? 'none' : 'flex', flexDirection: 'column', width: '100%' } : {}}
             >
               <div
                 className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}
