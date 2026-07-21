@@ -1856,9 +1856,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           display: 'flex',
           flexDirection: 'column',
           width: '100%',
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
+          flexShrink: 0,
           zIndex: 10
         }}
       >

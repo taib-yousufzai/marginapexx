@@ -12,13 +12,14 @@ export type UserListItem = {
   client_id?: string;
 };
 const PAGE_SIZE = 100;
-export default function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser, isDemoMode }: {
+export default function UserPanel({ open, onClose, onCreateUser, selectedUser, onSelectUser, isDemoMode, isBroker }: {
   open: boolean;
   onClose: () => void;
   onCreateUser: () => void;
-  selectedUser: { id: string; role: string };
+  selectedUser: { id: string; role: string } | null;
   onSelectUser: (u: UserListItem) => void;
-  isDemoMode: boolean;
+  isDemoMode?: boolean;
+  isBroker?: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -28,8 +29,10 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    setTimeout(() => setUsersLoading(true), 0);
-    apiCall(`/api/admin/users?demo=${isDemoMode}`, { method: 'GET' }).then(({ ok, status, data }) => {
+    if (!open) return; // Only load when opened
+    setUsersLoading(true);
+    const endpoint = isBroker ? `/api/broker/users` : `/api/admin/users?demo=${isDemoMode}`;
+    apiCall(endpoint, { method: 'GET' }).then(({ ok, status, data }) => {
       if (ok) {
         const items = (data as UserListItem[]).map(u => ({
           ...u,
@@ -89,7 +92,7 @@ export default function UserPanel({ open, onClose, onCreateUser, selectedUser, o
               </div>
             ))
             : paged.map((u, i) => {
-              const isSelected = selectedUser.id === u.id;
+              const isSelected = selectedUser?.id === u.id;
               const displayName = u.full_name || u.email;
               const displayId = (u.client_id || u.id.slice(0, 8)).toUpperCase();
               return (

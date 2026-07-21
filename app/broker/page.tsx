@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/admin/AdminUtils';
 import UpdatePage from '@/components/admin/UpdatePage';
 import TemplatesPage from '@/components/admin/TemplatesPage';
 import PaymentAccountsPage from '@/components/admin/PayAccountsPage';
+import UserPanel from '@/components/admin/UserPanel';
 
 // --- Constants ---
 const PAGE_SIZE = 20;
@@ -99,6 +100,7 @@ export default function BrokerPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: string; role: string } | null>(null);
   const [selectedUserTab, setSelectedUserTab] = useState<'profile' | 'segments' | 'ledger'>('profile');
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -193,6 +195,15 @@ export default function BrokerPage() {
         </div>
       </aside>
 
+      <UserPanel
+        open={userPanelOpen}
+        onClose={() => setUserPanelOpen(false)}
+        onCreateUser={() => { setUserPanelOpen(false); alert('Use dashboard or invite link to create users'); }}
+        selectedUser={selectedUser}
+        onSelectUser={(u) => { setSelectedUser({ id: u.id, role: u.role }); setUserPanelOpen(false); }}
+        isBroker={true}
+      />
+
       {/* Content Area */}
       <main className="adm-main-area">
         {/* Top Bar */}
@@ -203,7 +214,7 @@ export default function BrokerPage() {
           <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#e6edf3' }}>
             BROKER<span style={{ color: '#006400' }}>PANEL</span>
           </div>
-          <button className="adm-hamburger-right" onClick={handleLogout}>
+          <button className="adm-hamburger-right" onClick={() => setUserPanelOpen(true)}>
             <span /><span /><span />
           </button>
         </header>
