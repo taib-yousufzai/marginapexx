@@ -1962,7 +1962,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                         </span>
                       </button>
                       <button id="buyButton" className="trade-btn buy" onClick={() => {
-                        if (isPanelExpanded && activeSegment === 'chain') {
+                        if (isTradeOnChartActive) {
                           handleQuickMarketOrder('BUY');
                         } else {
                           if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -1982,7 +1982,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   ) : (
                     <>
                       <button id="sellButton" className="trade-btn sell" onClick={() => {
-                        if (isPanelExpanded && activeSegment === 'chain') {
+                        if (isTradeOnChartActive) {
                           handleQuickMarketOrder('SELL');
                         } else {
                           if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -2012,7 +2012,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               ) : (
                 <div className="trade-buttons" id="tradeButtons" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
                   <button id="sellButton" className="trade-btn sell" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
+                    if (isTradeOnChartActive) {
                       handleQuickMarketOrder('SELL');
                     } else {
                       if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -2029,7 +2029,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     <span className="btn-label">SELL</span>
                   </button>
                   <button id="buyButton" className="trade-btn buy" onClick={() => {
-                    if (isPanelExpanded && activeSegment === 'chain') {
+                    if (isTradeOnChartActive) {
                       handleQuickMarketOrder('BUY');
                     } else {
                       if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
