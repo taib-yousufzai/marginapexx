@@ -547,7 +547,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [chainContract, setChainContract] = useState<{ name: string; expiry: string; ltp: number; iv: number; bid: number; ask: number; kiteId?: string } | null>(null);
   const [activeSegment, setActiveSegment] = useState<'chain' | 'orders' | 'positions'>('orders');
   const [isPanelExpanded, setIsPanelExpanded] = useState<boolean>(false);
-  const [isInfoPanelCollapsed, setIsInfoPanelCollapsed] = useState<boolean>(false);
+  const [isInfoPanelCollapsed, setIsInfoPanelCollapsed] = useState<boolean>(true);
   const [isBottomSectionVisible, setIsBottomSectionVisible] = useState<boolean>(true);
   const [balance, setBalance] = useState<number>(50000);
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
