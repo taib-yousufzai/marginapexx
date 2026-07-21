@@ -1872,7 +1872,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
           {/* P&L Card */}
         {!isOrderBlockVisible && (
-          <div className="pnl-card" id="pnlCard">
+          <div className="pnl-card" id="pnlCard" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
               {isTradeOnChartActive ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1937,12 +1937,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           <div
             className={`bottom-section ${(!isBottomSectionVisible && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`}
             id="bottomSection"
-            style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column' } : {}}
+            style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column', flex: !isInfoPanelCollapsed ? 1 : undefined, minHeight: !isInfoPanelCollapsed ? 0 : undefined } : {}}
           >
             {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
             {!isUnderlyingIndex && !isOrderBlockVisible && (
               currentInstrumentPosition ? (
-                <div className="trade-buttons" id="tradeButtons">
+                <div className="trade-buttons" id="tradeButtons" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
                   {currentInstrumentPosition.side === 'BUY' ? (
                     <>
                       <button className="trade-btn exit-position-chart-btn" onClick={() => handleExitPosition(currentInstrumentPosition)}>
@@ -2000,7 +2000,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   )}
                 </div>
               ) : (
-                <div className="trade-buttons" id="tradeButtons">
+                <div className="trade-buttons" id="tradeButtons" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
                   <button id="sellButton" className="trade-btn sell" onClick={() => {
                     if (isPanelExpanded && activeSegment === 'chain') {
                       handleQuickMarketOrder('SELL');
@@ -2365,11 +2365,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             <div
               className={`info-panel ${(!isPanelExpanded && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`}
               id="infoPanel"
-              style={(isLandscape || isCssLandscape) ? { display: isInfoPanelCollapsed ? 'none' : 'flex', flexDirection: 'column', width: '100%' } : {}}
+              style={(isLandscape || isCssLandscape) ? { display: isInfoPanelCollapsed ? 'none' : 'flex', flexDirection: 'column', width: '100%', flex: 1, minHeight: 0 } : {}}
             >
               <div
                 className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}
-                style={(isLandscape || isCssLandscape) ? { minHeight: 0, maxHeight: 'none' } : {}}
+                style={(isLandscape || isCssLandscape) ? { flex: 1, minHeight: 0, maxHeight: 'none' } : {}}
               >
                 {renderPanelContent()}
               </div>
