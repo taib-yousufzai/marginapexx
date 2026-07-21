@@ -1764,6 +1764,16 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
         {/* ── Compare ── HIDDEN */}
         {/* ── Snapshot ── HIDDEN */}
+        
+        <div className="tc-divider"></div>
+
+        {/* ── Mobile Rotate Screen (Moved next to tools) ── */}
+        <div className="tc-tb-icon mobile-only" title="Toggle Landscape Layout" onClick={() => setIsCssLandscape(!isCssLandscape)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCssLandscape ? 'rotate(-90deg)' : 'none', transition: 'transform 0.3s ease' }}>
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+        </div>
 
         {/* ── Right side ── */}
         <div className="tc-top-right">
@@ -1773,16 +1783,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="7.5" cy="7.5" r="2" />
               <path d="M7.5 1v2M7.5 12v2M1 7.5h2M12 7.5h2M3 3l1.4 1.4M10.6 10.6L12 12M12 3l-1.4 1.4M4.4 10.6L3 12" />
-            </svg>
-          </div>
-
-
-
-          {/* Mobile Rotate Screen */}
-          <div className="tc-tb-icon mobile-only" title="Toggle Landscape Layout" onClick={() => setIsCssLandscape(!isCssLandscape)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCssLandscape ? 'rotate(-90deg)' : 'none', transition: 'transform 0.3s ease' }}>
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-              <line x1="12" y1="18" x2="12.01" y2="18"></line>
             </svg>
           </div>
 
