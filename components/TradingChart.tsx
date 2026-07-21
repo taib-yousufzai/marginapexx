@@ -26,13 +26,20 @@ const getUnderlyingSymbol = (sym: string) => {
   if (sym.includes('SENSEX')) return 'SENSEX';
   if (sym.includes('BANKEX')) return 'BANKEX';
 
-  const parsed = parseOptionSymbol(sym);
+  const clean = sym.includes(':') ? sym.split(':')[1] : sym;
+
+  const parsed = parseOptionSymbol(clean);
   if (parsed) {
     return parsed.underlying;
   }
 
-  if (sym.includes(':')) return sym.split(':')[1];
-  return sym;
+  // Handle Futures e.g. CRUDEOIL26AUGFUT or NIFTY24SEPFUT
+  const futMatch = clean.match(/^([A-Z]+)(\d{2}[A-Z0-9]{3})FUT$/i);
+  if (futMatch) {
+    return futMatch[1].toUpperCase();
+  }
+
+  return clean;
 };
 
 interface TradingChartProps {
@@ -1786,150 +1793,152 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       {/* Content Split Container */}
       <div style={{ display: 'flex', flexDirection: (isLandscape || isCssLandscape) ? 'row' : 'column', flex: 1, overflow: 'hidden' }}>
 
-      {/* Main Area */}
-      <div className="tc-main-area" style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        {/* Main Area */}
+        <div className="tc-main-area" style={{ flex: 1, minWidth: 0, position: 'relative' }}>
 
 
-        {/* Chart Container */}
-        <div className="tc-chart-container" style={{ position: 'relative', overflow: 'hidden' }}>
+          {/* Chart Container */}
+          <div className="tc-chart-container" style={{ position: 'relative', overflow: 'hidden' }}>
 
-          {/* Floating Rotate Screen Button removed and moved to header */}
+            {/* Floating Rotate Screen Button removed and moved to header */}
 
-          {/* Floating Order Panel Toggle */}
-          {(isLandscape || isCssLandscape) && (
-            <div 
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 10,
-                width: '24px',
-                height: '56px',
-                background: 'var(--bg-card, #1E222D)',
-                border: '1px solid var(--border-color, #2B3139)',
-                borderRight: 'none',
-                borderRadius: '6px 0 0 6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '-2px 0 12px rgba(0,0,0,0.2)',
-                color: 'var(--text-secondary, #787B86)',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => setIsPanelExpanded(!isPanelExpanded)}
-            >
-              <i className={`ti ${isPanelExpanded ? 'ti-chevron-right' : 'ti-chevron-left'}`} style={{ fontSize: '18px' }}></i>
-            </div>
-          )}
+            {/* Floating Order Panel Toggle */}
+            {(isLandscape || isCssLandscape) && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 10,
+                  width: '24px',
+                  height: '56px',
+                  background: 'var(--bg-card, #1E222D)',
+                  border: '1px solid var(--border-color, #2B3139)',
+                  borderRight: 'none',
+                  borderRadius: '6px 0 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '-2px 0 12px rgba(0,0,0,0.2)',
+                  color: 'var(--text-secondary, #787B86)',
+                  transition: 'all 0.2s ease'
+                }}
+                onClick={() => setIsPanelExpanded(!isPanelExpanded)}
+              >
+                <i className={`ti ${isPanelExpanded ? 'ti-chevron-right' : 'ti-chevron-left'}`} style={{ fontSize: '18px' }}></i>
+              </div>
+            )}
 
-          {/* BUY/price/SELL widget — HIDDEN */}
+            {/* BUY/price/SELL widget — HIDDEN */}
 
-          <ChartContainer
-            key={`${symbol}-${segment}`}
-            symbol={symbol}
-            segment={segment}
-            timeframe={timeframe}
-            chartType={chartType}
-            candles={historicalCandles}
-            liveQuote={activeLiveQuote}
-            loading={loading && !hasLoadedData.current}
-            error={error}
-          />
+            <ChartContainer
+              key={`${symbol}-${segment}`}
+              symbol={symbol}
+              segment={segment}
+              timeframe={timeframe}
+              chartType={chartType}
+              candles={historicalCandles}
+              liveQuote={activeLiveQuote}
+              loading={loading && !hasLoadedData.current}
+              error={error}
+            />
+          </div>
         </div>
-      </div>
 
-      <div 
-        style={(isLandscape || isCssLandscape) ? {
-          width: isPanelExpanded ? '340px' : '0px',
-          display: isPanelExpanded ? 'flex' : 'none',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          borderLeft: '1px solid var(--border-color, #eaecef)',
-          background: 'var(--surface, #FFFFFF)',
-          zIndex: 10,
-          flexShrink: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden'
-        } : {
-          display: 'flex',
-          flexDirection: 'column',
-          width: '100%',
-          flexShrink: 0,
-          zIndex: 10
-        }}
-      >
+        <div
+          style={(isLandscape || isCssLandscape) ? {
+            width: isPanelExpanded ? '340px' : '0px',
+            display: isPanelExpanded ? 'flex' : 'none',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            borderLeft: '1px solid var(--border-color, #eaecef)',
+            background: 'var(--surface, #FFFFFF)',
+            zIndex: 10,
+            flexShrink: 0,
+            height: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          } : {
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            flexShrink: 0,
+            zIndex: 10
+          }}
+        >
+          {(isLandscape || isCssLandscape) && <div style={{ marginTop: 'auto', flexShrink: 0 }}></div>}
 
-        {/* P&L Card */}
+          {/* P&L Card */}
         {!isOrderBlockVisible && (
           <div className="pnl-card" id="pnlCard">
-            {isTradeOnChartActive ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
-                    <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+              {isTradeOnChartActive ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
+                      <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+                    </div>
+                    <div>
+                      <span className="pnl-text">P/L: </span>
+                      <span className={`pnl-amount ${pnlTotal >= 0 ? 'positive' : 'negative'}`}>
+                        {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button className="trade-btn sell" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--red, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                      <span className="btn-label" style={{ color: 'var(--red, #e53935)', fontSize: '11px', fontWeight: 600 }}>SL</span>
+                    </button>
+                    <button className="trade-btn buy" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--green, #1db954)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                      <span className="btn-label" style={{ color: 'var(--green, #1db954)', fontSize: '11px', fontWeight: 600 }}>TP</span>
+                    </button>
+                    <div className="pnl-toggle-btn" onClick={() => setIsTradeOnChartActive(false)} style={{ background: 'var(--pill-bg, #1a2432)', color: 'var(--text-primary)', cursor: 'pointer', marginLeft: '4px' }}>
+                      <i className="ti ti-x"></i>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
                   <div>
                     <span className="pnl-text">P/L: </span>
                     <span className={`pnl-amount ${pnlTotal >= 0 ? 'positive' : 'negative'}`}>
                       {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
                     </span>
                   </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button className="trade-btn sell" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--red, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                    <span className="btn-label" style={{ color: 'var(--red, #e53935)', fontSize: '11px', fontWeight: 600 }}>SL</span>
-                  </button>
-                  <button className="trade-btn buy" onClick={() => showToast('Available soon')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'transparent', border: '1.5px solid var(--green, #1db954)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                    <span className="btn-label" style={{ color: 'var(--green, #1db954)', fontSize: '11px', fontWeight: 600 }}>TP</span>
-                  </button>
-                  <div className="pnl-toggle-btn" onClick={() => setIsTradeOnChartActive(false)} style={{ background: 'var(--pill-bg, #1a2432)', color: 'var(--text-primary)', cursor: 'pointer', marginLeft: '4px' }}>
-                    <i className="ti ti-x"></i>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      title="Scalp"
+                      onClick={() => setIsTradeOnChartActive(true)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 14px',
+                        borderRadius: '4px',
+                        background: 'var(--green-bg, #e8f5e9)',
+                        color: 'var(--green, #1db954)',
+                        cursor: 'pointer',
+                        border: '1px solid var(--green, #1db954)',
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>Scalp</span>
+                    </div>
+                    <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
+                      <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
+                    </div>
                   </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <span className="pnl-text">P/L: </span>
-                  <span className={`pnl-amount ${pnlTotal >= 0 ? 'positive' : 'negative'}`}>
-                    {pnlTotal >= 0 ? '+' : ''}₹{pnlTotal.toFixed(2)}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div
-                    title="Scalp"
-                    onClick={() => setIsTradeOnChartActive(true)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 14px',
-                      borderRadius: '4px',
-                      background: 'var(--green-bg, #e8f5e9)',
-                      color: 'var(--green, #1db954)',
-                      cursor: 'pointer',
-                      border: '1px solid var(--green, #1db954)',
-                    }}
-                  >
-                    <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>Scalp</span>
-                  </div>
-                  <div className="pnl-toggle-btn" onClick={() => setIsBottomSectionVisible(!isBottomSectionVisible)} style={{ cursor: 'pointer' }}>
-                    <i className={`ti ${isBottomSectionVisible ? 'ti-chevron-up' : 'ti-chevron-down'}`}></i>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                </>
+              )}
+            </div>
+          )}
 
-        {/* Bottom Section */}
-        <div 
-          className={`bottom-section ${(!isBottomSectionVisible && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`} 
-          id="bottomSection"
-          style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } : {}}
-        >
+          {/* Bottom Section */}
+          <div
+            className={`bottom-section ${(!isBottomSectionVisible && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`}
+            id="bottomSection"
+            style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column' } : {}}
+          >
             {/* Trade Buttons — show Exit when position exists for current symbol, else Buy/Sell */}
             {!isUnderlyingIndex && !isOrderBlockVisible && (
               currentInstrumentPosition ? (
@@ -2353,21 +2362,21 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               </div>
             </div>
 
-            <div 
-              className={`info-panel ${(!isPanelExpanded && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`} 
+            <div
+              className={`info-panel ${(!isPanelExpanded && !(isLandscape || isCssLandscape)) ? 'collapsed' : ''}`}
               id="infoPanel"
-              style={(isLandscape || isCssLandscape) ? { flex: 1, minHeight: 0, maxHeight: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : {}}
+              style={(isLandscape || isCssLandscape) ? { display: 'flex', flexDirection: 'column', width: '100%' } : {}}
             >
-              <div 
+              <div
                 className={`panel-content ${activeSegment === 'chain' ? 'chain-mode' : ''}`}
-                style={(isLandscape || isCssLandscape) ? { flex: 1, minHeight: 0, maxHeight: 'none', overflowY: 'scroll' } : {}}
+                style={(isLandscape || isCssLandscape) ? { minHeight: 0, maxHeight: 'none' } : {}}
               >
                 {renderPanelContent()}
               </div>
             </div>
           </div>
         </div>
-      {/* End of Right / Bottom Panel Area */}
+        {/* End of Right / Bottom Panel Area */}
       </div>
       {/* End of Content Split Container */}
       {toast.visible && (
