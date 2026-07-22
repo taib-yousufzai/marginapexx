@@ -507,6 +507,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Gyroscope-based rotation detection (bypasses OS/manifest portrait lock)
   const lastPhysicalOrientation = useRef<'portrait' | 'landscape' | null>(null);
+  const targetOrientation = useRef<'portrait' | 'landscape' | null>(null);
+  const orientationTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleDeviceOrientation = (event: any) => {
@@ -517,19 +519,31 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       const absGamma = Math.abs(gamma);
       const absBeta = Math.abs(beta);
 
+      let detected: 'portrait' | 'landscape' | null = null;
+      
       // Phone is tilted sideways (landscape)
       if (absGamma > 50 && absBeta < 40) {
-        if (lastPhysicalOrientation.current !== 'landscape') {
-          lastPhysicalOrientation.current = 'landscape';
-          setIsCssLandscape(true);
-        }
+        detected = 'landscape';
       }
       // Phone is held upright (portrait)
       else if (absBeta > 50 && absGamma < 40) {
-        if (lastPhysicalOrientation.current !== 'portrait') {
-          lastPhysicalOrientation.current = 'portrait';
-          setIsCssLandscape(false);
+        detected = 'portrait';
+      }
+
+      if (detected && detected !== targetOrientation.current) {
+        targetOrientation.current = detected;
+        
+        if (orientationTimeout.current) {
+          clearTimeout(orientationTimeout.current);
         }
+        
+        // Add a 350ms delay so the rotation feels natural and doesn't flicker
+        orientationTimeout.current = setTimeout(() => {
+          if (lastPhysicalOrientation.current !== detected) {
+            lastPhysicalOrientation.current = detected;
+            setIsCssLandscape(detected === 'landscape');
+          }
+        }, 350);
       }
     };
 
