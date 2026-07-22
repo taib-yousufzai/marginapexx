@@ -444,6 +444,17 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [segment, setSegment] = useState(propSegment);
 
   useEffect(() => {
+    if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+      try { screen.orientation.unlock(); } catch (e) {}
+    }
+    return () => {
+      if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     setSymbol(propSymbol);
     setSegment(propSegment);
   }, [propSymbol, propSegment]);

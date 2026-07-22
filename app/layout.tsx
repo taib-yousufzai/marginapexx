@@ -55,6 +55,9 @@ export default function RootLayout({
               if(t === 'blue') document.body.classList.add('blue');
             } catch(e){}
             if('scrollRestoration' in history) history.scrollRestoration = 'manual';
+            if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('portrait').catch(function(){});
+            }
           })();
         `}} />
         <MarketDataProvider>
