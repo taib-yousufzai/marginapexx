@@ -505,6 +505,36 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     };
   }, []);
 
+  // Gyroscope-based rotation detection (bypasses OS/manifest portrait lock)
+  useEffect(() => {
+    const handleDeviceOrientation = (event: any) => {
+      const gamma = event.gamma;
+      const beta = event.beta;
+      if (gamma === null || beta === null) return;
+
+      const absGamma = Math.abs(gamma);
+      const absBeta = Math.abs(beta);
+
+      // Phone is tilted sideways (landscape)
+      if (absGamma > 50 && absBeta < 40) {
+        setIsCssLandscape(true);
+      }
+      // Phone is held upright (portrait)
+      else if (absBeta > 50 && absGamma < 40) {
+        setIsCssLandscape(false);
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleDeviceOrientation);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deviceorientation', handleDeviceOrientation);
+      }
+    };
+  }, []);
+
   const toggleStar = (item: any) => {
     setStarredInstruments(prev => {
       const isStarred = prev.some(p => p.kiteSymbol === item.kiteSymbol);

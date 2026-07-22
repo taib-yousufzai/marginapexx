@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Advanced Trading App experience',
     start_url: '/',
     display: 'standalone',
-    orientation: 'any',
+    orientation: 'portrait',
     background_color: '#FFFFFF',
     theme_color: '#FFFFFF',
     icons: [
