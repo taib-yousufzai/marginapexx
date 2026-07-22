@@ -5,6 +5,7 @@ import InstallPrompt from '@/components/InstallPrompt';
 import { MarketDataProvider } from '@/contexts/MarketDataContext';
 import { BinanceDataProvider } from '@/contexts/BinanceDataContext';
 import { ComexDataProvider } from '@/contexts/ComexDataContext';
+import ClientOrientationLock from '@/components/ClientOrientationLock';
 
 export const viewport: Viewport = {
   themeColor: [{ media: '(prefers-color-scheme: light)', color: '#ffffff' }, { media: '(prefers-color-scheme: dark)', color: '#1E1E1E' }],
@@ -62,6 +63,7 @@ export default function RootLayout({
             <ComexDataProvider>
               {children}
               <InstallPrompt />
+              <ClientOrientationLock />
             </ComexDataProvider>
           </BinanceDataProvider>
         </MarketDataProvider>
