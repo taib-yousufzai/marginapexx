@@ -1887,6 +1887,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           }}
         >
 
+          {/* In landscape mode: push content to bottom */}
+          {(isLandscape || isCssLandscape) && <div style={{ flex: 1 }} />}
+
           {/* P&L Card */}
         {!isOrderBlockVisible && (
           <div className="pnl-card" id="pnlCard" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
