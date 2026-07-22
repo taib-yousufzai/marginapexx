@@ -1866,8 +1866,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             zIndex: 10,
             flexShrink: 0,
             height: '100%',
-            overflowY: 'auto',
-            overflowX: 'hidden'
+            overflow: 'hidden'
           } : {
             display: 'flex',
             flexDirection: 'column',
@@ -1876,7 +1875,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             zIndex: 10
           }}
         >
-          {(isLandscape || isCssLandscape) && <div style={{ marginTop: 'auto', flexShrink: 0 }}></div>}
 
           {/* P&L Card */}
         {!isOrderBlockVisible && (
