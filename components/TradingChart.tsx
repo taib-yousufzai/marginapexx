@@ -506,6 +506,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   }, []);
 
   // Gyroscope-based rotation detection (bypasses OS/manifest portrait lock)
+  const lastPhysicalOrientation = useRef<'portrait' | 'landscape' | null>(null);
+
   useEffect(() => {
     const handleDeviceOrientation = (event: any) => {
       const gamma = event.gamma;
@@ -517,11 +519,17 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
       // Phone is tilted sideways (landscape)
       if (absGamma > 50 && absBeta < 40) {
-        setIsCssLandscape(true);
+        if (lastPhysicalOrientation.current !== 'landscape') {
+          lastPhysicalOrientation.current = 'landscape';
+          setIsCssLandscape(true);
+        }
       }
       // Phone is held upright (portrait)
       else if (absBeta > 50 && absGamma < 40) {
-        setIsCssLandscape(false);
+        if (lastPhysicalOrientation.current !== 'portrait') {
+          lastPhysicalOrientation.current = 'portrait';
+          setIsCssLandscape(false);
+        }
       }
     };
 
