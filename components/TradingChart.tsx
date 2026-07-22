@@ -1860,7 +1860,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             width: isPanelExpanded ? '340px' : '0px',
             display: isPanelExpanded ? 'flex' : 'none',
             flexDirection: 'column',
-            justifyContent: 'flex-end',
+            justifyContent: 'flex-start',
             borderLeft: '1px solid var(--border-color, #eaecef)',
             background: 'var(--surface, #FFFFFF)',
             zIndex: 10,
