@@ -1877,6 +1877,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             zIndex: 10,
             flexShrink: 0,
             height: '100%',
+            paddingTop: '12px',
             overflow: 'hidden'
           } : {
             display: 'flex',
