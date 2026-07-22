@@ -1877,7 +1877,6 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
             zIndex: 10,
             flexShrink: 0,
             height: '100%',
-            paddingTop: '12px',
             overflow: 'hidden'
           } : {
             display: 'flex',
@@ -1888,6 +1887,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           }}
         >
 
+          {/* In landscape mode: push content to bottom ONLY if the info panel is collapsed */}
+          {(isLandscape || isCssLandscape) && isInfoPanelCollapsed && <div style={{ flex: 1 }} />}
 
           {/* P&L Card */}
         {!isOrderBlockVisible && (
