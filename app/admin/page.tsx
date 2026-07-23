@@ -29,23 +29,9 @@ import TransactionsPage from '@/components/admin/TransactionsPage';
 import UserPanel from '@/components/admin/UserPanel';
 import TemplatesPage from '@/components/admin/TemplatesPage';
 import BrokersPage from '@/components/admin/BrokersPage';
+import AdminsPage from '@/components/admin/AdminsPage';
 
-const navItems = [
-  { key: 'telegram', label: 'TELEGRAM' },
-  { key: 'settings', label: 'SETTINGS' },
-  { key: 'marketwatch', label: 'MARKETWATCH' },
-  { key: 'dashboard', label: 'DASHBOARD' },
-  { key: 'orders', label: 'ORDERS' },
-  { key: 'position', label: 'POSITION' },
-  { key: 'update', label: 'UPDATE' },
-  { key: 'users', label: 'USERS' },
-  { key: 'brokers', label: 'BROKERS' },
-  { key: 'templates', label: 'TEMPLATES' },
-  { key: 'actledger', label: 'ACT LEDGER' },
-  { key: 'accounts', label: 'ACCOUNTS' },
-  { key: 'payinout', label: 'PAYIN-OUT' },
-  { key: 'logout', label: 'LOGOUT' },
-];
+// We will now group the navigation items directly in the render function.
 
 export default function AdminPage() {
   const router = useRouter();
@@ -57,6 +43,19 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUserPayload>({ id: '', role: '' });
   const [userRole, setUserRole] = useState<string>('');
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (groupKey: string) => setCollapsedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+
+  const renderGroupHeader = (title: string, groupKey: string) => (
+    <div 
+      onClick={() => toggleGroup(groupKey)}
+      style={{ fontSize: '10px', fontWeight: 700, color: '#8b949e', marginTop: '16px', marginBottom: '8px', paddingLeft: '16px', paddingRight: '16px', letterSpacing: '1px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}
+    >
+      {title}
+      <i className={`fas fa-chevron-${collapsedGroups[groupKey] ? 'down' : 'up'}`} style={{ fontSize: '10px', transition: 'transform 0.2s' }} />
+    </div>
+  );
 
   useEffect(() => {
     getSession().then((session) => {
@@ -149,24 +148,63 @@ export default function AdminPage() {
       <div className={`adm-drawer ${drawerOpen ? 'open' : ''}`}>
         <button className="adm-drawer-close" onClick={() => setDrawerOpen(false)}>✕</button>
         <nav className="adm-nav">
-          {navItems.map(item => (
-            <div
-              key={item.key}
-              className={`adm-nav-item ${activePage === item.key ? 'active' : ''}`}
-              onClick={() => handleNav(item.key)}
-            >
-              {item.label}
+          {renderGroupHeader('OVERVIEW', 'overview')}
+          {!collapsedGroups['overview'] && ['marketwatch', 'dashboard'].map(key => (
+            <div key={key} className={`adm-nav-item ${activePage === key ? 'active' : ''}`} onClick={() => handleNav(key)}>
+              {key.toUpperCase()}
             </div>
           ))}
-          {userRole === 'super_admin' && (
-            <div
-              key="paymentaccounts"
-              className={`adm-nav-item ${activePage === 'paymentaccounts' ? 'active' : ''}`}
-              onClick={() => handleNav('paymentaccounts')}
-            >
-              PAYMENT ACCOUNTS
+
+          {renderGroupHeader('TRADE', 'trade')}
+          {!collapsedGroups['trade'] && ['orders', 'position', 'update', 'templates'].map(key => (
+            <div key={key} className={`adm-nav-item ${activePage === key ? 'active' : ''}`} onClick={() => handleNav(key)}>
+              {key.toUpperCase()}
             </div>
+          ))}
+
+          {renderGroupHeader('USERS', 'users')}
+          {!collapsedGroups['users'] && (
+            <>
+              {userRole === 'super_admin' && (
+                <div key="admins" className={`adm-nav-item ${activePage === 'admins' ? 'active' : ''}`} onClick={() => handleNav('admins')}>
+                  ADMINS
+                </div>
+              )}
+              {['brokers', 'users'].map(key => (
+                <div key={key} className={`adm-nav-item ${activePage === key ? 'active' : ''}`} onClick={() => handleNav(key)}>
+                  {key.toUpperCase()}
+                </div>
+              ))}
+            </>
           )}
+
+          {renderGroupHeader('FINANCE', 'finance')}
+          {!collapsedGroups['finance'] && (
+            <>
+              {['actledger', 'accounts', 'payinout'].map(key => (
+                <div key={key} className={`adm-nav-item ${activePage === key ? 'active' : ''}`} onClick={() => handleNav(key)}>
+                  {key === 'actledger' ? 'ACT LEDGER' : key === 'payinout' ? 'PAYIN-OUT' : key.toUpperCase()}
+                </div>
+              ))}
+              {(userRole === 'super_admin' || userRole === 'admin') && (
+                <div key="paymentaccounts" className={`adm-nav-item ${activePage === 'paymentaccounts' ? 'active' : ''}`} onClick={() => handleNav('paymentaccounts')}>
+                  PAYMENT ACCOUNTS
+                </div>
+              )}
+            </>
+          )}
+
+          {renderGroupHeader('SYSTEM', 'system')}
+          {!collapsedGroups['system'] && ['settings', 'telegram'].map(key => (
+            <div key={key} className={`adm-nav-item ${activePage === key ? 'active' : ''}`} onClick={() => handleNav(key)}>
+              {key.toUpperCase()}
+            </div>
+          ))}
+
+          <div style={{ marginTop: '24px' }} />
+          <div key="logout" className={`adm-nav-item`} onClick={() => handleNav('logout')}>
+            <span style={{ color: '#f85149' }}>LOGOUT</span>
+          </div>
         </nav>
         <div style={{ padding: '16px', borderTop: '1px solid #21262d', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', background: isDemoMode ? 'rgba(234, 179, 8, 0.1)' : 'rgba(255,255,255,0.05)', borderRadius: '8px', border: `1px solid ${isDemoMode ? 'rgba(234, 179, 8, 0.3)' : 'rgba(255,255,255,0.1)'}` }}>
@@ -205,7 +243,7 @@ export default function AdminPage() {
           )}
         </div>
 
-        <div className="adm-content">
+    <div className="adm-content">
           <PageContent
             activePage={activePage}
             selectedUser={selectedUser}
@@ -213,6 +251,7 @@ export default function AdminPage() {
             onOpenUserPanel={() => setUserPanelOpen(true)}
             onNavigate={(page) => { window.location.hash = page; }}
             isDemoMode={isDemoMode}
+            userRole={userRole}
           />
         </div>
       </div>
@@ -220,13 +259,14 @@ export default function AdminPage() {
   );
 }
 
-function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate, isDemoMode }: {
+function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, onNavigate, isDemoMode, userRole }: {
   activePage: string;
   selectedUser: AdminUserPayload;
   onSelectUser: (u: AdminUserPayload) => void;
   onOpenUserPanel: () => void;
   onNavigate: (page: string) => void;
   isDemoMode: boolean;
+  userRole: string;
 }) {
   const show = (key: string) => ({ display: activePage === key ? undefined : 'none' } as React.CSSProperties);
 
@@ -241,6 +281,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
       <div style={show('update')}><UpdatePage selectedUser={selectedUser} onOpenUserPanel={onOpenUserPanel} /></div>
       <div style={show('users')}><UsersPage selectedUser={selectedUser} onSelectUser={onSelectUser} onNavigate={onNavigate} isDemoMode={isDemoMode} /></div>
       <div style={show('brokers')}><BrokersPage isDemoMode={isDemoMode} /></div>
+      <div style={show('admins')}><AdminsPage isDemoMode={isDemoMode} /></div>
       <div style={show('templates')}><TemplatesPage isDemoMode={isDemoMode} /></div>
       <div style={show('create')}>
         <CreateUserForm
@@ -250,6 +291,7 @@ function PageContent({ activePage, selectedUser, onSelectUser, onOpenUserPanel, 
             onSelectUser({ id, role });
           }}
           isDemoMode={isDemoMode}
+          callerRole={userRole}
         />
       </div>
       <div style={{ display: (activePage === 'actledger' || activePage === 'transactions') ? undefined : 'none' }}>

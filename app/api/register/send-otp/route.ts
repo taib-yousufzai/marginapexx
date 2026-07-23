@@ -64,11 +64,11 @@ export async function POST(req: NextRequest) {
     // ── Resolve brokerRef ─────────────────────────────────────────────────────
     let resolvedBrokerRef = brokerRef?.trim() || null;
     if (resolvedBrokerRef) {
-      if (resolvedBrokerRef.length === 8 && !resolvedBrokerRef.includes('-')) {
+      if (resolvedBrokerRef.length === 6) {
         const { data: brokerProfile } = await admin
           .from('profiles')
           .select('id')
-          .eq('referral_code', resolvedBrokerRef)
+          .eq('client_id', resolvedBrokerRef.toUpperCase())
           .single();
         if (brokerProfile) {
           resolvedBrokerRef = brokerProfile.id;
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
           resolvedBrokerRef = null; // Invalid referral code
         }
       } else if (resolvedBrokerRef.length !== 36) {
-        // Not a UUID and not an 8-char code
+        // Not a UUID and not a 6-char code
         resolvedBrokerRef = null;
       }
     }

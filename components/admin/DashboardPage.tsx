@@ -26,62 +26,26 @@ export type DashboardMetrics = {
   conversion: string;
 };
 
-export type MetricsStore = Record<string, string | number>;
-
-export const metricsToStore = (m: DashboardMetrics | null): MetricsStore => {
-  if (!m) return {};
-  const fmt = (n: number | null | undefined) => {
-    if (n === null || n === undefined || isNaN(n)) return '0.00';
-    return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
-  
-  return {
-    'LEDGER BALANCE': '₹' + fmt(m.ledger_balance),
-    'NET BALANCE': '₹' + fmt(m.net_balance ?? 0),
-    'MARGIN USED': '₹' + fmt(m.margin_used ?? 0),
-    'MARK-TO-MARKET': '₹' + fmt(m.mark_to_market),
-    'NET P&L': '₹' + fmt(m.net_pnl ?? 0),
-    'BROKERAGE': '₹' + fmt(m.total_brokerage ?? 0),
-    'NET': '₹' + fmt(m.net),
-    'TOTAL DEPOSITS': '₹' + fmt(m.total_deposits),
-    'TOTAL WITHDRAWALS': '₹' + fmt(m.total_withdrawals),
-    'AVG DEPOSIT': '₹' + fmt(m.avg_deposit),
-    'AVG WITHDRAWAL': '₹' + fmt(m.avg_withdrawal),
-    'REGISTERED': m.registered || 0,
-    'ADDED FUNDS': m.added_funds || 0,
-    'CONVERSION': m.conversion || '0%',
-    'AVG PROFIT': '₹' + fmt(m.avg_profit),
-    'AVG LOSS': '₹' + fmt(m.avg_loss),
-    'PROFITABLE CLIENTS': m.profitable_clients || 0,
-    'LOSS-MAKING CLIENTS': m.loss_making_clients || 0,
-    'BUY POSITION': m.buy_position_count || 0,
-    'SELL POSITION': m.sell_position_count || 0,
-    'RATIO': (m.sell_position_count ? (m.buy_position_count / m.sell_position_count) : m.buy_position_count).toFixed(2),
-  };
+// Helper for formatting numbers
+const fmt = (n: number | null | undefined) => {
+  if (n === null || n === undefined || isNaN(n)) return '0.00';
+  return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-function DashBoardSection({ title, fields, metrics, onFetch, loading }: {
-  title: string;
-  fields: { label: string }[];
-  metrics: MetricsStore;
-  onFetch: () => void;
-  loading: boolean;
-}) {
+// Reusable stat row component
+function StatRow({ label, value, icon, isPositive, isNegative }: { label: string, value: string | number, icon: string, isPositive?: boolean, isNegative?: boolean }) {
+  let colorClass = '';
+  if (isPositive) colorClass = 'pos';
+  if (isNegative) colorClass = 'neg';
+
   return (
-    <div className="adm-db-section">
-      <div className="adm-db-sec-header">
-        <h3 className="adm-db-sec-title">{title}</h3>
-        <button className="adm-db-refresh" onClick={onFetch} disabled={loading}>
-          <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />
-        </button>
+    <div className="adm-db-stat-row">
+      <div className="adm-db-stat-label">
+        <i className={icon} style={{ opacity: 0.7, width: 16, textAlign: 'center' }} />
+        {label}
       </div>
-      <div className="adm-db-grid">
-        {fields.map(f => (
-          <div className="adm-db-card" key={f.label}>
-            <div className="adm-db-label">{f.label}</div>
-            <div className="adm-db-value">{metrics[f.label] ?? '—'}</div>
-          </div>
-        ))}
+      <div className={`adm-db-stat-value adm-db-value ${colorClass}`}>
+        {value}
       </div>
     </div>
   );
@@ -163,20 +127,26 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel, isDemoMod
     return () => clearInterval(interval);
   }, [fetchMetrics]);
 
-  const metricsStore = metricsToStore(metrics);
-
   const brokers = usersList.filter(u => u.role === 'broker');
   const subBrokers = usersList.filter(u => u.role === 'sub_broker' && (!brokerId || u.parent_id === brokerId));
   const clients = usersList.filter(u => (u.role === 'user' || u.role === 'client') && (!subBrokerId ? (!brokerId || u.parent_id === brokerId) : u.parent_id === subBrokerId));
 
+  const m2m = metrics?.mark_to_market ?? 0;
+  const netPnl = metrics?.net_pnl ?? 0;
+  const netBal = metrics?.net_balance ?? 0;
+  const ledger = metrics?.ledger_balance ?? 0;
+  const netDepWith = metrics?.net ?? 0;
+
   return (
     <div className="adm-db-root">
       <Toast toast={toast} onDismiss={() => setToast(null)} />
+      
+      {/* Top Filter Bar */}
       <div className="adm-db-top-card" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div className="adm-db-username" style={{ margin: 0 }}>
-            <i className="fas fa-chart-line" style={{ marginRight: 8, opacity: 0.7 }} />
-            Platform Dashboard
+          <div className="adm-db-username" style={{ margin: 0, fontSize: '1.2rem' }}>
+            <i className="fas fa-chart-pie" style={{ marginRight: 8, color: '#1f6feb' }} />
+            Performance Dashboard
           </div>
           <div className="adm-db-filter-row">
             <span className="adm-db-filter-label">Date:</span>
@@ -185,6 +155,9 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel, isDemoMod
               <span className="adm-db-filter-dash">–</span>
               <input type="date" className="adm-db-date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
             </div>
+            <button className="adm-db-refresh" onClick={() => fetchMetrics(true)} disabled={loading} style={{ padding: '0 12px', borderRadius: 6, marginLeft: 8 }}>
+              <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />
+            </button>
           </div>
         </div>
         
@@ -207,52 +180,124 @@ export default function DashboardPage({ selectedUser, onOpenUserPanel, isDemoMod
         </div>
       </div>
 
-      <DashBoardSection key="bal" metrics={metricsStore} title="BALANCE INFO" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-        { label: 'LEDGER BALANCE' },
-        { label: 'NET BALANCE' },
-        { label: 'MARGIN USED' },
-      ]} />
-
       {loading && !metrics ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} rows={4} />
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
+          <SkeletonCard rows={3} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+             <SkeletonCard rows={4} />
+             <SkeletonCard rows={4} />
+          </div>
         </div>
-      ) : (<>
-        <DashBoardSection key="pnl_overall" metrics={metricsStore} title="OVERALL P&L" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-          { label: 'MARK-TO-MARKET' },
-          { label: 'BROKERAGE' },
-          { label: 'NET P&L' },
-        ]} />
+      ) : (
+        <>
+          {/* KPI Hero Cards */}
+          <div className="adm-db-hero-grid" style={{ marginTop: 16 }}>
+            <div className="adm-db-hero-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="adm-db-hero-title">Net Ledger Balance</div>
+                <div className="adm-db-hero-icon-wrapper" style={{ background: 'rgba(46, 160, 67, 0.1)', color: '#2ea043' }}>
+                  <i className="fas fa-wallet" />
+                </div>
+              </div>
+              <div className="adm-db-hero-value">₹{fmt(ledger)}</div>
+            </div>
 
-        <DashBoardSection key="dep" metrics={metricsStore} title="DEPOSITS & WITHDRAWALS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-          { label: 'NET' },
-          { label: 'TOTAL DEPOSITS' },
-          { label: 'TOTAL WITHDRAWALS' },
-          { label: 'AVG DEPOSIT' },
-          { label: 'AVG WITHDRAWAL' },
-        ]} />
+            <div className="adm-db-hero-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="adm-db-hero-title">Total Mark-To-Market</div>
+                <div className="adm-db-hero-icon-wrapper" style={{ background: m2m >= 0 ? 'rgba(46, 160, 67, 0.1)' : 'rgba(248, 81, 73, 0.1)', color: m2m >= 0 ? '#2ea043' : '#f85149' }}>
+                  <i className={`fas fa-arrow-trend-${m2m >= 0 ? 'up' : 'down'}`} />
+                </div>
+              </div>
+              <div className={`adm-db-hero-value adm-db-value ${m2m >= 0 ? 'pos' : 'neg'}`}>
+                {m2m >= 0 ? '+' : ''}₹{fmt(m2m)}
+              </div>
+            </div>
 
-        <DashBoardSection key="reg" metrics={metricsStore} title="CLIENT REGISTRATION" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-          { label: 'REGISTERED' },
-          { label: 'ADDED FUNDS' },
-          { label: 'CONVERSION' },
-        ]} />
+            <div className="adm-db-hero-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="adm-db-hero-title">Net P&L</div>
+                <div className="adm-db-hero-icon-wrapper" style={{ background: netPnl >= 0 ? 'rgba(46, 160, 67, 0.1)' : 'rgba(248, 81, 73, 0.1)', color: netPnl >= 0 ? '#2ea043' : '#f85149' }}>
+                  <i className="fas fa-chart-line" />
+                </div>
+              </div>
+              <div className={`adm-db-hero-value adm-db-value ${netPnl >= 0 ? 'pos' : 'neg'}`}>
+                {netPnl >= 0 ? '+' : ''}₹{fmt(netPnl)}
+              </div>
+            </div>
 
-        <DashBoardSection key="pnl_client" metrics={metricsStore} title="CLIENT PROFIT & LOSS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-          { label: 'AVG PROFIT' },
-          { label: 'AVG LOSS' },
-          { label: 'PROFITABLE CLIENTS' },
-          { label: 'LOSS-MAKING CLIENTS' },
-        ]} />
+            <div className="adm-db-hero-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="adm-db-hero-title">Total Brokerage</div>
+                <div className="adm-db-hero-icon-wrapper" style={{ background: 'rgba(31, 111, 235, 0.1)', color: '#1f6feb' }}>
+                  <i className="fas fa-hand-holding-usd" />
+                </div>
+              </div>
+              <div className="adm-db-hero-value">₹{fmt(metrics?.total_brokerage ?? 0)}</div>
+            </div>
+          </div>
 
-        <DashBoardSection key="pos" metrics={metricsStore} title="POSITION DETAILS" onFetch={() => fetchMetrics(true)} loading={loading} fields={[
-          { label: 'BUY POSITION' },
-          { label: 'SELL POSITION' },
-          { label: 'RATIO' },
-        ]} />
-      </>)}
+          {/* Categorized Panels */}
+          <div className="adm-db-panel-grid">
+            
+            <div className="adm-db-panel">
+              <div className="adm-db-panel-title">
+                <i className="fas fa-exchange-alt" style={{ color: '#8957e5' }} />
+                Fund Flow Analytics
+              </div>
+              <div className="adm-db-panel-content">
+                <StatRow label="Net Flow" value={`${netDepWith >= 0 ? '+' : ''}₹${fmt(netDepWith)}`} icon="fas fa-balance-scale" isPositive={netDepWith >= 0} isNegative={netDepWith < 0} />
+                <StatRow label="Total Deposits" value={`₹${fmt(metrics?.total_deposits ?? 0)}`} icon="fas fa-arrow-down" isPositive={true} />
+                <StatRow label="Total Withdrawals" value={`₹${fmt(metrics?.total_withdrawals ?? 0)}`} icon="fas fa-arrow-up" isNegative={true} />
+                <StatRow label="Avg Deposit" value={`₹${fmt(metrics?.avg_deposit ?? 0)}`} icon="fas fa-compress-arrows-alt" />
+                <StatRow label="Avg Withdrawal" value={`₹${fmt(metrics?.avg_withdrawal ?? 0)}`} icon="fas fa-expand-arrows-alt" />
+              </div>
+            </div>
+
+            <div className="adm-db-panel">
+              <div className="adm-db-panel-title">
+                <i className="fas fa-users" style={{ color: '#d29922' }} />
+                Client Analytics
+              </div>
+              <div className="adm-db-panel-content">
+                <StatRow label="Registered Users" value={metrics?.registered ?? 0} icon="fas fa-user-plus" />
+                <StatRow label="Users Added Funds" value={metrics?.added_funds ?? 0} icon="fas fa-piggy-bank" />
+                <StatRow label="Conversion Rate" value={metrics?.conversion ?? '0%'} icon="fas fa-percentage" />
+                <StatRow label="Profitable Clients" value={metrics?.profitable_clients ?? 0} icon="fas fa-smile" isPositive={true} />
+                <StatRow label="Loss-Making Clients" value={metrics?.loss_making_clients ?? 0} icon="fas fa-frown" isNegative={true} />
+              </div>
+            </div>
+
+            <div className="adm-db-panel">
+              <div className="adm-db-panel-title">
+                <i className="fas fa-layer-group" style={{ color: '#2ea043' }} />
+                Positions & Margins
+              </div>
+              <div className="adm-db-panel-content">
+                <StatRow label="Net Balance" value={`₹${fmt(netBal)}`} icon="fas fa-coins" />
+                <StatRow label="Margin Used" value={`₹${fmt(metrics?.margin_used ?? 0)}`} icon="fas fa-lock" />
+                <StatRow label="Buy Positions" value={metrics?.buy_position_count ?? 0} icon="fas fa-level-up-alt" isPositive={true} />
+                <StatRow label="Sell Positions" value={metrics?.sell_position_count ?? 0} icon="fas fa-level-down-alt" isNegative={true} />
+                <StatRow label="B/S Ratio" value={(metrics?.sell_position_count ? ((metrics.buy_position_count ?? 0) / metrics.sell_position_count) : (metrics?.buy_position_count ?? 0)).toFixed(2)} icon="fas fa-divide" />
+              </div>
+            </div>
+
+            <div className="adm-db-panel">
+              <div className="adm-db-panel-title">
+                <i className="fas fa-chart-bar" style={{ color: '#f85149' }} />
+                Performance Metrics
+              </div>
+              <div className="adm-db-panel-content">
+                <StatRow label="Average Profit" value={`₹${fmt(metrics?.avg_profit ?? 0)}`} icon="fas fa-arrow-trend-up" isPositive={true} />
+                <StatRow label="Average Loss" value={`₹${fmt(metrics?.avg_loss ?? 0)}`} icon="fas fa-arrow-trend-down" isNegative={true} />
+                <StatRow label="Total Brokerage" value={`₹${fmt(metrics?.total_brokerage ?? 0)}`} icon="fas fa-hand-holding-usd" />
+                <StatRow label="Total M2M" value={`${m2m >= 0 ? '+' : ''}₹${fmt(m2m)}`} icon="fas fa-chart-area" isPositive={m2m >= 0} isNegative={m2m < 0} />
+              </div>
+            </div>
+
+          </div>
+        </>
+      )}
 
       <div style={{ height: 24 }} />
     </div>

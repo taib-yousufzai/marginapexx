@@ -20,7 +20,7 @@ export function useMarketQuotes(symbols: string[]) {
   const symbolsKey = symbols.join(',');
 
   useEffect(() => {
-    const currentSymbols = symbolsKey.split(',').filter(Boolean).filter(s => !isContractExpired(s));
+    const currentSymbols = symbolsKey.split(',').filter(Boolean);
     if (currentSymbols.length === 0) return;
 
     subscribe(currentSymbols);

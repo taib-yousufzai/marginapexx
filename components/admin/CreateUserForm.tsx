@@ -4,14 +4,14 @@ import { apiCall, Toast, ToastState } from './AdminUtils';
 
 const SEGMENTS = ['INDEX-FUT', 'STOCK-OPT', 'NSE-EQ', 'COMEX', 'INDEX-OPT', 'MCX-FUT', 'CRYPTO', 'STOCK-FUT', 'MCX-OPT', 'FOREX'];
 
-export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBack: () => void; onCreated: (id: string, role: string) => void; isDemoMode?: boolean }) {
+export default function CreateUserForm({ onBack, onCreated, isDemoMode, callerRole }: { onBack: () => void; onCreated: (id: string, role: string) => void; isDemoMode?: boolean; callerRole?: string }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('Broker');
+  const [role, setRole] = useState(callerRole === 'super_admin' ? 'Admin' : callerRole === 'admin' ? 'Broker' : 'User');
   const [parent, setParent] = useState('');
   const [copyFrom, setCopyFrom] = useState('');
   const [active, setActive] = useState(true);
@@ -121,8 +121,9 @@ export default function CreateUserForm({ onBack, onCreated, isDemoMode }: { onBa
         <div className="adm-cu-field">
           <label className="adm-cu-label">Role</label>
           <select className="adm-cu-input adm-cu-select" value={role} onChange={e => setRole(e.target.value)}>
-            <option>Broker</option>
-            <option>Sub Broker</option>
+            {callerRole === 'super_admin' && <option>Admin</option>}
+            {(callerRole === 'super_admin' || callerRole === 'admin') && <option>Broker</option>}
+            <option>User</option>
           </select>
         </div>
 

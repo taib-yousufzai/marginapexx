@@ -58,7 +58,11 @@ export function buildSymbolInfo(symbolName: string, segment: string): LibrarySym
   const ticker = symbolName;
 
   const exchange = isCrypto ? 'BINANCE' : deriveExchange(symbolName);
-  const session = isCrypto ? '24x7' : '0915-1530';
+  
+  let session = '0915-1530';
+  if (isCrypto) session = '24x7';
+  else if (exchange === 'MCX') session = '0900-2355';
+  else if (symbolName.startsWith('CDS:')) session = '0900-1700';
 
   return {
     name,

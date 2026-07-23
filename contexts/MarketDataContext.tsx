@@ -242,12 +242,12 @@ export const MarketDataProvider = ({ children }: { children: React.ReactNode }) 
   }, []);
 
   const subscribe = useCallback((symbols: string[]) => {
-    const validSymbols = symbols.filter(Boolean).filter(s => !isContractExpired(s));
+    const validSymbols = symbols.filter(Boolean);
     if (validSymbols.length > 0) wsManager.subscribe(validSymbols);
   }, []);
 
   const unsubscribe = useCallback((symbols: string[]) => {
-    const validSymbols = symbols.filter(Boolean).filter(s => !isContractExpired(s));
+    const validSymbols = symbols.filter(Boolean);
     if (validSymbols.length > 0) wsManager.unsubscribe(validSymbols);
   }, []);
 

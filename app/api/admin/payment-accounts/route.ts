@@ -10,7 +10,8 @@
  * Validates: Requirements 25.1, 25.2, 25.3, 25.4, 25.5, 25.6, 25.13, 26.1, 26.2, 26.3
  */
 
-import { requireSuperAdmin } from '../_auth';
+import { requireAdmin } from '../_auth';
+import { getRole } from '@/lib/auth';
 
 // ---------------------------------------------------------------------------
 // GET handler
@@ -25,22 +26,27 @@ import { requireSuperAdmin } from '../_auth';
  */
 export async function GET(request: Request): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize — super_admin only
-    // Validates: Requirements 25.1, 26.1
-    const authResult = await requireSuperAdmin(request);
+    // Step 1: Authenticate and authorize — admin or super_admin
+    const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
+    const callerRole = getRole(callerUser);
 
-    // Fetch all admins and super_admins
-    const { data: adminProfiles } = await adminClient
-      .from('profiles')
-      .select('id')
-      .in('role', ['admin', 'super_admin']);
-    
-    const adminIds = adminProfiles?.map((p: any) => p.id) || [];
     let filterStr = 'created_by.is.null'; // Always include global accounts with null created_by
-    if (adminIds.length > 0) {
-      filterStr = `created_by.in.(${adminIds.join(',')}),` + filterStr;
+    if (callerRole === 'super_admin') {
+      // Fetch all admins and super_admins
+      const { data: adminProfiles } = await adminClient
+        .from('profiles')
+        .select('id')
+        .in('role', ['admin', 'super_admin']);
+      
+      const adminIds = adminProfiles?.map((p: any) => p.id) || [];
+      if (adminIds.length > 0) {
+        filterStr = `created_by.in.(${adminIds.join(',')}),` + filterStr;
+      }
+    } else {
+      // admin only sees their own and globals
+      filterStr = `created_by.eq.${callerUser.id},` + filterStr;
     }
 
     // Step 2: Query payment_accounts ordered by sort_order ASC
@@ -85,11 +91,11 @@ export async function GET(request: Request): Promise<Response> {
  */
 export async function POST(request: Request): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize — super_admin only
+    // Step 1: Authenticate and authorize — admin or super_admin
     // Validates: Requirements 25.3, 26.2
-    const authResult = await requireSuperAdmin(request);
+    const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
 
     // Step 2: Parse multipart/form-data
     // Validates: Requirements 25.4
@@ -163,6 +169,7 @@ export async function POST(request: Request): Promise<Response> {
         ifsc: textValues.ifsc,
         upi_id: textValues.upi_id,
         qr_image_url: qrImageUrl,
+        created_by: callerUser.id,
       })
       .select()
       .single();

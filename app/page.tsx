@@ -20,10 +20,10 @@ const KITE_INSTRUMENTS_ROW1 = [
   'CDS:USDINR26JULFUT',
 ];
 const KITE_INSTRUMENTS_ROW2 = [
-  'MCX:CRUDEOIL26JULFUT',
+  'MCX:CRUDEOIL26AUGFUT',
   'MCX:GOLD26AUGFUT',
   'MCX:SILVER26SEPFUT',
-  'MCX:NATURALGAS26JULFUT',
+  'MCX:NATURALGAS26AUGFUT',
 ];
 
 const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
@@ -31,10 +31,10 @@ const KITE_DISPLAY_MAP: Record<string, { name: string; icon: string }> = {
   'BSE:SENSEX': { name: 'SENSEX', icon: 'fas fa-chart-area' },
   'NSE:NIFTY BANK': { name: 'BANK NIFTY', icon: 'fas fa-building' },
   'CDS:USDINR26JULFUT': { name: 'USD/INR', icon: 'fas fa-dollar-sign' },
-  'MCX:CRUDEOIL26JULFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
+  'MCX:CRUDEOIL26AUGFUT': { name: 'CRUDE OIL', icon: 'fas fa-oil-can' },
   'MCX:GOLD26AUGFUT': { name: 'GOLD', icon: 'fas fa-coins' },
   'MCX:SILVER26SEPFUT': { name: 'SILVER', icon: 'fas fa-gem' },
-  'MCX:NATURALGAS26JULFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
+  'MCX:NATURALGAS26AUGFUT': { name: 'NAT GAS', icon: 'fas fa-fire' },
 };
 
 type MarketItem = { name: string; price: number; change: number; changeAmt?: number; type: string; icon: string };

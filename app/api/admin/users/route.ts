@@ -139,16 +139,26 @@ export async function POST(request: Request): Promise<Response> {
     if (authResult instanceof Response) return authResult;
     const { adminClient, callerUser, callerRole } = authResult;
 
-    // We no longer strictly hardcode broker checks here unless it's a structural limitation.
-    // But let's leave the broker check for now if needed, or rely on permissions.
-    // If they have CREATE_USER, they can create users. If they try to create a broker, we check if they have CREATE_BROKER.
-    // Validates: Requirement 6.4
     let body: Record<string, unknown>;
     try {
       body = await request.json();
     } catch {
       return Response.json({ error: 'Invalid request body' }, { status: 400 });
     }
+
+    const requestedRole = (body.role as string)?.toLowerCase();
+
+    // Hierarchy Enforcement
+    if (requestedRole === 'super_admin' && callerRole !== 'super_admin') {
+      return Response.json({ error: 'Only Super Admins can create other Super Admins' }, { status: 403 });
+    }
+    if (requestedRole === 'admin' && callerRole !== 'super_admin') {
+      return Response.json({ error: 'Only Super Admins can create Admins' }, { status: 403 });
+    }
+    if (requestedRole === 'broker' && !['super_admin', 'admin'].includes(callerRole)) {
+      return Response.json({ error: 'Only Admins and Super Admins can create Brokers' }, { status: 403 });
+    }
+
 
     // Step 3: Validate required fields
     // Validates: Requirement 3.8

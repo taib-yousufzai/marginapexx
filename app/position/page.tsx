@@ -225,7 +225,7 @@ export default function PositionPage() {
     setTradeSheetItem({
       name: pos.symbol,
       symbol: pos.symbol,
-      kiteSymbol: pos.symbol,
+      kiteSymbol: pos.kite_instrument || pos.symbol,
       segment: pos.settlement || 'INR',
       price: pos.current_ltp,
       change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
@@ -242,7 +242,7 @@ export default function PositionPage() {
       setTradeSheetItem({
         name: pos.symbol,
         symbol: pos.symbol,
-        kiteSymbol: pos.symbol,
+        kiteSymbol: pos.kite_instrument || pos.symbol,
         segment: pos.settlement || 'INR',
         price: pos.current_ltp,
         change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
@@ -258,7 +258,7 @@ export default function PositionPage() {
     setTradeSheetItem({
       name: pos.symbol,
       symbol: pos.symbol,
-      kiteSymbol: pos.symbol,
+      kiteSymbol: pos.kite_instrument || pos.symbol,
       segment: pos.settlement || 'INR',
       price: pos.current_ltp,
       change: `${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%`,
@@ -967,7 +967,7 @@ export default function PositionPage() {
                               {/* Left Side: Symbol and Metadata */}
                               <div className="pos-detail-left-col">
                                 <div className="pos-detail-symbol">
-                                  <span className="pos-symbol-text">{pos.symbol}</span>
+                                  <span className="pos-symbol-text">{pos.kite_instrument ? pos.kite_instrument.split(':').pop() : pos.symbol}</span>
                                 </div>
                                 <div className="pos-detail-meta">
                                   <div className="pos-detail-meta-row">
@@ -1068,7 +1068,7 @@ export default function PositionPage() {
                         <div key={pos.id} className="pos-card" onClick={() => handleRowClick(pos)}>
                           <div className="pos-card-left">
                             <div className="pos-card-symbol">
-                              <span className="pos-symbol-text">{pos.symbol}</span>
+                              <span className="pos-symbol-text">{pos.kite_instrument ? pos.kite_instrument.split(':').pop() : pos.symbol}</span>
                             </div>
                             <div className="pos-card-details">
                               <span>Entry: <strong>{fmtPrice(pos.entry_price, pos.settlement)}</strong></span>

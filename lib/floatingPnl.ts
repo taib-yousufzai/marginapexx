@@ -47,7 +47,7 @@ export interface FloatingPnlParams {
  * @param totalFloatingLoss - Sum of unrealised losses only (must be ≤ 0; profits ignored)
  */
 export function calculateFreeMargin(balance: number, totalLockedMargin: number, totalFloatingPnl: number): number {
-  return balance - totalLockedMargin + totalFloatingPnl;
+  return balance - totalLockedMargin + Math.min(0, totalFloatingPnl);
 }
 
 /**

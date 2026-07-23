@@ -632,7 +632,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [showCharges, setShowCharges] = useState(false);
 
   const underlyingSym = getUnderlyingSymbol(symbol);
-  const isIndex = symbol.includes('NIFTY') || symbol.includes('BANKNIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX');
+  const isIndex = (symbol.includes('NIFTY') || symbol.includes('SENSEX') || symbol.includes('BANKEX') || symbol === 'INDIA VIX') && !symbol.includes('FUT') && !symbol.includes('OPT') && !symbol.match(/(CE|PE)$/i);
 
   const { data: chainData, isLoading: chainLoading } = useSWR(
     activeSegment === 'chain' && !isCrypto && !segment.toUpperCase().includes('FOREX')

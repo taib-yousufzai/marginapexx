@@ -7,7 +7,8 @@
  * Validates: Requirements 25.7, 25.8, 25.9, 25.10, 25.11, 25.12, 25.13, 26.4, 26.5
  */
 
-import { requireSuperAdmin } from '../../_auth';
+import { requireAdmin } from '../../_auth';
+import { getRole } from '@/lib/auth';
 
 // ---------------------------------------------------------------------------
 // PATCH handler — partial update
@@ -32,11 +33,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize — super_admin only
+    // Step 1: Authenticate and authorize — admin or super_admin
     // Validates: Requirements 25.7, 26.4
-    const authResult = await requireSuperAdmin(request);
+    const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
+    const callerRole = getRole(callerUser);
 
     // Step 2: Resolve dynamic route param
     const resolvedParams = await Promise.resolve(params);
@@ -46,12 +48,17 @@ export async function PATCH(
     // Validates: Requirements 25.8, 25.9
     const { data: existingRow, error: fetchError } = await adminClient
       .from('payment_accounts')
-      .select('id')
+      .select('id, created_by')
       .eq('id', id)
       .single();
 
     if (fetchError || existingRow === null) {
       return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    // Admins can only edit their own accounts
+    if (callerRole === 'admin' && existingRow.created_by !== callerUser.id) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Step 4: Parse body — detect content-type to handle multipart vs JSON
@@ -211,11 +218,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ): Promise<Response> {
   try {
-    // Step 1: Authenticate and authorize — super_admin only
+    // Step 1: Authenticate and authorize — admin or super_admin
     // Validates: Requirements 25.7, 26.5
-    const authResult = await requireSuperAdmin(request);
+    const authResult = await requireAdmin(request);
     if (authResult instanceof Response) return authResult;
-    const { adminClient } = authResult;
+    const { adminClient, callerUser } = authResult;
+    const callerRole = getRole(callerUser);
 
     // Step 2: Resolve dynamic route param
     const resolvedParams = await Promise.resolve(params);
@@ -225,12 +233,17 @@ export async function DELETE(
     // Validates: Requirements 25.8, 25.9
     const { data: existingRow, error: fetchError } = await adminClient
       .from('payment_accounts')
-      .select('id')
+      .select('id, created_by')
       .eq('id', id)
       .single();
 
     if (fetchError || existingRow === null) {
       return Response.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    // Admins can only delete their own accounts
+    if (callerRole === 'admin' && existingRow.created_by !== callerUser.id) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Step 4: Delete the row

@@ -4695,4 +4695,98 @@
   border-color: #f85149;
   color: #f85149;
   background: rgba(248, 81, 73, 0.05);
+}/* Redesigned Dashboard Styles */
+.adm-db-hero-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.adm-db-hero-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+  transition: transform 0.2s, background 0.2s;
+}
+.adm-db-hero-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+.adm-db-hero-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.adm-db-hero-title {
+  color: #8b949e;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.adm-db-hero-value {
+  color: #c9d1d9;
+  font-size: 1.8rem;
+  font-weight: 700;
+  font-family: monospace;
+}
+.adm-db-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.adm-db-panel {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+}
+.adm-db-panel-title {
+  color: #e6edf3;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 12px;
+}
+.adm-db-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.adm-db-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.adm-db-stat-row:last-child {
+  border-bottom: none;
+}
+.adm-db-stat-label {
+  color: #8b949e;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.adm-db-stat-value {
+  color: #c9d1d9;
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 1rem;
 }
