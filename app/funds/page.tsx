@@ -525,8 +525,8 @@ export default function FundsPage() {
                   {activeTab === 'withdraw' && (
                     <div className="withdraw-container fadeInUp">
                       <div className="margin-available-box">
-                        <div className="margin-header"><span className="margin-label">AVAILABLE FOR WITHDRAWAL</span></div>
-                        <div className="margin-value">₹{balance?.toLocaleString('en-IN') || '0'}</div>
+                        <div className="margin-header"><span className="margin-label">WITHDRAWAL DETAILS</span></div>
+                        <div className="margin-value">₹{balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</div>
                         <div className="margin-footer"><i className="fas fa-shield-check"></i> 100% Secure Withdrawal</div>
                       </div>
 

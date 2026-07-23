@@ -216,6 +216,7 @@ body.dark .rp-date-input { color-scheme: dark; }
     display: flex; flex-direction: column;
     align-items: center; gap: 0.25rem;
     position: relative; overflow: hidden;
+    flex-shrink: 0;
 }
 .rp-pnl-hero.profit { background: linear-gradient(135deg, #1A3A2A, #0D2818); border: 1px solid #1A4A2A; }
 .rp-pnl-hero.loss   { background: linear-gradient(135deg, #3A1010, #2A0808); border: 1px solid #4A1A1A; }
@@ -237,7 +238,7 @@ body:not(.dark) .rp-pnl-hero.loss .rp-pnl-hero-value { color: #DC2626; }
 body:not(.dark) .rp-pnl-hero.loss .rp-pnl-hero-sub   { color: #F87171; }
 
 /* ── Stats grid ── */
-.rp-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
+.rp-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; flex-shrink: 0; }
 
 .rp-stat-card {
     background: var(--card-bg, #FFFFFF);
@@ -261,7 +262,7 @@ body:not(.dark) .rp-pnl-hero.loss .rp-pnl-hero-sub   { color: #F87171; }
 .rp-stat-unit { font-size: 1rem; font-weight: 700; letter-spacing: 0; }
 
 /* ── Breakdown ── */
-.rp-breakdown { background: var(--card-bg, #FFFFFF); border: 1px solid var(--border-card, #E2E6EA); border-radius: 1rem; overflow: hidden; }
+.rp-breakdown { background: var(--card-bg, #FFFFFF); border: 1px solid var(--border-card, #E2E6EA); border-radius: 1rem; overflow: hidden; flex-shrink: 0; }
 .rp-breakdown-row { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light, #E8ECF0); }
 .rp-breakdown-row:last-child { border-bottom: none; }
 .rp-breakdown-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary, #6B7280); display: flex; align-items: center; gap: 0.5rem; }
@@ -273,7 +274,7 @@ body.dark .rp-breakdown-val.profit { color: #4ADE80; }
 body.dark .rp-breakdown-val.loss   { color: #F87171; }
 
 /* ── Section label ── */
-.rp-section-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted, #9CA3AF); text-transform: uppercase; letter-spacing: 1px; padding-left: 2px; margin-top: 0.25rem; }
+.rp-section-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted, #9CA3AF); text-transform: uppercase; letter-spacing: 1px; padding-left: 2px; margin-top: 0.25rem; flex-shrink: 0; }
 
 /* ── Order count / fake banner ── */
 .rp-order-count { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary, #6B7280); padding: 2px 0; }
