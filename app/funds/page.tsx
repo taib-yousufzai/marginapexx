@@ -60,6 +60,9 @@ export default function FundsPage() {
   const [isAddingAccount, setIsAddingAccount] = useState<boolean>(false);
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState<boolean>(false);
 
+  const [rules, setRules] = useState<any>(null);
+  const [showRules, setShowRules] = useState<boolean>(false);
+
   const [utr, setUtr] = useState<string>('');
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -113,6 +116,11 @@ export default function FundsPage() {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }).then(res => res.ok ? res.json() : null).then(data => {
           if (!cancelled && data) setIsDemo(data.demo_user === true);
+        }).catch(() => {});
+        fetch('/api/pay/rules', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        }).then(res => res.ok ? res.json() : null).then(data => {
+          if (!cancelled && data) setRules(data);
         }).catch(() => {});
       }
     });
@@ -379,6 +387,9 @@ export default function FundsPage() {
                 <div className="payment-box">
                   {activeTab === 'deposit' && (
                     <div className="deposit-container">
+                      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                         <span style={{ fontSize: '0.7rem', color: '#006400', background: 'rgba(0,100,0,0.1)', padding: '4px 8px', borderRadius: '4px', fontWeight: 700 }}><i className="fas fa-clock"></i> 24*7 Deposits Available</span>
+                      </div>
                       {!submitted && (
                         <div className="deposit-stepper" style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
                           {[1, 2, 3].map(s => (
@@ -524,8 +535,20 @@ export default function FundsPage() {
 
                   {activeTab === 'withdraw' && (
                     <div className="withdraw-container fadeInUp">
-                      <div className="margin-available-box">
-                        <div className="margin-header"><span className="margin-label">WITHDRAWAL DETAILS</span></div>
+                      <div className="margin-available-box" style={{ position: 'relative' }}>
+                        <div className="margin-header">
+                          <span className="margin-label">WITHDRAWAL DETAILS</span>
+                          <div style={{ position: 'relative', display: 'inline-block', marginLeft: '8px' }}>
+                            <i className="fas fa-info-circle" style={{ color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setShowRules(!showRules)} />
+                            {showRules && rules && (
+                              <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '8px', background: 'var(--card-bg)', border: '1px solid var(--border-card)', padding: '12px', borderRadius: '8px', zIndex: 10, width: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', textAlign: 'left' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-primary)', marginBottom: '8px' }}><strong>Timings:</strong> {rules.start_time} - {rules.end_time}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-primary)', marginBottom: '8px' }}><strong>Days:</strong> {(rules.allowed_days || []).join(', ')}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-primary)' }}><strong>Min Withdraw:</strong> ₹{rules.min_withdraw}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         <div className="margin-value">₹{balance?.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}</div>
                         <div className="margin-footer"><i className="fas fa-shield-check"></i> 100% Secure Withdrawal</div>
                       </div>
