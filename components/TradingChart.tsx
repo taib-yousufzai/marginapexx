@@ -617,6 +617,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   const [toast, setToast] = useState<{ visible: boolean; msg: string; isError?: boolean }>({ visible: false, msg: '' });
   const [segmentSettings, setSegmentSettings] = useState<any[]>([]);
   const [scriptSettings, setScriptSettings] = useState<{ symbol: string; lot_size: number }[]>([]);
+  const [profile, setProfile] = useState<{ trading_mode?: string } | null>(null);
 
   // ── CHARTINH Integration States ──
   const [activeOrderTab, setActiveOrderTab] = useState<'open' | 'executed'>('open');
@@ -767,24 +768,31 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       if (!token) return;
 
       const res = await fetch('/api/pay/balance', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
       if (typeof data.balance === 'number') {
         setBalance(data.balance);
       }
     } catch (err) {
-      // Use console.warn to avoid Next.js error overlay when adblockers block /api/pay/
-      console.warn('Failed to fetch balance (possibly blocked by adblocker):', err);
+      console.warn('Failed to fetch balance:', err);
     }
 
+    if (!token) return;
+
+    // Fetch profile trading_mode
+    let mode = 'normal';
     try {
-      if (!token) return;
-      // Fetch segment settings and script settings
       const profileRes = await supabase.from('profiles').select('trading_mode').single();
-      const mode = profileRes.data?.trading_mode || 'normal';
+      mode = profileRes.data?.trading_mode || 'normal';
+      console.log('[TradingChart] Profile trading_mode:', mode, 'error:', profileRes.error?.message);
+      setProfile({ trading_mode: mode });
+    } catch (err) {
+      console.warn('Failed to fetch profile:', err);
+    }
+
+    // Fetch segment + script settings
+    try {
       const [settingsRes, scriptRes] = await Promise.all([
         fetch(`/api/user/segments?mode=${mode}`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/user/script-settings', { headers: { Authorization: `Bearer ${token}` } }),
@@ -1157,7 +1165,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Exit position via order panel (allows choosing Market/SL)
   const handleExitPosition = (pos: EnrichedPosition) => {
-    if (profile?.trading_mode === 'scalper') {
+    if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
       handleQuickExit(pos.id);
       return;
     }
@@ -2036,7 +2044,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                         </span>
                       </button>
                       <button id="buyButton" className="trade-btn buy" onClick={() => {
-                        if (isTradeOnChartActive) {
+                        if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
                           handleQuickMarketOrder('BUY');
                         } else {
                           if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -2056,7 +2064,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                   ) : (
                     <>
                       <button id="sellButton" className="trade-btn sell" onClick={() => {
-                        if (isTradeOnChartActive) {
+                        if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
                           handleQuickMarketOrder('SELL');
                         } else {
                           if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -2086,7 +2094,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               ) : (
                 <div className="trade-buttons" id="tradeButtons" style={(isLandscape || isCssLandscape) && !isInfoPanelCollapsed ? { display: 'none' } : {}}>
                   <button id="sellButton" className="trade-btn sell" onClick={() => {
-                    if (isTradeOnChartActive) {
+                    if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
                       handleQuickMarketOrder('SELL');
                     } else {
                       if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
@@ -2103,7 +2111,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
                     <span className="btn-label">SELL</span>
                   </button>
                   <button id="buyButton" className="trade-btn buy" onClick={() => {
-                    if (isTradeOnChartActive) {
+                    if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
                       handleQuickMarketOrder('BUY');
                     } else {
                       if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
