@@ -35,12 +35,25 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
   const [subheadFloating, setSubheadFloating] = React.useState(false);
   const hasScrolledRef = React.useRef(false);
 
-  const atmStrike = React.useMemo(() => {
-    if (spotPrice <= 0 || strikes.length === 0) return null;
-    return strikes.reduce((prev, curr) =>
-      Math.abs(curr.strike - spotPrice) < Math.abs(prev.strike - spotPrice) ? curr : prev
-    );
+  const atmIndex = React.useMemo(() => {
+    if (spotPrice <= 0 || strikes.length === 0) return -1;
+    let bestIdx = 0;
+    let minDiff = Infinity;
+    strikes.forEach((s, i) => {
+      const diff = Math.abs(s.strike - spotPrice);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestIdx = i;
+      }
+    });
+    return bestIdx;
   }, [strikes, spotPrice]);
+
+  const atmStrike = atmIndex >= 0 ? strikes[atmIndex] : null;
+
+  React.useEffect(() => {
+    hasScrolledRef.current = false;
+  }, [strikes]);
 
   React.useEffect(() => {
     if (hasScrolledRef.current) return;
@@ -123,10 +136,11 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
 
         {/* Data rows */}
         <div className="oct-body">
-          {strikes.map((s) => {
+          {strikes.map((s, index) => {
+            const isOutOfRange = atmIndex !== -1 && Math.abs(index - atmIndex) > 5;
             const ceQuote = getQuote(s.ce?.id, s.ce?.token);
             const peQuote = getQuote(s.pe?.id, s.pe?.token);
-            const isAtm = s.strike === atmStrike?.strike;
+            const isAtm = index === atmIndex;
 
             const ceLtpVal = ceQuote ? ceQuote.lastPrice : s.ce?.price;
             const peLtpVal = peQuote ? peQuote.lastPrice : s.pe?.price;
@@ -139,16 +153,25 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
             const ceLtp = ceLtpVal ? `\u20b9${ceLtpVal.toFixed(1)}` : '---';
             const peLtp = peLtpVal ? `\u20b9${peLtpVal.toFixed(1)}` : '---';
 
+            const handleTradeClick = (e: React.MouseEvent, symbol?: string, side?: 'BUY' | 'SELL') => {
+              e.stopPropagation();
+              if (isOutOfRange) {
+                alert('Out of range. Allowed range is +-5 from ATM.');
+                return;
+              }
+              if (symbol && side) onTrade(symbol, side);
+            };
+
             return (
               <div
                 key={s.strike}
                 ref={isAtm ? atmRef : null}
-                className={`oct-row${isAtm ? ' atm' : ''}`}
+                className={`oct-row${isAtm ? ' atm' : ''}${isOutOfRange ? ' out-of-range' : ''}`}
               >
                 {/* Calls */}
                 <div
                   className="oct-cell-calls"
-                  onClick={() => s.ce && onTrade(s.ce.symbol, 'BUY')}
+                  onClick={(e) => handleTradeClick(e, s.ce?.symbol, 'BUY')}
                 >
                   {priceMode === 'BA' ? (
                     <>
@@ -158,10 +181,10 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                   ) : (
                     <span className="oct-val call ltp-single">{ceLtp}</span>
                   )}
-                  {s.ce && (
+                  {s.ce && !isOutOfRange && (
                     <div className="hover-actions">
-                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); if (s.ce) onTrade(s.ce.symbol, 'BUY'); }}>B</button>
-                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); if (s.ce) onTrade(s.ce.symbol, 'SELL'); }}>S</button>
+                      <button className="btn-buy" onClick={(e) => handleTradeClick(e, s.ce?.symbol, 'BUY')}>B</button>
+                      <button className="btn-sell" onClick={(e) => handleTradeClick(e, s.ce?.symbol, 'SELL')}>S</button>
                     </div>
                   )}
                 </div>
@@ -176,7 +199,7 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                 {/* Puts */}
                 <div
                   className="oct-cell-puts"
-                  onClick={() => s.pe && onTrade(s.pe.symbol, 'BUY')}
+                  onClick={(e) => handleTradeClick(e, s.pe?.symbol, 'BUY')}
                 >
                   {priceMode === 'BA' ? (
                     <>
@@ -186,10 +209,10 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
                   ) : (
                     <span className="oct-val put ltp-single">{peLtp}</span>
                   )}
-                  {s.pe && (
+                  {s.pe && !isOutOfRange && (
                     <div className="hover-actions">
-                      <button className="btn-buy" onClick={(e) => { e.stopPropagation(); if (s.pe) onTrade(s.pe.symbol, 'BUY'); }}>B</button>
-                      <button className="btn-sell" onClick={(e) => { e.stopPropagation(); if (s.pe) onTrade(s.pe.symbol, 'SELL'); }}>S</button>
+                      <button className="btn-buy" onClick={(e) => handleTradeClick(e, s.pe?.symbol, 'BUY')}>B</button>
+                      <button className="btn-sell" onClick={(e) => handleTradeClick(e, s.pe?.symbol, 'SELL')}>S</button>
                     </div>
                   )}
                 </div>
@@ -325,6 +348,13 @@ export default function OptionChainTable({ strikes, quotes, spotPrice, onTrade, 
         }
         .oct-row:last-child { border-bottom: none; }
         .oct-row:active { opacity: 0.7; }
+        .oct-row.out-of-range {
+          opacity: 0.4;
+          background: #fdfdfd;
+        }
+        :global(body.dark) .oct-row.out-of-range {
+          background: #111;
+        }
 
         .oct-row.atm {
           border-top: 2px solid rgba(198,46,46,0.25);

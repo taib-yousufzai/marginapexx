@@ -582,9 +582,10 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     const s = symbol.toUpperCase();
     const spotIndices = [
       'NIFTY 50', 'NIFTY BANK', 'SENSEX', 'NIFTY FIN SERVICE', 'NIFTY MID SELECT', 'BANKEX',
-      'NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'BSE:BANKEX'
+      'NSE:NIFTY 50', 'NSE:NIFTY BANK', 'BSE:SENSEX', 'NSE:NIFTY FIN SERVICE', 'NSE:NIFTY MID SELECT', 'BSE:BANKEX',
+      'NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'
     ];
-    return spotIndices.includes(s);
+    return spotIndices.includes(s) || s.endsWith('_INDEX');
   }, [symbol]);
 
   // --- Real Data Hooks ---
@@ -970,6 +971,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       return;
     }
     const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
+    const finalLots = useLots ? qVal : (finalQty / lotSize);
 
     // Determine the base execution price
     // For add-more/exit flow on a different instrument, use that position's LTP not the chart price
@@ -1045,11 +1047,12 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       orderKiteInstrument = chainContract.kiteId || `${prefix}:${orderSymbol}`;
       orderSegment = 'INDEX-OPT';
     } else {
-      // For exit/add-more flows on options, ensure kite instrument has prefix
-      if (orderSymbol && (orderSymbol.endsWith('CE') || orderSymbol.endsWith('PE')) && !orderKiteInstrument.includes(':')) {
+      // For exit/add-more flows on options and futures, ensure kite instrument has prefix
+      if (orderSymbol && (orderSymbol.endsWith('CE') || orderSymbol.endsWith('PE') || orderSymbol.endsWith('FUT') || orderSymbol.includes('FUT')) && !orderKiteInstrument.includes(':')) {
         let prefix = 'NFO';
         if (orderSymbol.startsWith('SENSEX') || orderSymbol.startsWith('BANKEX')) prefix = 'BFO';
         else if (orderSymbol.startsWith('GOLD') || orderSymbol.startsWith('SILVER') || orderSymbol.startsWith('CRUDE') || orderSymbol.startsWith('NATGAS')) prefix = 'MCX';
+        else if (orderSymbol.startsWith('EURINR') || orderSymbol.startsWith('USDINR') || orderSymbol.startsWith('GBPINR') || orderSymbol.startsWith('JPYINR')) prefix = 'CDS';
         orderKiteInstrument = `${prefix}:${orderSymbol}`;
       }
     }
@@ -1071,7 +1074,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       segment: orderSegment,
       side: orderSide,
       qty: finalQty,
-      lots: useLots ? Number(qtyValue) : 0,
+      lots: finalLots,
       order_type: orderType.toUpperCase() as any,
       product_type: orderCarry === 'carry' ? 'CARRY' : 'INTRADAY',
       client_price: finalPrice,
@@ -1239,7 +1242,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       segment: segment,
       side: side,
       qty: finalQty,
-      lots: useLots ? qVal : 0,
+      lots: useLots ? qVal : (finalQty / lotSize),
       order_type: 'MARKET',
       product_type: 'INTRADAY',
       client_price: 0,

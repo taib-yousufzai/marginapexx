@@ -435,6 +435,27 @@ export async function GET(request: NextRequest) {
     }
     validRows = Array.from(uniqueMap.values());
 
+    // Remove future contracts with null expiry if dated versions exist
+    const futMap = new Map<string, any[]>();
+    for (const r of validRows) {
+      if (r.instrument_type?.startsWith('FUT') || ['FUT', 'MAPPED_FUT'].includes(r.instrument_type)) {
+        const key = r.name || r.underlying_symbol || r.tradingsymbol;
+        if (!futMap.has(key)) futMap.set(key, []);
+        futMap.get(key)!.push(r);
+      }
+    }
+    for (const [key, futs] of futMap.entries()) {
+      const hasDated = futs.some(f => f.expiry !== null && f.expiry !== undefined);
+      if (hasDated) {
+        validRows = validRows.filter(r => {
+          if ((r.name || r.underlying_symbol || r.tradingsymbol) === key && (r.instrument_type?.startsWith('FUT') || ['FUT', 'MAPPED_FUT'].includes(r.instrument_type))) {
+            return r.expiry !== null && r.expiry !== undefined;
+          }
+          return true;
+        });
+      }
+    }
+
     // Ranking algorithm
     const qLower = q.toLowerCase();
     

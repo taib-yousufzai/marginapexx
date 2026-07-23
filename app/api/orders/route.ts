@@ -1046,17 +1046,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (is_exit) {
     if (isLong) {
       if (orderTarget !== null && orderTarget <= baseLtp) {
-        return NextResponse.json({ error: 'Target price must be above the current market price (LTP).' }, { status: 400 });
+        return NextResponse.json({ error: `Target price must be above the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
-      if (orderSL !== null && orderSL >= baseLtp) {
-        return NextResponse.json({ error: 'Stop loss price must be below the current market price (LTP).' }, { status: 400 });
+      if (orderStopLoss !== null && orderStopLoss >= baseLtp) {
+        return NextResponse.json({ error: `Stop Loss must be strictly below the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     } else {
       if (orderTarget !== null && orderTarget >= baseLtp) {
-        return NextResponse.json({ error: 'Target price must be below the current market price (LTP).' }, { status: 400 });
+        return NextResponse.json({ error: `Target price must be below the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
-      if (orderSL !== null && orderSL <= baseLtp) {
-        return NextResponse.json({ error: 'Stop loss price must be above the current market price (LTP).' }, { status: 400 });
+      if (orderStopLoss !== null && orderStopLoss <= baseLtp) {
+        return NextResponse.json({ error: `Stop Loss must be strictly above the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     }
   } else {
@@ -1065,26 +1065,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (isLong) {
       if (orderSL !== null) {
         if (orderSL >= baseLtp) {
-          return NextResponse.json({ error: 'Stop loss price must be below the current market price (LTP).' }, { status: 400 });
+          return NextResponse.json({ error: `Stop loss price must be below the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
         }
         if (hasLimitPrice && orderSL >= client_price) {
           return NextResponse.json({ error: 'Stop loss price must be below the limit price.' }, { status: 400 });
         }
       }
       if (orderTarget !== null && orderTarget < baseLtp) {
-        return NextResponse.json({ error: 'Target price must be above or equal to the current market price (LTP).' }, { status: 400 });
+        return NextResponse.json({ error: `Target price must be above or equal to the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     } else {
       if (orderSL !== null) {
         if (orderSL <= baseLtp) {
-          return NextResponse.json({ error: 'Stop loss price must be above the current market price (LTP).' }, { status: 400 });
+          return NextResponse.json({ error: `Stop loss price must be above the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
         }
         if (hasLimitPrice && orderSL <= client_price) {
           return NextResponse.json({ error: 'Stop loss price must be above the limit price.' }, { status: 400 });
         }
       }
       if (orderTarget !== null && orderTarget > baseLtp) {
-        return NextResponse.json({ error: 'Target price must be below or equal to the current market price (LTP).' }, { status: 400 });
+        return NextResponse.json({ error: `Target price must be below or equal to the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     }
   }
