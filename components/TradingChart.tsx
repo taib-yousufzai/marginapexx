@@ -1157,6 +1157,11 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
 
   // Exit position via order panel (allows choosing Market/SL)
   const handleExitPosition = (pos: EnrichedPosition) => {
+    if (profile?.trading_mode === 'scalper') {
+      handleQuickExit(pos.id);
+      return;
+    }
+
     if (isLandscape || isCssLandscape) setIsInfoPanelCollapsed(true);
     else setIsPanelExpanded(false);
     setIsExitFlow(true);
@@ -1222,7 +1227,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       showToast("Invalid quantity", true);
       return;
     }
-    const finalQty = useLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
+    const isScalper = profile?.trading_mode === 'scalper';
+    const effectiveUseLots = isScalper ? true : useLots;
+    const finalQty = effectiveUseLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
 
     const dbSeg = mapSegmentToDbSegment(segment);
     const segSetting = segmentSettings.find(s => s.segment === dbSeg && s.side === side);
@@ -1242,7 +1249,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       segment: segment,
       side: side,
       qty: finalQty,
-      lots: useLots ? qVal : (finalQty / lotSize),
+      lots: effectiveUseLots ? qVal : (finalQty / lotSize),
       order_type: 'MARKET',
       product_type: 'INTRADAY',
       client_price: 0,
