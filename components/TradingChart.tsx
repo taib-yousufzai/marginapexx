@@ -1166,7 +1166,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
   // Exit position via order panel (allows choosing Market/SL)
   const handleExitPosition = (pos: EnrichedPosition) => {
     if (isTradeOnChartActive || profile?.trading_mode === 'scalper') {
-      handleQuickExit(pos.id);
+      handleQuickExit(pos);
       return;
     }
 
@@ -1195,15 +1195,44 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     setIsOrderBlockVisible(true);
   };
 
-  // Direct quick-exit (instant market close)
-  const handleQuickExit = async (id: string) => {
-    showToast('Exiting position...');
-    const res = await closePosition(id);
+  // Direct quick-exit (instant market close of selected lot size)
+  const handleQuickExit = async (pos: EnrichedPosition) => {
+    const qVal = Number(qtyValue) || 0;
+    if (qVal <= 0) {
+      showToast("Invalid quantity", true);
+      return;
+    }
+    const isScalper = profile?.trading_mode === 'scalper';
+    const effectiveUseLots = isScalper ? true : useLots;
+    const requestedQty = effectiveUseLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
+    
+    // Cap at the open position quantity to prevent flipping the position accidentally
+    const finalQty = Math.min(requestedQty, pos.qty_open);
+
+    if (finalQty <= 0) return;
+
+    const exitSide = pos.side === 'BUY' ? 'SELL' : 'BUY';
+    const effectiveLots = effectiveUseLots ? (finalQty / lotSize) : (finalQty / lotSize);
+
+    showToast(`Placing quick exit order...`);
+    const res = await placeOrder({
+      symbol: pos.symbol,
+      kite_instrument: pos.symbol,
+      segment: pos.settlement || segment,
+      side: exitSide,
+      qty: finalQty,
+      lots: effectiveLots,
+      order_type: 'MARKET',
+      product_type: pos.product_type || 'INTRADAY',
+    });
+
     if (res.success) {
-      showToast('Position closed');
-      refreshPositions();
-      fetchBalance();
-      window.dispatchEvent(new CustomEvent('position-closed'));
+      showToast(`Quick exit order placed`);
+      refreshOrders();
+      setTimeout(() => {
+        refreshPositions();
+        fetchBalance();
+      }, 1000); // Give DB time to match
     } else {
       showToast(res.error || 'Exit failed', true);
     }
