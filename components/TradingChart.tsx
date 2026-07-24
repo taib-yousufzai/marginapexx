@@ -1475,6 +1475,9 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       if (chainLoading) {
         return <div className="empty-state">Loading chain...</div>;
       }
+      if (!chainStrikes || chainStrikes.length === 0) {
+        return <div className="empty-state">Option chain data is currently unavailable for {symbol}.</div>;
+      }
 
       const handleTableTrade = (tradeSymbol: string, defaultAction: 'BUY' | 'SELL') => {
         // tradeSymbol = "NIFTY26JUN24000CE|221.45|0|NFO:NIFTY26JUN24000CE"
@@ -1505,7 +1508,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
           <OptionChainTable
             strikes={mappedStrikes}
             quotes={marketQuotes}
-            spotPrice={currentPrice || 71.00}
+            spotPrice={chainData?.underlyingPrice || currentPrice || 71.00}
             onTrade={handleTableTrade}
             priceMode="LTP"
             stickyTop={0}
@@ -1930,7 +1933,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
               chartType={chartType}
               candles={historicalCandles}
               liveQuote={activeLiveQuote}
-              loading={loading && !hasLoadedData.current}
+              loading={loading}
               error={error}
             />
           </div>

@@ -26,9 +26,11 @@ export class RealtimeProvider {
     this.subscribers.delete(uid); // no-op if not present
   }
 
-  setLastBar(bar: Bar): void {
+  setLastBar(bar: Bar, resolution?: string): void {
     for (const entry of this.subscribers.values()) {
-      entry.lastBar = bar;
+      if (!resolution || entry.resolution === resolution) {
+        entry.lastBar = bar;
+      }
     }
   }
 

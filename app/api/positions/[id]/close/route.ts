@@ -317,18 +317,8 @@ export async function POST(
     commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
   });
 
-  // Check if carry brokerage was already deducted during an INTRADAY -> CARRY conversion
-  if (carryBrokerage > 0) {
-    const { data: convTx } = await admin.from('transactions')
-      .select('id')
-      .eq('ref_id', `CARRY_CONV_${positionId}`)
-      .eq('type', 'BROKERAGE_DEBIT')
-      .limit(1);
-    
-    if (convTx && convTx.length > 0) {
-      carryBrokerage = 0; // Already paid during conversion, don't double charge
-    }
-  }
+  // Carry brokerage is always charged at exit for CARRY positions.
+  // Conversions no longer deduct it upfront, so there's no need to check for CARRY_CONV txs.
 
   // Call the atomic RPC
   const { data: pnl, error: rpcErr } = await admin.rpc('close_position', {

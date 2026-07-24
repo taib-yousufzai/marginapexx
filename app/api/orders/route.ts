@@ -500,9 +500,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const instrumentsToFetch = [kiteInst];
   const isOption = dbSegment.includes('OPT');
-  const underlyingId = dbSegment.includes('BANK') ? 'NSE:NIFTY BANK' : 'NSE:NIFTY 50';
-  if (isOption && underlyingId !== kiteInst) {
-    instrumentsToFetch.push(underlyingId);
+  let underlyingId = 'NSE:NIFTY 50';
+  if (isOption) {
+    const parsed = parseOptionSymbol(symbol);
+    const u = parsed?.underlying || '';
+    if (u === 'BANKNIFTY') underlyingId = 'NSE:NIFTY BANK';
+    else if (u === 'FINNIFTY') underlyingId = 'NSE:NIFTY FIN SERVICE';
+    else if (u === 'SENSEX') underlyingId = 'BSE:SENSEX';
+    else if (u === 'BANKEX') underlyingId = 'BSE:BANKEX';
+    else if (u === 'MIDCPNIFTY') underlyingId = 'NSE:NIFTY MID SELECT';
+    else if (u !== 'NIFTY') underlyingId = `NSE:${u}`;
+
+    if (underlyingId !== kiteInst) {
+      instrumentsToFetch.push(underlyingId);
+    }
   }
 
   // ── Step B: Fire ALL remaining independent queries in one parallel batch ──
@@ -826,7 +837,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Strike Range check — reuse the already-fetched quotes (no second Kite call)
   if (isOption && segSetting.strike_range > 0 && kiteLtp) {
-    const strikePrice = parseFloat(symbol.match(/\d+/)?.[0] || '0');
+    const parsedOption = parseOptionSymbol(symbol);
+    const strikePrice = parsedOption ? parsedOption.strike : 0;
     if (strikePrice > 0) {
       const spot = quotesMap[underlyingId];
       if (spot) {
@@ -898,26 +910,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const lotsUsed = lots > 0 ? lots : (qty / symbolLotSize);
 
-  // Calculate base charge based on product type (or forced CARRY for GTT)
-  if (targetProductType === 'CARRY' || order_type === 'GTT') {
-    const carryCommType = segSetting.carry_commission_type || segSetting.commission_type || 'Per Crore';
-    const carryCommVal = Number(segSetting.carry_commission_value ?? segSetting.commission_value ?? 0);
-    carryCharge = calculateSingleLegCharge({
-      exposure,
-      lots: lotsUsed,
-      commissionType: carryCommType,
-      commissionValue: carryCommVal,
-    });
-  } else {
-    const intradayCommType = segSetting.commission_type || 'Per Crore';
-    const intradayCommVal = Number(segSetting.commission_value ?? 0);
-    intradayCharge = calculateSingleLegCharge({
-      exposure,
-      lots: lotsUsed,
-      commissionType: intradayCommType,
-      commissionValue: intradayCommVal,
-    });
-  }
+  // 1. Base Commission (ALWAYS applied as intraday at entry, matching DB temp_merge.sql)
+  const intradayCommType = segSetting.commission_type || 'Per Crore';
+  const intradayCommVal = Number(segSetting.commission_value ?? 0);
+  intradayCharge = calculateSingleLegCharge({
+    exposure,
+    lots: lotsUsed,
+    commissionType: intradayCommType,
+    commissionValue: intradayCommVal,
+  });
+
+  // Carry Commission is DEFERRED to exit time (or conversion time).
+  // We do not require it upfront in the margin check to match the DB which charges 0 carry at entry.
+  carryCharge = 0;
 
   // GTT
   if (order_type === 'GTT') {

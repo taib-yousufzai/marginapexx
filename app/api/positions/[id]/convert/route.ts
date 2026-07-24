@@ -117,58 +117,8 @@ export async function POST(
       }
     }
 
-    // 3.5 Deduct Carry Brokerage immediately if converting to CARRY
-    if (product_type === 'CARRY') {
-      const carryBrokerage = calculateCarryBrokerage({
-        productType: 'CARRY',
-        qty: Number(pos.qty_open),
-        entryPrice: Number(pos.entry_price),
-        lots: Number(pos.lots || 0) || undefined,
-        carryCommissionType: segSetting?.carry_commission_type,
-        carryCommissionValue: segSetting?.carry_commission_value != null ? Number(segSetting.carry_commission_value) : null,
-        commissionType: segSetting?.commission_type,
-        commissionValue: segSetting?.commission_value != null ? Number(segSetting.commission_value) : null,
-      });
-
-      if (carryBrokerage > 0) {
-        // We will insert a BROKERAGE_DEBIT transaction. The ref_id will uniquely mark it for this position's conversion.
-        const refIdStr = `CARRY_CONV_${positionId}`;
-
-        // Ensure we haven't already charged it
-        const { data: existingTx } = await admin.from('transactions')
-          .select('id')
-          .eq('ref_id', refIdStr)
-          .eq('type', 'BROKERAGE_DEBIT')
-          .limit(1);
-
-        if (!existingTx || existingTx.length === 0) {
-          const { error: txErr } = await admin.from('transactions').insert({
-            user_id: user.id,
-            type: 'BROKERAGE_DEBIT',
-            amount: carryBrokerage,
-            status: 'APPROVED',
-            ref_id: refIdStr,
-          });
-
-          if (txErr) {
-            console.error('[Positions Convert API] Error inserting carry brokerage transaction:', txErr);
-            return NextResponse.json({ error: 'Failed to process carry brokerage deduction.' }, { status: 500 });
-          }
-
-          // Deduct from balance
-          const { error: balErr } = await admin.rpc('decrement_balance', {
-            p_user_id: user.id,
-            p_amount: carryBrokerage
-          });
-          
-          if (balErr) {
-             console.error('[Positions Convert API] Error decrementing balance:', balErr);
-             // fallback to standard update if RPC fails
-             await admin.from('profiles').update({ balance: Number(profile.balance || 0) - carryBrokerage }).eq('id', user.id);
-          }
-        }
-      }
-    }
+    // 3.5 Carry Brokerage is NO LONGER deducted immediately.
+    // It is deferred to exit time by `temp_merge.sql` and `close/route.ts`.
 
     // 4. Update the position row itself in the positions table
     const updateData: any = { 
@@ -176,9 +126,7 @@ export async function POST(
       margin_required: newMarginRequired,
       locked_margin: newMarginRequired
     };
-    if (product_type === 'CARRY') {
-      updateData.carry_brokerage_paid = true;
-    }
+    // No need to set carry_brokerage_paid as it will be charged at exit
 
     const { error: posUpdateErr } = await admin.from('positions')
       .update(updateData)

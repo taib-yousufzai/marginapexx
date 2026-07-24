@@ -28,6 +28,7 @@ import { buildSymbolInfo } from './symbolResolver';
  */
 export class Datafeed implements IBasicDataFeed {
   private readonly realtimeProvider: RealtimeProvider;
+  private readonly lastBarCache = new Map<string, Bar>();
 
   constructor(private readonly segment: string) {
     this.realtimeProvider = new RealtimeProvider();
@@ -94,9 +95,11 @@ export class Datafeed implements IBasicDataFeed {
   ): Promise<void> {
     try {
       const { bars, noData } = await fetchBars(symbolInfo, resolution, periodParams, this.segment);
-      if (bars.length > 0) {
+      if (bars.length > 0 && (periodParams.firstDataRequest === undefined || periodParams.firstDataRequest)) {
+        const lastBar = bars[bars.length - 1] as Bar;
+        this.lastBarCache.set(resolution, lastBar);
         // Cast to the RealtimeProvider's local Bar type — shape is identical.
-        this.realtimeProvider.setLastBar(bars[bars.length - 1] as Bar);
+        this.realtimeProvider.setLastBar(lastBar, resolution);
       }
       onResult(bars, { noData });
     } catch (err) {
@@ -117,10 +120,11 @@ export class Datafeed implements IBasicDataFeed {
     listenerGuid: string,
     _onResetCacheNeededCallback: () => void,
   ): void {
+    const lastBar = this.lastBarCache.get(resolution) || null;
     this.realtimeProvider.subscribe(listenerGuid, {
       callback: onTick,
       resolution,
-      lastBar: null,
+      lastBar,
     });
   }
 

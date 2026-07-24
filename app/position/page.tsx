@@ -1514,7 +1514,7 @@ export default function PositionPage() {
                 <div className="pos-modal-desc" style={{ color: 'var(--text-secondary)' }}>
                   {convertConfirmPos?.product_type === 'INTRADAY' ? (
                     <>
-                      When you convert intraday to carry there's a deduction of carry brokerage, which would be deducted immediately.
+                      Converting to CARRY will apply an overnight carry brokerage fee. This fee is deferred and will be charged when you exit the position.
                     </>
                   ) : (
                     <>
