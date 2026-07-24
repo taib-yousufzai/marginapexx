@@ -1204,7 +1204,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     }
     const isScalper = profile?.trading_mode === 'scalper';
     const effectiveUseLots = isScalper ? true : useLots;
-    const requestedQty = effectiveUseLots ? (isCrypto ? qVal * lotSize : Math.round(qVal * lotSize)) : (isCrypto ? qVal : Math.round(qVal));
+    const posLotSize = getLotSize(pos.symbol, scriptSettings);
+    const requestedQty = effectiveUseLots ? (isCrypto ? qVal * posLotSize : Math.round(qVal * posLotSize)) : (isCrypto ? qVal : Math.round(qVal));
     
     // Cap at the open position quantity to prevent flipping the position accidentally
     const finalQty = Math.min(requestedQty, pos.qty_open);
@@ -1212,7 +1213,7 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
     if (finalQty <= 0) return;
 
     const exitSide = pos.side === 'BUY' ? 'SELL' : 'BUY';
-    const effectiveLots = effectiveUseLots ? (finalQty / lotSize) : (finalQty / lotSize);
+    const effectiveLots = effectiveUseLots ? (finalQty / posLotSize) : (finalQty / posLotSize);
 
     showToast(`Placing quick exit order...`);
     const res = await placeOrder({
@@ -1224,6 +1225,8 @@ export default function TradingChart({ symbol: propSymbol, segment: propSegment 
       lots: effectiveLots,
       order_type: 'MARKET',
       product_type: pos.product_type || 'INTRADAY',
+      is_exit: true,
+      linked_position_id: pos.id
     });
 
     if (res.success) {
