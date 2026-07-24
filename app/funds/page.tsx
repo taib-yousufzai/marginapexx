@@ -553,6 +553,25 @@ export default function FundsPage() {
                         <div className="margin-footer"><i className="fas fa-shield-check"></i> 100% Secure Withdrawal</div>
                       </div>
 
+                      <div className="withdrawal-rules-list" style={{ marginBottom: '24px', background: 'var(--card-bg)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-card)' }}>
+                        <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Important Details</h4>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                           <i className="far fa-clock" style={{ color: 'var(--text-muted)', width: '24px', textAlign: 'center' }}></i>
+                           <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}><strong>Timings:</strong> {rules?.start_time || '10:00 AM'} to {rules?.end_time || '6:00 PM'} ({(rules?.allowed_days || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']).join(', ')})</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                           <i className="fas fa-coins" style={{ color: 'var(--text-muted)', width: '24px', textAlign: 'center' }}></i>
+                           <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}><strong>Min Withdrawal:</strong> ₹{rules?.min_withdraw || '1000'}</span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                           <i className="fas fa-level-up-alt" style={{ color: 'var(--text-muted)', width: '24px', textAlign: 'center' }}></i>
+                           <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}><strong>Daily Limit:</strong> No Limit</span>
+                        </div>
+                      </div>
+
                       <label>Withdrawal Amount</label>
                       <div className="amount-input-wrapper">
                         <span className="currency-symbol">₹</span>
@@ -581,7 +600,6 @@ export default function FundsPage() {
                           <i className="fas fa-chevron-right"></i>
                         </div>
                       </div>
-
                       <button className="submit-funds-btn" disabled={withdrawDisabled} onClick={handleWithdraw}>
                         {submitting ? 'Processing...' : 'Withdraw Funds'}
                       </button>
