@@ -404,41 +404,42 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 // ─── POST /api/orders ─────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // 1. Authenticate
-  let user = await getUserFromRequest(request);
-  if (!user) {
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader?.startsWith('Webhook ')) {
-      const token = authHeader.slice(8).trim();
-      const admin = getAdminClient();
-      const { data } = await admin
-        .from('profiles')
-        .select('id')
-        .eq('webhook_token', token)
-        .maybeSingle();
-      if (data) {
-        user = { id: data.id } as any;
+  try {
+    // 1. Authenticate
+    let user = await getUserFromRequest(request);
+    if (!user) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader?.startsWith('Webhook ')) {
+        const token = authHeader.slice(8).trim();
+        const admin = getAdminClient();
+        const { data } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('webhook_token', token)
+          .maybeSingle();
+        if (data) {
+          user = { id: data.id } as any;
+        }
       }
     }
-  }
-  if (!user) {
-    if (process.env.NODE_ENV === 'development') {
-      user = { id: 'dfa9b057-9187-4054-9ae6-9179c620666e' } as any; // Mock user ID for testing
-    } else {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        user = { id: 'dfa9b057-9187-4054-9ae6-9179c620666e' } as any; // Mock user ID for testing
+      } else {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
-  }
 
-  // 2. Parse body
-  let body: PlaceOrderRequest;
-  try {
-    body = await request.json() as PlaceOrderRequest;
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+    // 2. Parse body
+    let body: PlaceOrderRequest;
+    try {
+      body = await request.json() as PlaceOrderRequest;
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
-  const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit: body_is_exit, linked_position_id } = body;
-  let is_exit = body_is_exit === true || body_is_exit === 'true';
+    const { symbol: rawSymbol, kite_instrument, segment, side, order_type, product_type, qty, lots, client_price, trigger_price, stop_loss, target, is_exit: body_is_exit, linked_position_id } = body;
+    let is_exit = body_is_exit === true || body_is_exit === 'true';
 
   // Normalize crypto symbol: positions may be stored as 'ETH' or 'ETH/USDT'
   // but exit orders arrive as 'ETHUSDT' from the Binance feed. Strip the USDT
@@ -1053,14 +1054,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (orderTarget !== null && orderTarget <= baseLtp) {
         return NextResponse.json({ error: `Target price must be above the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
-      if (orderStopLoss !== null && orderStopLoss >= baseLtp) {
+      if (orderSL !== null && orderSL >= baseLtp) {
         return NextResponse.json({ error: `Stop Loss must be strictly below the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     } else {
       if (orderTarget !== null && orderTarget >= baseLtp) {
         return NextResponse.json({ error: `Target price must be below the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
-      if (orderStopLoss !== null && orderStopLoss <= baseLtp) {
+      if (orderSL !== null && orderSL <= baseLtp) {
         return NextResponse.json({ error: `Stop Loss must be strictly above the current market price (LTP: ${baseLtp.toFixed(2)}).` }, { status: 400 });
       }
     }
@@ -1329,5 +1330,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       : `${side} ${order_type} order placed (Pending) at ₹${fillPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
   };
 
-  return NextResponse.json(response, { status: 201 });
+    return NextResponse.json(response, { status: 201 });
+  } catch (globalError: any) {
+    console.error('[POST /api/orders] FATAL ERROR:', globalError);
+    return NextResponse.json({ error: 'Internal server error', details: globalError.message, stack: globalError.stack }, { status: 500 });
+  }
 }
